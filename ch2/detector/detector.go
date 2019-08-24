@@ -23,6 +23,7 @@ import (
 	"github.com/goki/gi/gi"
 	"github.com/goki/gi/gimain"
 	"github.com/goki/gi/giv"
+	"github.com/goki/gi/mat32"
 	"github.com/goki/ki/ki"
 	"github.com/goki/ki/kit"
 )
@@ -44,11 +45,16 @@ var ParamSets = params.Sets{
 		"Network": &params.Sheet{
 			{Sel: "Prjn", Desc: "no learning",
 				Params: params.Params{
-					"Prjn.Learn.Learn.On": "false",
+					"Prjn.Learn.Learn": "false",
 				}},
 			{Sel: "Layer", Desc: "no inhibition",
 				Params: params.Params{
 					"Layer.Inhib.Layer.On": "false",
+				}},
+			{Sel: "#Input", Desc: "set expected activity of input layer -- key for normalizing netinput",
+				Params: params.Params{
+					"Layer.Inhib.ActAvg.Init":  "0.4857",
+					"Layer.Inhib.ActAvg.Fixed": "true",
 				}},
 		},
 	}},
@@ -60,6 +66,7 @@ var ParamSets = params.Sets{
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
+	GbarL     float32           `view:"the leak conductance, which pulls against the excitatory input conductance to determine how hard it is to activate the receiving unit"`
 	Net       *leabra.Network   `view:"no-inline"`
 	Pats      *etable.Table     `view:"no-inline" desc:"the testing input patterns to use (digits)"`
 	TstTrlLog *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
@@ -91,6 +98,7 @@ func (ss *Sim) New() {
 	ss.TstTrlLog = &etable.Table{}
 	ss.Params = ParamSets
 	ss.ViewUpdt = leabra.Cycle
+	ss.GbarL = 2
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -98,6 +106,7 @@ func (ss *Sim) New() {
 
 // Config configures all the elements using the standard functions
 func (ss *Sim) Config() {
+	// patgen.ReshapeCppFile(ss.Pats, "digits.dat", "digits.dat") // one-time reshape
 	ss.OpenPats()
 	ss.ConfigEnv()
 	ss.ConfigNet(ss.Net)
@@ -116,7 +125,7 @@ func (ss *Sim) ConfigEnv() {
 func (ss *Sim) ConfigNet(net *leabra.Network) {
 	net.InitName(net, "Detector")
 	inLay := net.AddLayer2D("Input", 7, 5, emer.Input)
-	outLay := net.AddLayer2D("Output", 1, 1, emer.Hidden)
+	outLay := net.AddLayer2D("RecvNeuron", 1, 1, emer.Hidden)
 
 	net.ConnectLayers(inLay, outLay, prjn.NewFull(), emer.Forward)
 
@@ -127,8 +136,20 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 		log.Println(err)
 		return
 	}
+	ss.InitWts(net)
+}
+
+// InitWts initializes weights to digit 8
+func (ss *Sim) InitWts(net *leabra.Network) {
 	net.InitWts()
-	// todo: set weights
+	digit := 8
+	pats := ss.Pats
+	dpat := pats.CellTensor("Input", digit)
+	outLay := net.LayerByName("RecvNeuron")
+	prj := outLay.RecvPrjns().SendName("Input")
+	for i := 0; i < dpat.Len(); i++ {
+		prj.SetSynVal("Wt", i, 0, float32(dpat.FloatVal1D(i)))
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -139,6 +160,9 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 func (ss *Sim) Init() {
 	ss.ConfigEnv() // re-config env just in case a different set of patterns was
 	// selected or patterns have been modified etc
+	ss.Time.Reset()
+	ss.Time.CycPerQtr = 5 // don't need much time
+	ss.InitWts(ss.Net)
 	ss.StopNow = false
 	ss.SetParams("", false) // all sheets
 	ss.UpdateView()
@@ -169,6 +193,8 @@ func (ss *Sim) UpdateView() {
 func (ss *Sim) AlphaCyc() {
 	// ss.Win.PollEvents() // this can be used instead of running in a separate goroutine
 	viewUpdt := ss.ViewUpdt
+
+	// note: this has no learning calls
 
 	ss.Net.AlphaCycInit()
 	ss.Time.AlphaCycStart()
@@ -306,6 +332,8 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 		ss.Params.ValidateSheets([]string{"Network", "Sim"})
 	}
 	err := ss.SetParamsSet("Base", sheet, setMsg)
+	outLay := ss.Net.LayerByName("RecvNeuron").(*leabra.Layer)
+	outLay.Act.Gbar.L = ss.GbarL
 	return err
 }
 
@@ -353,7 +381,7 @@ func (ss *Sim) OpenPats() {
 // log always contains number of testing items
 func (ss *Sim) LogTstTrl(dt *etable.Table) {
 	inLay := ss.Net.LayerByName("Input").(*leabra.Layer)
-	outLay := ss.Net.LayerByName("Output").(*leabra.Layer)
+	outLay := ss.Net.LayerByName("RecvNeuron").(*leabra.Layer)
 
 	trl := ss.TestEnv.Trial.Cur
 	row := trl
@@ -361,8 +389,8 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 	dt.SetCellFloat("Trial", row, float64(trl))
 	dt.SetCellString("TrialName", row, ss.TestEnv.TrialName)
 	dt.SetCellTensor("Input", row, inLay.UnitValsTensor("Act"))
-	dt.SetCellTensor("Output Ge", row, outLay.UnitValsTensor("Ge"))
-	dt.SetCellTensor("Output Act", row, outLay.UnitValsTensor("Act"))
+	dt.SetCellTensor("Ge", row, outLay.UnitValsTensor("Ge"))
+	dt.SetCellTensor("Act", row, outLay.UnitValsTensor("Act"))
 
 	// note: essential to use Go version of update when called from another goroutine
 	ss.TstTrlPlot.GoUpdate()
@@ -370,7 +398,7 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 
 func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 	inLay := ss.Net.LayerByName("Input").(*leabra.Layer)
-	outLay := ss.Net.LayerByName("Output").(*leabra.Layer)
+	outLay := ss.Net.LayerByName("RecvNeuron").(*leabra.Layer)
 
 	dt.SetMetaData("name", "TstTrlLog")
 	dt.SetMetaData("desc", "Record of testing per input pattern")
@@ -382,14 +410,14 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 		{"Trial", etensor.INT64, nil, nil},
 		{"TrialName", etensor.STRING, nil, nil},
 		{"Input", etensor.FLOAT64, inLay.Shp.Shp, nil},
-		{"Output Ge", etensor.FLOAT64, outLay.Shp.Shp, nil},
-		{"Output Act", etensor.FLOAT64, outLay.Shp.Shp, nil},
+		{"Ge", etensor.FLOAT64, outLay.Shp.Shp, nil},
+		{"Act", etensor.FLOAT64, outLay.Shp.Shp, nil},
 	}
 	dt.SetFromSchema(sch, nt)
 }
 
 func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
-	plt.Params.Title = "Leabra Random Associator 25 Test Trial Plot"
+	plt.Params.Title = "Detector Test Trial Plot"
 	plt.Params.XAxisCol = "Trial"
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
@@ -397,8 +425,8 @@ func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetColParams("TrialName", false, true, 0, false, 0)
 
 	plt.SetColParams("Input", false, true, 0, true, 1)
-	plt.SetColParams("Output Ge", true, true, 0, true, 1)
-	plt.SetColParams("Output Act", true, true, 0, true, 1)
+	plt.SetColParams("Ge", true, true, 0, true, 1)
+	plt.SetColParams("Act", true, true, 0, true, 1)
 	return plt
 }
 
@@ -442,6 +470,10 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	// https://matplotlib.org/tutorials/colors/colormaps.html
 	nv.SetNet(ss.Net)
 	ss.NetView = nv
+
+	nv.ViewDefaults()
+	nv.Scene().Camera.Pose.Pos.Set(0, 1.5, 2.5) // move up slightly for a more top-down view
+	nv.Scene().Camera.LookAt(mat32.Vec3{0, 0, 0}, mat32.Vec3{0, 1, 0})
 
 	plt := tv.AddNewTab(eplot.KiT_Plot2D, "TstTrlPlot").(*eplot.Plot2D)
 	ss.TstTrlPlot = ss.ConfigTstTrlPlot(plt, ss.TstTrlLog)
