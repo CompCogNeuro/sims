@@ -26,15 +26,13 @@ To see the receiving neuron respond to these input patterns, we will present the
 
 This activates the pattern of a `0` (zero) in the `Input`, and shows 20 cycles of **settling** process where the activation of the receiving unit is iteratively updated over a series of **cycles** according to the point neuron activation function (just as the unit in the `neuron` simulation was updated over time).  We have selected 20 cycles as enough time for the receiving neuron to fully respond to the input.
 
-* You can use the "VCR" style buttons after the `Time` label at the bottom right of the `NetView` to review each cycle of updating -- but nothing happens here so it isn't very interesting.
-
 The receiving unit showed an activity value of 0 because it was not activated above threshold by the `0` input pattern.  Before getting into the nitty-gritty of why the unit responded this way, let's proceed through the remaining digits and observe how it responds to other inputs.
 
 * Press `Test Trial` for each of the other digits, until the number `8` shows up. 
 
 You should have seen the receiving unit finaly activated when the digit `8` was presented, with an activation of zero for all the other digits. Thus, as expected, the receiving unit acts like an `8` detector: only when the input perfectly matches the input weights is there enough excitatory input to drive the receiving neuron above its firing threshold.
 
-* Now rewinding the cycles of activation for the 8 is marginally more interesting, showing the progression of activation over time.
+* You can use the "VCR" style buttons after the `Time` label at the bottom right of the `NetView` to review each cycle of updating, to see the progression of activation over time.
 
 * Go ahead and do one more `Test Trial` to see what happens with `9`.
 
