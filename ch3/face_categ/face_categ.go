@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 /*
-detector: This simulation shows how an individual neuron can act like a detector, picking out specific patterns from its inputs and responding with varying degrees of selectivity to the match between its synaptic weights and the input activity pattern.
+face_categ: This project explores how sensory inputs (in this case simple cartoon faces) can be categorized in multiple different ways, to extract the relevant information and collapse across the irrelevant. It allows you to explore both bottom-up processing from face image to categories, and top-down processing from category values to face images (imagery), including the ability to dynamically iterate both bottom-up and top-down to cleanup partial inputs (partially occluded face images).
 */
 package main
 
@@ -18,6 +18,7 @@ import (
 	"github.com/emer/emergent/netview"
 	"github.com/emer/emergent/params"
 	"github.com/emer/emergent/prjn"
+	"github.com/emer/emergent/relpos"
 	"github.com/emer/etable/eplot"
 	"github.com/emer/etable/etable"
 	"github.com/emer/etable/etensor"
@@ -70,7 +71,8 @@ var ParamSets = params.Sets{
 type Sim struct {
 	GbarL     float32           `def:"2" min:"0" max:"4" step:"0.1" desc:"the leak conductance, which pulls against the excitatory input conductance to determine how hard it is to activate the receiving unit"`
 	Net       *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
-	Pats      *etable.Table     `view:"no-inline" desc:"click to see the testing input patterns to use (digits)"`
+	Pats      *etable.Table     `view:"no-inline" desc:"click to see the full face testing input patterns to use"`
+	PartPats  *etable.Table     `view:"no-inline" desc:"click to see the partial face testing input patterns to use"`
 	TstTrlLog *etable.Table     `view:"no-inline" desc:"testing trial-level log data -- click to see record of network's response to each input"`
 	Params    params.Sets       `view:"no-inline" desc:"full collection of param sets -- not really interesting for this model"`
 	TestEnv   env.FixedTable    `desc:"Testing environment -- manages iterating over testing"`
@@ -97,6 +99,7 @@ var TheSim Sim
 func (ss *Sim) New() {
 	ss.Net = &leabra.Network{}
 	ss.Pats = &etable.Table{}
+	ss.PartPats = &etable.Table{}
 	ss.TstTrlLog = &etable.Table{}
 	ss.Params = ParamSets
 	ss.ViewUpdt = leabra.Cycle
@@ -113,7 +116,8 @@ func (ss *Sim) Defaults() {
 
 // Config configures all the elements using the standard functions
 func (ss *Sim) Config() {
-	// patgen.ReshapeCppFile(ss.Pats, "digits.dat", "digits.dat") // one-time reshape
+	// patgen.ReshapeCppFile(ss.Pats, "faces.dat", "faces.dat")     // one-time reshape
+	// patgen.ReshapeCppFile(ss.PartPats, "partial_faces.dat", "partial_faces.dat") // one-time reshape
 	ss.OpenPats()
 	ss.ConfigEnv()
 	ss.ConfigNet(ss.Net)
@@ -130,11 +134,23 @@ func (ss *Sim) ConfigEnv() {
 }
 
 func (ss *Sim) ConfigNet(net *leabra.Network) {
-	net.InitName(net, "Detector")
-	inp := net.AddLayer2D("Input", 7, 5, emer.Input)
-	recv := net.AddLayer2D("RecvNeuron", 1, 1, emer.Hidden)
+	net.InitName(net, "FaceCateg")
+	inp := net.AddLayer2D("Input", 16, 16, emer.Input)
+	emo := net.AddLayer2D("Emotion", 1, 2, emer.Compare)
+	gend := net.AddLayer2D("Gender", 1, 2, emer.Compare)
+	iden := net.AddLayer2D("Identity", 1, 10, emer.Compare)
 
-	net.ConnectLayers(inp, recv, prjn.NewFull(), emer.Forward)
+	net.ConnectLayers(inp, emo, prjn.NewFull(), emer.Forward)
+	net.ConnectLayers(inp, gend, prjn.NewFull(), emer.Forward)
+	net.ConnectLayers(inp, iden, prjn.NewFull(), emer.Forward)
+
+	net.ConnectLayers(emo, inp, prjn.NewFull(), emer.Back)
+	net.ConnectLayers(gend, inp, prjn.NewFull(), emer.Back)
+	net.ConnectLayers(iden, inp, prjn.NewFull(), emer.Back)
+
+	emo.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Input", YAlign: relpos.Front, XAlign: relpos.Left, Space: 2})
+	gend.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Input", YAlign: relpos.Front, XAlign: relpos.Right, Space: 2})
+	iden.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Input", YAlign: relpos.Center, XAlign: relpos.Left, Space: 2})
 
 	net.Defaults()
 	ss.SetParams("Network", false) // only set Network params
@@ -146,17 +162,9 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 	ss.InitWts(net)
 }
 
-// InitWts initializes weights to digit 8
+// InitWts loads the saved weights
 func (ss *Sim) InitWts(net *leabra.Network) {
 	net.InitWts()
-	digit := 8
-	pats := ss.Pats
-	dpat := pats.CellTensor("Input", digit)
-	recv := net.LayerByName("RecvNeuron")
-	prj := recv.RecvPrjns().SendName("Input")
-	for i := 0; i < dpat.Len(); i++ {
-		prj.SetSynVal("Wt", i, 0, float32(dpat.FloatVal1D(i)))
-	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -244,10 +252,24 @@ func (ss *Sim) ApplyInputs(en env.Env) {
 	// going to the same layers, but good practice and cheap anyway
 
 	inp := ss.Net.LayerByName("Input").(*leabra.Layer)
-
 	inPats := en.State(inp.Nm)
 	if inPats != nil {
 		inp.ApplyExt(inPats)
+	}
+	emo := ss.Net.LayerByName("Emotion").(*leabra.Layer)
+	emoPats := en.State(emo.Nm)
+	if emoPats != nil {
+		emo.ApplyExt(emoPats)
+	}
+	gend := ss.Net.LayerByName("Gender").(*leabra.Layer)
+	gendPats := en.State(gend.Nm)
+	if gendPats != nil {
+		gend.ApplyExt(gendPats)
+	}
+	iden := ss.Net.LayerByName("Identity").(*leabra.Layer)
+	idenPats := en.State(iden.Nm)
+	if idenPats != nil {
+		iden.ApplyExt(idenPats)
 	}
 }
 
@@ -339,8 +361,8 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 		ss.Params.ValidateSheets([]string{"Network", "Sim"})
 	}
 	err := ss.SetParamsSet("Base", sheet, setMsg)
-	recv := ss.Net.LayerByName("RecvNeuron").(*leabra.Layer)
-	recv.Act.Gbar.L = ss.GbarL
+	// outLay := ss.Net.LayerByName("RecvNeuron").(*leabra.Layer)
+	// outLay.Act.Gbar.L = ss.GbarL
 	return err
 }
 
@@ -374,9 +396,22 @@ func (ss *Sim) SetParamsSet(setNm string, sheet string, setMsg bool) error {
 func (ss *Sim) OpenPats() {
 	dt := ss.Pats
 	dt.SetMetaData("name", "TestPats")
-	dt.SetMetaData("desc", "Testing Digit patterns")
+	dt.SetMetaData("desc", "Testing Digit patterns: full faces")
 	// err := dt.OpenCSV("digits.dat", etable.Tab)
-	ab, err := Asset("digits.dat") // embedded in executable
+	ab, err := Asset("faces.dat") // embedded in executable
+	if err != nil {
+		log.Println(err)
+	}
+	err = dt.ReadCSV(bytes.NewBuffer(ab), etable.Tab)
+	if err != nil {
+		log.Println(err)
+	}
+
+	dt = ss.PartPats
+	dt.SetMetaData("name", "PartTestPats")
+	dt.SetMetaData("desc", "Testing Digit patterns: partial faces")
+	// err := dt.OpenCSV("digits.dat", etable.Tab)
+	ab, err = Asset("partial_faces.dat") // embedded in executable
 	if err != nil {
 		log.Println(err)
 	}
@@ -393,7 +428,9 @@ func (ss *Sim) OpenPats() {
 // log always contains number of testing items
 func (ss *Sim) LogTstTrl(dt *etable.Table) {
 	inp := ss.Net.LayerByName("Input").(*leabra.Layer)
-	recv := ss.Net.LayerByName("RecvNeuron").(*leabra.Layer)
+	emo := ss.Net.LayerByName("Emotion").(*leabra.Layer)
+	gend := ss.Net.LayerByName("Gender").(*leabra.Layer)
+	iden := ss.Net.LayerByName("Identity").(*leabra.Layer)
 
 	trl := ss.TestEnv.Trial.Cur
 	row := trl
@@ -401,8 +438,9 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 	dt.SetCellFloat("Trial", row, float64(trl))
 	dt.SetCellString("TrialName", row, ss.TestEnv.TrialName)
 	dt.SetCellTensor("Input", row, inp.UnitValsTensor("Act"))
-	dt.SetCellTensor("Ge", row, recv.UnitValsTensor("Ge"))
-	dt.SetCellTensor("Act", row, recv.UnitValsTensor("Act"))
+	dt.SetCellTensor("Emotion", row, emo.UnitValsTensor("Act"))
+	dt.SetCellTensor("Gender", row, gend.UnitValsTensor("Act"))
+	dt.SetCellTensor("Identity", row, iden.UnitValsTensor("Act"))
 
 	// note: essential to use Go version of update when called from another goroutine
 	ss.TstTrlPlot.GoUpdate()
@@ -410,7 +448,9 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 
 func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 	inp := ss.Net.LayerByName("Input").(*leabra.Layer)
-	recv := ss.Net.LayerByName("RecvNeuron").(*leabra.Layer)
+	emo := ss.Net.LayerByName("Emotion").(*leabra.Layer)
+	gend := ss.Net.LayerByName("Gender").(*leabra.Layer)
+	iden := ss.Net.LayerByName("Identity").(*leabra.Layer)
 
 	dt.SetMetaData("name", "TstTrlLog")
 	dt.SetMetaData("desc", "Record of testing per input pattern")
@@ -422,14 +462,15 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 		{"Trial", etensor.INT64, nil, nil},
 		{"TrialName", etensor.STRING, nil, nil},
 		{"Input", etensor.FLOAT64, inp.Shp.Shp, nil},
-		{"Ge", etensor.FLOAT64, recv.Shp.Shp, nil},
-		{"Act", etensor.FLOAT64, recv.Shp.Shp, nil},
+		{"Emotion", etensor.FLOAT64, emo.Shp.Shp, nil},
+		{"Gender", etensor.FLOAT64, gend.Shp.Shp, nil},
+		{"Identity", etensor.FLOAT64, iden.Shp.Shp, nil},
 	}
 	dt.SetFromSchema(sch, nt)
 }
 
 func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
-	plt.Params.Title = "Detector Test Trial Plot"
+	plt.Params.Title = "FaceCateg Test Trial Plot"
 	plt.Params.XAxisCol = "Trial"
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
@@ -450,10 +491,10 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	width := 1600
 	height := 1200
 
-	gi.SetAppName("detector")
-	gi.SetAppAbout(`This simulation shows how an individual neuron can act like a detector, picking out specific patterns from its inputs and responding with varying degrees of selectivity to the match between its synaptic weights and the input activity pattern. See <a href="https://github.com/CompCogNeuro/sims/ch2/detector/README.md">README.md on GitHub</a>.</p>`)
+	gi.SetAppName("face_categ")
+	gi.SetAppAbout(`face_categ: This project explores how sensory inputs (in this case simple cartoon faces) can be categorized in multiple different ways, to extract the relevant information and collapse across the irrelevant. It allows you to explore both bottom-up processing from face image to categories, and top-down processing from category values to face images (imagery), including the ability to dynamically iterate both bottom-up and top-down to cleanup partial inputs (partially occluded face images).  See <a href="https://github.com/CompCogNeuro/sims/ch3/face_categ/README.md">README.md on GitHub</a>.</p>`)
 
-	win := gi.NewWindow2D("detector", "Neuron as Detector", width, height, true)
+	win := gi.NewWindow2D("face_categ", "Face Categorization", width, height, true)
 	ss.Win = win
 
 	vp := win.WinViewport2D()
@@ -559,7 +600,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	tbar.AddAction(gi.ActOpts{Label: "README", Icon: "file-markdown", Tooltip: "Opens your browser on the README file that contains instructions for how to run this model."}, win.This(),
 		func(recv, send ki.Ki, sig int64, data interface{}) {
-			gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch2/detector/README.md")
+			gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch3/face_categ/README.md")
 		})
 
 	vp.UpdateEndNoSig(updt)
