@@ -6,6 +6,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"strconv"
@@ -23,7 +24,6 @@ import (
 	"github.com/goki/gi/gi"
 	"github.com/goki/gi/gimain"
 	"github.com/goki/gi/giv"
-	"github.com/goki/gi/mat32"
 	"github.com/goki/ki/ki"
 	"github.com/goki/ki/kit"
 )
@@ -66,14 +66,14 @@ var ParamSets = params.Sets{
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
-	GbarL     float32           `view:"the leak conductance, which pulls against the excitatory input conductance to determine how hard it is to activate the receiving unit"`
-	Net       *leabra.Network   `view:"no-inline"`
-	Pats      *etable.Table     `view:"no-inline" desc:"the testing input patterns to use (digits)"`
-	TstTrlLog *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
-	Params    params.Sets       `view:"no-inline" desc:"full collection of param sets"`
+	GbarL     float32           `def:"2" min:"0" max:"4" step:"0.1" desc:"the leak conductance, which pulls against the excitatory input conductance to determine how hard it is to activate the receiving unit"`
+	Net       *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
+	Pats      *etable.Table     `view:"no-inline" desc:"click to see the testing input patterns to use (digits)"`
+	TstTrlLog *etable.Table     `view:"no-inline" desc:"testing trial-level log data -- click to see record of network's response to each input"`
+	Params    params.Sets       `view:"no-inline" desc:"full collection of param sets -- not really interesting for this model"`
 	TestEnv   env.FixedTable    `desc:"Testing environment -- manages iterating over testing"`
 	Time      leabra.Time       `desc:"leabra timing parameters and state"`
-	ViewUpdt  leabra.TimeScales `desc:"at what time scale to update the display during testing?  Anything longer than Epoch updates at Epoch in this model"`
+	ViewUpdt  leabra.TimeScales `desc:"at what time scale to update the display during testing?  Change to AlphaCyc to make display updating go faster"`
 
 	// internal state - view:"-"
 	Win        *gi.Window       `view:"-" desc:"main GUI window"`
@@ -98,6 +98,11 @@ func (ss *Sim) New() {
 	ss.TstTrlLog = &etable.Table{}
 	ss.Params = ParamSets
 	ss.ViewUpdt = leabra.Cycle
+	ss.Defaults()
+}
+
+// Defaults sets default params
+func (ss *Sim) Defaults() {
 	ss.GbarL = 2
 }
 
@@ -368,7 +373,12 @@ func (ss *Sim) OpenPats() {
 	dt := ss.Pats
 	dt.SetMetaData("name", "TestPats")
 	dt.SetMetaData("desc", "Testing Digit patterns")
-	err := dt.OpenCSV("digits.dat", etable.Tab)
+	// err := dt.OpenCSV("digits.dat", etable.Tab)
+	ab, err := Asset("digits.dat") // embedded in executable
+	if err != nil {
+		log.Println(err)
+	}
+	err = dt.ReadCSV(bytes.NewBuffer(ab), etable.Tab)
 	if err != nil {
 		log.Println(err)
 	}
@@ -472,8 +482,6 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	ss.NetView = nv
 
 	nv.ViewDefaults()
-	nv.Scene().Camera.Pose.Pos.Set(0, 1.5, 2.5) // move up slightly for a more top-down view
-	nv.Scene().Camera.LookAt(mat32.Vec3{0, 0, 0}, mat32.Vec3{0, 1, 0})
 
 	plt := tv.AddNewTab(eplot.KiT_Plot2D, "TstTrlPlot").(*eplot.Plot2D)
 	ss.TstTrlPlot = ss.ConfigTstTrlPlot(plt, ss.TstTrlLog)
@@ -537,6 +545,14 @@ func (ss *Sim) ConfigGui() *gi.Window {
 			tbar.UpdateActions()
 			go ss.RunTestAll()
 		}
+	})
+
+	tbar.AddAction(gi.ActOpts{Label: "Defaults", Icon: "reset", Tooltip: "Restore initial default parameters.", UpdateFunc: func(act *gi.Action) {
+		act.SetActiveStateUpdt(!ss.IsRunning)
+	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+		ss.Defaults()
+		ss.Init()
+		vp.SetNeedsFullRender()
 	})
 
 	tbar.AddAction(gi.ActOpts{Label: "README", Icon: "file-markdown", Tooltip: "Opens your browser on the README file that contains instructions for how to run this model."}, win.This(),
