@@ -169,6 +169,10 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 // InitWts loads the saved weights
 func (ss *Sim) InitWts(net *leabra.Network) {
 	net.InitWts()
+	net.OpenWtsJSON("faces.wts")
+	// below is one-time conversion from c++ weights
+	// net.OpenWtsCpp("FaceNetworkCpp.wts")
+	// net.SaveWtsJSON("faces.wts")
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -493,8 +497,9 @@ func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetColParams("TrialName", false, true, 0, false, 0)
 
 	plt.SetColParams("Input", false, true, 0, true, 1)
-	plt.SetColParams("Ge", true, true, 0, true, 1)
-	plt.SetColParams("Act", true, true, 0, true, 1)
+	plt.SetColParams("Emotion", false, true, 0, true, 1)
+	plt.SetColParams("Gender", false, true, 0, true, 1)
+	plt.SetColParams("Identity", false, true, 0, true, 1)
 	return plt
 }
 
