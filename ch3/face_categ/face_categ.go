@@ -80,12 +80,16 @@ type Sim struct {
 	ViewUpdt  leabra.TimeScales `desc:"at what time scale to update the display during testing?  Change to AlphaCyc to make display updating go faster"`
 
 	// internal state - view:"-"
-	Win        *gi.Window       `view:"-" desc:"main GUI window"`
-	NetView    *netview.NetView `view:"-" desc:"the network viewer"`
-	ToolBar    *gi.ToolBar      `view:"-" desc:"the master toolbar"`
-	TstTrlPlot *eplot.Plot2D    `view:"-" desc:"the test-trial plot"`
-	IsRunning  bool             `view:"-" desc:"true if sim is running"`
-	StopNow    bool             `view:"-" desc:"flag to stop running"`
+	Win          *gi.Window       `view:"-" desc:"main GUI window"`
+	NetView      *netview.NetView `view:"-" desc:"the network viewer"`
+	ToolBar      *gi.ToolBar      `view:"-" desc:"the master toolbar"`
+	TstTrlPlot   *eplot.Plot2D    `view:"-" desc:"the test-trial plot"`
+	InputValsTsr *etensor.Float32 `view:"-" desc:"for holding layer values"`
+	EmoValsTsr   *etensor.Float32 `view:"-" desc:"for holding layer values"`
+	GendValsTsr  *etensor.Float32 `view:"-" desc:"for holding layer values"`
+	IdenValsTsr  *etensor.Float32 `view:"-" desc:"for holding layer values"`
+	IsRunning    bool             `view:"-" desc:"true if sim is running"`
+	StopNow      bool             `view:"-" desc:"flag to stop running"`
 }
 
 // this registers this Sim Type and gives it properties that e.g.,
@@ -437,10 +441,21 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 
 	dt.SetCellFloat("Trial", row, float64(trl))
 	dt.SetCellString("TrialName", row, ss.TestEnv.TrialName)
-	dt.SetCellTensor("Input", row, inp.UnitValsTensor("Act"))
-	dt.SetCellTensor("Emotion", row, emo.UnitValsTensor("Act"))
-	dt.SetCellTensor("Gender", row, gend.UnitValsTensor("Act"))
-	dt.SetCellTensor("Identity", row, iden.UnitValsTensor("Act"))
+
+	if ss.InputValsTsr == nil { // re-use same tensors so not always reallocating mem
+		ss.InputValsTsr = &etensor.Float32{}
+		ss.EmoValsTsr = &etensor.Float32{}
+		ss.GendValsTsr = &etensor.Float32{}
+		ss.IdenValsTsr = &etensor.Float32{}
+	}
+	inp.UnitValsTensor(ss.InputValsTsr, "Act")
+	dt.SetCellTensor("Input", row, ss.InputValsTsr)
+	emo.UnitValsTensor(ss.EmoValsTsr, "Act")
+	dt.SetCellTensor("Emotion", row, ss.EmoValsTsr)
+	gend.UnitValsTensor(ss.GendValsTsr, "Act")
+	dt.SetCellTensor("Gender", row, ss.GendValsTsr)
+	iden.UnitValsTensor(ss.IdenValsTsr, "Act")
+	dt.SetCellTensor("Identity", row, ss.IdenValsTsr)
 
 	// note: essential to use Go version of update when called from another goroutine
 	ss.TstTrlPlot.GoUpdate()

@@ -78,12 +78,14 @@ type Sim struct {
 	ViewUpdt  leabra.TimeScales `desc:"at what time scale to update the display during testing?  Change to AlphaCyc to make display updating go faster"`
 
 	// internal state - view:"-"
-	Win        *gi.Window       `view:"-" desc:"main GUI window"`
-	NetView    *netview.NetView `view:"-" desc:"the network viewer"`
-	ToolBar    *gi.ToolBar      `view:"-" desc:"the master toolbar"`
-	TstTrlPlot *eplot.Plot2D    `view:"-" desc:"the test-trial plot"`
-	IsRunning  bool             `view:"-" desc:"true if sim is running"`
-	StopNow    bool             `view:"-" desc:"flag to stop running"`
+	Win           *gi.Window       `view:"-" desc:"main GUI window"`
+	NetView       *netview.NetView `view:"-" desc:"the network viewer"`
+	ToolBar       *gi.ToolBar      `view:"-" desc:"the master toolbar"`
+	TstTrlPlot    *eplot.Plot2D    `view:"-" desc:"the test-trial plot"`
+	InputValsTsr  *etensor.Float32 `view:"-" desc:"for holding layer values"`
+	OutputValsTsr *etensor.Float32 `view:"-" desc:"for holding layer values"`
+	IsRunning     bool             `view:"-" desc:"true if sim is running"`
+	StopNow       bool             `view:"-" desc:"flag to stop running"`
 }
 
 // this registers this Sim Type and gives it properties that e.g.,
@@ -400,9 +402,18 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 
 	dt.SetCellFloat("Trial", row, float64(trl))
 	dt.SetCellString("TrialName", row, ss.TestEnv.TrialName)
-	dt.SetCellTensor("Input", row, inp.UnitValsTensor("Act"))
-	dt.SetCellTensor("Ge", row, recv.UnitValsTensor("Ge"))
-	dt.SetCellTensor("Act", row, recv.UnitValsTensor("Act"))
+
+	if ss.InputValsTsr == nil { // re-use same tensors so not always reallocating mem
+		ss.InputValsTsr = &etensor.Float32{}
+		ss.OutputValsTsr = &etensor.Float32{}
+	}
+
+	inp.UnitValsTensor(ss.InputValsTsr, "Act")
+	dt.SetCellTensor("Input", row, ss.InputValsTsr)
+	recv.UnitValsTensor(ss.OutputValsTsr, "Ge")
+	dt.SetCellTensor("Ge", row, ss.OutputValsTsr)
+	recv.UnitValsTensor(ss.OutputValsTsr, "Act")
+	dt.SetCellTensor("Act", row, ss.OutputValsTsr)
 
 	// note: essential to use Go version of update when called from another goroutine
 	ss.TstTrlPlot.GoUpdate()
