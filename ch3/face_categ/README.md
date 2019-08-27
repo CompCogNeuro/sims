@@ -42,7 +42,7 @@ A [ClusterPlot](https://github.com/CompCogNeuro/sims/blob/master/ch3/face_categ/
 
 Note: we do not yet have the ability to dynamically compute and display cluster plots, so we are including pre-generated ones at this point.
 
-![Faces Input Cluster Plot](fig_face_categ_faces.png?raw=true "Faces Input Cluster Plot")
+![Faces Input Cluster Plot](fig_face_categ_clust_faces.png?raw=true "Faces Input Cluster Plot")
 
 The above figure shows the cluster plot run on the face `Input` layer images.
 
@@ -50,17 +50,17 @@ The above figure shows the cluster plot run on the face `Input` layer images.
 
 Now, let's see how this input similarity structure is transformed by the different types of categorization.
 
-![Emotion Cluster Plot](fig_face_categ_emotion.png?raw=true "Emotion Cluster Plot")
+![Emotion Cluster Plot](fig_face_categ_clust_emotion.png?raw=true "Emotion Cluster Plot")
 
 The above figure shows the cluster plot run on the `Emotion` layer patterns for each input.
 
 > **Question 3.2:** How does the Emotion categorization transform the overall face input similarity compared to what we saw in the first cluster plot -- ie., what items are now the most similar to each other?
 
-![Gender Cluster Plot](fig_face_categ_gender.png?raw=true "Gender Cluster Plot")
+![Gender Cluster Plot](fig_face_categ_clust_gender.png?raw=true "Gender Cluster Plot")
 
 The above figure shows the cluster plot run on the `Gender` layer patterns for each input.
 
-![Identity Cluster Plot](fig_face_categ_identity.png?raw=true "Identity Cluster Plot")
+![Identity Cluster Plot](fig_face_categ_clust_identity.png?raw=true "Identity Cluster Plot")
 
 The above figure shows the cluster plot run on the `Identity` layer patterns for each input.
 
