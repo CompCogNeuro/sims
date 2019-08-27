@@ -644,15 +644,6 @@ var SimProps = ki.Props{
 				}},
 			},
 		}},
-		{"SaveParams", ki.Props{
-			"desc": "save parameters to file",
-			"icon": "file-save",
-			"Args": ki.PropSlice{
-				{"File Name", ki.Props{
-					"ext": ".params",
-				}},
-			},
-		}},
 	},
 }
 

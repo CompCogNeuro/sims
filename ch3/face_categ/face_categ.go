@@ -54,7 +54,7 @@ var ParamSets = params.Sets{
 				Params: params.Params{
 					"Layer.Inhib.ActAvg.Init":  "0.15",
 					"Layer.Inhib.ActAvg.Fixed": "true",
-					"Layer.Inhib.Act.Gbar.L":   "0.1", // needs lower leaqk
+					"Layer.Act.Gbar.L":         "0.1", // needs lower leaqk
 				}},
 			{Sel: "#Input", Desc: "specific inhibition",
 				Params: params.Params{
@@ -182,7 +182,12 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 // InitWts loads the saved weights
 func (ss *Sim) InitWts(net *leabra.Network) {
 	net.InitWts()
-	net.OpenWtsJSON("faces.wts")
+	ab, err := Asset("faces.wts") // embedded in executable
+	if err != nil {
+		log.Println(err)
+	}
+	net.ReadWtsJSON(bytes.NewBuffer(ab))
+	// net.OpenWtsJSON("faces.wts")
 	// below is one-time conversion from c++ weights
 	// net.OpenWtsCpp("FaceNetworkCpp.wts")
 	// net.SaveWtsJSON("faces.wts")
@@ -194,7 +199,7 @@ func (ss *Sim) InitWts(net *leabra.Network) {
 // Init restarts the run, and initializes everything, including network weights
 // and resets the epoch log table
 func (ss *Sim) Init() {
-	ss.ConfigEnv() // re-config env just in case a different set of patterns was
+	// ss.ConfigEnv() // re-config env just in case a different set of patterns was
 	// selected or patterns have been modified etc
 	ss.Time.Reset()
 	ss.Time.CycPerQtr = 10 // don't need much time
@@ -760,15 +765,6 @@ var SimProps = ki.Props{
 			"Args": ki.PropSlice{
 				{"File Name", ki.Props{
 					"ext": ".wts",
-				}},
-			},
-		}},
-		{"SaveParams", ki.Props{
-			"desc": "save parameters to file",
-			"icon": "file-save",
-			"Args": ki.PropSlice{
-				{"File Name", ki.Props{
-					"ext": ".params",
 				}},
 			},
 		}},
