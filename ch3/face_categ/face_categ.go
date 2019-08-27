@@ -50,14 +50,29 @@ var ParamSets = params.Sets{
 				Params: params.Params{
 					"Prjn.Learn.Learn": "false",
 				}},
-			{Sel: "Layer", Desc: "no inhibition",
+			{Sel: "Layer", Desc: "fix expected activity levels, reduce leak",
 				Params: params.Params{
-					"Layer.Inhib.Layer.On": "false",
-				}},
-			{Sel: "#Input", Desc: "set expected activity of input layer -- key for normalizing netinput",
-				Params: params.Params{
-					"Layer.Inhib.ActAvg.Init":  "0.4857",
+					"Layer.Inhib.ActAvg.Init":  "0.15",
 					"Layer.Inhib.ActAvg.Fixed": "true",
+					"Layer.Inhib.Act.Gbar.L":   "0.1", // needs lower leaqk
+				}},
+			{Sel: "#Input", Desc: "specific inhibition",
+				Params: params.Params{
+					"Layer.Inhib.Layer.Gi": "2.0",
+					"Layer.Act.Clamp.Hard": "false",
+					"Layer.Act.Clamp.Gain": "0.2",
+				}},
+			{Sel: "#Identity", Desc: "specific inhbition",
+				Params: params.Params{
+					"Layer.Inhib.Layer.Gi": "3.6",
+				}},
+			{Sel: "#Gender", Desc: "specific inhbition",
+				Params: params.Params{
+					"Layer.Inhib.Layer.Gi": "1.6",
+				}},
+			{Sel: "#Emotion", Desc: "specific inhbition",
+				Params: params.Params{
+					"Layer.Inhib.Layer.Gi": "1.3",
 				}},
 		},
 	}},
@@ -69,7 +84,6 @@ var ParamSets = params.Sets{
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
-	GbarL     float32           `def:"2" min:"0" max:"4" step:"0.1" desc:"the leak conductance, which pulls against the excitatory input conductance to determine how hard it is to activate the receiving unit"`
 	Net       *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
 	Pats      *etable.Table     `view:"no-inline" desc:"click to see the full face testing input patterns to use"`
 	PartPats  *etable.Table     `view:"no-inline" desc:"click to see the partial face testing input patterns to use"`
@@ -112,7 +126,6 @@ func (ss *Sim) New() {
 
 // Defaults sets default params
 func (ss *Sim) Defaults() {
-	ss.GbarL = 2
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -184,7 +197,7 @@ func (ss *Sim) Init() {
 	ss.ConfigEnv() // re-config env just in case a different set of patterns was
 	// selected or patterns have been modified etc
 	ss.Time.Reset()
-	ss.Time.CycPerQtr = 5 // don't need much time
+	ss.Time.CycPerQtr = 10 // don't need much time
 	ss.InitWts(ss.Net)
 	ss.StopNow = false
 	ss.SetParams("", false) // all sheets
@@ -369,8 +382,6 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 		ss.Params.ValidateSheets([]string{"Network", "Sim"})
 	}
 	err := ss.SetParamsSet("Base", sheet, setMsg)
-	// outLay := ss.Net.LayerByName("RecvNeuron").(*leabra.Layer)
-	// outLay.Act.Gbar.L = ss.GbarL
 	return err
 }
 
@@ -401,10 +412,43 @@ func (ss *Sim) SetParamsSet(setNm string, sheet string, setMsg bool) error {
 	return err
 }
 
+// SetInput sets whether the input to the network comes in bottom-up
+// (Input layer) or top-down (Higher-level category layers)
+func (ss *Sim) SetInput(topDown bool) {
+	inp := ss.Net.LayerByName("Input").(*leabra.Layer)
+	emo := ss.Net.LayerByName("Emotion").(*leabra.Layer)
+	gend := ss.Net.LayerByName("Gender").(*leabra.Layer)
+	iden := ss.Net.LayerByName("Identity").(*leabra.Layer)
+	if topDown {
+		inp.SetType(emer.Compare)
+		emo.SetType(emer.Input)
+		gend.SetType(emer.Input)
+		iden.SetType(emer.Input)
+	} else {
+		inp.SetType(emer.Input)
+		emo.SetType(emer.Compare)
+		gend.SetType(emer.Compare)
+		iden.SetType(emer.Compare)
+	}
+}
+
+// SetPats selects which patterns to present: full or partial faces
+func (ss *Sim) SetPats(partial bool) {
+	if partial {
+		ss.TestEnv.Table = etable.NewIdxView(ss.PartPats)
+		ss.TestEnv.Validate()
+		ss.TestEnv.Init(0)
+	} else {
+		ss.TestEnv.Table = etable.NewIdxView(ss.Pats)
+		ss.TestEnv.Validate()
+		ss.TestEnv.Init(0)
+	}
+}
+
 func (ss *Sim) OpenPats() {
 	dt := ss.Pats
-	dt.SetMetaData("name", "TestPats")
-	dt.SetMetaData("desc", "Testing Digit patterns: full faces")
+	dt.SetMetaData("name", "FacePats")
+	dt.SetMetaData("desc", "Testing Face patterns: full faces")
 	// err := dt.OpenCSV("digits.dat", etable.Tab)
 	ab, err := Asset("faces.dat") // embedded in executable
 	if err != nil {
@@ -416,8 +460,8 @@ func (ss *Sim) OpenPats() {
 	}
 
 	dt = ss.PartPats
-	dt.SetMetaData("name", "PartTestPats")
-	dt.SetMetaData("desc", "Testing Digit patterns: partial faces")
+	dt.SetMetaData("name", "PartFacePats")
+	dt.SetMetaData("desc", "Testing Face patterns: partial faces")
 	// err := dt.OpenCSV("digits.dat", etable.Tab)
 	ab, err = Asset("partial_faces.dat") // embedded in executable
 	if err != nil {
@@ -497,14 +541,37 @@ func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetColParams("TrialName", false, true, 0, false, 0)
 
 	plt.SetColParams("Input", false, true, 0, true, 1)
-	plt.SetColParams("Emotion", false, true, 0, true, 1)
-	plt.SetColParams("Gender", false, true, 0, true, 1)
+	plt.SetColParams("Emotion", true, true, 0, true, 1)
+	plt.SetColParams("Gender", true, true, 0, true, 1)
 	plt.SetColParams("Identity", false, true, 0, true, 1)
 	return plt
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 // 		Gui
+
+func (ss *Sim) ConfigNetView(nv *netview.NetView) {
+	labs := []string{"happy  sad", "female  male", "Albt  Bett  Lisa  Mrk  Wnd Zane"}
+	nv.ConfigLabels(labs)
+	emot := nv.LayerByName("Emotion")
+	hs := nv.LabelByName(labs[0])
+	hs.Pose = emot.Pose
+	hs.Pose.Pos.Y += .1
+	hs.Pose.Scale.SetMulScalar(0.5)
+
+	gend := nv.LayerByName("Gender")
+	fm := nv.LabelByName(labs[1])
+	fm.Pose = gend.Pose
+	fm.Pose.Pos.X -= .05
+	fm.Pose.Pos.Y += .1
+	fm.Pose.Scale.SetMulScalar(0.5)
+
+	id := nv.LayerByName("Identity")
+	nms := nv.LabelByName(labs[2])
+	nms.Pose = id.Pose
+	nms.Pose.Pos.Y += .1
+	nms.Pose.Scale.SetMulScalar(0.5)
+}
 
 // ConfigGui configures the GoGi gui interface for this simulation,
 func (ss *Sim) ConfigGui() *gi.Window {
@@ -545,6 +612,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	ss.NetView = nv
 
 	nv.ViewDefaults()
+	ss.ConfigNetView(nv) // add labels etc
 
 	plt := tv.AddNewTab(eplot.KiT_Plot2D, "TstTrlPlot").(*eplot.Plot2D)
 	ss.TstTrlPlot = ss.ConfigTstTrlPlot(plt, ss.TstTrlLog)
@@ -610,13 +678,14 @@ func (ss *Sim) ConfigGui() *gi.Window {
 		}
 	})
 
-	tbar.AddAction(gi.ActOpts{Label: "Defaults", Icon: "reset", Tooltip: "Restore initial default parameters.", UpdateFunc: func(act *gi.Action) {
-		act.SetActiveStateUpdt(!ss.IsRunning)
-	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
-		ss.Defaults()
-		ss.Init()
-		vp.SetNeedsFullRender()
-	})
+	tbar.AddAction(gi.ActOpts{Label: "SetInput", Icon: "gear", Tooltip: "set whether the input to the network comes in bottom-up (Input layer) or top-down (Higher-level category layers)"}, win.This(),
+		func(recv, send ki.Ki, sig int64, data interface{}) {
+			giv.CallMethod(ss, "SetInput", vp)
+		})
+	tbar.AddAction(gi.ActOpts{Label: "SetPats", Icon: "gear", Tooltip: "set which set of patterns to present -- full or partial faces"}, win.This(),
+		func(recv, send ki.Ki, sig int64, data interface{}) {
+			giv.CallMethod(ss, "SetPats", vp)
+		})
 
 	tbar.AddAction(gi.ActOpts{Label: "README", Icon: "file-markdown", Tooltip: "Opens your browser on the README file that contains instructions for how to run this model."}, win.This(),
 		func(recv, send ki.Ki, sig int64, data interface{}) {
@@ -701,6 +770,20 @@ var SimProps = ki.Props{
 				{"File Name", ki.Props{
 					"ext": ".params",
 				}},
+			},
+		}},
+		{"SetInput", ki.Props{
+			"desc": "set whether the input to the network comes in bottom-up (Input layer) or top-down (Higher-level category layers)",
+			"icon": "gear",
+			"Args": ki.PropSlice{
+				{"Top Down", ki.Props{}},
+			},
+		}},
+		{"SetPats", ki.Props{
+			"desc": "set which set of patterns to present -- full or partial faces",
+			"icon": "gear",
+			"Args": ki.PropSlice{
+				{"Partial", ki.Props{}},
 			},
 		}},
 	},

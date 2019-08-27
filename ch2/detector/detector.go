@@ -375,7 +375,7 @@ func (ss *Sim) SetParamsSet(setNm string, sheet string, setMsg bool) error {
 
 func (ss *Sim) OpenPats() {
 	dt := ss.Pats
-	dt.SetMetaData("name", "TestPats")
+	dt.SetMetaData("name", "DigitPats")
 	dt.SetMetaData("desc", "Testing Digit patterns")
 	// err := dt.OpenCSV("digits.dat", etable.Tab)
 	ab, err := Asset("digits.dat") // embedded in executable

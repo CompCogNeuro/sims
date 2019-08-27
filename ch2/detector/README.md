@@ -14,7 +14,7 @@ We begin by examining the `NetView` tab, showing the Detector network. The netwo
 
 You should now see the `Input` grid lit up in the pattern of an `8`. This is the weight pattern for the receiving unit for connections from the input units, with the weight value displayed in the corresponding sending (input) unit. Thus, when the input units have an activation pattern that matches this weight pattern, the receiving unit will be maximally activated. Input patterns that are close to the target `8` input will produce graded activations as a function of how close they are. Thus, this pattern of weights determines what the unit detects, as we will see. First, we will examine the patterns of inputs that will be presented to the network.
 
-* Click on the `TestPats` button (next to the `Pats` label) on the left side of the window -- this panel contains all the main ingredients for this model.
+* Click on the `DigitPats` button (next to the `Pats` label) on the left side of the window -- this *control panel* contains all the main ingredients for this model.
 
 The display that comes up shows all of the different *input patterns* that will be presented ("clamped") onto the `Input` layer, so we can see how the receiving unit responds. Each row of the display represents a single *trial* that will be presented to the network. As you can see, the input data this case contains the digits from 0 to 9, represented in a simple font on a 5x7 grid of pixels (picture elements). Each pixel in a given event (digit) will drive the corresponding input unit in the network.
 
