@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 /*
-detector: This simulation shows how an individual neuron can act like a detector, picking out specific patterns from its inputs and responding with varying degrees of selectivity to the match between its synaptic weights and the input activity pattern.
+cats_dogs: This project explores a simple **semantic network** intended to represent a (very small) set of relationships among different features used to represent a set of entities in the world.  In our case, we represent some features of cats and dogs: their color, size, favorite food, and favorite toy.
 */
 package main
 
@@ -18,6 +18,7 @@ import (
 	"github.com/emer/emergent/netview"
 	"github.com/emer/emergent/params"
 	"github.com/emer/emergent/prjn"
+	"github.com/emer/emergent/relpos"
 	"github.com/emer/etable/eplot"
 	"github.com/emer/etable/etable"
 	"github.com/emer/etable/etensor"
@@ -26,6 +27,7 @@ import (
 	"github.com/goki/gi/gi"
 	"github.com/goki/gi/gimain"
 	"github.com/goki/gi/giv"
+	"github.com/goki/gi/mat32"
 	"github.com/goki/ki/ki"
 	"github.com/goki/ki/kit"
 )
@@ -49,14 +51,19 @@ var ParamSets = params.Sets{
 				Params: params.Params{
 					"Prjn.Learn.Learn": "false",
 				}},
-			{Sel: "Layer", Desc: "no inhibition",
+			{Sel: "Layer", Desc: "generic params for all layers: lower gain, slower, soft clamp",
 				Params: params.Params{
-					"Layer.Inhib.Layer.On": "false",
-				}},
-			{Sel: "#Input", Desc: "set expected activity of input layer -- key for normalizing netinput",
-				Params: params.Params{
-					"Layer.Inhib.ActAvg.Init":  "0.4857",
+					"Layer.Inhib.ActAvg.Init":  "0.25",
 					"Layer.Inhib.ActAvg.Fixed": "true",
+					"Layer.Act.Clamp.Hard":     "false",
+					"Layer.Act.Clamp.Gain":     "1",
+					"Layer.Act.XX1.Gain":       "40",  // more graded -- key
+					"Layer.Act.Dt.VmTau":       "4",   // a bit slower
+					"Layer.Act.Gbar.L":         "0.1", // needs lower leak
+				}},
+			{Sel: ".Id", Desc: "specific inhibition for identity, name",
+				Params: params.Params{
+					"Layer.Inhib.Layer.Gi": "4.0",
 				}},
 		},
 	}},
@@ -68,24 +75,23 @@ var ParamSets = params.Sets{
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
-	GbarL     float32           `def:"2" min:"0" max:"4" step:"0.1" desc:"the leak conductance, which pulls against the excitatory input conductance to determine how hard it is to activate the receiving unit"`
-	Net       *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
-	Pats      *etable.Table     `view:"no-inline" desc:"click to see the testing input patterns to use (digits)"`
-	TstTrlLog *etable.Table     `view:"no-inline" desc:"testing trial-level log data -- click to see record of network's response to each input"`
-	Params    params.Sets       `view:"no-inline" desc:"full collection of param sets -- not really interesting for this model"`
-	TestEnv   env.FixedTable    `desc:"Testing environment -- manages iterating over testing"`
-	Time      leabra.Time       `desc:"leabra timing parameters and state"`
-	ViewUpdt  leabra.TimeScales `desc:"at what time scale to update the display during testing?  Change to AlphaCyc to make display updating go faster"`
+	Net        *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
+	Pats       *etable.Table     `view:"no-inline" desc:"click to see and edit the testing input patterns to use"`
+	TstTrlLog  *etable.Table     `view:"no-inline" desc:"testing trial-level log data -- click to see record of network's response to each input"`
+	Params     params.Sets       `view:"no-inline" desc:"full collection of param sets -- not really interesting for this model"`
+	TestEnv    env.FixedTable    `desc:"Testing environment -- manages iterating over testing"`
+	Time       leabra.Time       `desc:"leabra timing parameters and state"`
+	ViewUpdt   leabra.TimeScales `desc:"at what time scale to update the display during testing?  Change to AlphaCyc to make display updating go faster"`
+	TstRecLays []string          `desc:"names of layers to record activations etc of during testing"`
 
 	// internal state - view:"-"
-	Win           *gi.Window       `view:"-" desc:"main GUI window"`
-	NetView       *netview.NetView `view:"-" desc:"the network viewer"`
-	ToolBar       *gi.ToolBar      `view:"-" desc:"the master toolbar"`
-	TstTrlPlot    *eplot.Plot2D    `view:"-" desc:"the test-trial plot"`
-	InputValsTsr  *etensor.Float32 `view:"-" desc:"for holding layer values"`
-	OutputValsTsr *etensor.Float32 `view:"-" desc:"for holding layer values"`
-	IsRunning     bool             `view:"-" desc:"true if sim is running"`
-	StopNow       bool             `view:"-" desc:"flag to stop running"`
+	Win        *gi.Window                  `view:"-" desc:"main GUI window"`
+	NetView    *netview.NetView            `view:"-" desc:"the network viewer"`
+	ToolBar    *gi.ToolBar                 `view:"-" desc:"the master toolbar"`
+	TstTrlPlot *eplot.Plot2D               `view:"-" desc:"the test-trial plot"`
+	MonTsr     map[string]*etensor.Float32 `view:"-" desc:"for holding layer values"`
+	IsRunning  bool                        `view:"-" desc:"true if sim is running"`
+	StopNow    bool                        `view:"-" desc:"flag to stop running"`
 }
 
 // this registers this Sim Type and gives it properties that e.g.,
@@ -102,12 +108,12 @@ func (ss *Sim) New() {
 	ss.TstTrlLog = &etable.Table{}
 	ss.Params = ParamSets
 	ss.ViewUpdt = leabra.Cycle
+	ss.TstRecLays = []string{"Name", "Identity", "Color", "FavoriteFood", "Size", "Species", "FavoriteToy"}
 	ss.Defaults()
 }
 
 // Defaults sets default params
 func (ss *Sim) Defaults() {
-	ss.GbarL = 2
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -115,7 +121,7 @@ func (ss *Sim) Defaults() {
 
 // Config configures all the elements using the standard functions
 func (ss *Sim) Config() {
-	// patgen.ReshapeCppFile(ss.Pats, "digits.dat", "digits.dat") // one-time reshape
+	// patgen.ReshapeCppFile(ss.Pats, "StdInputData.dat", "cats_dogs_pats.dat") // one-time reshape
 	ss.OpenPats()
 	ss.ConfigEnv()
 	ss.ConfigNet(ss.Net)
@@ -132,11 +138,42 @@ func (ss *Sim) ConfigEnv() {
 }
 
 func (ss *Sim) ConfigNet(net *leabra.Network) {
-	net.InitName(net, "Detector")
-	inp := net.AddLayer2D("Input", 7, 5, emer.Input)
-	recv := net.AddLayer2D("RecvNeuron", 1, 1, emer.Hidden)
+	net.InitName(net, "CatsAndDogs")
+	name := net.AddLayer2D("Name", 1, 10, emer.Input)
+	iden := net.AddLayer2D("Identity", 1, 10, emer.Input)
+	color := net.AddLayer2D("Color", 1, 4, emer.Input)
+	food := net.AddLayer2D("FavoriteFood", 1, 4, emer.Input)
+	size := net.AddLayer2D("Size", 1, 3, emer.Input)
+	spec := net.AddLayer2D("Species", 1, 2, emer.Input)
+	toy := net.AddLayer2D("FavoriteToy", 1, 4, emer.Input)
 
-	net.ConnectLayers(inp, recv, prjn.NewFull(), emer.Forward)
+	name.SetClass("Id") // share params
+	iden.SetClass("Id")
+
+	net.ConnectLayers(name, iden, prjn.NewOneToOne(), emer.Forward)
+	net.ConnectLayers(iden, name, prjn.NewOneToOne(), emer.Back)
+
+	net.ConnectLayers(color, iden, prjn.NewFull(), emer.Forward)
+	net.ConnectLayers(iden, color, prjn.NewFull(), emer.Back)
+
+	net.ConnectLayers(food, iden, prjn.NewFull(), emer.Forward)
+	net.ConnectLayers(iden, food, prjn.NewFull(), emer.Back)
+
+	net.ConnectLayers(size, iden, prjn.NewFull(), emer.Forward)
+	net.ConnectLayers(iden, size, prjn.NewFull(), emer.Back)
+
+	net.ConnectLayers(spec, iden, prjn.NewFull(), emer.Forward)
+	net.ConnectLayers(iden, spec, prjn.NewFull(), emer.Back)
+
+	net.ConnectLayers(toy, iden, prjn.NewFull(), emer.Forward)
+	net.ConnectLayers(iden, toy, prjn.NewFull(), emer.Back)
+
+	iden.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Name", YAlign: relpos.Front, XAlign: relpos.Left, YOffset: 1})
+	color.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Identity", YAlign: relpos.Front, XAlign: relpos.Left, YOffset: 1})
+	food.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Identity", YAlign: relpos.Front, XAlign: relpos.Right, YOffset: 1})
+	size.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Color", YAlign: relpos.Front, XAlign: relpos.Left})
+	spec.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Color", YAlign: relpos.Front, XAlign: relpos.Right, XOffset: 2})
+	toy.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "FavoriteFood", YAlign: relpos.Front, XAlign: relpos.Right, XOffset: 1})
 
 	net.Defaults()
 	ss.SetParams("Network", false) // only set Network params
@@ -148,17 +185,18 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 	ss.InitWts(net)
 }
 
-// InitWts initializes weights to digit 8
+// InitWts loads the saved weights
 func (ss *Sim) InitWts(net *leabra.Network) {
 	net.InitWts()
-	digit := 8
-	pats := ss.Pats
-	dpat := pats.CellTensor("Input", digit)
-	recv := net.LayerByName("RecvNeuron")
-	prj := recv.RecvPrjns().SendName("Input")
-	for i := 0; i < dpat.Len(); i++ {
-		prj.SetSynVal("Wt", i, 0, float32(dpat.FloatVal1D(i)))
+	ab, err := Asset("cats_dogs.wts") // embedded in executable
+	if err != nil {
+		log.Println(err)
 	}
+	net.ReadWtsJSON(bytes.NewBuffer(ab))
+	// net.OpenWtsJSON("cats_dogs.wts")
+	// below is one-time conversion from c++ weights
+	// net.OpenWtsCpp("CatsDogsNet.wts")
+	// net.SaveWtsJSON("cats_dogs.wts")
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -167,10 +205,11 @@ func (ss *Sim) InitWts(net *leabra.Network) {
 // Init restarts the run, and initializes everything, including network weights
 // and resets the epoch log table
 func (ss *Sim) Init() {
-	ss.ConfigEnv() // re-config env just in case a different set of patterns was
+	// ss.ConfigEnv() // re-config env just in case a different set of patterns was
 	// selected or patterns have been modified etc
+	ss.TestEnv.Init(0)
 	ss.Time.Reset()
-	ss.Time.CycPerQtr = 5 // don't need much time
+	// ss.Time.CycPerQtr = 25 // use full 100 cycles, default
 	ss.InitWts(ss.Net)
 	ss.StopNow = false
 	ss.SetParams("", false) // all sheets
@@ -245,7 +284,7 @@ func (ss *Sim) ApplyInputs(en env.Env) {
 	ss.Net.InitExt() // clear any existing inputs -- not strictly necessary if always
 	// going to the same layers, but good practice and cheap anyway
 
-	lays := []string{"Input"}
+	lays := []string{"Name", "Identity", "Color", "FavoriteFood", "Size", "Species", "FavoriteToy"}
 	for _, lnm := range lays {
 		ly := ss.Net.LayerByName(lnm).(*leabra.Layer)
 		pats := en.State(ly.Nm)
@@ -343,8 +382,6 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 		ss.Params.ValidateSheets([]string{"Network", "Sim"})
 	}
 	err := ss.SetParamsSet("Base", sheet, setMsg)
-	recv := ss.Net.LayerByName("RecvNeuron").(*leabra.Layer)
-	recv.Act.Gbar.L = ss.GbarL
 	return err
 }
 
@@ -375,12 +412,32 @@ func (ss *Sim) SetParamsSet(setNm string, sheet string, setMsg bool) error {
 	return err
 }
 
+// SetInput sets whether the input to the network comes in bottom-up
+// (Input layer) or top-down (Higher-level category layers)
+func (ss *Sim) SetInput(topDown bool) {
+	inp := ss.Net.LayerByName("Input").(*leabra.Layer)
+	emo := ss.Net.LayerByName("Emotion").(*leabra.Layer)
+	gend := ss.Net.LayerByName("Gender").(*leabra.Layer)
+	iden := ss.Net.LayerByName("Identity").(*leabra.Layer)
+	if topDown {
+		inp.SetType(emer.Compare)
+		emo.SetType(emer.Input)
+		gend.SetType(emer.Input)
+		iden.SetType(emer.Input)
+	} else {
+		inp.SetType(emer.Input)
+		emo.SetType(emer.Compare)
+		gend.SetType(emer.Compare)
+		iden.SetType(emer.Compare)
+	}
+}
+
 func (ss *Sim) OpenPats() {
 	dt := ss.Pats
-	dt.SetMetaData("name", "DigitPats")
-	dt.SetMetaData("desc", "Testing Digit patterns")
-	// err := dt.OpenCSV("digits.dat", etable.Tab)
-	ab, err := Asset("digits.dat") // embedded in executable
+	dt.SetMetaData("name", "CatAndDogPats")
+	dt.SetMetaData("desc", "Testing patterns")
+	// dt.OpenCSV("cats_dogs_pats.dat", etable.Tab)
+	ab, err := Asset("cats_dogs_pats.dat") // embedded in executable
 	if err != nil {
 		log.Println(err)
 	}
@@ -396,35 +453,31 @@ func (ss *Sim) OpenPats() {
 // LogTstTrl adds data from current trial to the TstTrlLog table.
 // log always contains number of testing items
 func (ss *Sim) LogTstTrl(dt *etable.Table) {
-	inp := ss.Net.LayerByName("Input").(*leabra.Layer)
-	recv := ss.Net.LayerByName("RecvNeuron").(*leabra.Layer)
-
 	trl := ss.TestEnv.Trial.Cur
 	row := trl
 
 	dt.SetCellFloat("Trial", row, float64(trl))
 	dt.SetCellString("TrialName", row, ss.TestEnv.TrialName)
 
-	if ss.InputValsTsr == nil { // re-use same tensors so not always reallocating mem
-		ss.InputValsTsr = &etensor.Float32{}
-		ss.OutputValsTsr = &etensor.Float32{}
+	if ss.MonTsr == nil {
+		ss.MonTsr = make(map[string]*etensor.Float32)
 	}
-
-	inp.UnitValsTensor(ss.InputValsTsr, "Act")
-	dt.SetCellTensor("Input", row, ss.InputValsTsr)
-	recv.UnitValsTensor(ss.OutputValsTsr, "Ge")
-	dt.SetCellTensor("Ge", row, ss.OutputValsTsr)
-	recv.UnitValsTensor(ss.OutputValsTsr, "Act")
-	dt.SetCellTensor("Act", row, ss.OutputValsTsr)
+	for _, lnm := range ss.TstRecLays {
+		tsr, ok := ss.MonTsr[lnm]
+		if !ok {
+			tsr = &etensor.Float32{}
+			ss.MonTsr[lnm] = tsr
+		}
+		ly := ss.Net.LayerByName(lnm).(*leabra.Layer)
+		ly.UnitValsTensor(tsr, "Act")
+		dt.SetCellTensor(lnm, row, tsr)
+	}
 
 	// note: essential to use Go version of update when called from another goroutine
 	ss.TstTrlPlot.GoUpdate()
 }
 
 func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
-	inp := ss.Net.LayerByName("Input").(*leabra.Layer)
-	recv := ss.Net.LayerByName("RecvNeuron").(*leabra.Layer)
-
 	dt.SetMetaData("name", "TstTrlLog")
 	dt.SetMetaData("desc", "Record of testing per input pattern")
 	dt.SetMetaData("read-only", "true")
@@ -434,39 +487,60 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 	sch := etable.Schema{
 		{"Trial", etensor.INT64, nil, nil},
 		{"TrialName", etensor.STRING, nil, nil},
-		{"Input", etensor.FLOAT64, inp.Shp.Shp, nil},
-		{"Ge", etensor.FLOAT64, recv.Shp.Shp, nil},
-		{"Act", etensor.FLOAT64, recv.Shp.Shp, nil},
+	}
+	for _, lnm := range ss.TstRecLays {
+		ly := ss.Net.LayerByName(lnm).(*leabra.Layer)
+		sch = append(sch, etable.Column{lnm, etensor.FLOAT64, ly.Shp.Shp, nil})
 	}
 	dt.SetFromSchema(sch, nt)
 }
 
 func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
-	plt.Params.Title = "Detector Test Trial Plot"
+	plt.Params.Title = "CatsAndDogs Test Trial Plot"
 	plt.Params.XAxisCol = "Trial"
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Trial", false, true, 0, false, 0)
 	plt.SetColParams("TrialName", false, true, 0, false, 0)
 
-	plt.SetColParams("Input", false, true, 0, true, 1)
-	plt.SetColParams("Ge", true, true, 0, true, 1)
-	plt.SetColParams("Act", true, true, 0, true, 1)
+	for _, lnm := range ss.TstRecLays {
+		plt.SetColParams(lnm, true, true, 0, true, 1)
+	}
 	return plt
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 // 		Gui
 
+func (ss *Sim) ConfigNetView(nv *netview.NetView) {
+	nv.Scene().Camera.Pose.Pos.Set(0, 1.5, 3.0) // more "head on" than default which is more "top down"
+	nv.Scene().Camera.LookAt(mat32.Vec3{0, 0, 0}, mat32.Vec3{0, 1, 0})
+
+	labs := []string{"Morr  Socks   Sylv  Garf  Fuzz  Rex  Fido  Spot   Snoop  Butch", "black  white  brown  orange", "bugs  grass  scraps  shoe", "small  med  large", "cat     dog", "string  feath  bone  shoe"}
+	nv.ConfigLabels(labs)
+
+	lays := []string{"Name", "Color", "FavoriteFood", "Size", "Species", "FavoriteToy"}
+
+	for li, lnm := range lays {
+		ly := nv.LayerByName(lnm)
+		lbl := nv.LabelByName(labs[li])
+		lbl.Pose = ly.Pose
+		lbl.Pose.Pos.Y += .2
+		lbl.Pose.Pos.Z += .02
+		lbl.Pose.Scale.SetMul(mat32.Vec3{0.4, 0.08, 0.5})
+	}
+}
+
 // ConfigGui configures the GoGi gui interface for this simulation,
 func (ss *Sim) ConfigGui() *gi.Window {
 	width := 1600
 	height := 1200
 
-	gi.SetAppName("detector")
-	gi.SetAppAbout(`This simulation shows how an individual neuron can act like a detector, picking out specific patterns from its inputs and responding with varying degrees of selectivity to the match between its synaptic weights and the input activity pattern. See <a href="https://github.com/CompCogNeuro/sims/ch2/detector/README.md">README.md on GitHub</a>.</p>`)
+	gi.SetAppName("cat_dogs")
+	gi.SetAppAbout(`cats_dogs: This project explores a simple **semantic network** intended to represent a (very small) set of relationships among different features used to represent a set of entities in the world.  In our case, we represent some features of cats and dogs: their color, size, favorite food, and favorite toy.
+  See <a href="https://github.com/CompCogNeuro/sims/ch3/cats_dogs/README.md">README.md on GitHub</a>.</p>`)
 
-	win := gi.NewWindow2D("detector", "Neuron as Detector", width, height, true)
+	win := gi.NewWindow2D("cats_dogs", "Cats and Dogs", width, height, true)
 	ss.Win = win
 
 	vp := win.WinViewport2D()
@@ -497,6 +571,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	ss.NetView = nv
 
 	nv.ViewDefaults()
+	ss.ConfigNetView(nv) // add labels etc
 
 	plt := tv.AddNewTab(eplot.KiT_Plot2D, "TstTrlPlot").(*eplot.Plot2D)
 	ss.TstTrlPlot = ss.ConfigTstTrlPlot(plt, ss.TstTrlLog)
@@ -562,17 +637,9 @@ func (ss *Sim) ConfigGui() *gi.Window {
 		}
 	})
 
-	tbar.AddAction(gi.ActOpts{Label: "Defaults", Icon: "reset", Tooltip: "Restore initial default parameters.", UpdateFunc: func(act *gi.Action) {
-		act.SetActiveStateUpdt(!ss.IsRunning)
-	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
-		ss.Defaults()
-		ss.Init()
-		vp.SetNeedsFullRender()
-	})
-
 	tbar.AddAction(gi.ActOpts{Label: "README", Icon: "file-markdown", Tooltip: "Opens your browser on the README file that contains instructions for how to run this model."}, win.This(),
 		func(recv, send ki.Ki, sig int64, data interface{}) {
-			gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch2/detector/README.md")
+			gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch3/face_categ/README.md")
 		})
 
 	vp.UpdateEndNoSig(updt)

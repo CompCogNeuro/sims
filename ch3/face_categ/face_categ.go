@@ -84,26 +84,24 @@ var ParamSets = params.Sets{
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
-	Net       *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
-	Pats      *etable.Table     `view:"no-inline" desc:"click to see the full face testing input patterns to use"`
-	PartPats  *etable.Table     `view:"no-inline" desc:"click to see the partial face testing input patterns to use"`
-	TstTrlLog *etable.Table     `view:"no-inline" desc:"testing trial-level log data -- click to see record of network's response to each input"`
-	Params    params.Sets       `view:"no-inline" desc:"full collection of param sets -- not really interesting for this model"`
-	TestEnv   env.FixedTable    `desc:"Testing environment -- manages iterating over testing"`
-	Time      leabra.Time       `desc:"leabra timing parameters and state"`
-	ViewUpdt  leabra.TimeScales `desc:"at what time scale to update the display during testing?  Change to AlphaCyc to make display updating go faster"`
+	Net        *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
+	Pats       *etable.Table     `view:"no-inline" desc:"click to see the full face testing input patterns to use"`
+	PartPats   *etable.Table     `view:"no-inline" desc:"click to see the partial face testing input patterns to use"`
+	TstTrlLog  *etable.Table     `view:"no-inline" desc:"testing trial-level log data -- click to see record of network's response to each input"`
+	Params     params.Sets       `view:"no-inline" desc:"full collection of param sets -- not really interesting for this model"`
+	TestEnv    env.FixedTable    `desc:"Testing environment -- manages iterating over testing"`
+	Time       leabra.Time       `desc:"leabra timing parameters and state"`
+	ViewUpdt   leabra.TimeScales `desc:"at what time scale to update the display during testing?  Change to AlphaCyc to make display updating go faster"`
+	TstRecLays []string          `desc:"names of layers to record activations etc of during testing"`
 
 	// internal state - view:"-"
-	Win          *gi.Window       `view:"-" desc:"main GUI window"`
-	NetView      *netview.NetView `view:"-" desc:"the network viewer"`
-	ToolBar      *gi.ToolBar      `view:"-" desc:"the master toolbar"`
-	TstTrlPlot   *eplot.Plot2D    `view:"-" desc:"the test-trial plot"`
-	InputValsTsr *etensor.Float32 `view:"-" desc:"for holding layer values"`
-	EmoValsTsr   *etensor.Float32 `view:"-" desc:"for holding layer values"`
-	GendValsTsr  *etensor.Float32 `view:"-" desc:"for holding layer values"`
-	IdenValsTsr  *etensor.Float32 `view:"-" desc:"for holding layer values"`
-	IsRunning    bool             `view:"-" desc:"true if sim is running"`
-	StopNow      bool             `view:"-" desc:"flag to stop running"`
+	Win        *gi.Window                  `view:"-" desc:"main GUI window"`
+	NetView    *netview.NetView            `view:"-" desc:"the network viewer"`
+	ToolBar    *gi.ToolBar                 `view:"-" desc:"the master toolbar"`
+	TstTrlPlot *eplot.Plot2D               `view:"-" desc:"the test-trial plot"`
+	MonTsr     map[string]*etensor.Float32 `view:"-" desc:"for holding layer values"`
+	IsRunning  bool                        `view:"-" desc:"true if sim is running"`
+	StopNow    bool                        `view:"-" desc:"flag to stop running"`
 }
 
 // this registers this Sim Type and gives it properties that e.g.,
@@ -121,6 +119,7 @@ func (ss *Sim) New() {
 	ss.TstTrlLog = &etable.Table{}
 	ss.Params = ParamSets
 	ss.ViewUpdt = leabra.Cycle
+	ss.TstRecLays = []string{"Input", "Emotion", "Gender", "Identity"}
 	ss.Defaults()
 }
 
@@ -278,25 +277,13 @@ func (ss *Sim) ApplyInputs(en env.Env) {
 	ss.Net.InitExt() // clear any existing inputs -- not strictly necessary if always
 	// going to the same layers, but good practice and cheap anyway
 
-	inp := ss.Net.LayerByName("Input").(*leabra.Layer)
-	inPats := en.State(inp.Nm)
-	if inPats != nil {
-		inp.ApplyExt(inPats)
-	}
-	emo := ss.Net.LayerByName("Emotion").(*leabra.Layer)
-	emoPats := en.State(emo.Nm)
-	if emoPats != nil {
-		emo.ApplyExt(emoPats)
-	}
-	gend := ss.Net.LayerByName("Gender").(*leabra.Layer)
-	gendPats := en.State(gend.Nm)
-	if gendPats != nil {
-		gend.ApplyExt(gendPats)
-	}
-	iden := ss.Net.LayerByName("Identity").(*leabra.Layer)
-	idenPats := en.State(iden.Nm)
-	if idenPats != nil {
-		iden.ApplyExt(idenPats)
+	lays := []string{"Input", "Emotion", "Gender", "Identity"}
+	for _, lnm := range lays {
+		ly := ss.Net.LayerByName(lnm).(*leabra.Layer)
+		pats := en.State(ly.Nm)
+		if pats != nil {
+			ly.ApplyExt(pats)
+		}
 	}
 }
 
@@ -485,42 +472,31 @@ func (ss *Sim) OpenPats() {
 // LogTstTrl adds data from current trial to the TstTrlLog table.
 // log always contains number of testing items
 func (ss *Sim) LogTstTrl(dt *etable.Table) {
-	inp := ss.Net.LayerByName("Input").(*leabra.Layer)
-	emo := ss.Net.LayerByName("Emotion").(*leabra.Layer)
-	gend := ss.Net.LayerByName("Gender").(*leabra.Layer)
-	iden := ss.Net.LayerByName("Identity").(*leabra.Layer)
-
 	trl := ss.TestEnv.Trial.Cur
 	row := trl
 
 	dt.SetCellFloat("Trial", row, float64(trl))
 	dt.SetCellString("TrialName", row, ss.TestEnv.TrialName)
 
-	if ss.InputValsTsr == nil { // re-use same tensors so not always reallocating mem
-		ss.InputValsTsr = &etensor.Float32{}
-		ss.EmoValsTsr = &etensor.Float32{}
-		ss.GendValsTsr = &etensor.Float32{}
-		ss.IdenValsTsr = &etensor.Float32{}
+	if ss.MonTsr == nil {
+		ss.MonTsr = make(map[string]*etensor.Float32)
 	}
-	inp.UnitValsTensor(ss.InputValsTsr, "Act")
-	dt.SetCellTensor("Input", row, ss.InputValsTsr)
-	emo.UnitValsTensor(ss.EmoValsTsr, "Act")
-	dt.SetCellTensor("Emotion", row, ss.EmoValsTsr)
-	gend.UnitValsTensor(ss.GendValsTsr, "Act")
-	dt.SetCellTensor("Gender", row, ss.GendValsTsr)
-	iden.UnitValsTensor(ss.IdenValsTsr, "Act")
-	dt.SetCellTensor("Identity", row, ss.IdenValsTsr)
+	for _, lnm := range ss.TstRecLays {
+		tsr, ok := ss.MonTsr[lnm]
+		if !ok {
+			tsr = &etensor.Float32{}
+			ss.MonTsr[lnm] = tsr
+		}
+		ly := ss.Net.LayerByName(lnm).(*leabra.Layer)
+		ly.UnitValsTensor(tsr, "Act")
+		dt.SetCellTensor(lnm, row, tsr)
+	}
 
 	// note: essential to use Go version of update when called from another goroutine
 	ss.TstTrlPlot.GoUpdate()
 }
 
 func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
-	inp := ss.Net.LayerByName("Input").(*leabra.Layer)
-	emo := ss.Net.LayerByName("Emotion").(*leabra.Layer)
-	gend := ss.Net.LayerByName("Gender").(*leabra.Layer)
-	iden := ss.Net.LayerByName("Identity").(*leabra.Layer)
-
 	dt.SetMetaData("name", "TstTrlLog")
 	dt.SetMetaData("desc", "Record of testing per input pattern")
 	dt.SetMetaData("read-only", "true")
@@ -530,10 +506,10 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 	sch := etable.Schema{
 		{"Trial", etensor.INT64, nil, nil},
 		{"TrialName", etensor.STRING, nil, nil},
-		{"Input", etensor.FLOAT64, inp.Shp.Shp, nil},
-		{"Emotion", etensor.FLOAT64, emo.Shp.Shp, nil},
-		{"Gender", etensor.FLOAT64, gend.Shp.Shp, nil},
-		{"Identity", etensor.FLOAT64, iden.Shp.Shp, nil},
+	}
+	for _, lnm := range ss.TstRecLays {
+		ly := ss.Net.LayerByName(lnm).(*leabra.Layer)
+		sch = append(sch, etable.Column{lnm, etensor.FLOAT64, ly.Shp.Shp, nil})
 	}
 	dt.SetFromSchema(sch, nt)
 }
@@ -546,10 +522,10 @@ func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetColParams("Trial", false, true, 0, false, 0)
 	plt.SetColParams("TrialName", false, true, 0, false, 0)
 
-	plt.SetColParams("Input", false, true, 0, true, 1)
-	plt.SetColParams("Emotion", true, true, 0, true, 1)
-	plt.SetColParams("Gender", true, true, 0, true, 1)
-	plt.SetColParams("Identity", false, true, 0, true, 1)
+	for _, lnm := range ss.TstRecLays {
+		plt.SetColParams(lnm, false, true, 0, true, 1)
+	}
+	plt.SetColParams("Gender", true, true, 0, true, 1) // display
 	return plt
 }
 
