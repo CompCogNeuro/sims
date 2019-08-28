@@ -99,7 +99,7 @@ type Sim struct {
 	NetView    *netview.NetView            `view:"-" desc:"the network viewer"`
 	ToolBar    *gi.ToolBar                 `view:"-" desc:"the master toolbar"`
 	TstTrlPlot *eplot.Plot2D               `view:"-" desc:"the test-trial plot"`
-	MonTsr     map[string]*etensor.Float32 `view:"-" desc:"for holding layer values"`
+	LayRecTsr  map[string]*etensor.Float32 `view:"-" desc:"for holding layer recording values"`
 	IsRunning  bool                        `view:"-" desc:"true if sim is running"`
 	StopNow    bool                        `view:"-" desc:"flag to stop running"`
 }
@@ -478,14 +478,14 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 	dt.SetCellFloat("Trial", row, float64(trl))
 	dt.SetCellString("TrialName", row, ss.TestEnv.TrialName)
 
-	if ss.MonTsr == nil {
-		ss.MonTsr = make(map[string]*etensor.Float32)
+	if ss.LayRecTsr == nil {
+		ss.LayRecTsr = make(map[string]*etensor.Float32)
 	}
 	for _, lnm := range ss.TstRecLays {
-		tsr, ok := ss.MonTsr[lnm]
+		tsr, ok := ss.LayRecTsr[lnm]
 		if !ok {
 			tsr = &etensor.Float32{}
-			ss.MonTsr[lnm] = tsr
+			ss.LayRecTsr[lnm] = tsr
 		}
 		ly := ss.Net.LayerByName(lnm).(*leabra.Layer)
 		ly.UnitValsTensor(tsr, "Act")

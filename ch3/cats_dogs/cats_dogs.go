@@ -55,10 +55,11 @@ var ParamSets = params.Sets{
 				Params: params.Params{
 					"Layer.Inhib.ActAvg.Init":  "0.25",
 					"Layer.Inhib.ActAvg.Fixed": "true",
+					"Layer.Inhib.Layer.FBTau":  "3", // this is key for smoothing bumps
 					"Layer.Act.Clamp.Hard":     "false",
 					"Layer.Act.Clamp.Gain":     "1",
 					"Layer.Act.XX1.Gain":       "40",  // more graded -- key
-					"Layer.Act.Dt.VmTau":       "4",   // a bit slower
+					"Layer.Act.Dt.VmTau":       "4",   // a bit slower -- not as effective as FBTau
 					"Layer.Act.Gbar.L":         "0.1", // needs lower leak
 				}},
 			{Sel: ".Id", Desc: "specific inhibition for identity, name",
@@ -77,7 +78,7 @@ var ParamSets = params.Sets{
 type Sim struct {
 	Net        *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
 	Pats       *etable.Table     `view:"no-inline" desc:"click to see and edit the testing input patterns to use"`
-	TstTrlLog  *etable.Table     `view:"no-inline" desc:"testing trial-level log data -- click to see record of network's response to each input"`
+	TstCycLog  *etable.Table     `view:"no-inline" desc:"testing trial-level log data -- click to see record of network's response to each input"`
 	Params     params.Sets       `view:"no-inline" desc:"full collection of param sets -- not really interesting for this model"`
 	TestEnv    env.FixedTable    `desc:"Testing environment -- manages iterating over testing"`
 	Time       leabra.Time       `desc:"leabra timing parameters and state"`
@@ -88,8 +89,8 @@ type Sim struct {
 	Win        *gi.Window                  `view:"-" desc:"main GUI window"`
 	NetView    *netview.NetView            `view:"-" desc:"the network viewer"`
 	ToolBar    *gi.ToolBar                 `view:"-" desc:"the master toolbar"`
-	TstTrlPlot *eplot.Plot2D               `view:"-" desc:"the test-trial plot"`
-	MonTsr     map[string]*etensor.Float32 `view:"-" desc:"for holding layer values"`
+	TstCycPlot *eplot.Plot2D               `view:"-" desc:"the test-trial plot"`
+	LayRecTsr  map[string]*etensor.Float32 `view:"-" desc:"for holding layer recording values"`
 	IsRunning  bool                        `view:"-" desc:"true if sim is running"`
 	StopNow    bool                        `view:"-" desc:"flag to stop running"`
 }
@@ -105,7 +106,7 @@ var TheSim Sim
 func (ss *Sim) New() {
 	ss.Net = &leabra.Network{}
 	ss.Pats = &etable.Table{}
-	ss.TstTrlLog = &etable.Table{}
+	ss.TstCycLog = &etable.Table{}
 	ss.Params = ParamSets
 	ss.ViewUpdt = leabra.Cycle
 	ss.TstRecLays = []string{"Name", "Identity", "Color", "FavoriteFood", "Size", "Species", "FavoriteToy"}
@@ -125,7 +126,7 @@ func (ss *Sim) Config() {
 	ss.OpenPats()
 	ss.ConfigEnv()
 	ss.ConfigNet(ss.Net)
-	ss.ConfigTstTrlLog(ss.TstTrlLog)
+	ss.ConfigTstCycLog(ss.TstCycLog)
 }
 
 func (ss *Sim) ConfigEnv() {
@@ -249,6 +250,7 @@ func (ss *Sim) AlphaCyc() {
 	for qtr := 0; qtr < 4; qtr++ {
 		for cyc := 0; cyc < ss.Time.CycPerQtr; cyc++ {
 			ss.Net.Cycle(&ss.Time)
+			ss.LogTstCyc(ss.TstCycLog, ss.Time.Cycle)
 			ss.Time.CycleInc()
 			switch viewUpdt {
 			case leabra.Cycle:
@@ -337,7 +339,6 @@ func (ss *Sim) TestTrial() {
 
 	ss.ApplyInputs(&ss.TestEnv)
 	ss.AlphaCyc()
-	ss.LogTstTrl(ss.TstTrlLog)
 }
 
 // TestItem tests given item which is at given index in test item list
@@ -448,25 +449,50 @@ func (ss *Sim) OpenPats() {
 }
 
 //////////////////////////////////////////////
-//  TstTrlLog
+//  TstCycLog
 
-// LogTstTrl adds data from current trial to the TstTrlLog table.
+// Harmony computes the harmony (excitatory net input Ge * Act)
+func (ss *Sim) Harmony(nt *leabra.Network) float32 {
+	harm := float32(0)
+	nu := 0
+	for _, ly := range nt.Layers {
+		if ly.IsOff() {
+			continue
+		}
+		lly := ly.(*leabra.Layer)
+		for i := range lly.Neurons {
+			nrn := &(lly.Neurons[i])
+			harm += nrn.Ge * nrn.Act
+			nu++
+		}
+	}
+	if nu > 0 {
+		harm /= float32(nu)
+	}
+	return harm
+}
+
+// LogTstCyc adds data from current cycle to the TstCycLog table.
 // log always contains number of testing items
-func (ss *Sim) LogTstTrl(dt *etable.Table) {
-	trl := ss.TestEnv.Trial.Cur
-	row := trl
+func (ss *Sim) LogTstCyc(dt *etable.Table, cyc int) {
+	if dt.Rows <= cyc {
+		dt.SetNumRows(cyc + 1)
+	}
+	row := cyc
 
-	dt.SetCellFloat("Trial", row, float64(trl))
+	harm := ss.Harmony(ss.Net)
+	dt.SetCellFloat("Cycle", row, float64(cyc))
 	dt.SetCellString("TrialName", row, ss.TestEnv.TrialName)
+	dt.SetCellFloat("Harmony", row, float64(harm))
 
-	if ss.MonTsr == nil {
-		ss.MonTsr = make(map[string]*etensor.Float32)
+	if ss.LayRecTsr == nil {
+		ss.LayRecTsr = make(map[string]*etensor.Float32)
 	}
 	for _, lnm := range ss.TstRecLays {
-		tsr, ok := ss.MonTsr[lnm]
+		tsr, ok := ss.LayRecTsr[lnm]
 		if !ok {
 			tsr = &etensor.Float32{}
-			ss.MonTsr[lnm] = tsr
+			ss.LayRecTsr[lnm] = tsr
 		}
 		ly := ss.Net.LayerByName(lnm).(*leabra.Layer)
 		ly.UnitValsTensor(tsr, "Act")
@@ -474,19 +500,20 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 	}
 
 	// note: essential to use Go version of update when called from another goroutine
-	ss.TstTrlPlot.GoUpdate()
+	ss.TstCycPlot.GoUpdate()
 }
 
-func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
-	dt.SetMetaData("name", "TstTrlLog")
-	dt.SetMetaData("desc", "Record of testing per input pattern")
+func (ss *Sim) ConfigTstCycLog(dt *etable.Table) {
+	dt.SetMetaData("name", "TstCycLog")
+	dt.SetMetaData("desc", "Record of testing per cycle")
 	dt.SetMetaData("read-only", "true")
 	dt.SetMetaData("precision", strconv.Itoa(LogPrec))
 
-	nt := ss.TestEnv.Table.Len() // number in view
+	nt := 100 // max cycles
 	sch := etable.Schema{
-		{"Trial", etensor.INT64, nil, nil},
+		{"Cycle", etensor.INT64, nil, nil},
 		{"TrialName", etensor.STRING, nil, nil},
+		{"Harmony", etensor.FLOAT64, nil, nil},
 	}
 	for _, lnm := range ss.TstRecLays {
 		ly := ss.Net.LayerByName(lnm).(*leabra.Layer)
@@ -495,16 +522,17 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 	dt.SetFromSchema(sch, nt)
 }
 
-func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
-	plt.Params.Title = "CatsAndDogs Test Trial Plot"
-	plt.Params.XAxisCol = "Trial"
+func (ss *Sim) ConfigTstCycPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
+	plt.Params.Title = "CatsAndDogs Test Cycle Plot"
+	plt.Params.XAxisCol = "Cycle"
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
-	plt.SetColParams("Trial", false, true, 0, false, 0)
+	plt.SetColParams("Cycle", false, true, 0, false, 0)
 	plt.SetColParams("TrialName", false, true, 0, false, 0)
+	plt.SetColParams("Harmony", true, true, 0, true, .25)
 
 	for _, lnm := range ss.TstRecLays {
-		plt.SetColParams(lnm, true, true, 0, true, 1)
+		plt.SetColParams(lnm, false, true, 0, true, 1)
 	}
 	return plt
 }
@@ -573,8 +601,8 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	nv.ViewDefaults()
 	ss.ConfigNetView(nv) // add labels etc
 
-	plt := tv.AddNewTab(eplot.KiT_Plot2D, "TstTrlPlot").(*eplot.Plot2D)
-	ss.TstTrlPlot = ss.ConfigTstTrlPlot(plt, ss.TstTrlLog)
+	plt := tv.AddNewTab(eplot.KiT_Plot2D, "TstCycPlot").(*eplot.Plot2D)
+	ss.TstCycPlot = ss.ConfigTstCycPlot(plt, ss.TstCycLog)
 
 	split.SetSplits(.3, .7)
 
