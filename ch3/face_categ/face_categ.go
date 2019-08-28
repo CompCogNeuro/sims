@@ -201,6 +201,7 @@ func (ss *Sim) InitWts(net *leabra.Network) {
 func (ss *Sim) Init() {
 	// ss.ConfigEnv() // re-config env just in case a different set of patterns was
 	// selected or patterns have been modified etc
+	ss.TestEnv.Init(0)
 	ss.Time.Reset()
 	ss.Time.CycPerQtr = 10 // don't need much time
 	ss.InitWts(ss.Net)

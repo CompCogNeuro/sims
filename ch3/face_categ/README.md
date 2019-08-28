@@ -28,7 +28,7 @@ These weights were learned in a way that makes their representations particularl
 
 The next step in understanding the basics of the network is to see it respond to the inputs.
 
-* Select the `Act` value to view the neuron activities in the NetView, and then do `Test Trial` to see the network respond to the first face, `Alberto_happy`, with the view being updated for each of 20 cycles of neural updating.  You can use the VCR buttons in the lower-right of the NetView, after the `Time` label, to review how the network responded cycle-by-cycle.
+* Select the `Act` value to view the neuron activities in the NetView, and then do `Test Trial` to see the network respond to the first face, `Alberto_happy`, with the view being updated for each of 20 cycles of neural updating.  You can use the VCR buttons in the lower-right of the NetView, after the `Time` label, to review how the network responded cycle-by-cycle -- use the fast-reverse to skip back to the start and then single-step forward in time to see things unfolding cycle-by-cycle.
 
 You should see the network process the face input and activate the appropriate output categories for it (e.g., for the first pattern, it will activate `happy`, `male`, and `Alberto`). 
 
@@ -94,13 +94,16 @@ Next, let's try a more challenging test of bidirectional connectivity, where we 
 
 * Click `Set Input` again and turn `Top Down` off, and then click `Set Pats` and select `Partial` to input partial faces instead of full faces.  Then `Test Trial` through the inputs again.
 
-You should observe the initial partial activation pattern, followed by activation of the category-level units, and then the missing elements of the face image gradually get filled in.
+You should observe the initial partial activation pattern, followed by activation of the category-level units, and then the missing elements of the face image gradually get filled in (definitely use the Time VCR buttons to see this unfold cycle-by-cycle).
 
 > **Question 3.3:** Across multiple different such partial faces, what is the order in which the category units get active? How does this relate to the timing of when the missing features in the input face start to get filled in?
 
 
 Another way of thinking about the behavior of this network is in terms of **attractor dynamics**, where each specific face and associated category values represents a coordinated attractor, and the process of activation updating over cycles results in the network settling into a specific attractor from a partial input pattern that neverthelss lies within its overall attractor basin.
 
+More generally, being able to fill in missing pieces of associated information is a key benefit of bidirectional connectivity, and it is a highly flexible way to access information -- any subset of elements can trigger the completion of the rest.  This is also known as **content-addressable memory** as opposed to how standard computers typically require a specific memory address to access memory.  One of the great innovations of Google and other such search engines was to recreate the content addressable nature human memory so you can just enter some random words and get to the full relevant information.
+
 At a technical level, the ability of the network to fill in the missing parts of the input requires **soft clamping** of the input patterns -- the face pattern comes into each input as an extra contribution to the excitatory net input, which is then integrated with the other synaptic inputs coming top-down from the category level.
 
+Also, you might be surprised to know that most of the neural networks currently powering modern AI applications do *not* have this bidirectional connectivity, and thus lack the corresponding flexibilty of human knowledge and memory.
 
