@@ -45,7 +45,7 @@ You should see that the network activates features that are typical of cats, and
 
 Now let's make use of some of the constraint satisfaction ideas. We can view the *harmony* of the network over cycles of settling using a graph view.
 
-* Select the `TstCycPlot` tab to view a plot of harmony over cycles of settling.
+* Go back to testing just `cat` and select the `TstCycPlot` tab to view a plot of harmony over cycles of settling.
 
 Notice that, as we expected, this value appears to monotonically increase over settling, indicating that the network is increasingly satisfying the constraints as the activations are updated.
 
@@ -53,7 +53,7 @@ Now, let's make some more *specific* queries for the network.
 
 * Activate the `large` size input (last unit in `Size` column) in addition to `cat`, and test that. 
 
-You should see that the harmony value is lower than that for just `cat` alone. This lower harmony reflects the fact that you provided discordant, inconsistent constraints, which the network was not able to satisfy as well (indeed if you look network, it ended up struggling for a long time and then flipping over to representing a *dog*, Rex).
+You should see that the final harmony value is lower than that for just `cat` alone (even though it starts out higher initially). This lower harmony reflects the fact that you provided discordant, inconsistent constraints, which the network was not able to satisfy as well (indeed if you look network, it ended up struggling for a long time and then flipping over to representing a *dog*, Rex).
 
 * Turn off the `large` size input and turn on the `medium` one (middle unit in Size column) in addition to `cat`, and test again.
 
