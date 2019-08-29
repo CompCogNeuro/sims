@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 /*
-cats_dogs: This project explores a simple **semantic network** intended to represent a (very small) set of relationships among different features used to represent a set of entities in the world.  In our case, we represent some features of cats and dogs: their color, size, favorite food, and favorite toy.
+necker_cube: This simulation explores the use of constraint satisfaction in processing ambiguous stimuli. The example we will use is the *Necker cube*, which and can be viewed as a cube in one of two orientations, where people flip back and forth.
 */
 package main
 
@@ -14,11 +14,9 @@ import (
 	"strconv"
 
 	"github.com/emer/emergent/emer"
-	"github.com/emer/emergent/env"
 	"github.com/emer/emergent/netview"
 	"github.com/emer/emergent/params"
 	"github.com/emer/emergent/prjn"
-	"github.com/emer/emergent/relpos"
 	"github.com/emer/etable/eplot"
 	"github.com/emer/etable/etable"
 	"github.com/emer/etable/etensor"
@@ -27,7 +25,6 @@ import (
 	"github.com/goki/gi/gi"
 	"github.com/goki/gi/gimain"
 	"github.com/goki/gi/giv"
-	"github.com/goki/gi/mat32"
 	"github.com/goki/ki/ki"
 	"github.com/goki/ki/kit"
 )
@@ -53,18 +50,16 @@ var ParamSets = params.Sets{
 				}},
 			{Sel: "Layer", Desc: "generic params for all layers: lower gain, slower, soft clamp",
 				Params: params.Params{
-					"Layer.Inhib.ActAvg.Init":  "0.25",
+					"Layer.Inhib.ActAvg.Init":  "0.35",
 					"Layer.Inhib.ActAvg.Fixed": "true",
-					"Layer.Inhib.Layer.FBTau":  "3", // this is key for smoothing bumps
+					"Layer.Inhib.Layer.Gi":     "1.1",
 					"Layer.Act.Clamp.Hard":     "false",
-					"Layer.Act.Clamp.Gain":     "1",
-					"Layer.Act.XX1.Gain":       "40",  // more graded -- key
-					"Layer.Act.Dt.VmTau":       "4",   // a bit slower -- not as effective as FBTau
-					"Layer.Act.Gbar.L":         "0.1", // needs lower leak
-				}},
-			{Sel: ".Id", Desc: "specific inhibition for identity, name",
-				Params: params.Params{
-					"Layer.Inhib.Layer.Gi": "4.0",
+					"Layer.Act.Clamp.Gain":     "0.1",
+					"Layer.Act.Dt.VmTau":       "4", // a bit slower -- not as effective as FBTau
+					"Layer.Act.Noise.Dist":     "Gaussian",
+					"Layer.Act.Noise.Var":      "0.01",
+					"Layer.Act.Noise.Type":     "GeNoise",
+					"Layer.Act.Noise.Fixed":    "false",
 				}},
 		},
 	}},
@@ -76,11 +71,10 @@ var ParamSets = params.Sets{
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
+	Noise      float32           `min:"0" step:"0.01" desc:"the variance parameter for Gaussian noise added to unit activations on every cycle"`
 	Net        *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
-	Pats       *etable.Table     `view:"no-inline" desc:"click to see and edit the testing input patterns to use"`
 	TstCycLog  *etable.Table     `view:"no-inline" desc:"testing trial-level log data -- click to see record of network's response to each input"`
 	Params     params.Sets       `view:"no-inline" desc:"full collection of param sets -- not really interesting for this model"`
-	TestEnv    env.FixedTable    `desc:"Testing environment -- manages iterating over testing"`
 	Time       leabra.Time       `desc:"leabra timing parameters and state"`
 	ViewUpdt   leabra.TimeScales `desc:"at what time scale to update the display during testing?  Change to AlphaCyc to make display updating go faster"`
 	TstRecLays []string          `desc:"names of layers to record activations etc of during testing"`
@@ -105,16 +99,16 @@ var TheSim Sim
 // New creates new blank elements and initializes defaults
 func (ss *Sim) New() {
 	ss.Net = &leabra.Network{}
-	ss.Pats = &etable.Table{}
 	ss.TstCycLog = &etable.Table{}
 	ss.Params = ParamSets
 	ss.ViewUpdt = leabra.Cycle
-	ss.TstRecLays = []string{"Name", "Identity", "Color", "FavoriteFood", "Size", "Species", "FavoriteToy"}
+	ss.TstRecLays = []string{"NeckerCube"}
 	ss.Defaults()
 }
 
 // Defaults sets default params
 func (ss *Sim) Defaults() {
+	ss.Noise = 0.01
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -122,59 +116,15 @@ func (ss *Sim) Defaults() {
 
 // Config configures all the elements using the standard functions
 func (ss *Sim) Config() {
-	// patgen.ReshapeCppFile(ss.Pats, "StdInputData.dat", "cats_dogs_pats.dat") // one-time reshape
-	ss.OpenPats()
-	ss.ConfigEnv()
 	ss.ConfigNet(ss.Net)
 	ss.ConfigTstCycLog(ss.TstCycLog)
 }
 
-func (ss *Sim) ConfigEnv() {
-	ss.TestEnv.Nm = "TestEnv"
-	ss.TestEnv.Dsc = "testing params and state"
-	ss.TestEnv.Table = etable.NewIdxView(ss.Pats)
-	ss.TestEnv.Sequential = true
-	ss.TestEnv.Validate()
-	ss.TestEnv.Init(0)
-}
-
 func (ss *Sim) ConfigNet(net *leabra.Network) {
-	net.InitName(net, "CatsAndDogs")
-	name := net.AddLayer2D("Name", 1, 10, emer.Input)
-	iden := net.AddLayer2D("Identity", 1, 10, emer.Input)
-	color := net.AddLayer2D("Color", 1, 4, emer.Input)
-	food := net.AddLayer2D("FavoriteFood", 1, 4, emer.Input)
-	size := net.AddLayer2D("Size", 1, 3, emer.Input)
-	spec := net.AddLayer2D("Species", 1, 2, emer.Input)
-	toy := net.AddLayer2D("FavoriteToy", 1, 4, emer.Input)
+	net.InitName(net, "NeckerCube")
+	nc := net.AddLayer4D("NeckerCube", 1, 2, 4, 2, emer.Input)
 
-	name.SetClass("Id") // share params
-	iden.SetClass("Id")
-
-	net.ConnectLayers(name, iden, prjn.NewOneToOne(), emer.Forward)
-	net.ConnectLayers(iden, name, prjn.NewOneToOne(), emer.Back)
-
-	net.ConnectLayers(color, iden, prjn.NewFull(), emer.Forward)
-	net.ConnectLayers(iden, color, prjn.NewFull(), emer.Back)
-
-	net.ConnectLayers(food, iden, prjn.NewFull(), emer.Forward)
-	net.ConnectLayers(iden, food, prjn.NewFull(), emer.Back)
-
-	net.ConnectLayers(size, iden, prjn.NewFull(), emer.Forward)
-	net.ConnectLayers(iden, size, prjn.NewFull(), emer.Back)
-
-	net.ConnectLayers(spec, iden, prjn.NewFull(), emer.Forward)
-	net.ConnectLayers(iden, spec, prjn.NewFull(), emer.Back)
-
-	net.ConnectLayers(toy, iden, prjn.NewFull(), emer.Forward)
-	net.ConnectLayers(iden, toy, prjn.NewFull(), emer.Back)
-
-	iden.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Name", YAlign: relpos.Front, XAlign: relpos.Left, YOffset: 1})
-	color.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Identity", YAlign: relpos.Front, XAlign: relpos.Left, YOffset: 1})
-	food.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Identity", YAlign: relpos.Front, XAlign: relpos.Right, YOffset: 1})
-	size.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Color", YAlign: relpos.Front, XAlign: relpos.Left})
-	spec.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Color", YAlign: relpos.Front, XAlign: relpos.Right, XOffset: 2})
-	toy.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "FavoriteFood", YAlign: relpos.Front, XAlign: relpos.Right, XOffset: 1})
+	net.ConnectLayers(nc, nc, prjn.NewFull(), emer.Lateral)
 
 	net.Defaults()
 	ss.SetParams("Network", false) // only set Network params
@@ -189,15 +139,15 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 // InitWts loads the saved weights
 func (ss *Sim) InitWts(net *leabra.Network) {
 	net.InitWts()
-	ab, err := Asset("cats_dogs.wts") // embedded in executable
+	ab, err := Asset("necker_cube.wts") // embedded in executable
 	if err != nil {
 		log.Println(err)
 	}
 	net.ReadWtsJSON(bytes.NewBuffer(ab))
-	// net.OpenWtsJSON("cats_dogs.wts")
+	// net.OpenWtsJSON("necker_cube.wts")
 	// below is one-time conversion from c++ weights
-	// net.OpenWtsCpp("CatsDogsNet.wts")
-	// net.SaveWtsJSON("cats_dogs.wts")
+	// net.OpenWtsCpp("NeckerCubeNet.wts")
+	// net.SaveWtsJSON("necker_cube.wts")
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -206,14 +156,12 @@ func (ss *Sim) InitWts(net *leabra.Network) {
 // Init restarts the run, and initializes everything, including network weights
 // and resets the epoch log table
 func (ss *Sim) Init() {
-	// ss.ConfigEnv() // re-config env just in case a different set of patterns was
-	// selected or patterns have been modified etc
-	ss.TestEnv.Init(0)
 	ss.Time.Reset()
 	// ss.Time.CycPerQtr = 25 // use full 100 cycles, default
 	ss.InitWts(ss.Net)
 	ss.StopNow = false
 	ss.SetParams("", false) // all sheets
+	ss.Net.LayerByName("NeckerCube").(*leabra.Layer).Act.Noise.Var = float64(ss.Noise)
 	ss.UpdateView()
 }
 
@@ -221,7 +169,7 @@ func (ss *Sim) Init() {
 // use tabs to achieve a reasonable formatting overall
 // and add a few tabs at the end to allow for expansion..
 func (ss *Sim) Counters() string {
-	return fmt.Sprintf("Trial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TestEnv.Trial.Cur, ss.Time.Cycle, ss.TestEnv.TrialName)
+	return fmt.Sprintf("Cycle:\t%d\t\t\t", ss.Time.Cycle)
 }
 
 func (ss *Sim) UpdateView() {
@@ -282,18 +230,17 @@ func (ss *Sim) AlphaCyc() {
 // It is good practice to have this be a separate method with appropriate
 // args so that it can be used for various different contexts
 // (training, testing, etc).
-func (ss *Sim) ApplyInputs(en env.Env) {
+func (ss *Sim) ApplyInputs() {
 	ss.Net.InitExt() // clear any existing inputs -- not strictly necessary if always
 	// going to the same layers, but good practice and cheap anyway
 
-	lays := []string{"Name", "Identity", "Color", "FavoriteFood", "Size", "Species", "FavoriteToy"}
-	for _, lnm := range lays {
-		ly := ss.Net.LayerByName(lnm).(*leabra.Layer)
-		pats := en.State(ly.Nm)
-		if pats != nil {
-			ly.ApplyExt(pats)
-		}
+	// just directly apply all 1s to input
+	ly := ss.Net.LayerByName("NeckerCube").(*leabra.Layer)
+	pats := make([]float64, 16)
+	for i := range pats {
+		pats[i] = 1
 	}
+	ly.ApplyExt1D(pats)
 }
 
 // Stop tells the sim to stop running
@@ -326,48 +273,8 @@ func (ss *Sim) SaveWeights(filename gi.FileName) {
 
 // TestTrial runs one trial of testing -- always sequentially presented inputs
 func (ss *Sim) TestTrial() {
-	ss.TestEnv.Step()
-
-	// Query counters FIRST
-	_, _, chg := ss.TestEnv.Counter(env.Epoch)
-	if chg {
-		if ss.ViewUpdt > leabra.AlphaCycle {
-			ss.UpdateView()
-		}
-		return
-	}
-
-	ss.ApplyInputs(&ss.TestEnv)
+	ss.ApplyInputs()
 	ss.AlphaCyc()
-}
-
-// TestItem tests given item which is at given index in test item list
-func (ss *Sim) TestItem(idx int) {
-	cur := ss.TestEnv.Trial.Cur
-	ss.TestEnv.Trial.Cur = idx
-	ss.TestEnv.SetTrialName()
-	ss.ApplyInputs(&ss.TestEnv)
-	ss.AlphaCyc() // !train
-	ss.TestEnv.Trial.Cur = cur
-}
-
-// TestAll runs through the full set of testing items
-func (ss *Sim) TestAll() {
-	ss.TestEnv.Init(0)
-	for {
-		ss.TestTrial()
-		_, _, chg := ss.TestEnv.Counter(env.Epoch)
-		if chg || ss.StopNow {
-			break
-		}
-	}
-}
-
-// RunTestAll runs through the full set of testing items, has stop running = false at end -- for gui
-func (ss *Sim) RunTestAll() {
-	ss.StopNow = false
-	ss.TestAll()
-	ss.Stopped()
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -433,21 +340,6 @@ func (ss *Sim) SetInput(topDown bool) {
 	}
 }
 
-func (ss *Sim) OpenPats() {
-	dt := ss.Pats
-	dt.SetMetaData("name", "CatAndDogPats")
-	dt.SetMetaData("desc", "Testing patterns")
-	// dt.OpenCSV("cats_dogs_pats.dat", etable.Tab)
-	ab, err := Asset("cats_dogs_pats.dat") // embedded in executable
-	if err != nil {
-		log.Println(err)
-	}
-	err = dt.ReadCSV(bytes.NewBuffer(ab), etable.Tab)
-	if err != nil {
-		log.Println(err)
-	}
-}
-
 //////////////////////////////////////////////
 //  TstCycLog
 
@@ -482,7 +374,6 @@ func (ss *Sim) LogTstCyc(dt *etable.Table, cyc int) {
 
 	harm := ss.Harmony(ss.Net)
 	dt.SetCellFloat("Cycle", row, float64(cyc))
-	dt.SetCellString("TrialName", row, ss.TestEnv.TrialName)
 	dt.SetCellFloat("Harmony", row, float64(harm))
 
 	if ss.LayRecTsr == nil {
@@ -523,7 +414,7 @@ func (ss *Sim) ConfigTstCycLog(dt *etable.Table) {
 }
 
 func (ss *Sim) ConfigTstCycPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
-	plt.Params.Title = "CatsAndDogs Test Cycle Plot"
+	plt.Params.Title = "Necker Cube Test Cycle Plot"
 	plt.Params.XAxisCol = "Cycle"
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
@@ -541,22 +432,8 @@ func (ss *Sim) ConfigTstCycPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 // 		Gui
 
 func (ss *Sim) ConfigNetView(nv *netview.NetView) {
-	nv.Scene().Camera.Pose.Pos.Set(0, 1.5, 3.0) // more "head on" than default which is more "top down"
-	nv.Scene().Camera.LookAt(mat32.Vec3{0, 0, 0}, mat32.Vec3{0, 1, 0})
-
-	labs := []string{"Morr  Socks   Sylv  Garf  Fuzz  Rex  Fido  Spot   Snoop  Butch", "black  white  brown  orange", "bugs  grass  scraps  shoe", "small  med  large", "cat     dog", "string  feath  bone  shoe"}
-	nv.ConfigLabels(labs)
-
-	lays := []string{"Name", "Color", "FavoriteFood", "Size", "Species", "FavoriteToy"}
-
-	for li, lnm := range lays {
-		ly := nv.LayerByName(lnm)
-		lbl := nv.LabelByName(labs[li])
-		lbl.Pose = ly.Pose
-		lbl.Pose.Pos.Y += .2
-		lbl.Pose.Pos.Z += .02
-		lbl.Pose.Scale.SetMul(mat32.Vec3{0.4, 0.08, 0.5})
-	}
+	// nv.Scene().Camera.Pose.Pos.Set(0, 1.5, 3.0) // more "head on" than default which is more "top down"
+	// nv.Scene().Camera.LookAt(mat32.Vec3{0, 0, 0}, mat32.Vec3{0, 1, 0})
 }
 
 // ConfigGui configures the GoGi gui interface for this simulation,
@@ -564,11 +441,11 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	width := 1600
 	height := 1200
 
-	gi.SetAppName("cat_dogs")
-	gi.SetAppAbout(`cats_dogs: This project explores a simple **semantic network** intended to represent a (very small) set of relationships among different features used to represent a set of entities in the world.  In our case, we represent some features of cats and dogs: their color, size, favorite food, and favorite toy.
-  See <a href="https://github.com/CompCogNeuro/sims/ch3/cats_dogs/README.md">README.md on GitHub</a>.</p>`)
+	gi.SetAppName("necker_cube")
+	gi.SetAppAbout(`This simulation explores the use of constraint satisfaction in processing ambiguous stimuli. The example we will use is the *Necker cube*, which and can be viewed as a cube in one of two orientations, where people flip back and forth.
+  See <a href="https://github.com/CompCogNeuro/sims/ch3/necker_cube/README.md">README.md on GitHub</a>.</p>`)
 
-	win := gi.NewWindow2D("cats_dogs", "Cats and Dogs", width, height, true)
+	win := gi.NewWindow2D("necker_cube", "Necker Cube", width, height, true)
 	ss.Win = win
 
 	vp := win.WinViewport2D()
@@ -630,44 +507,17 @@ func (ss *Sim) ConfigGui() *gi.Window {
 		}
 	})
 
-	tbar.AddAction(gi.ActOpts{Label: "Test Item", Icon: "step-fwd", Tooltip: "Prompts for a specific input pattern name to run, and runs it in testing mode.", UpdateFunc: func(act *gi.Action) {
+	tbar.AddAction(gi.ActOpts{Label: "Defaults", Icon: "reset", Tooltip: "Restore initial default parameters.", UpdateFunc: func(act *gi.Action) {
 		act.SetActiveStateUpdt(!ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
-		gi.StringPromptDialog(vp, "", "Test Item",
-			gi.DlgOpts{Title: "Test Item", Prompt: "Enter the Name of a given input pattern to test (case insensitive, contains given string."},
-			win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
-				dlg := send.(*gi.Dialog)
-				if sig == int64(gi.DialogAccepted) {
-					val := gi.StringPromptDialogValue(dlg)
-					idxs := ss.TestEnv.Table.RowsByString("Name", val, true, true) // contains, ignoreCase
-					if len(idxs) == 0 {
-						gi.PromptDialog(nil, gi.DlgOpts{Title: "Name Not Found", Prompt: "No patterns found containing: " + val}, true, false, nil, nil)
-					} else {
-						if !ss.IsRunning {
-							ss.IsRunning = true
-							fmt.Printf("testing index: %v\n", idxs[0])
-							ss.TestItem(idxs[0])
-							ss.IsRunning = false
-							vp.SetNeedsFullRender()
-						}
-					}
-				}
-			})
-	})
-
-	tbar.AddAction(gi.ActOpts{Label: "Test All", Icon: "fast-fwd", Tooltip: "Tests all of the testing trials.", UpdateFunc: func(act *gi.Action) {
-		act.SetActiveStateUpdt(!ss.IsRunning)
-	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
-		if !ss.IsRunning {
-			ss.IsRunning = true
-			tbar.UpdateActions()
-			go ss.RunTestAll()
-		}
+		ss.Defaults()
+		ss.Init()
+		vp.SetNeedsFullRender()
 	})
 
 	tbar.AddAction(gi.ActOpts{Label: "README", Icon: "file-markdown", Tooltip: "Opens your browser on the README file that contains instructions for how to run this model."}, win.This(),
 		func(recv, send ki.Ki, sig int64, data interface{}) {
-			gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch3/cats_dogs/README.md")
+			gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch3/necker_cube/README.md")
 		})
 
 	vp.UpdateEndNoSig(updt)
