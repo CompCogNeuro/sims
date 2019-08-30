@@ -68,16 +68,19 @@ var ParamSets = params.Sets{
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
-	Spike     bool            `desc:"use discrete spiking equations -- otherwise use Noisy X-over-X-plus-1 rate code activation function"`
-	GbarE     float32         `def:"0.3" desc:"excitatory conductance multiplier -- determines overall value of Ge which drives neuron to be more excited -- pushes up over threshold to fire if strong enough"`
-	GbarL     float32         `def:"0.3" desc:"leak conductance -- determines overall value of Gl which drives neuron to be less excited (inhibited) -- pushes back to resting membrane potential"`
-	Noise     float32         `min:"0" step:"0.01" desc:"the variance parameter for Gaussian noise added to unit activations on every cycle"`
-	NCycles   int             `def:"200" desc:"total number of cycles to run"`
-	OnCycle   int             `def:"10" desc:"when does excitatory input into neuron come on?"`
-	OffCycle  int             `def:"160" desc:"when does excitatory input into neuron go off?"`
-	Net       *leabra.Network `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
-	TstCycLog *etable.Table   `view:"no-inline" desc:"testing trial-level log data -- click to see record of network's response to each input"`
-	Params    params.Sets     `view:"no-inline" desc:"full collection of param sets -- not really interesting for this model"`
+	Spike        bool            `desc:"use discrete spiking equations -- otherwise use Noisy X-over-X-plus-1 rate code activation function"`
+	GbarE        float32         `def:"0.3" desc:"excitatory conductance multiplier -- determines overall value of Ge which drives neuron to be more excited -- pushes up over threshold to fire if strong enough"`
+	GbarL        float32         `def:"0.3" desc:"leak conductance -- determines overall value of Gl which drives neuron to be less excited (inhibited) -- pushes back to resting membrane potential"`
+	Noise        float32         `min:"0" step:"0.01" desc:"the variance parameter for Gaussian noise added to unit activations on every cycle"`
+	NCycles      int             `def:"200" desc:"total number of cycles to run"`
+	OnCycle      int             `def:"10" desc:"when does excitatory input into neuron come on?"`
+	OffCycle     int             `def:"160" desc:"when does excitatory input into neuron go off?"`
+	UpdtInterval int             `def:"10"  desc:"how often to update display (in cycles)"`
+	Net          *leabra.Network `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
+	SpikeParams  SpikeActParams  `view:"no-inline" desc:"parameters for spiking funcion"`
+	SpikeNeuron  SpikeNeuron     `desc:"state parameters for spiking neuron"`
+	TstCycLog    *etable.Table   `view:"no-inline" desc:"testing trial-level log data -- click to see record of network's response to each input"`
+	Params       params.Sets     `view:"no-inline" desc:"full collection of param sets -- not really interesting for this model"`
 
 	Cycle int `interactive:"-" desc:"current cycle of updating"`
 
@@ -103,10 +106,12 @@ func (ss *Sim) New() {
 	ss.TstCycLog = &etable.Table{}
 	ss.Params = ParamSets
 	ss.Defaults()
+	ss.SpikeParams.Defaults()
 }
 
 // Defaults sets default params
 func (ss *Sim) Defaults() {
+	ss.UpdtInterval = 10
 	ss.Cycle = 0
 	ss.Spike = true
 	ss.GbarE = 0.3
@@ -153,6 +158,7 @@ func (ss *Sim) InitWts(net *leabra.Network) {
 func (ss *Sim) Init() {
 	ss.Cycle = 0
 	ss.InitWts(ss.Net)
+	ss.SpikeNeuron.InitAct()
 	ss.StopNow = false
 	ss.SetParams("", false) // all sheets
 	ss.UpdateView()
@@ -196,11 +202,14 @@ func (ss *Sim) RunCycles() {
 			ss.RateUpdt(ss.Net, inputOn)
 		}
 		ss.LogTstCyc(ss.TstCycLog, ss.Cycle)
-		ss.UpdateView()
+		if ss.Cycle%ss.UpdtInterval == 0 {
+			ss.UpdateView()
+		}
 		if ss.StopNow {
 			break
 		}
 	}
+	ss.UpdateView()
 }
 
 // RateUpdt updates the neuron in rate-code mode
@@ -230,8 +239,8 @@ func (ss *Sim) SpikeUpdt(nt *leabra.Network, inputOn bool) {
 		nrn.Ge = 0
 	}
 	nrn.Gi = 0
-	ly.Act.VmFmG(nrn)
-	ly.Act.ActFmG(nrn)
+	ss.SpikeParams.SpikeVmFmG(nrn, &ss.SpikeNeuron)
+	ss.SpikeParams.SpikeActFmVm(nrn, &ss.SpikeNeuron)
 	nrn.Ge = nrn.Ge * ly.Act.Gbar.E // display effective Ge
 }
 
@@ -257,6 +266,8 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 	ly.Act.Gbar.E = float32(ss.GbarE)
 	ly.Act.Gbar.L = float32(ss.GbarL)
 	ly.Act.Noise.Var = float64(ss.Noise)
+	ly.Act.Update()
+	ss.SpikeParams.ActParams = ly.Act // keep sync'd
 	return err
 }
 
@@ -309,7 +320,9 @@ func (ss *Sim) LogTstCyc(dt *etable.Table, cyc int) {
 	dt.SetCellFloat("Vm", row, float64(nrn.Vm))
 
 	// note: essential to use Go version of update when called from another goroutine
-	ss.TstCycPlot.GoUpdate()
+	if cyc%ss.UpdtInterval == 0 {
+		ss.TstCycPlot.GoUpdate()
+	}
 }
 
 func (ss *Sim) ConfigTstCycLog(dt *etable.Table) {
