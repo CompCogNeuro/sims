@@ -14,6 +14,7 @@ type SpikeNeuron struct {
 	Spike    float32 `desc:"whether neuron has spiked or not"`
 	ISI      float32 `desc:"current inter-spike-interval -- counts up since last spike"`
 	AvgISI   float32 `desc:"average inter-spike-interval -- average time interval between spikes"`
+	Gk       float32 `desc:"desc:"total conductance of sodium-gated potassium channel (KNa)"`
 	GknaFast float32 `desc:"conductance of sodium-gated potassium channel (KNa) fast dynamics -- produces accommodation / adaptation of firing"`
 	GknaMed  float32 `desc:"conductance of sodium-gated potassium channel (KNa) medium dynamics -- produces accommodation / adaptation of firing"`
 	GknaSlow float32 `desc:"conductance of sodium-gated potassium channel (KNa) slow dynamics -- produces accommodation / adaptation of firing"`
@@ -23,6 +24,7 @@ func (sn *SpikeNeuron) InitAct() {
 	sn.Spike = 0
 	sn.ISI = -1    // hasn't spiked yet
 	sn.AvgISI = -1 // not yet
+	sn.Gk = 0
 	sn.GknaFast = 0
 	sn.GknaMed = 0
 	sn.GknaSlow = 0
@@ -58,11 +60,13 @@ func (sk *SpikeActParams) SpikeVmFmG(nrn *leabra.Neuron, sn *SpikeNeuron) {
 	if updtVm {
 		ge := nrn.Ge * sk.Gbar.E
 		gi := nrn.Gi * sk.Gbar.I
+		gk := sk.Gbar.K * (sn.GknaFast + sn.GknaMed + sn.GknaSlow)
+		sn.Gk = gk
 		vmEff := nrn.Vm
 		// midpoint method: take a half-step in vmEff
-		inet1 := sk.InetFmG(vmEff, ge, gi, 0)
+		inet1 := sk.InetFmG(vmEff, ge, gi, gk)
 		vmEff += .5 * sk.Dt.VmDt * inet1 // go half way
-		inet2 := sk.InetFmG(vmEff, ge, gi, 0)
+		inet2 := sk.InetFmG(vmEff, ge, gi, gk)
 		// add spike current if relevant
 		if sk.Spike.Exp {
 			inet2 += sk.Gbar.L * sk.Spike.ExpSlope *
