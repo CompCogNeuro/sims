@@ -12,6 +12,14 @@ The simplest way to run the simulations is by downloading a `zip` file of all of
 
 Each simulation has a `README` button, which directs your browser to open the corresponding `README.md` file on github.  This contains full step-by-step instructions for running the model, and questions to answer for classroom usage of the models.  See your syllabus etc for more info.
 
+Use standard `Ctrl+` and `Ctrl-` key sequences to zoom the display to desired scale, and the GoGi preferences menu has an option to save the zoom (and various other options).
+
+The main actions for running are in the `Toolbar` at the top, while the parameters of most relevance to the model are in the `Control panel` on the left.  Different output displays are selectable in the `Tabbed views` on the right of the window.
+
+The [Go Emergent Wiki](https://github.com/emer/emergent/wiki/Home) contains various help pages for using things like the `NetView` that displays the network.
+
+You can always access more detailed parameters by clicking on the button to the right off `Net` in the control panel (also by clicking on the layer names in the NetView), and custom params for this model are set in the `Params` field.
+
 # Status
 
 **8/24/2019**: Initial projects are just being created.  Python versions will be made available pending a program to convert the go files to python more automatically.  Classes may need to depend on the C++ emergent versions for some gaps.
