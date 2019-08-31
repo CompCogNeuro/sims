@@ -11,27 +11,41 @@ import (
 
 // SpikeNeuron contains state values for spiking activation function
 type SpikeNeuron struct {
-	Spike  float32 `desc:"whether neuron has spiked or not"`
-	ISI    float32 `desc:"current inter-spike-interval -- counts up since last spike"`
-	AvgISI float32 `desc:"average inter-spike-interval -- average time interval between spikes"`
+	Spike    float32 `desc:"whether neuron has spiked or not"`
+	ISI      float32 `desc:"current inter-spike-interval -- counts up since last spike"`
+	AvgISI   float32 `desc:"average inter-spike-interval -- average time interval between spikes"`
+	GknaFast float32 `desc:"conductance of sodium-gated potassium channel (KNa) fast dynamics -- produces accommodation / adaptation of firing"`
+	GknaMed  float32 `desc:"conductance of sodium-gated potassium channel (KNa) medium dynamics -- produces accommodation / adaptation of firing"`
+	GknaSlow float32 `desc:"conductance of sodium-gated potassium channel (KNa) slow dynamics -- produces accommodation / adaptation of firing"`
 }
 
 func (sn *SpikeNeuron) InitAct() {
 	sn.Spike = 0
 	sn.ISI = -1    // hasn't spiked yet
-	sn.AvgISI = -1 // hasn't spiked yet
+	sn.AvgISI = -1 // not yet
+	sn.GknaFast = 0
+	sn.GknaMed = 0
+	sn.GknaSlow = 0
 }
 
 // SpikeActParams is full set of activation params including those from base
 // leabra and the additional Spiking-specific ones.
 type SpikeActParams struct {
 	leabra.ActParams
-	Spike SpikeParams `view:"inline" desc:"spiking parameters"`
+	Spike    SpikeParams    `view:"inline" desc:"spiking parameters"`
+	KNaAdapt KNaAdaptParams `view:"no-inline" desc:"sodium-gated potassium channel parameters"`
 }
 
 func (sk *SpikeActParams) Defaults() {
 	sk.ActParams.Defaults()
 	sk.Spike.Defaults()
+	sk.KNaAdapt.Defaults()
+}
+
+func (sk *SpikeActParams) Update() {
+	sk.ActParams.Update()
+	sk.Spike.Update()
+	sk.KNaAdapt.Update()
 }
 
 func (sk *SpikeActParams) SpikeVmFmG(nrn *leabra.Neuron, sn *SpikeNeuron) {
@@ -77,8 +91,10 @@ func (sk *SpikeActParams) SpikeActFmVm(nrn *leabra.Neuron, sn *SpikeNeuron) {
 		sn.Spike = 1
 		nrn.Vm = sk.Spike.VmR
 		nrn.Inet = 0
-		if sn.ISI > 0 {
-			sk.Spike.AvgFmISI(&sn.AvgISI, sn.ISI)
+		if sn.AvgISI == -1 {
+			sn.AvgISI = -2
+		} else if sn.ISI > 0 { // must have spiked to update
+			sk.Spike.AvgFmISI(&sn.AvgISI, sn.ISI+1)
 		}
 		sn.ISI = 0
 	} else {
@@ -86,10 +102,9 @@ func (sk *SpikeActParams) SpikeActFmVm(nrn *leabra.Neuron, sn *SpikeNeuron) {
 		if sn.ISI >= 0 {
 			sn.ISI += 1
 		}
-		if sn.ISI > 1.2*sn.AvgISI { // some kind of estimate of when it exceeds est
+		if sn.AvgISI >= 0 && sn.ISI > 0 && sn.ISI > 1.2*sn.AvgISI {
 			sk.Spike.AvgFmISI(&sn.AvgISI, sn.ISI)
 		}
-
 	}
 
 	nwAct := sk.Spike.ActFmISI(sn.AvgISI, .001, 1) // todo: use real #'s
@@ -99,6 +114,9 @@ func (sk *SpikeActParams) SpikeActFmVm(nrn *leabra.Neuron, sn *SpikeNeuron) {
 	nwAct = nrn.Act + sk.Dt.VmDt*(nwAct-nrn.Act)
 	nrn.ActDel = nwAct - nrn.Act
 	nrn.Act = nwAct
+	if sk.KNaAdapt.On {
+		sk.KNaAdapt.GcFmSpike(&sn.GknaFast, &sn.GknaMed, &sn.GknaSlow, sn.Spike > .5)
+	}
 }
 
 // SpikeParams contains spiking activation function params.
@@ -143,8 +161,8 @@ func (sk *SpikeParams) ActFmISI(isi, timeInc, integ float32) float32 {
 	if isi <= 0 {
 		return 0
 	}
-	maxInt := 1 / (timeInc * integ * sk.MaxHz) // interval at max hz..
-	return maxInt / isi                        // normalized
+	maxInt := 1.0 / (timeInc * integ * sk.MaxHz) // interval at max hz..
+	return maxInt / isi                          // normalized
 }
 
 // AvgFmISI updates spiking ISI from current isi interval value
