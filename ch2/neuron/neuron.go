@@ -53,6 +53,7 @@ var ParamSets = params.Sets{
 					"Layer.Inhib.Layer.On":  "false",
 					"Layer.Act.XX1.Gain":    "30",
 					"Layer.Act.XX1.NVar":    "0.01",
+					"Layer.Act.Init.Vm":     "0.3",
 					"Layer.Act.Noise.Dist":  "Gaussian",
 					"Layer.Act.Noise.Var":   "0",
 					"Layer.Act.Noise.Type":  "GeNoise",
@@ -318,6 +319,9 @@ func (ss *Sim) LogTstCyc(dt *etable.Table, cyc int) {
 	dt.SetCellFloat("ActEq", row, float64(nrn.ActAvg))
 	dt.SetCellFloat("Inet", row, float64(nrn.Inet))
 	dt.SetCellFloat("Vm", row, float64(nrn.Vm))
+	dt.SetCellFloat("Spike", row, float64(ss.SpikeNeuron.Spike))
+	dt.SetCellFloat("ISI", row, float64(ss.SpikeNeuron.ISI))
+	dt.SetCellFloat("AvgISI", row, float64(ss.SpikeNeuron.AvgISI))
 
 	// note: essential to use Go version of update when called from another goroutine
 	if cyc%ss.UpdtInterval == 0 {
@@ -339,6 +343,9 @@ func (ss *Sim) ConfigTstCycLog(dt *etable.Table) {
 		{"ActEq", etensor.FLOAT64, nil, nil},
 		{"Inet", etensor.FLOAT64, nil, nil},
 		{"Vm", etensor.FLOAT64, nil, nil},
+		{"Spike", etensor.FLOAT64, nil, nil},
+		{"ISI", etensor.FLOAT64, nil, nil},
+		{"AvgISI", etensor.FLOAT64, nil, nil},
 	}
 	dt.SetFromSchema(sch, nt)
 }
@@ -354,6 +361,9 @@ func (ss *Sim) ConfigTstCycPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetColParams("ActEq", true, true, 0, true, 1)
 	plt.SetColParams("Inet", true, true, 0, true, 1)
 	plt.SetColParams("Vm", true, true, 0, true, 1)
+	plt.SetColParams("Spike", true, true, 0, true, 1)
+	plt.SetColParams("ISI", false, true, -2, false, 1)
+	plt.SetColParams("AvgISI", false, true, 0, false, 1)
 	return plt
 }
 
