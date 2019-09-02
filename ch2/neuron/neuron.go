@@ -22,6 +22,7 @@ import (
 	"github.com/emer/etable/etensor"
 	_ "github.com/emer/etable/etview" // include to get gui views
 	"github.com/emer/leabra/leabra"
+	"github.com/emer/leabra/spike"
 	"github.com/goki/gi/gi"
 	"github.com/goki/gi/gimain"
 	"github.com/goki/gi/giv"
@@ -81,8 +82,7 @@ type Sim struct {
 	OffCycle       int             `def:"160" desc:"when does excitatory input into neuron go off?"`
 	UpdtInterval   int             `def:"10"  desc:"how often to update display (in cycles)"`
 	Net            *leabra.Network `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
-	SpikeParams    SpikeActParams  `view:"no-inline" desc:"parameters for spiking funcion"`
-	SpikeNeuron    SpikeNeuron     `desc:"state parameters for spiking neuron"`
+	SpikeParams    spike.ActParams `view:"no-inline" desc:"parameters for spiking funcion"`
 	TstCycLog      *etable.Table   `view:"no-inline" desc:"testing trial-level log data -- click to see record of network's response to each input"`
 	SpikeVsRateLog *etable.Table   `view:"no-inline" desc:"plot of measured spike rate vs. noisy X/X+1 rate function"`
 	Params         params.Sets     `view:"no-inline" desc:"full collection of param sets -- not really interesting for this model"`
@@ -169,7 +169,6 @@ func (ss *Sim) InitWts(net *leabra.Network) {
 func (ss *Sim) Init() {
 	ss.Cycle = 0
 	ss.InitWts(ss.Net)
-	ss.SpikeNeuron.InitAct()
 	ss.StopNow = false
 	ss.SetParams("", false) // all sheets
 	ss.UpdateView()
@@ -198,7 +197,6 @@ func (ss *Sim) RunCycles() {
 	ss.Init()
 	ss.StopNow = false
 	ss.Net.InitActs()
-	ss.SpikeNeuron.InitAct()
 	ss.SetParams("", false)
 	ly := ss.Net.LayerByName("Neuron").(*leabra.Layer)
 	nrn := &(ly.Neurons[0])
@@ -240,14 +238,8 @@ func (ss *Sim) RunCycles() {
 func (ss *Sim) RateUpdt(nt *leabra.Network, inputOn bool) {
 	ly := ss.Net.LayerByName("Neuron").(*leabra.Layer)
 	nrn := &(ly.Neurons[0])
-	sn := &ss.SpikeNeuron
-	nrn.Gk = sn.GknaFast + sn.GknaMed + sn.GknaSlow
 	ly.Act.VmFmG(nrn)
 	ly.Act.ActFmG(nrn)
-	if ss.SpikeParams.KNaAdapt.On {
-		ss.SpikeParams.KNaAdapt.GcFmRate(&sn.GknaFast, &sn.GknaMed, &sn.GknaSlow, nrn.Act)
-	}
-	nrn.Ge = nrn.Ge * ly.Act.Gbar.E // display effective Ge
 }
 
 // SpikeUpdt updates the neuron in spiking mode
@@ -255,8 +247,8 @@ func (ss *Sim) RateUpdt(nt *leabra.Network, inputOn bool) {
 func (ss *Sim) SpikeUpdt(nt *leabra.Network, inputOn bool) {
 	ly := ss.Net.LayerByName("Neuron").(*leabra.Layer)
 	nrn := &(ly.Neurons[0])
-	ss.SpikeParams.SpikeVmFmG(nrn, &ss.SpikeNeuron)
-	ss.SpikeParams.SpikeActFmVm(nrn, &ss.SpikeNeuron)
+	ss.SpikeParams.SpikeVmFmG(nrn)
+	ss.SpikeParams.SpikeActFmVm(nrn)
 	nrn.Ge = nrn.Ge * ly.Act.Gbar.E // display effective Ge
 }
 
@@ -269,11 +261,11 @@ func (ss *Sim) Stop() {
 func (ss *Sim) SpikeVsRate() {
 	row := 0
 	nsamp := 100
-	ss.Noise = 0.1
 	// ss.KNaAdapt = false
 	for gbarE := 0.1; gbarE <= 0.7; gbarE += 0.025 {
 		ss.GbarE = float32(gbarE)
 		spike := float64(0)
+		ss.Noise = 0.1 // RunCycles calls SetParams to set this
 		ss.Spike = true
 		for ns := 0; ns < nsamp; ns++ {
 			ss.RunCycles()
@@ -285,6 +277,7 @@ func (ss *Sim) SpikeVsRate() {
 		}
 		rate := float64(0)
 		ss.Spike = false
+		// ss.Noise = 0 // doesn't make much diff
 		for ns := 0; ns < nsamp; ns++ {
 			ss.RunCycles()
 			if ss.StopNow {
@@ -323,9 +316,10 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 	ly.Act.Erev.E = float32(ss.ErevE)
 	ly.Act.Erev.L = float32(ss.ErevL)
 	ly.Act.Noise.Var = float64(ss.Noise)
+	ly.Act.KNa.On = ss.KNaAdapt
 	ly.Act.Update()
 	ss.SpikeParams.ActParams = ly.Act // keep sync'd
-	ss.SpikeParams.KNaAdapt.On = ss.KNaAdapt
+	ss.SpikeParams.KNa.On = ss.KNaAdapt
 	return err
 }
 
@@ -374,10 +368,10 @@ func (ss *Sim) LogTstCyc(dt *etable.Table, cyc int) {
 	dt.SetCellFloat("Inet", row, float64(nrn.Inet))
 	dt.SetCellFloat("Vm", row, float64(nrn.Vm))
 	dt.SetCellFloat("Act", row, float64(nrn.Act))
-	dt.SetCellFloat("Spike", row, float64(ss.SpikeNeuron.Spike))
+	dt.SetCellFloat("Spike", row, float64(nrn.Spike))
 	dt.SetCellFloat("Gk", row, float64(nrn.Gk))
-	dt.SetCellFloat("ISI", row, float64(ss.SpikeNeuron.ISI))
-	dt.SetCellFloat("AvgISI", row, float64(ss.SpikeNeuron.AvgISI))
+	dt.SetCellFloat("ISI", row, float64(nrn.ISI))
+	dt.SetCellFloat("AvgISI", row, float64(nrn.ISIAvg))
 
 	// note: essential to use Go version of update when called from another goroutine
 	if cyc%ss.UpdtInterval == 0 {
