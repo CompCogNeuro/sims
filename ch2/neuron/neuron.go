@@ -198,6 +198,7 @@ func (ss *Sim) RunCycles() {
 	ss.Init()
 	ss.StopNow = false
 	ss.Net.InitActs()
+	ss.SpikeNeuron.InitAct()
 	ss.SetParams("", false)
 	ly := ss.Net.LayerByName("Neuron").(*leabra.Layer)
 	nrn := &(ly.Neurons[0])
@@ -239,8 +240,13 @@ func (ss *Sim) RunCycles() {
 func (ss *Sim) RateUpdt(nt *leabra.Network, inputOn bool) {
 	ly := ss.Net.LayerByName("Neuron").(*leabra.Layer)
 	nrn := &(ly.Neurons[0])
+	sn := &ss.SpikeNeuron
+	nrn.Gk = sn.GknaFast + sn.GknaMed + sn.GknaSlow
 	ly.Act.VmFmG(nrn)
 	ly.Act.ActFmG(nrn)
+	if ss.SpikeParams.KNaAdapt.On {
+		ss.SpikeParams.KNaAdapt.GcFmRate(&sn.GknaFast, &sn.GknaMed, &sn.GknaSlow, nrn.Act)
+	}
 	nrn.Ge = nrn.Ge * ly.Act.Gbar.E // display effective Ge
 }
 
@@ -264,7 +270,7 @@ func (ss *Sim) SpikeVsRate() {
 	row := 0
 	nsamp := 100
 	ss.Noise = 0.1
-	ss.KNaAdapt = false
+	// ss.KNaAdapt = false
 	for gbarE := 0.1; gbarE <= 0.7; gbarE += 0.025 {
 		ss.GbarE = float32(gbarE)
 		spike := float64(0)
@@ -369,7 +375,7 @@ func (ss *Sim) LogTstCyc(dt *etable.Table, cyc int) {
 	dt.SetCellFloat("Vm", row, float64(nrn.Vm))
 	dt.SetCellFloat("Act", row, float64(nrn.Act))
 	dt.SetCellFloat("Spike", row, float64(ss.SpikeNeuron.Spike))
-	dt.SetCellFloat("Gk", row, float64(ss.SpikeNeuron.Gk))
+	dt.SetCellFloat("Gk", row, float64(nrn.Gk))
 	dt.SetCellFloat("ISI", row, float64(ss.SpikeNeuron.ISI))
 	dt.SetCellFloat("AvgISI", row, float64(ss.SpikeNeuron.AvgISI))
 
