@@ -18,6 +18,7 @@ func (ka *KNaAdaptComp) Defaults() {
 	ka.Rise = 0.01
 	ka.Max = 0.1
 	ka.Tau = 100
+	ka.Update()
 }
 
 func (ka *KNaAdaptComp) Update() {
@@ -37,20 +38,29 @@ func (ka *KNaAdaptComp) GcFmSpike(gKNa *float32, spike bool) {
 	}
 }
 
+// GcFmRate updates the KNa conductance based on rate-coded activation.
+// act should already have the compensatory rate multiplier prior to calling.
+func (ka *KNaAdaptComp) GcFmRate(gKNa *float32, act float32) {
+	if ka.On {
+		*gKNa += act*ka.Rise*(ka.Max-*gKNa) - (ka.Dt * *gKNa)
+	} else {
+		*gKNa = 0
+	}
+}
+
 // KNaAdaptParams describes sodium-gated potassium channel adaptation mechanism.
 // Evidence supports at least 3 different time constants:
 // M-type (fast), Slick (medium), and Slack (slow)
 type KNaAdaptParams struct {
-	On bool `desc:"if On, apply K-Na adaptation"`
-	//  rate_rise;      // #CONDSHOW_ON_on #DEF_0.8 extra multiplier for rate-coded activations on rise factors -- adjust to match discrete spiking
+	On   bool         `desc:"if On, apply K-Na adaptation"`
+	Rate float32      `viewif:"On" def:"0.5" desc:"extra multiplier for rate-coded activations on rise factors -- adjust to match discrete spiking"`
 	Fast KNaAdaptComp `view:"inline" desc:"fast time-scale adaptation"`
 	Med  KNaAdaptComp `view:"inline" desc:"medium time-scale adaptation"`
 	Slow KNaAdaptComp `view:"inline" desc:"slow time-scale adaptation"`
 }
 
 func (ka *KNaAdaptParams) Defaults() {
-	//    rate_rise = 0.8f;
-
+	ka.Rate = 0.5
 	ka.Fast.Defaults()
 	ka.Med.Defaults()
 	ka.Slow.Defaults()
@@ -63,6 +73,7 @@ func (ka *KNaAdaptParams) Defaults() {
 	ka.Slow.Tau = 1000
 	ka.Slow.Rise = 0.001
 	ka.Slow.Max = 1
+	ka.Update()
 }
 
 func (ka *KNaAdaptParams) Update() {
@@ -78,23 +89,15 @@ func (ka *KNaAdaptParams) GcFmSpike(gKNaF, gKNaM, gKNaS *float32, spike bool) {
 	ka.Slow.GcFmSpike(gKNaS, spike)
 }
 
+// GcFmRate updates all time scales of KNa adaptation from rate code activation
+func (ka *KNaAdaptParams) GcFmRate(gKNaF, gKNaM, gKNaS *float32, act float32) {
+	act *= ka.Rate
+	ka.Fast.GcFmRate(gKNaF, act)
+	ka.Med.GcFmRate(gKNaM, act)
+	ka.Slow.GcFmRate(gKNaS, act)
+}
+
 /*
-
-//   INLINE void  Compute_dKNa_rate_impl
-//     (bool con, float act, float& gc_kna, float rise, float gmax, float decay_dt)
-//   { if(!con )   gc_kna = 0.0f;
-//     else        gc_kna += act * rate_rise * rise * (gmax - gc_kna) - decay_dt * gc_kna; }
-//   // compute the change in K channel conductance gc_kna for given activation and channel params
-//
-
-//   INLINE void  Compute_dKNa_rate
-//     (float act, float& gc_kna_f, float& gc_kna_m, float& gc_kna_s) {
-//     Compute_dKNa_rate_impl(on && f_on, act, gc_kna_f, f_rise, f_max, f_dt);
-//     Compute_dKNa_rate_impl(on && m_on, act, gc_kna_m, m_rise, m_max, m_dt);
-//     Compute_dKNa_rate_impl(on && s_on, act, gc_kna_s, s_rise, s_max, s_dt);
-//   }
-//   // update K channel conductances per params for rate-code activation
-
 class STATE_CLASS(KNaAdaptMiscSpec) : public STATE_CLASS(SpecMemberBase) {
   // ##INLINE ##NO_TOKENS ##CAT_Leabra extra params associated with sodium-gated potassium channel adaptation mechanism
 INHERITED(SpecMemberBase)
