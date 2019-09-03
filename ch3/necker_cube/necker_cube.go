@@ -52,14 +52,19 @@ var ParamSets = params.Sets{
 				Params: params.Params{
 					"Layer.Inhib.ActAvg.Init":  "0.35",
 					"Layer.Inhib.ActAvg.Fixed": "true",
-					"Layer.Inhib.Layer.Gi":     "1.1",
+					"Layer.Inhib.Layer.Gi":     "1.4", // need this for FB = 0.5 -- 1 works otherwise but not with adapt
+					"Layer.Inhib.Layer.FB":     "0.5", // this is better for adapt dynamics: 1.0 not as clean of dynamics
 					"Layer.Act.Clamp.Hard":     "false",
 					"Layer.Act.Clamp.Gain":     "0.1",
-					"Layer.Act.Dt.VmTau":       "4", // a bit slower -- not as effective as FBTau
+					"Layer.Act.Dt.VmTau":       "6", // a bit slower -- not as effective as FBTau
 					"Layer.Act.Noise.Dist":     "Gaussian",
 					"Layer.Act.Noise.Var":      "0.01",
 					"Layer.Act.Noise.Type":     "GeNoise",
 					"Layer.Act.Noise.Fixed":    "false",
+					"Layer.Act.KNa.Slow.Rise":  "0.005",
+					"Layer.Act.KNa.Slow.Max":   "0.2",
+					"Layer.Act.Gbar.K":         "1.2",
+					"Layer.Act.Gbar.L":         "0.1", // this is important relative to .2
 				}},
 		},
 	}},
@@ -72,6 +77,8 @@ var ParamSets = params.Sets{
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
 	Noise      float32           `min:"0" step:"0.01" desc:"the variance parameter for Gaussian noise added to unit activations on every cycle"`
+	KNaAdapt   bool              `desc:"apply sodium-gated potassium adaptation mechanisms that cause the neuron to reduce spiking over time"`
+	CycPerQtr  int               `def:"25,250" desc:"total number of cycles per quarter to run -- increase to 250 when testing adaptation"`
 	Net        *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
 	TstCycLog  *etable.Table     `view:"no-inline" desc:"testing trial-level log data -- click to see record of network's response to each input"`
 	Params     params.Sets       `view:"no-inline" desc:"full collection of param sets -- not really interesting for this model"`
@@ -109,6 +116,8 @@ func (ss *Sim) New() {
 // Defaults sets default params
 func (ss *Sim) Defaults() {
 	ss.Noise = 0.01
+	ss.KNaAdapt = false
+	ss.CycPerQtr = 25
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -161,7 +170,6 @@ func (ss *Sim) Init() {
 	ss.InitWts(ss.Net)
 	ss.StopNow = false
 	ss.SetParams("", false) // all sheets
-	ss.Net.LayerByName("NeckerCube").(*leabra.Layer).Act.Noise.Var = float64(ss.Noise)
 	ss.UpdateView()
 }
 
@@ -273,6 +281,8 @@ func (ss *Sim) SaveWeights(filename gi.FileName) {
 
 // TestTrial runs one trial of testing -- always sequentially presented inputs
 func (ss *Sim) TestTrial() {
+	ss.Net.InitActs()
+	ss.SetParams("", false) // all sheets
 	ss.ApplyInputs()
 	ss.AlphaCyc()
 }
@@ -290,6 +300,11 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 		ss.Params.ValidateSheets([]string{"Network", "Sim"})
 	}
 	err := ss.SetParamsSet("Base", sheet, setMsg)
+	ly := ss.Net.LayerByName("NeckerCube").(*leabra.Layer)
+	ly.Act.Noise.Var = float64(ss.Noise)
+	ly.Act.KNa.On = ss.KNaAdapt
+	ly.Act.Update()
+	ss.Time.CycPerQtr = ss.CycPerQtr
 	return err
 }
 
@@ -353,8 +368,12 @@ func (ss *Sim) LogTstCyc(dt *etable.Table, cyc int) {
 	row := cyc
 
 	harm := ss.Harmony(ss.Net)
+	ly := ss.Net.LayerByName("NeckerCube").(*leabra.Layer)
 	dt.SetCellFloat("Cycle", row, float64(cyc))
 	dt.SetCellFloat("Harmony", row, float64(harm))
+	dt.SetCellFloat("GknaFast", row, float64(ly.Neurons[0].GknaFast))
+	dt.SetCellFloat("GknaMed", row, float64(ly.Neurons[0].GknaMed))
+	dt.SetCellFloat("GknaSlow", row, float64(ly.Neurons[0].GknaSlow))
 
 	if ss.LayRecTsr == nil {
 		ss.LayRecTsr = make(map[string]*etensor.Float32)
@@ -371,7 +390,9 @@ func (ss *Sim) LogTstCyc(dt *etable.Table, cyc int) {
 	}
 
 	// note: essential to use Go version of update when called from another goroutine
-	ss.TstCycPlot.GoUpdate()
+	if cyc%10 == 0 {
+		ss.TstCycPlot.GoUpdate()
+	}
 }
 
 func (ss *Sim) ConfigTstCycLog(dt *etable.Table) {
@@ -385,6 +406,9 @@ func (ss *Sim) ConfigTstCycLog(dt *etable.Table) {
 		{"Cycle", etensor.INT64, nil, nil},
 		{"TrialName", etensor.STRING, nil, nil},
 		{"Harmony", etensor.FLOAT64, nil, nil},
+		{"GknaFast", etensor.FLOAT64, nil, nil},
+		{"GknaMed", etensor.FLOAT64, nil, nil},
+		{"GknaSlow", etensor.FLOAT64, nil, nil},
 	}
 	for _, lnm := range ss.TstRecLays {
 		ly := ss.Net.LayerByName(lnm).(*leabra.Layer)
@@ -401,6 +425,9 @@ func (ss *Sim) ConfigTstCycPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetColParams("Cycle", false, true, 0, false, 0)
 	plt.SetColParams("TrialName", false, true, 0, false, 0)
 	plt.SetColParams("Harmony", true, true, 0, true, .25)
+	plt.SetColParams("GknaFast", false, true, 0, true, .25)
+	plt.SetColParams("GknaMed", false, true, 0, true, .25)
+	plt.SetColParams("GknaSlow", false, true, 0, true, .25)
 
 	for _, lnm := range ss.TstRecLays {
 		plt.SetColParams(lnm, false, true, 0, true, 1)
@@ -452,6 +479,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	// nv.Params.ColorMap = "Jet" // default is ColdHot
 	// which fares pretty well in terms of discussion here:
 	// https://matplotlib.org/tutorials/colors/colormaps.html
+	nv.Params.MaxRecs = 1000
 	nv.SetNet(ss.Net)
 	ss.NetView = nv
 
@@ -481,7 +509,11 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.IsRunning = true
-			ss.TestTrial()
+			if ss.CycPerQtr == 25 {
+				ss.TestTrial() // show every update
+			} else {
+				go ss.TestTrial() // fast..
+			}
 			ss.IsRunning = false
 			vp.SetNeedsFullRender()
 		}
