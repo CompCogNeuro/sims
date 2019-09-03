@@ -240,6 +240,7 @@ func (ss *Sim) RateUpdt(nt *leabra.Network, inputOn bool) {
 	nrn := &(ly.Neurons[0])
 	ly.Act.VmFmG(nrn)
 	ly.Act.ActFmG(nrn)
+	nrn.Ge = nrn.Ge * ly.Act.Gbar.E // display effective Ge
 }
 
 // SpikeUpdt updates the neuron in spiking mode
@@ -295,6 +296,7 @@ func (ss *Sim) SpikeVsRate() {
 		row++
 	}
 	ss.Defaults()
+	ss.SpikeVsRatePlot.GoUpdate()
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -545,7 +547,7 @@ See <a href="https://github.com/CompCogNeuro/sims/ch2/neuron/README.md">README.m
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.IsRunning = true
-			ss.SpikeVsRate()
+			go ss.SpikeVsRate()
 			ss.IsRunning = false
 			vp.SetNeedsFullRender()
 		}
