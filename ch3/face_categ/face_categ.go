@@ -533,7 +533,7 @@ func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 // 		Gui
 
 func (ss *Sim) ConfigNetView(nv *netview.NetView) {
-	labs := []string{"happy  sad", "female  male", "Albt  Bett  Lisa  Mrk  Wnd Zane"}
+	labs := []string{"happy sad", "female  male", "Albt Bett Lisa Mrk Wnd Zane"}
 	nv.ConfigLabels(labs)
 	emot := nv.LayerByName("Emotion")
 	hs := nv.LabelByName(labs[0])

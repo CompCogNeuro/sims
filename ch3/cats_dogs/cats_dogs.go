@@ -544,7 +544,8 @@ func (ss *Sim) ConfigNetView(nv *netview.NetView) {
 	nv.Scene().Camera.Pose.Pos.Set(0, 1.5, 3.0) // more "head on" than default which is more "top down"
 	nv.Scene().Camera.LookAt(mat32.Vec3{0, 0, 0}, mat32.Vec3{0, 1, 0})
 
-	labs := []string{"Morr  Socks   Sylv  Garf  Fuzz  Rex  Fido  Spot   Snoop  Butch", "black  white  brown  orange", "bugs  grass  scraps  shoe", "small  med  large", "cat     dog", "string  feath  bone  shoe"}
+	labs := []string{" Morr Socks Sylv Garf Fuzz Rex Fido Spot Snoop Butch",
+		" black white brown orange", "bugs grass scraps shoe", "small  med  large", "cat     dog", "string feath bone shoe"}
 	nv.ConfigLabels(labs)
 
 	lays := []string{"Name", "Color", "FavoriteFood", "Size", "Species", "FavoriteToy"}
