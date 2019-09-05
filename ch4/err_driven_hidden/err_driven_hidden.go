@@ -3,9 +3,7 @@
 // license that can be found in the LICENSE file.
 
 /*
-pat_assoc illustrates how error-driven and hebbian learning can
-operate within a simple task-driven learning context, with no hidden
-layers.
+err_driven_hidden shows how XCal error driven learning can train a hidden layer to solve problems that are otherwise impossible for a simple two layer network (as we saw in the Pattern Associator exploration, which should be completed first before doing this one).
 */
 package main
 
@@ -22,6 +20,7 @@ import (
 	"github.com/emer/emergent/netview"
 	"github.com/emer/emergent/params"
 	"github.com/emer/emergent/prjn"
+	"github.com/emer/emergent/relpos"
 	"github.com/emer/etable/agg"
 	"github.com/emer/etable/eplot"
 	"github.com/emer/etable/etable"
@@ -102,10 +101,14 @@ var ParamSets = params.Sets{
 			{Sel: "Layer", Desc: "using default 1.8 inhib for all of network -- can explore",
 				Params: params.Params{
 					"Layer.Learn.AvgL.Gain":    "1.5", // this is critical! 2.5 def doesn't work
-					"Layer.Inhib.Layer.Gi":     "1.4",
-					"Layer.Inhib.Layer.FB":     "0.5",
+					"Layer.Inhib.Layer.Gi":     "1.3",
 					"Layer.Inhib.ActAvg.Init":  "0.5",
 					"Layer.Inhib.ActAvg.Fixed": "true",
+					"Layer.Act.Gbar.L":         "0.1",
+				}},
+			{Sel: ".Back", Desc: "top-down back-projections MUST have lower relative weight scale, otherwise network hallucinates",
+				Params: params.Params{
+					"Prjn.WtScale.Rel": "0.3",
 				}},
 		},
 	}},
@@ -203,6 +206,8 @@ var TheSim Sim
 // New creates new blank elements and initializes defaults
 func (ss *Sim) New() {
 	ss.Net = &leabra.Network{}
+	ss.Learn = ErrorDriven
+	ss.Pats = Impossible
 	ss.Easy = &etable.Table{}
 	ss.Hard = &etable.Table{}
 	ss.Impossible = &etable.Table{}
@@ -242,7 +247,7 @@ func (ss *Sim) ConfigEnv() {
 		ss.MaxRuns = 10
 	}
 	if ss.MaxEpcs == 0 { // allow user override
-		ss.MaxEpcs = 40
+		ss.MaxEpcs = 500
 	}
 
 	ss.TrainEnv.Nm = "TrainEnv"
@@ -287,9 +292,14 @@ func (ss *Sim) SetLearn() {
 func (ss *Sim) ConfigNet(net *leabra.Network) {
 	net.InitName(net, "PatAssoc")
 	inp := net.AddLayer2D("Input", 1, 4, emer.Input)
+	hid := net.AddLayer2D("Hidden", 1, 4, emer.Hidden)
 	out := net.AddLayer2D("Output", 1, 2, emer.Target)
 
-	net.ConnectLayers(inp, out, prjn.NewFull(), emer.Forward)
+	net.ConnectLayers(inp, hid, prjn.NewFull(), emer.Forward)
+	net.ConnectLayers(hid, out, prjn.NewFull(), emer.Forward)
+	net.ConnectLayers(out, hid, prjn.NewFull(), emer.Back)
+
+	hid.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Input", YAlign: relpos.Front, XAlign: relpos.Left, YOffset: 1})
 
 	net.Defaults()
 	ss.SetParams("Network", false) // only set Network params
@@ -1044,12 +1054,10 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	width := 1600
 	height := 1200
 
-	gi.SetAppName("pat_assoc")
-	gi.SetAppAbout(`illustrates how error-driven and hebbian learning can
-operate within a simple task-driven learning context, with no hidden
-layers. See <a href="href="https://github.com/CompCogNeuro/sims/ch4/pat_assoc/README.md">README.md on GitHub</a>.</p>`)
+	gi.SetAppName("err_driven_hidden")
+	gi.SetAppAbout(`shows how XCal error driven learning can train a hidden layer to solve problems that are otherwise impossible for a simple two layer network (as we saw in the Pattern Associator exploration, which should be completed first before doing this one). See <a href="href="https://github.com/CompCogNeuro/sims/ch4/err_driven_hidden/README.md">README.md on GitHub</a>.</p>`)
 
-	win := gi.NewWindow2D("pat_assoc", "Pattern Associator", width, height, true)
+	win := gi.NewWindow2D("err_driven_hidden", "Error Driven Hidden Layer Learning", width, height, true)
 	ss.Win = win
 
 	vp := win.WinViewport2D()
@@ -1214,7 +1222,7 @@ layers. See <a href="href="https://github.com/CompCogNeuro/sims/ch4/pat_assoc/RE
 
 	tbar.AddAction(gi.ActOpts{Label: "README", Icon: "file-markdown", Tooltip: "Opens your browser on the README file that contains instructions for how to run this model."}, win.This(),
 		func(recv, send ki.Ki, sig int64, data interface{}) {
-			gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch4/pat_assoc/README.md")
+			gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch4/err_driven_hidden/README.md")
 		})
 
 	vp.UpdateEndNoSig(updt)
