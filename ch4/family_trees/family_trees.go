@@ -9,6 +9,7 @@ into a hidden layer that captures the *functional* similarity structure of the i
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"math/rand"
@@ -711,12 +712,12 @@ func (ss *Sim) OpenPats() {
 	dt := ss.Pats
 	dt.SetMetaData("name", "Family Trees")
 	dt.SetMetaData("desc", "Family Trees Training patterns")
-	err := dt.OpenCSV("family_trees.dat", etable.Tab)
-	// ab, err := Asset("family_trees.dat") // embedded in executable
-	// if err != nil {
-	// 	log.Println(err)
-	// }
-	// err = dt.ReadCSV(bytes.NewBuffer(ab), etable.Tab)
+	// err := dt.OpenCSV("family_trees.dat", etable.Tab)
+	ab, err := Asset("family_trees.dat") // embedded in executable
+	if err != nil {
+		log.Println(err)
+	}
+	err = dt.ReadCSV(bytes.NewBuffer(ab), etable.Tab)
 	if err != nil {
 		log.Println(err)
 	}
