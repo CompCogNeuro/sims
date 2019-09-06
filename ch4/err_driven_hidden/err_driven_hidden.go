@@ -8,6 +8,7 @@ err_driven_hidden shows how XCal error driven learning can train a hidden layer 
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"math/rand"
@@ -69,7 +70,7 @@ const (
 	PatsTypeN
 )
 
-// LearnType is the type of training patterns
+// LearnType is the type of learning to use
 type LearnType int32
 
 //go:generate stringer -type=LearnType
@@ -81,9 +82,7 @@ func (ev *LearnType) UnmarshalJSON(b []byte) error { return kit.EnumUnmarshalJSO
 
 const (
 	Hebbian LearnType = iota
-
 	ErrorDriven
-
 	LearnTypeN
 )
 
@@ -92,13 +91,13 @@ const (
 var ParamSets = params.Sets{
 	{Name: "Base", Desc: "these are the best params", Sheets: params.Sheets{
 		"Network": &params.Sheet{
-			{Sel: "Prjn", Desc: "norm and momentum on works better, but wt bal is not better for smaller nets",
+			{Sel: "Prjn", Desc: "no extra learning factors",
 				Params: params.Params{
 					"Prjn.Learn.Norm.On":     "false",
 					"Prjn.Learn.Momentum.On": "false",
 					"Prjn.Learn.WtBal.On":    "false",
 				}},
-			{Sel: "Layer", Desc: "using default 1.8 inhib for all of network -- can explore",
+			{Sel: "Layer", Desc: "needs some special inhibition and learning params",
 				Params: params.Params{
 					"Layer.Learn.AvgL.Gain":    "1.5", // this is critical! 2.5 def doesn't work
 					"Layer.Inhib.Layer.Gi":     "1.3",
@@ -114,7 +113,7 @@ var ParamSets = params.Sets{
 	}},
 	{Name: "Hebbian", Desc: "Hebbian-only learning params", Sheets: params.Sheets{
 		"Network": &params.Sheet{
-			{Sel: "Prjn", Desc: "go back to default",
+			{Sel: "Prjn", Desc: "",
 				Params: params.Params{
 					"Prjn.Learn.XCal.MLrn":    "0",
 					"Prjn.Learn.XCal.SetLLrn": "true",
@@ -124,7 +123,7 @@ var ParamSets = params.Sets{
 	}},
 	{Name: "ErrorDriven", Desc: "Error-driven-only learning params", Sheets: params.Sheets{
 		"Network": &params.Sheet{
-			{Sel: "Prjn", Desc: "go back to default",
+			{Sel: "Prjn", Desc: "",
 				Params: params.Params{
 					"Prjn.Learn.XCal.MLrn":    "1",
 					"Prjn.Learn.XCal.SetLLrn": "true",
@@ -154,6 +153,7 @@ type Sim struct {
 	Params       params.Sets       `view:"no-inline" desc:"full collection of param sets"`
 	MaxRuns      int               `desc:"maximum number of model runs to perform"`
 	MaxEpcs      int               `desc:"maximum number of epochs to run per model run"`
+	NZeroStop    int               `desc:"if a positive number, training will stop after this many epochs with zero SSE"`
 	TrainEnv     env.FixedTable    `desc:"Training environment -- contains everything about iterating over input / output patterns over training"`
 	TestEnv      env.FixedTable    `desc:"Testing environment -- manages iterating over testing"`
 	Time         leabra.Time       `desc:"leabra timing parameters and state"`
@@ -173,6 +173,7 @@ type Sim struct {
 	EpcPctCor  float64 `inactive:"+" desc:"last epoch's percent of trials that had SSE == 0 (subject to .5 unit-wise tolerance)"`
 	EpcCosDiff float64 `inactive:"+" desc:"last epoch's average cosine difference for output layer (a normalized error measure, maximum of 1 when the minus phase exactly matches the plus)"`
 	FirstZero  int     `inactive:"+" desc:"epoch at when SSE first went to zero"`
+	NZero      int     `inactive:"+" desc:"number of epochs in a row with zero SSE"`
 
 	// internal state - view:"-"
 	SumSSE        float64          `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
@@ -248,6 +249,7 @@ func (ss *Sim) ConfigEnv() {
 	}
 	if ss.MaxEpcs == 0 { // allow user override
 		ss.MaxEpcs = 500
+		ss.NZeroStop = 5
 	}
 
 	ss.TrainEnv.Nm = "TrainEnv"
@@ -284,9 +286,6 @@ func (ss *Sim) UpdateEnv() {
 		ss.TrainEnv.Table = etable.NewIdxView(ss.Impossible)
 		ss.TestEnv.Table = etable.NewIdxView(ss.Impossible)
 	}
-}
-
-func (ss *Sim) SetLearn() {
 }
 
 func (ss *Sim) ConfigNet(net *leabra.Network) {
@@ -371,8 +370,6 @@ func (ss *Sim) AlphaCyc(train bool) {
 	// counters are being dealt with.
 	if train {
 		ss.Net.WtFmDWt()
-	} else {
-		ss.Net.LayerByName("Output").SetType(emer.Compare)
 	}
 
 	ss.Net.AlphaCycInit()
@@ -452,7 +449,8 @@ func (ss *Sim) TrainTrial() {
 		if epc%ss.TestInterval == 0 { // note: epc is *next* so won't trigger first time
 			ss.TestAll()
 		}
-		if epc >= ss.MaxEpcs { // done with training..
+		if epc >= ss.MaxEpcs || (ss.NZeroStop > 0 && ss.NZero >= ss.NZeroStop) {
+			// done with training..
 			ss.RunEnd()
 			if ss.TrainEnv.Run.Incr() { // we are done!
 				ss.StopNow = true
@@ -499,6 +497,7 @@ func (ss *Sim) InitStats() {
 	ss.SumCosDiff = 0
 	ss.CntErr = 0
 	ss.FirstZero = -1
+	ss.NZero = 0
 	// clear rest just to make Sim look initialized
 	ss.TrlSSE = 0
 	ss.TrlAvgSSE = 0
@@ -704,7 +703,12 @@ func (ss *Sim) OpenPats() {
 	dt := ss.Easy
 	dt.SetMetaData("name", "Easy")
 	dt.SetMetaData("desc", "Easy Training patterns")
-	err := dt.OpenCSV("easy.dat", etable.Tab)
+	// err := dt.OpenCSV("easy.dat", etable.Tab)
+	ab, err := Asset("easy.dat") // embedded in executable
+	if err != nil {
+		log.Println(err)
+	}
+	err = dt.ReadCSV(bytes.NewBuffer(ab), etable.Tab)
 	if err != nil {
 		log.Println(err)
 	}
@@ -712,7 +716,12 @@ func (ss *Sim) OpenPats() {
 	dt = ss.Hard
 	dt.SetMetaData("name", "Hard")
 	dt.SetMetaData("desc", "Hard Training patterns")
-	err = dt.OpenCSV("hard.dat", etable.Tab)
+	// err = dt.OpenCSV("hard.dat", etable.Tab)
+	ab, err = Asset("hard.dat") // embedded in executable
+	if err != nil {
+		log.Println(err)
+	}
+	err = dt.ReadCSV(bytes.NewBuffer(ab), etable.Tab)
 	if err != nil {
 		log.Println(err)
 	}
@@ -720,7 +729,12 @@ func (ss *Sim) OpenPats() {
 	dt = ss.Impossible
 	dt.SetMetaData("name", "Impossible")
 	dt.SetMetaData("desc", "Impossible Training patterns")
-	err = dt.OpenCSV("impossible.dat", etable.Tab)
+	// err = dt.OpenCSV("impossible.dat", etable.Tab)
+	ab, err = Asset("impossible.dat") // embedded in executable
+	if err != nil {
+		log.Println(err)
+	}
+	err = dt.ReadCSV(bytes.NewBuffer(ab), etable.Tab)
 	if err != nil {
 		log.Println(err)
 	}
@@ -752,6 +766,11 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 	ss.SumCosDiff = 0
 	if ss.FirstZero < 0 && ss.EpcPctErr == 0 {
 		ss.FirstZero = epc
+	}
+	if ss.EpcPctErr == 0 {
+		ss.NZero++
+	} else {
+		ss.NZero = 0
 	}
 
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
@@ -981,9 +1000,12 @@ func (ss *Sim) LogRun(dt *etable.Table) {
 	dt.SetNumRows(row + 1)
 
 	epclog := ss.TrnEpcLog
+	epcix := etable.NewIdxView(epclog)
 	// compute mean over last N epochs for run level
 	nlast := 10
-	epcix := etable.NewIdxView(epclog)
+	if nlast > epcix.Len()-1 {
+		nlast = epcix.Len() - 1
+	}
 	epcix.Idxs = epcix.Idxs[epcix.Len()-nlast-1:]
 
 	params := ss.Learn.String() + "_" + ss.Pats.String()
