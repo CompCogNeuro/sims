@@ -1,7 +1,7 @@
 # Makefile for CCN sims projects
 
 # important: update these for each app
-ASSETS=necker_cube.wts
+ASSETS=easy.dat hard.dat impossible.dat
 
 # default package install 
 PKGDIR=$(HOME)/ccnsimpkg

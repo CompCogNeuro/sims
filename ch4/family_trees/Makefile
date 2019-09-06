@@ -1,7 +1,7 @@
 # Makefile for CCN sims projects
 
 # important: update these for each app
-ASSETS=
+ASSETS=family_trees.dat
 
 # default package install 
 PKGDIR=$(HOME)/ccnsimpkg

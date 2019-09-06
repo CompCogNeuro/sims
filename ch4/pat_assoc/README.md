@@ -34,9 +34,9 @@ where the sum is over the 2 output units. We are actually computing the *thresho
 
 With only a single training epoch (one *epoch* is one pass through all the training patterns), the output unit is likely making some errors.
 
-* Click on the `TrnEpcPlot` tab to see a plot of SSE (summed also over all 4 training patterns) as the network trains.  Hit `Step Run` to see the network iterate over training patterns for `MaxEpcs` (40).  
+* Click on the `TrnEpcPlot` tab to see a plot of SSE (summed also over all 4 training patterns) as the network trains.  Hit `Step Run` to see the network iterate over training patterns.  
 
-Now you will see a summary plot across epochs of the sum of the thresholded SSE measure across all the events in the epoch. This shows what is often referred to as the **learning curve** for the network, and it should have decreased steadily down to zero, indicating that the network has learned the task. 
+Now you will see a summary plot across epochs of the sum of the thresholded SSE measure across all the events in the epoch. This shows what is often referred to as the **learning curve** for the network, and it should have decreased steadily down to zero, indicating that the network has learned the task.  Training will stop automatically after the network has exhibited 5 correct epochs in a row (`NZeroStop`) just to make sure it has really learned the problem), or it stops after 40 epochs (`MaxEpcs`) if it fails to learn.
 
 Let's see what the network has learned.
 
