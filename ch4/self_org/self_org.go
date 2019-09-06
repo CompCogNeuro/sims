@@ -3,13 +3,12 @@
 // license that can be found in the LICENSE file.
 
 /*
-family_trees shows how learning can recode inputs that have no similarity structure
-into a hidden layer that captures the *functional* similarity structure of the items.
+self_org illustrates how self-organizing learning emerges from the interactions between
+inhibitory competition, rich-get-richer Hebbian learning, and homeostasis (negative feedback).
 */
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"log"
 	"math/rand"
@@ -21,14 +20,12 @@ import (
 	"github.com/emer/emergent/env"
 	"github.com/emer/emergent/netview"
 	"github.com/emer/emergent/params"
+	"github.com/emer/emergent/patgen"
 	"github.com/emer/emergent/prjn"
-	"github.com/emer/emergent/relpos"
-	"github.com/emer/etable/agg"
 	"github.com/emer/etable/eplot"
 	"github.com/emer/etable/etable"
 	"github.com/emer/etable/etensor"
 	_ "github.com/emer/etable/etview" // include to get gui views
-	"github.com/emer/etable/split"
 	"github.com/emer/leabra/leabra"
 	"github.com/goki/gi/gi"
 	"github.com/goki/gi/gimain"
@@ -47,90 +44,27 @@ func main() {
 // LogPrec is precision for saving float values in logs
 const LogPrec = 4
 
-// LearnType is the type of learning to use
-type LearnType int32
-
-//go:generate stringer -type=LearnType
-
-var KiT_LearnType = kit.Enums.AddEnum(LearnTypeN, false, nil)
-
-func (ev LearnType) MarshalJSON() ([]byte, error)  { return kit.EnumMarshalJSON(ev) }
-func (ev *LearnType) UnmarshalJSON(b []byte) error { return kit.EnumUnmarshalJSON(ev, b) }
-
-const (
-	PureHebb LearnType = iota
-	PureError
-	HebbError
-	LearnTypeN
-)
-
 // ParamSets is the default set of parameters -- Base is always applied, and others can be optionally
 // selected to apply on top of that
 var ParamSets = params.Sets{
 	{Name: "Base", Desc: "these are the best params", Sheets: params.Sheets{
 		"Network": &params.Sheet{
-			{Sel: "Prjn", Desc: "wt bal better",
+			{Sel: "Prjn", Desc: "no extra learning factors",
 				Params: params.Params{
-					"Prjn.Learn.Norm.On":     "false",
-					"Prjn.Learn.Momentum.On": "false",
-					"Prjn.Learn.WtBal.On":    "true", // sig faster learning with this on
-				}},
-			{Sel: "Layer", Desc: "Default learning, inhib params",
-				Params: params.Params{
-					"Layer.Learn.AvgL.Gain": "1.5", // 2 similar to 1.5 but slightly worse
-					"Layer.Inhib.Layer.Gi":  "1.6",
-				}},
-			{Sel: ".Code", Desc: "needs more inhibition",
-				Params: params.Params{
-					"Layer.Inhib.Layer.Gi": "2",
-				}},
-			{Sel: ".Person", Desc: "needs lots of inhibition for localist",
-				Params: params.Params{
-					"Layer.Inhib.Layer.Gi": "2.8",
-				}},
-			{Sel: ".Relation", Desc: "needs lots of inhibition for localist",
-				Params: params.Params{
-					"Layer.Inhib.Layer.Gi": "2.8",
-				}},
-			{Sel: ".Back", Desc: "top-down back-projections MUST have lower relative weight scale, otherwise network hallucinates",
-				Params: params.Params{
-					"Prjn.WtScale.Rel": "0.3",
-				}},
-		},
-	}},
-	{Name: "PureHebb", Desc: "Hebbian-only learning params", Sheets: params.Sheets{
-		"Network": &params.Sheet{
-			{Sel: "Prjn", Desc: "go back to default",
-				Params: params.Params{
-					"Prjn.Learn.XCal.MLrn":    "0",
+					"Prjn.Learn.Norm.On":      "false",
+					"Prjn.Learn.Momentum.On":  "false",
+					"Prjn.Learn.WtBal.On":     "true", // note: was on!
+					"Prjn.Learn.Lrate":        "0.02",
+					"Prjn.Learn.XCal.MLrn":    "0", // pure hebb
 					"Prjn.Learn.XCal.SetLLrn": "true",
 					"Prjn.Learn.XCal.LLrn":    "1",
-					"Prjn.Learn.Lrate":        ".01", // slower needed
 				}},
-			{Sel: "Layer", Desc: "higher AvgL BCM gain",
+			{Sel: "Layer", Desc: "pretty much defaults",
 				Params: params.Params{
-					"Layer.Learn.AvgL.Gain": "2.5",
-				}},
-		},
-	}},
-	{Name: "PureError", Desc: "Error-driven-only learning params", Sheets: params.Sheets{
-		"Network": &params.Sheet{
-			{Sel: "Prjn", Desc: "go back to default",
-				Params: params.Params{
-					"Prjn.Learn.XCal.MLrn":    "1",
-					"Prjn.Learn.XCal.SetLLrn": "true",
-					"Prjn.Learn.XCal.LLrn":    "0",
-					"Prjn.Learn.Lrate":        ".04", // default
-				}},
-		},
-	}},
-	{Name: "HebbError", Desc: "Hebbian and Error-driven learning params", Sheets: params.Sheets{
-		"Network": &params.Sheet{
-			{Sel: "Prjn", Desc: "go back to default",
-				Params: params.Params{
-					"Prjn.Learn.XCal.MLrn":    "1",
-					"Prjn.Learn.XCal.SetLLrn": "false",
-					"Prjn.Learn.Lrate":        ".04", // default
+					"Layer.Learn.AvgL.Gain":    "2.5", // default
+					"Layer.Inhib.Layer.Gi":     "1.8", // default
+					"Layer.Inhib.ActAvg.Init":  "0.2", // fix it
+					"Layer.Inhib.ActAvg.Fixed": "true",
 				}},
 		},
 	}},
@@ -143,17 +77,15 @@ var ParamSets = params.Sets{
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
 	Net          *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
-	Learn        LearnType         `desc:"select which type of learning to use"`
-	Pats         *etable.Table     `view:"no-inline" desc:"easy training patterns -- can be learned with Hebbian"`
+	Lines2       *etable.Table     `view:"no-inline" desc:"easy training patterns -- can be learned with Hebbian"`
+	Lines1       *etable.Table     `view:"no-inline" desc:"hard training patterns -- require error-driven"`
 	TrnEpcLog    *etable.Table     `view:"no-inline" desc:"training epoch-level log data"`
 	TstEpcLog    *etable.Table     `view:"no-inline" desc:"testing epoch-level log data"`
 	TstTrlLog    *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
 	RunLog       *etable.Table     `view:"no-inline" desc:"summary log of each run"`
-	RunStats     *etable.Table     `view:"no-inline" desc:"aggregate stats on all runs"`
 	Params       params.Sets       `view:"no-inline" desc:"full collection of param sets"`
 	MaxRuns      int               `desc:"maximum number of model runs to perform"`
 	MaxEpcs      int               `desc:"maximum number of epochs to run per model run"`
-	NZeroStop    int               `desc:"if a positive number, training will stop after this many epochs with zero SSE"`
 	TrainEnv     env.FixedTable    `desc:"Training environment -- contains everything about iterating over input / output patterns over training"`
 	TestEnv      env.FixedTable    `desc:"Testing environment -- manages iterating over testing"`
 	Time         leabra.Time       `desc:"leabra timing parameters and state"`
@@ -161,39 +93,23 @@ type Sim struct {
 	TrainUpdt    leabra.TimeScales `desc:"at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model"`
 	TestUpdt     leabra.TimeScales `desc:"at what time scale to update the display during testing?  Anything longer than Epoch updates at Epoch in this model"`
 	TestInterval int               `desc:"how often to run through all the test patterns, in terms of training epochs"`
-
-	// statistics: note use float64 as that is best for etable.Table
-	TrlSSE     float64 `inactive:"+" desc:"current trial's sum squared error"`
-	TrlAvgSSE  float64 `inactive:"+" desc:"current trial's average sum squared error"`
-	TrlCosDiff float64 `inactive:"+" desc:"current trial's cosine difference"`
-	EpcSSE     float64 `inactive:"+" desc:"last epoch's total sum squared error"`
-	EpcAvgSSE  float64 `inactive:"+" desc:"last epoch's average sum squared error (average over trials, and over units within layer)"`
-	EpcPctErr  float64 `inactive:"+" desc:"last epoch's percent of trials that had SSE > 0 (subject to .5 unit-wise tolerance)"`
-	EpcPctCor  float64 `inactive:"+" desc:"last epoch's percent of trials that had SSE == 0 (subject to .5 unit-wise tolerance)"`
-	EpcCosDiff float64 `inactive:"+" desc:"last epoch's average cosine difference for output layer (a normalized error measure, maximum of 1 when the minus phase exactly matches the plus)"`
-	FirstZero  int     `inactive:"+" desc:"epoch at when SSE first went to zero"`
-	NZero      int     `inactive:"+" desc:"number of epochs in a row with zero SSE"`
+	TstRecLays   []string          `desc:"names of layers to record activations etc of during testing"`
 
 	// internal state - view:"-"
-	SumSSE        float64          `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
-	SumAvgSSE     float64          `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
-	SumCosDiff    float64          `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
-	CntErr        int              `view:"-" inactive:"+" desc:"sum of errs to increment as we go through epoch"`
-	Win           *gi.Window       `view:"-" desc:"main GUI window"`
-	NetView       *netview.NetView `view:"-" desc:"the network viewer"`
-	ToolBar       *gi.ToolBar      `view:"-" desc:"the master toolbar"`
-	TrnEpcPlot    *eplot.Plot2D    `view:"-" desc:"the training epoch plot"`
-	TstEpcPlot    *eplot.Plot2D    `view:"-" desc:"the testing epoch plot"`
-	TstTrlPlot    *eplot.Plot2D    `view:"-" desc:"the test-trial plot"`
-	RunPlot       *eplot.Plot2D    `view:"-" desc:"the run plot"`
-	TrnEpcFile    *os.File         `view:"-" desc:"log file"`
-	RunFile       *os.File         `view:"-" desc:"log file"`
-	InputValsTsr  *etensor.Float32 `view:"-" desc:"for holding layer values"`
-	OutputValsTsr *etensor.Float32 `view:"-" desc:"for holding layer values"`
-	IsRunning     bool             `view:"-" desc:"true if sim is running"`
-	StopNow       bool             `view:"-" desc:"flag to stop running"`
-	NeedsNewRun   bool             `view:"-" desc:"flag to initialize NewRun if last one finished"`
-	RndSeed       int64            `view:"-" desc:"the current random seed"`
+	Win         *gi.Window                  `view:"-" desc:"main GUI window"`
+	NetView     *netview.NetView            `view:"-" desc:"the network viewer"`
+	ToolBar     *gi.ToolBar                 `view:"-" desc:"the master toolbar"`
+	TrnEpcPlot  *eplot.Plot2D               `view:"-" desc:"the training epoch plot"`
+	TstEpcPlot  *eplot.Plot2D               `view:"-" desc:"the testing epoch plot"`
+	TstTrlPlot  *eplot.Plot2D               `view:"-" desc:"the test-trial plot"`
+	RunPlot     *eplot.Plot2D               `view:"-" desc:"the run plot"`
+	TrnEpcFile  *os.File                    `view:"-" desc:"log file"`
+	RunFile     *os.File                    `view:"-" desc:"log file"`
+	LayRecTsr   map[string]*etensor.Float32 `view:"-" desc:"for holding layer recording values"`
+	IsRunning   bool                        `view:"-" desc:"true if sim is running"`
+	StopNow     bool                        `view:"-" desc:"flag to stop running"`
+	NeedsNewRun bool                        `view:"-" desc:"flag to initialize NewRun if last one finished"`
+	RndSeed     int64                       `view:"-" desc:"the current random seed"`
 }
 
 // this registers this Sim Type and gives it properties that e.g.,
@@ -206,19 +122,19 @@ var TheSim Sim
 // New creates new blank elements and initializes defaults
 func (ss *Sim) New() {
 	ss.Net = &leabra.Network{}
-	ss.Learn = HebbError
-	ss.Pats = &etable.Table{}
+	ss.Lines2 = &etable.Table{}
+	ss.Lines1 = &etable.Table{}
 	ss.TrnEpcLog = &etable.Table{}
 	ss.TstEpcLog = &etable.Table{}
 	ss.TstTrlLog = &etable.Table{}
 	ss.RunLog = &etable.Table{}
-	ss.RunStats = &etable.Table{}
 	ss.Params = ParamSets
 	ss.RndSeed = 1
 	ss.ViewOn = true
 	ss.TrainUpdt = leabra.Quarter
 	ss.TestUpdt = leabra.Quarter
 	ss.TestInterval = 5
+	ss.TstRecLays = []string{"Input", "Hidden"}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -226,7 +142,8 @@ func (ss *Sim) New() {
 
 // Config configures all the elements using the standard functions
 func (ss *Sim) Config() {
-	// patgen.ReshapeCppFile(ss.Pats, "family_trees.dat", "family_trees.dat") // one-time reshape
+	patgen.ReshapeCppFile(ss.Lines2, "lines_5x5x2.dat", "lines_5x5x2.dat") // one-time reshape
+	patgen.ReshapeCppFile(ss.Lines1, "lines_5x5x1.dat", "lines_5x5x1.dat") // one-time reshape
 	ss.OpenPats()
 	ss.ConfigEnv()
 	ss.ConfigNet(ss.Net)
@@ -241,85 +158,31 @@ func (ss *Sim) ConfigEnv() {
 		ss.MaxRuns = 10
 	}
 	if ss.MaxEpcs == 0 { // allow user override
-		ss.MaxEpcs = 100
-		ss.NZeroStop = 1
+		ss.MaxEpcs = 30
 	}
-
-	tsts := []string{"James.Wife.Vicky", "Lucia.Fath.Robert", "Angela.Bro.Marco", "Christi.Daug.Jenn"}
-
-	trix := etable.NewIdxView(ss.Pats)
-	tsix := etable.NewIdxView(ss.Pats)
-	tsix.Idxs = tsix.Idxs[:0]
-
-	tstmap := make(map[int]struct{}, len(tsts))
-	for _, ts := range tsts {
-		ix := ss.Pats.RowsByString("Name", ts, false, false) // contains, ignore case
-		tsix.Idxs = append(tsix.Idxs, ix[0])
-		tstmap[ix[0]] = struct{}{}
-	}
-	trix.Filter(func(et *etable.Table, row int) bool {
-		_, has := tstmap[row]
-		return !has
-	})
 
 	ss.TrainEnv.Nm = "TrainEnv"
 	ss.TrainEnv.Dsc = "training params and state"
-
-	ss.TrainEnv.Table = trix
+	ss.TrainEnv.Table = etable.NewIdxView(ss.Lines2)
 	ss.TrainEnv.Validate()
 	ss.TrainEnv.Run.Max = ss.MaxRuns // note: we are not setting epoch max -- do that manually
 
 	ss.TestEnv.Nm = "TestEnv"
 	ss.TestEnv.Dsc = "testing params and state"
-	ss.TestEnv.Table = tsix
+	ss.TestEnv.Table = etable.NewIdxView(ss.Lines1)
 	ss.TestEnv.Sequential = true
 	ss.TestEnv.Validate()
-
-	// note: to create a train / test split of pats, do this:
-	// all := etable.NewIdxView(ss.Pats)
-	// splits, _ := split.Permuted(all, []float64{.8, .2}, []string{"Train", "Test"})
-	// ss.TrainEnv.Table = splits.Splits[0]
-	// ss.TestEnv.Table = splits.Splits[1]
 
 	ss.TrainEnv.Init(0)
 	ss.TestEnv.Init(0)
 }
 
 func (ss *Sim) ConfigNet(net *leabra.Network) {
-	net.InitName(net, "FamTrees")
-	ag := net.AddLayer2D("Agent", 4, 6, emer.Input)
-	rl := net.AddLayer2D("Relation", 2, 6, emer.Input)
-	agcd := net.AddLayer2D("AgentCode", 7, 7, emer.Hidden)
-	rlcd := net.AddLayer2D("RelationCode", 7, 7, emer.Hidden)
-	hid := net.AddLayer2D("Hidden", 7, 7, emer.Hidden)
-	ptcd := net.AddLayer2D("PatientCode", 7, 7, emer.Hidden)
-	pt := net.AddLayer2D("Patient", 4, 6, emer.Target)
+	net.InitName(net, "SelfOrg")
+	inp := net.AddLayer2D("Input", 5, 5, emer.Input)
+	hid := net.AddLayer2D("Hidden", 4, 5, emer.Hidden)
 
-	agcd.SetClass("Code")
-	rlcd.SetClass("Code")
-	ptcd.SetClass("Code")
-	ag.SetClass("Person")
-	pt.SetClass("Person")
-	rl.SetClass("Relation")
-
-	agcd.SetThread(1)
-	rlcd.SetThread(1)
-	ptcd.SetThread(1)
-
-	full := prjn.NewFull()
-	net.ConnectLayers(ag, agcd, full, emer.Forward)
-	net.ConnectLayers(rl, rlcd, full, emer.Forward)
-	net.BidirConnectLayers(agcd, hid, full)
-	net.BidirConnectLayers(rlcd, hid, full)
-	net.BidirConnectLayers(hid, ptcd, full)
-	net.BidirConnectLayers(ptcd, pt, full)
-
-	rl.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "Agent", YAlign: relpos.Front, Space: 2})
-	pt.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "Relation", YAlign: relpos.Front, Space: 2})
-	agcd.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Agent", YAlign: relpos.Front, XAlign: relpos.Left})
-	rlcd.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "AgentCode", YAlign: relpos.Front, Space: 1})
-	ptcd.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "RelationCode", YAlign: relpos.Front, Space: 1})
-	hid.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "RelationCode", YAlign: relpos.Front, XAlign: relpos.Middle})
+	net.ConnectLayers(inp, hid, prjn.NewFull(), emer.Forward)
 
 	net.Defaults()
 	ss.SetParams("Network", false) // only set Network params
@@ -439,7 +302,7 @@ func (ss *Sim) ApplyInputs(en env.Env) {
 	ss.Net.InitExt() // clear any existing inputs -- not strictly necessary if always
 	// going to the same layers, but good practice and cheap anyway
 
-	lays := []string{"Agent", "Relation", "Patient"}
+	lays := []string{"Input"}
 	for _, lnm := range lays {
 		ly := ss.Net.LayerByName(lnm).(*leabra.Layer)
 		pats := en.State(ly.Nm)
@@ -469,7 +332,7 @@ func (ss *Sim) TrainTrial() {
 		if epc%ss.TestInterval == 0 { // note: epc is *next* so won't trigger first time
 			ss.TestAll()
 		}
-		if epc >= ss.MaxEpcs || (ss.NZeroStop > 0 && ss.NZero >= ss.NZeroStop) {
+		if epc >= ss.MaxEpcs {
 			// done with training..
 			ss.RunEnd()
 			if ss.TrainEnv.Run.Incr() { // we are done!
@@ -509,40 +372,9 @@ func (ss *Sim) NewRun() {
 // InitStats initializes all the statistics, especially important for the
 // cumulative epoch stats -- called at start of new run
 func (ss *Sim) InitStats() {
-	// accumulators
-	ss.SumSSE = 0
-	ss.SumAvgSSE = 0
-	ss.SumCosDiff = 0
-	ss.CntErr = 0
-	ss.FirstZero = -1
-	ss.NZero = 0
-	// clear rest just to make Sim look initialized
-	ss.TrlSSE = 0
-	ss.TrlAvgSSE = 0
-	ss.EpcSSE = 0
-	ss.EpcAvgSSE = 0
-	ss.EpcPctErr = 0
-	ss.EpcCosDiff = 0
 }
 
-// TrialStats computes the trial-level statistics and adds them to the epoch accumulators if
-// accum is true.  Note that we're accumulating stats here on the Sim side so the
-// core algorithm side remains as simple as possible, and doesn't need to worry about
-// different time-scales over which stats could be accumulated etc.
-// You can also aggregate directly from log data, as is done for testing stats
-func (ss *Sim) TrialStats(accum bool) (sse, avgsse, cosdiff float64) {
-	out := ss.Net.LayerByName("Patient").(*leabra.Layer)
-	ss.TrlCosDiff = float64(out.CosDiff.Cos)
-	ss.TrlSSE, ss.TrlAvgSSE = out.MSE(0.5) // 0.5 = per-unit tolerance -- right side of .5
-	if accum {
-		ss.SumSSE += ss.TrlSSE
-		ss.SumAvgSSE += ss.TrlAvgSSE
-		ss.SumCosDiff += ss.TrlCosDiff
-		if ss.TrlSSE != 0 {
-			ss.CntErr++
-		}
-	}
-	return
+func (ss *Sim) TrialStats(accum bool) {
 }
 
 // TrainEpoch runs training trials for remainder of this epoch
@@ -676,15 +508,6 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 		ss.Params.ValidateSheets([]string{"Network", "Sim"})
 	}
 	err := ss.SetParamsSet("Base", sheet, setMsg)
-
-	switch ss.Learn {
-	case PureHebb:
-		ss.SetParamsSet("PureHebb", sheet, setMsg)
-	case PureError:
-		ss.SetParamsSet("PureError", sheet, setMsg)
-	case HebbError:
-		ss.SetParamsSet("HebbError", sheet, setMsg)
-	}
 	return err
 }
 
@@ -716,15 +539,28 @@ func (ss *Sim) SetParamsSet(setNm string, sheet string, setMsg bool) error {
 }
 
 func (ss *Sim) OpenPats() {
-	dt := ss.Pats
-	dt.SetMetaData("name", "Family Trees")
-	dt.SetMetaData("desc", "Family Trees Training patterns")
-	// err := dt.OpenCSV("family_trees.dat", etable.Tab)
-	ab, err := Asset("family_trees.dat") // embedded in executable
+	dt := ss.Lines2
+	dt.SetMetaData("name", "Lines2")
+	dt.SetMetaData("desc", "Lines2 Training patterns")
+	err := dt.OpenCSV("lines_5x5x2.dat", etable.Tab)
+	// ab, err := Asset("lines_5x5x2.dat") // embedded in executable
+	// if err != nil {
+	// 	log.Println(err)
+	// }
+	// err = dt.ReadCSV(bytes.NewBuffer(ab), etable.Tab)
 	if err != nil {
 		log.Println(err)
 	}
-	err = dt.ReadCSV(bytes.NewBuffer(ab), etable.Tab)
+
+	dt = ss.Lines1
+	dt.SetMetaData("name", "Lines1")
+	dt.SetMetaData("desc", "Lines1 Testing patterns")
+	err = dt.OpenCSV("lines_5x5x1.dat", etable.Tab)
+	// ab, err = Asset("lines_5x5x1.dat") // embedded in executable
+	// if err != nil {
+	// 	log.Println(err)
+	// }
+	// err = dt.ReadCSV(bytes.NewBuffer(ab), etable.Tab)
 	if err != nil {
 		log.Println(err)
 	}
@@ -742,34 +578,11 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 	row := dt.Rows
 	dt.SetNumRows(row + 1)
 
-	epc := ss.TrainEnv.Epoch.Prv           // this is triggered by increment so use previous value
-	nt := float64(ss.TrainEnv.Table.Len()) // number of trials in view
-
-	ss.EpcSSE = ss.SumSSE / nt
-	ss.SumSSE = 0
-	ss.EpcAvgSSE = ss.SumAvgSSE / nt
-	ss.SumAvgSSE = 0
-	ss.EpcPctErr = float64(ss.CntErr) / nt
-	ss.CntErr = 0
-	ss.EpcPctCor = 1 - ss.EpcPctErr
-	ss.EpcCosDiff = ss.SumCosDiff / nt
-	ss.SumCosDiff = 0
-	if ss.FirstZero < 0 && ss.EpcPctErr == 0 {
-		ss.FirstZero = epc
-	}
-	if ss.EpcPctErr == 0 {
-		ss.NZero++
-	} else {
-		ss.NZero = 0
-	}
+	epc := ss.TrainEnv.Epoch.Prv // this is triggered by increment so use previous value
+	// nt := float64(ss.TrainEnv.Table.Len()) // number of trials in view
 
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
-	dt.SetCellFloat("SSE", row, ss.EpcSSE)
-	dt.SetCellFloat("AvgSSE", row, ss.EpcAvgSSE)
-	dt.SetCellFloat("PctErr", row, ss.EpcPctErr)
-	dt.SetCellFloat("PctCor", row, ss.EpcPctCor)
-	dt.SetCellFloat("CosDiff", row, ss.EpcCosDiff)
 
 	// note: essential to use Go version of update when called from another goroutine
 	ss.TrnEpcPlot.GoUpdate()
@@ -790,27 +603,17 @@ func (ss *Sim) ConfigTrnEpcLog(dt *etable.Table) {
 	sch := etable.Schema{
 		{"Run", etensor.INT64, nil, nil},
 		{"Epoch", etensor.INT64, nil, nil},
-		{"SSE", etensor.FLOAT64, nil, nil},
-		{"AvgSSE", etensor.FLOAT64, nil, nil},
-		{"PctErr", etensor.FLOAT64, nil, nil},
-		{"PctCor", etensor.FLOAT64, nil, nil},
-		{"CosDiff", etensor.FLOAT64, nil, nil},
 	}
 	dt.SetFromSchema(sch, 0)
 }
 
 func (ss *Sim) ConfigTrnEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
-	plt.Params.Title = "Family Trees Epoch Plot"
+	plt.Params.Title = "Self Organizing Epoch Plot"
 	plt.Params.XAxisCol = "Epoch"
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Run", false, true, 0, false, 0)
 	plt.SetColParams("Epoch", false, true, 0, false, 0)
-	plt.SetColParams("SSE", false, true, 0, false, 0) // default plot
-	plt.SetColParams("AvgSSE", false, true, 0, false, 0)
-	plt.SetColParams("PctErr", true, true, 0, true, 1)
-	plt.SetColParams("PctCor", false, true, 0, true, 1)
-	plt.SetColParams("CosDiff", false, true, 0, true, 1)
 
 	return plt
 }
@@ -830,9 +633,20 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 	dt.SetCellFloat("Epoch", row, float64(epc))
 	dt.SetCellFloat("Trial", row, float64(trl))
 	dt.SetCellString("TrialName", row, ss.TestEnv.TrialName)
-	dt.SetCellFloat("SSE", row, ss.TrlSSE)
-	dt.SetCellFloat("AvgSSE", row, ss.TrlAvgSSE)
-	dt.SetCellFloat("CosDiff", row, ss.TrlCosDiff)
+
+	if ss.LayRecTsr == nil {
+		ss.LayRecTsr = make(map[string]*etensor.Float32)
+	}
+	for _, lnm := range ss.TstRecLays {
+		tsr, ok := ss.LayRecTsr[lnm]
+		if !ok {
+			tsr = &etensor.Float32{}
+			ss.LayRecTsr[lnm] = tsr
+		}
+		ly := ss.Net.LayerByName(lnm).(*leabra.Layer)
+		ly.UnitValsTensor(tsr, "Act")
+		dt.SetCellTensor(lnm, row, tsr)
+	}
 
 	// note: essential to use Go version of update when called from another goroutine
 	ss.TstTrlPlot.GoUpdate()
@@ -850,15 +664,16 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 		{"Epoch", etensor.INT64, nil, nil},
 		{"Trial", etensor.INT64, nil, nil},
 		{"TrialName", etensor.STRING, nil, nil},
-		{"SSE", etensor.FLOAT64, nil, nil},
-		{"AvgSSE", etensor.FLOAT64, nil, nil},
-		{"CosDiff", etensor.FLOAT64, nil, nil},
+	}
+	for _, lnm := range ss.TstRecLays {
+		ly := ss.Net.LayerByName(lnm).(*leabra.Layer)
+		sch = append(sch, etable.Column{lnm, etensor.FLOAT64, ly.Shp.Shp, nil})
 	}
 	dt.SetFromSchema(sch, nt)
 }
 
 func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
-	plt.Params.Title = "Family Trees Test Trial Plot"
+	plt.Params.Title = "Self Organizing Test Trial Plot"
 	plt.Params.XAxisCol = "Trial"
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
@@ -866,10 +681,10 @@ func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetColParams("Epoch", false, true, 0, false, 0)
 	plt.SetColParams("Trial", false, true, 0, false, 0)
 	plt.SetColParams("TrialName", false, true, 0, false, 0)
-	plt.SetColParams("SSE", true, true, 0, false, 0) // default plot
-	plt.SetColParams("AvgSSE", false, true, 0, false, 0)
-	plt.SetColParams("CosDiff", false, true, 0, true, 1)
 
+	for _, lnm := range ss.TstRecLays {
+		plt.SetColParams(lnm, false, true, 0, true, 1)
+	}
 	return plt
 }
 
@@ -880,23 +695,14 @@ func (ss *Sim) LogTstEpc(dt *etable.Table) {
 	row := dt.Rows
 	dt.SetNumRows(row + 1)
 
-	trl := ss.TstTrlLog
-	tix := etable.NewIdxView(trl)
+	// trl := ss.TstTrlLog
+	// tix := etable.NewIdxView(trl)
 	epc := ss.TrainEnv.Epoch.Prv // ?
 
 	// note: this shows how to use agg methods to compute summary data from another
 	// data table, instead of incrementing on the Sim
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
-	dt.SetCellFloat("SSE", row, agg.Sum(tix, "SSE")[0])
-	dt.SetCellFloat("AvgSSE", row, agg.Mean(tix, "AvgSSE")[0])
-	dt.SetCellFloat("PctErr", row, agg.PropIf(tix, "SSE", func(idx int, val float64) bool {
-		return val > 0
-	})[0])
-	dt.SetCellFloat("PctCor", row, agg.PropIf(tix, "SSE", func(idx int, val float64) bool {
-		return val == 0
-	})[0])
-	dt.SetCellFloat("CosDiff", row, agg.Mean(tix, "CosDiff")[0])
 
 	// note: essential to use Go version of update when called from another goroutine
 	ss.TstEpcPlot.GoUpdate()
@@ -911,26 +717,16 @@ func (ss *Sim) ConfigTstEpcLog(dt *etable.Table) {
 	dt.SetFromSchema(etable.Schema{
 		{"Run", etensor.INT64, nil, nil},
 		{"Epoch", etensor.INT64, nil, nil},
-		{"SSE", etensor.FLOAT64, nil, nil},
-		{"AvgSSE", etensor.FLOAT64, nil, nil},
-		{"PctErr", etensor.FLOAT64, nil, nil},
-		{"PctCor", etensor.FLOAT64, nil, nil},
-		{"CosDiff", etensor.FLOAT64, nil, nil},
 	}, 0)
 }
 
 func (ss *Sim) ConfigTstEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
-	plt.Params.Title = "Family Trees Testing Epoch Plot"
+	plt.Params.Title = "Self Organizing Testing Epoch Plot"
 	plt.Params.XAxisCol = "Epoch"
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Run", false, true, 0, false, 0)
 	plt.SetColParams("Epoch", false, true, 0, false, 0)
-	plt.SetColParams("SSE", true, true, 0, false, 0) // default plot
-	plt.SetColParams("AvgSSE", false, true, 0, false, 0)
-	plt.SetColParams("PctErr", false, true, 0, true, 1)
-	plt.SetColParams("PctCor", false, true, 0, true, 1)
-	plt.SetColParams("CosDiff", false, true, 0, true, 1)
 	return plt
 }
 
@@ -946,37 +742,16 @@ func (ss *Sim) LogRun(dt *etable.Table) {
 	epclog := ss.TrnEpcLog
 	epcix := etable.NewIdxView(epclog)
 	// compute mean over last N epochs for run level
-	nlast := 10
+	nlast := 5
 	if nlast > epcix.Len()-1 {
 		nlast = epcix.Len() - 1
 	}
 	epcix.Idxs = epcix.Idxs[epcix.Len()-nlast-1:]
 
-	params := ss.Learn.String()
+	params := "Std"
 
 	dt.SetCellFloat("Run", row, float64(run))
 	dt.SetCellString("Params", row, params)
-	dt.SetCellFloat("FirstZero", row, float64(ss.FirstZero))
-	dt.SetCellFloat("SSE", row, agg.Mean(epcix, "SSE")[0])
-	dt.SetCellFloat("AvgSSE", row, agg.Mean(epcix, "AvgSSE")[0])
-	dt.SetCellFloat("PctErr", row, agg.Mean(epcix, "PctErr")[0])
-	dt.SetCellFloat("PctCor", row, agg.Mean(epcix, "PctCor")[0])
-	dt.SetCellFloat("CosDiff", row, agg.Mean(epcix, "CosDiff")[0])
-
-	runix := etable.NewIdxView(dt)
-	spl := split.GroupBy(runix, []string{"Params"})
-	split.Desc(spl, "FirstZero")
-	split.Desc(spl, "PctCor")
-	ss.RunStats = spl.AggsToTable(false)
-
-	// note: essential to use Go version of update when called from another goroutine
-	ss.RunPlot.GoUpdate()
-	if ss.RunFile != nil {
-		if row == 0 {
-			dt.WriteCSVHeaders(ss.RunFile, etable.Tab)
-		}
-		dt.WriteCSVRow(ss.RunFile, row, etable.Tab, true)
-	}
 }
 
 func (ss *Sim) ConfigRunLog(dt *etable.Table) {
@@ -988,27 +763,15 @@ func (ss *Sim) ConfigRunLog(dt *etable.Table) {
 	dt.SetFromSchema(etable.Schema{
 		{"Run", etensor.INT64, nil, nil},
 		{"Params", etensor.STRING, nil, nil},
-		{"FirstZero", etensor.FLOAT64, nil, nil},
-		{"SSE", etensor.FLOAT64, nil, nil},
-		{"AvgSSE", etensor.FLOAT64, nil, nil},
-		{"PctErr", etensor.FLOAT64, nil, nil},
-		{"PctCor", etensor.FLOAT64, nil, nil},
-		{"CosDiff", etensor.FLOAT64, nil, nil},
 	}, 0)
 }
 
 func (ss *Sim) ConfigRunPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
-	plt.Params.Title = "Family Trees Run Plot"
+	plt.Params.Title = "Self Organizing Run Plot"
 	plt.Params.XAxisCol = "Run"
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Run", false, true, 0, false, 0)
-	plt.SetColParams("FirstZero", true, true, 0, false, 0) // default plot
-	plt.SetColParams("SSE", true, true, 0, false, 0)
-	plt.SetColParams("AvgSSE", false, true, 0, false, 0)
-	plt.SetColParams("PctErr", false, true, 0, true, 1)
-	plt.SetColParams("PctCor", false, true, 0, true, 1)
-	plt.SetColParams("CosDiff", false, true, 0, true, 1)
 	return plt
 }
 
@@ -1020,10 +783,11 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	width := 1600
 	height := 1200
 
-	gi.SetAppName("family_trees")
-	gi.SetAppAbout(`shows how learning can recode inputs that have no similarity structure into a hidden layer that captures the *functional* similarity structure of the items. See <a href="href="https://github.com/CompCogNeuro/sims/ch4/family_trees/README.md">README.md on GitHub</a>.</p>`)
+	gi.SetAppName("self_org")
+	gi.SetAppAbout(`illustrates how self-organizing learning emerges from the interactions between
+inhibitory competition, rich-get-richer Hebbian learning, and homeostasis (negative feedback). See <a href="href="https://github.com/CompCogNeuro/sims/ch4/self_org/README.md">README.md on GitHub</a>.</p>`)
 
-	win := gi.NewWindow2D("family_trees", "Family Trees", width, height, true)
+	win := gi.NewWindow2D("self_org", "Self Organizing", width, height, true)
 	ss.Win = win
 
 	vp := win.WinViewport2D()
@@ -1185,7 +949,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	tbar.AddAction(gi.ActOpts{Label: "README", Icon: "file-markdown", Tooltip: "Opens your browser on the README file that contains instructions for how to run this model."}, win.This(),
 		func(recv, send ki.Ki, sig int64, data interface{}) {
-			gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch4/family_trees/README.md")
+			gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch4/self_org/README.md")
 		})
 
 	vp.UpdateEndNoSig(updt)
