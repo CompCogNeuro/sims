@@ -15,6 +15,7 @@ import (
 	"math/rand"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/emer/emergent/emer"
@@ -28,6 +29,9 @@ import (
 	"github.com/emer/etable/etable"
 	"github.com/emer/etable/etensor"
 	_ "github.com/emer/etable/etview" // include to get gui views
+	"github.com/emer/etable/metric"
+	"github.com/emer/etable/pca"
+	"github.com/emer/etable/simat"
 	"github.com/emer/etable/split"
 	"github.com/emer/leabra/leabra"
 	"github.com/goki/gi/gi"
@@ -136,6 +140,25 @@ var ParamSets = params.Sets{
 	}},
 }
 
+// Reps contains standard analysis of representations
+type Reps struct {
+	SimMat  *simat.SimMat `view:"no-inline" desc:"similarity matrix"`
+	PCAPlot *eplot.Plot2D `view:"no-inline" desc:"plot of pca data"`
+	PCA     *pca.PCA      `view:"-" desc:"pca results"`
+	PCAPrjn *etable.Table `view:"-" desc:"pca projections onto eigenvectors"`
+	// clust
+}
+
+func (rp *Reps) Init() {
+	rp.SimMat = &simat.SimMat{}
+	rp.SimMat.Init()
+	rp.PCA = &pca.PCA{}
+	rp.PCA.Init()
+	rp.PCAPrjn = &etable.Table{}
+	rp.PCAPlot = &eplot.Plot2D{}
+	rp.PCAPlot.InitName(rp.PCAPlot, "PCAPlot") // any Ki obj needs this
+}
+
 // Sim encapsulates the entire simulation model, and we define all the
 // functionality as methods on this struct.  This structure keeps all relevant
 // state information organized and available without having to pass everything around
@@ -155,12 +178,17 @@ type Sim struct {
 	MaxEpcs      int               `desc:"maximum number of epochs to run per model run"`
 	NZeroStop    int               `desc:"if a positive number, training will stop after this many epochs with zero SSE"`
 	TrainEnv     env.FixedTable    `desc:"Training environment -- contains everything about iterating over input / output patterns over training"`
-	TestEnv      env.FixedTable    `desc:"Testing environment -- manages iterating over testing"`
+	GenTestEnv   env.FixedTable    `desc:"Generalization Testing environment (4 held-out items not trained -- not enough training data to really drive generalization here) -- manages iterating over testing"`
+	AllTestEnv   env.FixedTable    `desc:"Test all items -- manages iterating over testing"`
 	Time         leabra.Time       `desc:"leabra timing parameters and state"`
 	ViewOn       bool              `desc:"whether to update the network view while running"`
 	TrainUpdt    leabra.TimeScales `desc:"at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model"`
 	TestUpdt     leabra.TimeScales `desc:"at what time scale to update the display during testing?  Anything longer than Epoch updates at Epoch in this model"`
 	TestInterval int               `desc:"how often to run through all the test patterns, in terms of training epochs"`
+	TstRecLays   []string          `desc:"names of layers to record activations etc of during testing"`
+	HiddenRel    Reps              `view:"inline" desc:"representational analysis of Hidden layer, sorted by relationship"`
+	HiddenAgent  Reps              `view:"inline" desc:"representational analysis of Hidden layer, sorted by agent"`
+	AgentAgent   Reps              `view:"inline" desc:"representational analysis of AgentCode layer, sorted by agent"`
 
 	// statistics: note use float64 as that is best for etable.Table
 	TrlSSE     float64 `inactive:"+" desc:"current trial's sum squared error"`
@@ -175,25 +203,24 @@ type Sim struct {
 	NZero      int     `inactive:"+" desc:"number of epochs in a row with zero SSE"`
 
 	// internal state - view:"-"
-	SumSSE        float64          `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
-	SumAvgSSE     float64          `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
-	SumCosDiff    float64          `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
-	CntErr        int              `view:"-" inactive:"+" desc:"sum of errs to increment as we go through epoch"`
-	Win           *gi.Window       `view:"-" desc:"main GUI window"`
-	NetView       *netview.NetView `view:"-" desc:"the network viewer"`
-	ToolBar       *gi.ToolBar      `view:"-" desc:"the master toolbar"`
-	TrnEpcPlot    *eplot.Plot2D    `view:"-" desc:"the training epoch plot"`
-	TstEpcPlot    *eplot.Plot2D    `view:"-" desc:"the testing epoch plot"`
-	TstTrlPlot    *eplot.Plot2D    `view:"-" desc:"the test-trial plot"`
-	RunPlot       *eplot.Plot2D    `view:"-" desc:"the run plot"`
-	TrnEpcFile    *os.File         `view:"-" desc:"log file"`
-	RunFile       *os.File         `view:"-" desc:"log file"`
-	InputValsTsr  *etensor.Float32 `view:"-" desc:"for holding layer values"`
-	OutputValsTsr *etensor.Float32 `view:"-" desc:"for holding layer values"`
-	IsRunning     bool             `view:"-" desc:"true if sim is running"`
-	StopNow       bool             `view:"-" desc:"flag to stop running"`
-	NeedsNewRun   bool             `view:"-" desc:"flag to initialize NewRun if last one finished"`
-	RndSeed       int64            `view:"-" desc:"the current random seed"`
+	SumSSE      float64                     `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
+	SumAvgSSE   float64                     `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
+	SumCosDiff  float64                     `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
+	CntErr      int                         `view:"-" inactive:"+" desc:"sum of errs to increment as we go through epoch"`
+	Win         *gi.Window                  `view:"-" desc:"main GUI window"`
+	NetView     *netview.NetView            `view:"-" desc:"the network viewer"`
+	ToolBar     *gi.ToolBar                 `view:"-" desc:"the master toolbar"`
+	TrnEpcPlot  *eplot.Plot2D               `view:"-" desc:"the training epoch plot"`
+	TstEpcPlot  *eplot.Plot2D               `view:"-" desc:"the testing epoch plot"`
+	TstTrlPlot  *eplot.Plot2D               `view:"-" desc:"the test-trial plot"`
+	RunPlot     *eplot.Plot2D               `view:"-" desc:"the run plot"`
+	TrnEpcFile  *os.File                    `view:"-" desc:"log file"`
+	RunFile     *os.File                    `view:"-" desc:"log file"`
+	LayRecTsr   map[string]*etensor.Float32 `view:"-" desc:"for holding layer recording values"`
+	IsRunning   bool                        `view:"-" desc:"true if sim is running"`
+	StopNow     bool                        `view:"-" desc:"flag to stop running"`
+	NeedsNewRun bool                        `view:"-" desc:"flag to initialize NewRun if last one finished"`
+	RndSeed     int64                       `view:"-" desc:"the current random seed"`
 }
 
 // this registers this Sim Type and gives it properties that e.g.,
@@ -219,6 +246,10 @@ func (ss *Sim) New() {
 	ss.TrainUpdt = leabra.Quarter
 	ss.TestUpdt = leabra.Quarter
 	ss.TestInterval = 5
+	ss.TstRecLays = []string{"Hidden", "AgentCode"}
+	ss.HiddenRel.Init()
+	ss.HiddenAgent.Init()
+	ss.AgentAgent.Init()
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -245,6 +276,8 @@ func (ss *Sim) ConfigEnv() {
 		ss.NZeroStop = 1
 	}
 
+	// note: code below pulls out these specific testing patterns into test env
+	// and removes from training
 	tsts := []string{"James.Wife.Vicky", "Lucia.Fath.Robert", "Angela.Bro.Marco", "Christi.Daug.Jenn"}
 
 	trix := etable.NewIdxView(ss.Pats)
@@ -264,25 +297,31 @@ func (ss *Sim) ConfigEnv() {
 
 	ss.TrainEnv.Nm = "TrainEnv"
 	ss.TrainEnv.Dsc = "training params and state"
-
 	ss.TrainEnv.Table = trix
 	ss.TrainEnv.Validate()
 	ss.TrainEnv.Run.Max = ss.MaxRuns // note: we are not setting epoch max -- do that manually
 
-	ss.TestEnv.Nm = "TestEnv"
-	ss.TestEnv.Dsc = "testing params and state"
-	ss.TestEnv.Table = tsix
-	ss.TestEnv.Sequential = true
-	ss.TestEnv.Validate()
+	ss.GenTestEnv.Nm = "GenTestEnv"
+	ss.GenTestEnv.Dsc = "hold-out testing params and state"
+	ss.GenTestEnv.Table = tsix
+	ss.GenTestEnv.Sequential = true
+	ss.GenTestEnv.Validate()
+
+	ss.AllTestEnv.Nm = "AllTestEnv"
+	ss.AllTestEnv.Dsc = "test all params and state"
+	ss.AllTestEnv.Table = etable.NewIdxView(ss.Pats)
+	ss.AllTestEnv.Sequential = true
+	ss.AllTestEnv.Validate()
 
 	// note: to create a train / test split of pats, do this:
 	// all := etable.NewIdxView(ss.Pats)
 	// splits, _ := split.Permuted(all, []float64{.8, .2}, []string{"Train", "Test"})
 	// ss.TrainEnv.Table = splits.Splits[0]
-	// ss.TestEnv.Table = splits.Splits[1]
+	// ss.GenTestEnv.Table = splits.Splits[1]
 
 	ss.TrainEnv.Init(0)
-	ss.TestEnv.Init(0)
+	ss.GenTestEnv.Init(0)
+	ss.AllTestEnv.Init(0)
 }
 
 func (ss *Sim) ConfigNet(net *leabra.Network) {
@@ -357,7 +396,7 @@ func (ss *Sim) Counters(train bool) string {
 	if train {
 		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TrainEnv.Trial.Cur, ss.Time.Cycle, ss.TrainEnv.TrialName)
 	} else {
-		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TestEnv.Trial.Cur, ss.Time.Cycle, ss.TestEnv.TrialName)
+		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.GenTestEnv.Trial.Cur, ss.Time.Cycle, ss.GenTestEnv.TrialName)
 	}
 }
 
@@ -467,7 +506,7 @@ func (ss *Sim) TrainTrial() {
 			ss.UpdateView(true)
 		}
 		if epc%ss.TestInterval == 0 { // note: epc is *next* so won't trigger first time
-			ss.TestAll()
+			ss.GenTestAll()
 		}
 		if epc >= ss.MaxEpcs || (ss.NZeroStop > 0 && ss.NZero >= ss.NZeroStop) {
 			// done with training..
@@ -497,7 +536,8 @@ func (ss *Sim) RunEnd() {
 func (ss *Sim) NewRun() {
 	run := ss.TrainEnv.Run.Cur
 	ss.TrainEnv.Init(run)
-	ss.TestEnv.Init(run)
+	ss.GenTestEnv.Init(run)
+	ss.AllTestEnv.Init(run)
 	ss.Time.Reset()
 	ss.Net.InitWts()
 	ss.InitStats()
@@ -609,14 +649,14 @@ func (ss *Sim) SaveWeights(filename gi.FileName) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
-// Testing
+// Generalization Testing
 
-// TestTrial runs one trial of testing -- always sequentially presented inputs
-func (ss *Sim) TestTrial(returnOnChg bool) {
-	ss.TestEnv.Step()
+// GenTestTrial runs one trial of testing -- always sequentially presented inputs
+func (ss *Sim) GenTestTrial(returnOnChg bool) {
+	ss.GenTestEnv.Step()
 
 	// Query counters FIRST
-	_, _, chg := ss.TestEnv.Counter(env.Epoch)
+	_, _, chg := ss.GenTestEnv.Counter(env.Epoch)
 	if chg {
 		if ss.ViewOn && ss.TestUpdt > leabra.AlphaCycle {
 			ss.UpdateView(false)
@@ -627,40 +667,131 @@ func (ss *Sim) TestTrial(returnOnChg bool) {
 		}
 	}
 
-	ss.ApplyInputs(&ss.TestEnv)
+	ss.ApplyInputs(&ss.GenTestEnv)
 	ss.AlphaCyc(false)   // !train
 	ss.TrialStats(false) // !accumulate
-	ss.LogTstTrl(ss.TstTrlLog)
+	ss.LogTstTrl(ss.TstTrlLog, ss.GenTestEnv.Trial.Cur, ss.GenTestEnv.TrialName)
 }
 
-// TestItem tests given item which is at given index in test item list
-func (ss *Sim) TestItem(idx int) {
-	cur := ss.TestEnv.Trial.Cur
-	ss.TestEnv.Trial.Cur = idx
-	ss.TestEnv.SetTrialName()
-	ss.ApplyInputs(&ss.TestEnv)
-	ss.AlphaCyc(false)   // !train
-	ss.TrialStats(false) // !accumulate
-	ss.TestEnv.Trial.Cur = cur
-}
-
-// TestAll runs through the full set of testing items
-func (ss *Sim) TestAll() {
-	ss.TestEnv.Init(ss.TrainEnv.Run.Cur)
+// GenTestAll runs through the full set of testing items
+func (ss *Sim) GenTestAll() {
+	ss.GenTestEnv.Init(ss.TrainEnv.Run.Cur)
 	for {
-		ss.TestTrial(true) // return on chg, don't present
-		_, _, chg := ss.TestEnv.Counter(env.Epoch)
+		ss.GenTestTrial(true) // return on chg, don't present
+		_, _, chg := ss.GenTestEnv.Counter(env.Epoch)
 		if chg || ss.StopNow {
 			break
 		}
 	}
 }
 
-// RunTestAll runs through the full set of testing items, has stop running = false at end -- for gui
-func (ss *Sim) RunTestAll() {
+// RunGenTestAll runs through the full set of testing items, has stop running = false at end -- for gui
+func (ss *Sim) RunGenTestAll() {
 	ss.StopNow = false
-	ss.TestAll()
+	ss.GenTestAll()
 	ss.Stopped()
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+// AllTest
+
+// AllTestTrial runs one trial of testing -- always sequentially presented inputs
+func (ss *Sim) AllTestTrial(returnOnChg bool) {
+	ss.AllTestEnv.Step()
+
+	// Query counters FIRST
+	_, _, chg := ss.AllTestEnv.Counter(env.Epoch)
+	if chg {
+		if ss.ViewOn && ss.TestUpdt > leabra.AlphaCycle {
+			ss.UpdateView(false)
+		}
+		ss.LogTstEpc(ss.TstEpcLog)
+		if returnOnChg {
+			return
+		}
+	}
+
+	ss.ApplyInputs(&ss.AllTestEnv)
+	ss.AlphaCyc(false)   // !train
+	ss.TrialStats(false) // !accumulate
+	ss.LogTstTrl(ss.TstTrlLog, ss.AllTestEnv.Trial.Cur, ss.AllTestEnv.TrialName)
+}
+
+// AllTestAll runs through the full set of testing items
+func (ss *Sim) AllTestAll() {
+	ss.AllTestEnv.Init(ss.TrainEnv.Run.Cur)
+	for {
+		ss.AllTestTrial(true) // return on chg, don't present
+		_, _, chg := ss.AllTestEnv.Counter(env.Epoch)
+		if chg || ss.StopNow {
+			break
+		}
+	}
+}
+
+// RunAllTestAll runs through the full set of testing items, has stop running = false at end -- for gui
+func (ss *Sim) RunAllTestAll() {
+	ss.StopNow = false
+	ss.AllTestAll()
+	ss.Stopped()
+}
+
+// RepsAnalysis does a full test and then runs tests of representations
+func (ss *Sim) RepsAnalysis() {
+	ss.RunAllTestAll()
+
+	names := make([]string, ss.TstTrlLog.Rows)
+	nmtsr := ss.TstTrlLog.ColByName("TrialName").(*etensor.String)
+	copy(names, nmtsr.Values) // save
+
+	// replace name with just rel
+	for i, nm := range nmtsr.Values {
+		nnm := nm[strings.Index(nm, ".")+1:]
+		nnm = nnm[:strings.Index(nnm, ".")]
+		nmtsr.Values[i] = nnm
+	}
+
+	rels := etable.NewIdxView(ss.TstTrlLog)
+	rels.SortCol(ss.TstTrlLog.ColIdx("TrialName"), true)
+	ss.HiddenRel.SimMat.TableCol(rels, "Hidden", "TrialName", metric.Correlation64)
+	ss.HiddenRel.PCA.TableCol(rels, "Hidden", metric.Covariance64)
+	ss.HiddenRel.PCA.ProjectColToTable(ss.HiddenRel.PCAPrjn, rels, "Hidden", "TrialName", []int{0, 1})
+	ss.ConfigPCAPlot(ss.HiddenRel.PCAPlot, ss.HiddenRel.PCAPrjn)
+
+	// replace name with just agent
+	for i, nm := range names {
+		nnm := nm[:strings.Index(nm, ".")]
+		nmtsr.Values[i] = nnm
+	}
+	ags := etable.NewIdxView(ss.TstTrlLog)
+	ags.SortCol(ss.TstTrlLog.ColIdx("TrialName"), true)
+	ss.HiddenAgent.SimMat.TableCol(ags, "Hidden", "TrialName", metric.Correlation64)
+	ss.HiddenAgent.PCA.TableCol(ags, "Hidden", metric.Covariance64)
+	ss.HiddenAgent.PCA.ProjectColToTable(ss.HiddenAgent.PCAPrjn, ags, "Hidden", "TrialName", []int{2, 3})
+	ss.ConfigPCAPlot(ss.HiddenAgent.PCAPlot, ss.HiddenAgent.PCAPrjn)
+	ss.HiddenAgent.PCAPlot.SetColParams("Prjn3", true, true, 0, false, 0)
+	ss.HiddenAgent.PCAPlot.Params.XAxisCol = "Prjn2"
+
+	ss.AgentAgent.SimMat.TableCol(ags, "AgentCode", "TrialName", metric.Correlation64)
+	ss.AgentAgent.PCA.TableCol(ags, "AgentCode", metric.Covariance64)
+	ss.AgentAgent.PCA.ProjectColToTable(ss.AgentAgent.PCAPrjn, ags, "AgentCode", "TrialName", []int{0, 1})
+	ss.ConfigPCAPlot(ss.AgentAgent.PCAPlot, ss.AgentAgent.PCAPrjn)
+
+	copy(nmtsr.Values, names) // restore
+	ss.Stopped()
+}
+
+func (ss *Sim) ConfigPCAPlot(plt *eplot.Plot2D, dt *etable.Table) {
+	nm, _ := dt.MetaData["name"]
+	plt.Params.Title = "Family Trees PCA Plot: " + nm
+	plt.Params.XAxisCol = "Prjn0"
+	plt.SetTable(dt)
+	plt.Params.Lines = false
+	plt.Params.Points = true
+	// order of params: on, fixMin, min, fixMax, max
+	plt.SetColParams("TrialName", true, true, 0, false, 0)
+	plt.SetColParams("Prjn0", false, true, 0, false, 0)
+	plt.SetColParams("Prjn1", true, true, 0, false, 0)
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -820,19 +951,35 @@ func (ss *Sim) ConfigTrnEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 
 // LogTstTrl adds data from current trial to the TstTrlLog table.
 // log always contains number of testing items
-func (ss *Sim) LogTstTrl(dt *etable.Table) {
+func (ss *Sim) LogTstTrl(dt *etable.Table, trl int, trlnm string) {
 	epc := ss.TrainEnv.Epoch.Prv // this is triggered by increment so use previous value
 
-	trl := ss.TestEnv.Trial.Cur
 	row := trl
+	if dt.Rows <= row {
+		dt.SetNumRows(row + 1)
+	}
 
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
 	dt.SetCellFloat("Trial", row, float64(trl))
-	dt.SetCellString("TrialName", row, ss.TestEnv.TrialName)
+	dt.SetCellString("TrialName", row, trlnm)
 	dt.SetCellFloat("SSE", row, ss.TrlSSE)
 	dt.SetCellFloat("AvgSSE", row, ss.TrlAvgSSE)
 	dt.SetCellFloat("CosDiff", row, ss.TrlCosDiff)
+
+	if ss.LayRecTsr == nil {
+		ss.LayRecTsr = make(map[string]*etensor.Float32)
+	}
+	for _, lnm := range ss.TstRecLays {
+		tsr, ok := ss.LayRecTsr[lnm]
+		if !ok {
+			tsr = &etensor.Float32{}
+			ss.LayRecTsr[lnm] = tsr
+		}
+		ly := ss.Net.LayerByName(lnm).(*leabra.Layer)
+		ly.UnitValsTensor(tsr, "ActM") // get minus phase act
+		dt.SetCellTensor(lnm, row, tsr)
+	}
 
 	// note: essential to use Go version of update when called from another goroutine
 	ss.TstTrlPlot.GoUpdate()
@@ -844,7 +991,7 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 	dt.SetMetaData("read-only", "true")
 	dt.SetMetaData("precision", strconv.Itoa(LogPrec))
 
-	nt := ss.TestEnv.Table.Len() // number in view
+	nt := ss.GenTestEnv.Table.Len() // number in view
 	sch := etable.Schema{
 		{"Run", etensor.INT64, nil, nil},
 		{"Epoch", etensor.INT64, nil, nil},
@@ -853,6 +1000,10 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 		{"SSE", etensor.FLOAT64, nil, nil},
 		{"AvgSSE", etensor.FLOAT64, nil, nil},
 		{"CosDiff", etensor.FLOAT64, nil, nil},
+	}
+	for _, lnm := range ss.TstRecLays {
+		ly := ss.Net.LayerByName(lnm).(*leabra.Layer)
+		sch = append(sch, etable.Column{lnm, etensor.FLOAT64, ly.Shp.Shp, nil})
 	}
 	dt.SetFromSchema(sch, nt)
 }
@@ -870,6 +1021,9 @@ func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetColParams("AvgSSE", false, true, 0, false, 0)
 	plt.SetColParams("CosDiff", false, true, 0, true, 1)
 
+	for _, lnm := range ss.TstRecLays {
+		plt.SetColParams(lnm, false, true, 0, true, 1)
+	}
 	return plt
 }
 
@@ -1122,49 +1276,55 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	tbar.AddSeparator("test")
 
-	tbar.AddAction(gi.ActOpts{Label: "Test Trial", Icon: "step-fwd", Tooltip: "Runs the next testing trial.", UpdateFunc: func(act *gi.Action) {
+	tbar.AddAction(gi.ActOpts{Label: "Gen Test Trial", Icon: "step-fwd", Tooltip: "Runs the next testing trial.", UpdateFunc: func(act *gi.Action) {
 		act.SetActiveStateUpdt(!ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.IsRunning = true
-			ss.TestTrial(false) // don't break on chg
+			ss.GenTestTrial(false) // don't break on chg
 			ss.IsRunning = false
 			vp.SetNeedsFullRender()
 		}
 	})
 
-	tbar.AddAction(gi.ActOpts{Label: "Test Item", Icon: "step-fwd", Tooltip: "Prompts for a specific input pattern name to run, and runs it in testing mode.", UpdateFunc: func(act *gi.Action) {
-		act.SetActiveStateUpdt(!ss.IsRunning)
-	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
-		gi.StringPromptDialog(vp, "", "Test Item",
-			gi.DlgOpts{Title: "Test Item", Prompt: "Enter the Name of a given input pattern to test (case insensitive, contains given string."},
-			win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
-				dlg := send.(*gi.Dialog)
-				if sig == int64(gi.DialogAccepted) {
-					val := gi.StringPromptDialogValue(dlg)
-					idxs := ss.TestEnv.Table.RowsByString("Name", val, true, true) // contains, ignoreCase
-					if len(idxs) == 0 {
-						gi.PromptDialog(nil, gi.DlgOpts{Title: "Name Not Found", Prompt: "No patterns found containing: " + val}, true, false, nil, nil)
-					} else {
-						if !ss.IsRunning {
-							ss.IsRunning = true
-							fmt.Printf("testing index: %v\n", idxs[0])
-							ss.TestItem(idxs[0])
-							ss.IsRunning = false
-							vp.SetNeedsFullRender()
-						}
-					}
-				}
-			})
-	})
-
-	tbar.AddAction(gi.ActOpts{Label: "Test All", Icon: "fast-fwd", Tooltip: "Tests all of the testing trials.", UpdateFunc: func(act *gi.Action) {
+	tbar.AddAction(gi.ActOpts{Label: "Gen Test All", Icon: "fast-fwd", Tooltip: "Tests all of the testing trials.", UpdateFunc: func(act *gi.Action) {
 		act.SetActiveStateUpdt(!ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.IsRunning = true
 			tbar.UpdateActions()
-			go ss.RunTestAll()
+			go ss.RunGenTestAll()
+		}
+	})
+
+	tbar.AddAction(gi.ActOpts{Label: "All Test Trial", Icon: "step-fwd", Tooltip: "Runs the next testing trial.", UpdateFunc: func(act *gi.Action) {
+		act.SetActiveStateUpdt(!ss.IsRunning)
+	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+		if !ss.IsRunning {
+			ss.IsRunning = true
+			ss.AllTestTrial(false) // don't break on chg
+			ss.IsRunning = false
+			vp.SetNeedsFullRender()
+		}
+	})
+
+	tbar.AddAction(gi.ActOpts{Label: "All Test All", Icon: "fast-fwd", Tooltip: "Tests all of the testing trials.", UpdateFunc: func(act *gi.Action) {
+		act.SetActiveStateUpdt(!ss.IsRunning)
+	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+		if !ss.IsRunning {
+			ss.IsRunning = true
+			tbar.UpdateActions()
+			go ss.RunAllTestAll()
+		}
+	})
+
+	tbar.AddAction(gi.ActOpts{Label: "Reps Analysis", Icon: "fast-fwd", Tooltip: "Does an All Test All and analyzes the resulting Hidden and AgentCode activations.", UpdateFunc: func(act *gi.Action) {
+		act.SetActiveStateUpdt(!ss.IsRunning)
+	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+		if !ss.IsRunning {
+			ss.IsRunning = true
+			tbar.UpdateActions()
+			go ss.RepsAnalysis()
 		}
 	})
 
