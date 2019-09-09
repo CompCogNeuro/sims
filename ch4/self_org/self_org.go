@@ -26,6 +26,8 @@ import (
 	"github.com/emer/etable/etable"
 	"github.com/emer/etable/etensor"
 	_ "github.com/emer/etable/etview" // include to get gui views
+	"github.com/emer/etable/metric"
+	"github.com/emer/etable/simat"
 	"github.com/emer/leabra/leabra"
 	"github.com/goki/gi/gi"
 	"github.com/goki/gi/gimain"
@@ -63,8 +65,28 @@ var ParamSets = params.Sets{
 				Params: params.Params{
 					"Layer.Learn.AvgL.Gain":    "2.5", // default
 					"Layer.Inhib.Layer.Gi":     "1.8", // default
-					"Layer.Inhib.ActAvg.Init":  "0.2", // fix it
+					"Layer.Inhib.ActAvg.Init":  "0.2",
 					"Layer.Inhib.ActAvg.Fixed": "true",
+				}},
+			{Sel: "#Input", Desc: "higher activity",
+				Params: params.Params{
+					"Layer.Inhib.ActAvg.Init": "0.4",
+				}},
+		},
+	}},
+	{Name: "Hidden2Act", Desc: "hidden layer with ~2 units active", Sheets: params.Sheets{
+		"Network": &params.Sheet{
+			{Sel: "#Hidden", Desc: "std inhib",
+				Params: params.Params{
+					"Layer.Inhib.Layer.Gi": "1.8",
+				}},
+		},
+	}},
+	{Name: "Hidden1Act", Desc: "hidden layer with ~1 unit active", Sheets: params.Sheets{
+		"Network": &params.Sheet{
+			{Sel: "#Hidden", Desc: "higher inhib",
+				Params: params.Params{
+					"Layer.Inhib.Layer.Gi": "5",
 				}},
 		},
 	}},
@@ -83,6 +105,7 @@ type Sim struct {
 	TstEpcLog    *etable.Table     `view:"no-inline" desc:"testing epoch-level log data"`
 	TstTrlLog    *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
 	RunLog       *etable.Table     `view:"no-inline" desc:"summary log of each run"`
+	SimMat       *simat.SimMat     `view:"no-inline" desc:"similarity matrix"`
 	Params       params.Sets       `view:"no-inline" desc:"full collection of param sets"`
 	MaxRuns      int               `desc:"maximum number of model runs to perform"`
 	MaxEpcs      int               `desc:"maximum number of epochs to run per model run"`
@@ -128,6 +151,7 @@ func (ss *Sim) New() {
 	ss.TstEpcLog = &etable.Table{}
 	ss.TstTrlLog = &etable.Table{}
 	ss.RunLog = &etable.Table{}
+	ss.SimMat = &simat.SimMat{}
 	ss.Params = ParamSets
 	ss.RndSeed = 1
 	ss.ViewOn = true
@@ -345,6 +369,7 @@ func (ss *Sim) TrainTrial() {
 		}
 	}
 
+	ss.SetParamsSet("Hidden2Act", "Network", false) // 2 units active for training
 	ss.ApplyInputs(&ss.TrainEnv)
 	ss.AlphaCyc(true)   // train
 	ss.TrialStats(true) // accumulate
@@ -458,6 +483,7 @@ func (ss *Sim) TestTrial(returnOnChg bool) {
 			return
 		}
 	}
+	ss.SetParamsSet("Hidden1Act", "Network", false) // 1 unit active for testing
 
 	ss.ApplyInputs(&ss.TestEnv)
 	ss.AlphaCyc(false)   // !train
@@ -470,6 +496,7 @@ func (ss *Sim) TestItem(idx int) {
 	cur := ss.TestEnv.Trial.Cur
 	ss.TestEnv.Trial.Cur = idx
 	ss.TestEnv.SetTrialName()
+	ss.SetParamsSet("Hidden1Act", "Network", false) // 1 unit active for testing
 	ss.ApplyInputs(&ss.TestEnv)
 	ss.AlphaCyc(false)   // !train
 	ss.TrialStats(false) // !accumulate
@@ -775,6 +802,10 @@ func (ss *Sim) ConfigRunPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D 
 	return plt
 }
 
+func (ss *Sim) SimMatLines2() {
+	simat.TableCol(ss.SimMat, ss.Lines2, "Input", "Name", metric.Cosine64)
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////
 // 		Gui
 
@@ -941,6 +972,11 @@ inhibitory competition, rich-get-richer Hebbian learning, and homeostasis (negat
 		})
 
 	tbar.AddSeparator("misc")
+
+	tbar.AddAction(gi.ActOpts{Label: "Sim Mat", Icon: "new", Tooltip: "slkjdfa"}, win.This(),
+		func(recv, send ki.Ki, sig int64, data interface{}) {
+			ss.SimMatLines2()
+		})
 
 	tbar.AddAction(gi.ActOpts{Label: "New Seed", Icon: "new", Tooltip: "Generate a new initial random seed to get different results.  By default, Init re-establishes the same initial seed every time."}, win.This(),
 		func(recv, send ki.Ki, sig int64, data interface{}) {

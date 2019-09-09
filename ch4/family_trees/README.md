@@ -28,17 +28,15 @@ As the network trains, the graph displays the `PctErr` statistic for training: p
 
 To get a sense of how learning has shaped the transformations performed by this network to emphasize relevant similarities, we can do various analyses of the hidden unit activity patterns over all the inputs, comparing trained vs. random initial weights to see what specifically has been learned.
 
-* The model does not currently support all the representational analysis -- the following figures show results from a variety of different analyses of the Hidden and AgentCode layer activations. 
+* Press the `RepsAnalysis` button in the toolbar, which will test all of the input patterns and then perform various different analyses as described below on recorded activations from the Hidden and AgentCode layers.
 
-This first runs a test of each input event and records the activations of the Hidden and AgentCode layers. 
+The most direct way to examine relationships among different activation patterns is to compute the pairwise similarities / distances between each pattern and all others -- here we use the correlation similarity measure, which produces a 1 for identical patterns, 0 for completely unrelated patterns, and -1 for completely anticorrelated patterns (it is equivalent to the cosine measure except with mean-normalized data).
 
-![Distance Matrix Relations](fig_distmatrix_rel.png?raw=true "Distance Matrix of Relations, Hebb and Error")
+* Press the `simat.SimMat` button next to `HiddenRel` in the left control panel, to bring up this similarity matrix for the Hidden layer, with patterns labeled and sorted according to the type of relationship encoded.
 
-The most direct way to examine relationships among different activation patterns is to compute the pairwise distances between each pattern and all others -- here we use the cosine (normalized dot product) distance measure, which produces a 1 for identical patterns, 0 for completely unrelated patterns, and -1 for completely anticorrelated patterns. This is shown in the above plot, where the patterns have been labeled and sorted according to the type of relationship encoded. You should observe largish red squares along the diagonal yellow line cutting across from the upper left to the lower right, clearly organized according to the relationship groupings. These squares indicate a moderately-high level of similarity among inputs with the same relationship, i.e. the internal hidden representations of people in the same functional relationship, like 'aunt', is more similar than it is to other familial positions. In addition, you should observe a smattering of other similar patterns with similar red color, typically also organized according to the relationship groups.
+You should observe largish red squares along the diagonal yellow line cutting across from the upper left to the lower right, clearly organized according to the relationship groupings. These squares indicate a moderately-high level of similarity among inputs with the same relationship, i.e. the internal hidden representations of people in the same functional relationship, like 'aunt', is more similar than it is to other familial positions. In addition, you should observe a smattering of other similar patterns with similar red color, typically also organized according to the relationship groups.
 
-![Distance Matrix Agents](fig_distmatrix_agent.png?raw=true "Distance Matrix of Agents, Hebb and Error")
-
-Next, look at the above distance matrix, which shows the hidden unit activation distances organized by the agent role. Flip back and forth between this and the previous relationship-organized plot to compare them.
+* Next, click on the `simat.SimMat` for `HiddenAgent`, which shows the hidden unit activation distances organized by the agent role. Look back and forth between this and the previous relationship-organized plot to compare them.
 
 > **Question 4.8:** What do you think this pattern of results means for how the network is encoding the inputs -- what is the primary dimension along which the hidden layer is organizing the input patterns? How might this help the model perform the task?
 
@@ -50,15 +48,13 @@ The above cluster plot shows how the different input patterns cluster -- you can
 
 Thus, we turn to the PCA plot as a way to cut through some of the complexity. PCA is a way to distill the information about activities across many units into the strongest simpler components that explain much of the data. Here we focus on just the first two principal dimensions - where the first dimension discovers a component with the most shared information among the patterns, and then once that is taken into account, the second component displays the next remaining largest amount of shared variance.
 
-![PCA of Relations](fig_pca_rel.png?raw=true "PCA of Relations, Hebb and Error")
+* Click on the `eplot.Plot2D` button in the `HiddenRel` row to see the PCA plot for the Hidden layer organized by relations.
 
-The above plot shows the first principal component of variation on the X axis, and the second component along the Y axis. The exact patterns will differ depending on network and initial weights etc, but one reasonable way for the network to represent the problem which is evident in this plot is that one component (e.g. the X axis) represents relative age in the relationships, and the the other component separates male and female (e.g., Father, Son, Brother, Uncle together, vs. Sister, Mother, Daughter).
+The resulting plot shows the first principal component of variation on the X axis, and the second component along the Y axis. The exact patterns will differ depending on network and initial weights etc, but one reasonable way for the network to represent the problem which is evident in this plot is that one component (e.g. the X axis) represents relative age in the relationships, and the the other component separates male and female (e.g., Father, Son, Brother, Uncle together, vs. Sister, Mother, Daughter).
 
-You can also look at the cluster and PCA plots of the Agent-based labels (the PCA plot here is for components 3 and 4), to see what kind of organization is taking place there. In general, you can see some sensible organization of similar places in the tree being nearby, but given the high-dimensional nature of the relationships and the distributed representations, it is not totally systematic, and because everyone is related in some way, it is difficult to really determine how sensible the organization is.
+You can also look at the cluster and PCA plots of the Agent-based labels (the PCA plot here is for components 2 and 3), to see what kind of organization is taking place there. In general, you can see some sensible organization of similar places in the tree being nearby, but given the high-dimensional nature of the relationships and the distributed representations, it is not totally systematic, and because everyone is related in some way, it is difficult to really determine how sensible the organization is.
 
-* Now, let's see how these results compare to the network with random initial weights. The following plot is for untrained weights:
-
-![PCA of Relations, untrained](fig_pca_rel_untrained.png?raw=true "PCA of Relations, Untrained")
+* Now, let's see how these results compare to the network with random initial weights.  Do `Init` and then re-run `RepsAnalysis`, and then click on the PCAPlot for `HiddenRel` again, and also look at the similarity matrix `SimMat` for that case too.
 
 > **Question 4.9:** How do the untrained representations compare to the previous trained ones? Although some of the same larger structure is still present, is the organization as systematic as with the trained weights? Focus specifically on the relational data, as that was more clear in the trained case.
 
