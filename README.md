@@ -20,6 +20,10 @@ The [Go Emergent Wiki](https://github.com/emer/emergent/wiki/Home) contains vari
 
 You can always access more detailed parameters by clicking on the button to the right off `Net` in the control panel (also by clicking on the layer names in the NetView), and custom params for this model are set in the `Params` field.
 
+## Mac notes
+
+You probably have to do a "right mouse click" (e.g., Ctrl + click) to open the executables in the `.zip` version -- it may be easier to just open the `Terminal` app, `cd` to the directory, and run the files from the command line directly.
+
 # Status
 
 **9/10/2019**: Chapters 2-4 are nearly complete and an initial binary test release is available.  Python versions will be made available pending a program to convert the go files to python more automatically.  Classes may need to depend on the C++ emergent versions for some gaps.

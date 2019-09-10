@@ -839,6 +839,10 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 	trl := ss.TestEnv.Trial.Cur
 	row := trl
 
+	if dt.Rows <= row {
+		dt.SetNumRows(row + 1)
+	}
+
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
 	dt.SetCellFloat("Trial", row, float64(trl))
