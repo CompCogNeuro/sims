@@ -494,7 +494,7 @@ func (ss *Sim) ClustPlot(plt *eplot.Plot2D, dt *etable.Table, colNm string) {
 	smat := &simat.SimMat{}
 	smat.TableCol(ix, colNm, "Name", false, metric.Euclidean64)
 	pt := &etable.Table{}
-	clust.Plot(pt, clust.Glom(smat, clust.AvgDist), smat)
+	clust.Plot(pt, clust.Glom(smat, clust.MinDist), smat)
 	plt.InitName(plt, colNm)
 	plt.Params.Title = "Cluster Plot of Faces " + colNm
 	plt.Params.XAxisCol = "X"

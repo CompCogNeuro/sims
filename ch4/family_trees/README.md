@@ -42,9 +42,9 @@ You should observe largish red squares along the diagonal yellow line cutting ac
 
 Although the raw distance matricies show all the data, it can be difficult to see the more complex patterns -- distributed representations encode many different forms of similarity at the same time. Thus, we will use two other plots to see more of this structure: cluster plots and principal-components-analysis (PCA) plots.
 
-![Cluster Plot of Relations](fig_clust_rel.png?raw=true "Cluster Plot of Relations, Hebb and Error")
+* Click on the `eplot.Plot2D` next to `ClustPlot` in the `HiddenRel` row to see the cluster plot of the Hidden activations labeled by relationships.
 
-The above cluster plot shows how the different input patterns cluster -- you can see now that for example Niece and Nephew are grouped together, as are several other related items (e.g., Brother and Sister). However, there are clearly some other dimensions of structure represented here -- the cluster plot can change dramatically based on small differences in distances.
+You can see now that for example Niece and Nephew are grouped together, as are several other related items (e.g., Brother and Sister). However, there are clearly some other dimensions of structure represented here -- the cluster plot can change dramatically based on small differences in distances.
 
 Thus, we turn to the PCA plot as a way to cut through some of the complexity. PCA is a way to distill the information about activities across many units into the strongest simpler components that explain much of the data. Here we focus on just the first two principal dimensions - where the first dimension discovers a component with the most shared information among the patterns, and then once that is taken into account, the second component displays the next remaining largest amount of shared variance.
 
