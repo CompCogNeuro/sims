@@ -161,8 +161,8 @@ func (ss *Sim) New() {
 	ss.Params = ParamSets
 	ss.RndSeed = 1
 	ss.ViewOn = true
-	ss.TrainUpdt = leabra.Quarter
-	ss.TestUpdt = leabra.Quarter
+	ss.TrainUpdt = leabra.AlphaCycle
+	ss.TestUpdt = leabra.AlphaCycle
 	ss.TestInterval = 1
 	ss.TstRecLays = []string{"Input", "Hidden"}
 }
@@ -185,7 +185,7 @@ func (ss *Sim) Config() {
 
 func (ss *Sim) ConfigEnv() {
 	if ss.MaxRuns == 0 { // allow user override
-		ss.MaxRuns = 10
+		ss.MaxRuns = 8
 	}
 	if ss.MaxEpcs == 0 { // allow user override
 		ss.MaxEpcs = 30
@@ -642,9 +642,12 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 	epc := ss.TrainEnv.Epoch.Prv // this is triggered by increment so use previous value
 	// nt := float64(ss.TrainEnv.Table.Len()) // number of trials in view
 
+	ss.HidFmInput(ss.HidFmInputWts)
+
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
 	dt.SetCellFloat("UniqPats", row, ss.UniqPats)
+	dt.SetCellTensor("HidFmInputWts", row, ss.HidFmInputWts)
 
 	// note: essential to use Go version of update when called from another goroutine
 	ss.TrnEpcPlot.GoUpdate()
@@ -654,7 +657,6 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 		}
 		dt.WriteCSVRow(ss.TrnEpcFile, row, etable.Tab, true)
 	}
-	ss.HidFmInput(ss.HidFmInputWts)
 }
 
 func (ss *Sim) ConfigTrnEpcLog(dt *etable.Table) {
@@ -667,6 +669,7 @@ func (ss *Sim) ConfigTrnEpcLog(dt *etable.Table) {
 		{"Run", etensor.INT64, nil, nil},
 		{"Epoch", etensor.INT64, nil, nil},
 		{"UniqPats", etensor.FLOAT64, nil, nil},
+		{"HidFmInputWts", etensor.FLOAT32, []int{4, 5, 5, 5}, nil},
 	}
 	dt.SetFromSchema(sch, 0)
 	ss.ConfigHidFmInput(ss.HidFmInputWts)
@@ -680,6 +683,7 @@ func (ss *Sim) ConfigTrnEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetColParams("Run", false, true, 0, false, 0)
 	plt.SetColParams("Epoch", false, true, 0, false, 0)
 	plt.SetColParams("UniqPats", true, true, 0, true, 10)
+	plt.SetColParams("HidFmInputWts", false, true, 0, true, 1)
 
 	return plt
 }
@@ -716,6 +720,10 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 
 	trl := ss.TestEnv.Trial.Cur
 	row := trl
+
+	if dt.Rows <= row {
+		dt.SetNumRows(row + 1)
+	}
 
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
@@ -841,6 +849,9 @@ func (ss *Sim) LogRun(dt *etable.Table) {
 	dt.SetCellFloat("Run", row, float64(run))
 	dt.SetCellString("Params", row, params)
 	dt.SetCellFloat("UniqPats", row, agg.Mean(epcix, "UniqPats")[0])
+
+	// note: essential to use Go version of update when called from another goroutine
+	ss.RunPlot.GoUpdate()
 }
 
 func (ss *Sim) ConfigRunLog(dt *etable.Table) {

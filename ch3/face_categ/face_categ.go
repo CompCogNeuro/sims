@@ -514,6 +514,9 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 	trl := ss.TestEnv.Trial.Cur
 	row := trl
 
+	if dt.Rows <= row {
+		dt.SetNumRows(row + 1)
+	}
 	dt.SetCellFloat("Trial", row, float64(trl))
 	dt.SetCellString("TrialName", row, ss.TestEnv.TrialName)
 
