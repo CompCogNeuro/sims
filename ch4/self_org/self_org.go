@@ -23,10 +23,13 @@ import (
 	"github.com/emer/emergent/params"
 	"github.com/emer/emergent/patgen"
 	"github.com/emer/emergent/prjn"
+	"github.com/emer/etable/agg"
 	"github.com/emer/etable/eplot"
 	"github.com/emer/etable/etable"
 	"github.com/emer/etable/etensor"
 	_ "github.com/emer/etable/etview" // include to get gui views
+	"github.com/emer/etable/metric"
+	"github.com/emer/etable/norm"
 	"github.com/emer/etable/simat"
 	"github.com/emer/leabra/leabra"
 	"github.com/goki/gi/gi"
@@ -86,7 +89,7 @@ var ParamSets = params.Sets{
 		"Network": &params.Sheet{
 			{Sel: "#Hidden", Desc: "higher inhib",
 				Params: params.Params{
-					"Layer.Inhib.Layer.Gi": "5",
+					"Layer.Inhib.Layer.Gi": "3",
 				}},
 		},
 	}},
@@ -98,25 +101,27 @@ var ParamSets = params.Sets{
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
-	Net          *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
-	Lines2       *etable.Table     `view:"no-inline" desc:"easy training patterns -- can be learned with Hebbian"`
-	Lines1       *etable.Table     `view:"no-inline" desc:"hard training patterns -- require error-driven"`
-	TrnEpcLog    *etable.Table     `view:"no-inline" desc:"training epoch-level log data"`
-	TstEpcLog    *etable.Table     `view:"no-inline" desc:"testing epoch-level log data"`
-	TstTrlLog    *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
-	RunLog       *etable.Table     `view:"no-inline" desc:"summary log of each run"`
-	SimMat       *simat.SimMat     `view:"no-inline" desc:"similarity matrix"`
-	Params       params.Sets       `view:"no-inline" desc:"full collection of param sets"`
-	MaxRuns      int               `desc:"maximum number of model runs to perform"`
-	MaxEpcs      int               `desc:"maximum number of epochs to run per model run"`
-	TrainEnv     env.FixedTable    `desc:"Training environment -- contains everything about iterating over input / output patterns over training"`
-	TestEnv      env.FixedTable    `desc:"Testing environment -- manages iterating over testing"`
-	Time         leabra.Time       `desc:"leabra timing parameters and state"`
-	ViewOn       bool              `desc:"whether to update the network view while running"`
-	TrainUpdt    leabra.TimeScales `desc:"at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model"`
-	TestUpdt     leabra.TimeScales `desc:"at what time scale to update the display during testing?  Anything longer than Epoch updates at Epoch in this model"`
-	TestInterval int               `desc:"how often to run through all the test patterns, in terms of training epochs"`
-	TstRecLays   []string          `desc:"names of layers to record activations etc of during testing"`
+	Net           *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
+	Lines2        *etable.Table     `view:"no-inline" desc:"easy training patterns -- can be learned with Hebbian"`
+	Lines1        *etable.Table     `view:"no-inline" desc:"hard training patterns -- require error-driven"`
+	TrnEpcLog     *etable.Table     `view:"no-inline" desc:"training epoch-level log data"`
+	TstEpcLog     *etable.Table     `view:"no-inline" desc:"testing epoch-level log data"`
+	TstTrlLog     *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
+	HidFmInputWts etensor.Tensor    `view:"no-inline" desc:"weights from input to hidden layer"`
+	RunLog        *etable.Table     `view:"no-inline" desc:"summary log of each run"`
+	SimMat        *simat.SimMat     `view:"no-inline" desc:"similarity matrix"`
+	Params        params.Sets       `view:"no-inline" desc:"full collection of param sets"`
+	MaxRuns       int               `desc:"maximum number of model runs to perform"`
+	MaxEpcs       int               `desc:"maximum number of epochs to run per model run"`
+	TrainEnv      env.FixedTable    `desc:"Training environment -- contains everything about iterating over input / output patterns over training"`
+	TestEnv       env.FixedTable    `desc:"Testing environment -- manages iterating over testing"`
+	Time          leabra.Time       `desc:"leabra timing parameters and state"`
+	ViewOn        bool              `desc:"whether to update the network view while running"`
+	TrainUpdt     leabra.TimeScales `desc:"at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model"`
+	TestUpdt      leabra.TimeScales `desc:"at what time scale to update the display during testing?  Anything longer than Epoch updates at Epoch in this model"`
+	TestInterval  int               `desc:"how often to run through all the test patterns, in terms of training epochs"`
+	TstRecLays    []string          `desc:"names of layers to record activations etc of during testing"`
+	UniqPats      float64           `inactive:"+" desc:"number of uniquely-coded line patterns, computed during testing -- maximum 10, higher is better"`
 
 	// internal state - view:"-"
 	Win         *gi.Window                  `view:"-" desc:"main GUI window"`
@@ -150,6 +155,7 @@ func (ss *Sim) New() {
 	ss.TrnEpcLog = &etable.Table{}
 	ss.TstEpcLog = &etable.Table{}
 	ss.TstTrlLog = &etable.Table{}
+	ss.HidFmInputWts = &etensor.Float32{}
 	ss.RunLog = &etable.Table{}
 	ss.SimMat = &simat.SimMat{}
 	ss.Params = ParamSets
@@ -157,7 +163,7 @@ func (ss *Sim) New() {
 	ss.ViewOn = true
 	ss.TrainUpdt = leabra.Quarter
 	ss.TestUpdt = leabra.Quarter
-	ss.TestInterval = 5
+	ss.TestInterval = 1
 	ss.TstRecLays = []string{"Input", "Hidden"}
 }
 
@@ -349,13 +355,13 @@ func (ss *Sim) TrainTrial() {
 	// if epoch counter has changed
 	epc, _, chg := ss.TrainEnv.Counter(env.Epoch)
 	if chg {
-		ss.LogTrnEpc(ss.TrnEpcLog)
 		if ss.ViewOn && ss.TrainUpdt > leabra.AlphaCycle {
 			ss.UpdateView(true)
 		}
 		if epc%ss.TestInterval == 0 { // note: epc is *next* so won't trigger first time
 			ss.TestAll()
 		}
+		ss.LogTrnEpc(ss.TrnEpcLog)
 		if epc >= ss.MaxEpcs {
 			// done with training..
 			ss.RunEnd()
@@ -400,6 +406,33 @@ func (ss *Sim) InitStats() {
 }
 
 func (ss *Sim) TrialStats(accum bool) {
+}
+
+// UniquePatStat analyzes the hidden activity patterns for the single-line test inputs
+// to determine how many such lines have a distinct hidden pattern, as computed
+// from the similarity matrix across patterns
+func (ss *Sim) UniquePatStat(dt *etable.Table) float64 {
+	hc := dt.ColByName("Hidden").(*etensor.Float64)
+	norm.Binarize64(hc.Values, .5, 1, 0)
+	ix := etable.NewIdxView(dt)
+	ss.SimMat.TableCol(ix, "Hidden", "TrialName", false, metric.SumSquares64)
+	dm := ss.SimMat.Mat
+	nrow := dm.Dim(0)
+	nd := dm.NumDims()
+	uniq := 0
+	for row := 0; row < nrow; row++ {
+		tsr := dm.SubSpace(nd-1, []int{row}).(*etensor.Float64)
+		nzero := 0
+		for _, vl := range tsr.Values {
+			if vl == 0 {
+				nzero++
+			}
+		}
+		if nzero == 1 { // one zero in dist matrix means it was only identical to itself
+			uniq++
+		}
+	}
+	return float64(uniq)
 }
 
 // TrainEpoch runs training trials for remainder of this epoch
@@ -513,6 +546,7 @@ func (ss *Sim) TestAll() {
 			break
 		}
 	}
+	ss.UniqPats = ss.UniquePatStat(ss.TstTrlLog)
 }
 
 // RunTestAll runs through the full set of testing items, has stop running = false at end -- for gui
@@ -610,6 +644,7 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
+	dt.SetCellFloat("UniqPats", row, ss.UniqPats)
 
 	// note: essential to use Go version of update when called from another goroutine
 	ss.TrnEpcPlot.GoUpdate()
@@ -619,6 +654,7 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 		}
 		dt.WriteCSVRow(ss.TrnEpcFile, row, etable.Tab, true)
 	}
+	ss.HidFmInput(ss.HidFmInputWts)
 }
 
 func (ss *Sim) ConfigTrnEpcLog(dt *etable.Table) {
@@ -630,8 +666,10 @@ func (ss *Sim) ConfigTrnEpcLog(dt *etable.Table) {
 	sch := etable.Schema{
 		{"Run", etensor.INT64, nil, nil},
 		{"Epoch", etensor.INT64, nil, nil},
+		{"UniqPats", etensor.FLOAT64, nil, nil},
 	}
 	dt.SetFromSchema(sch, 0)
+	ss.ConfigHidFmInput(ss.HidFmInputWts)
 }
 
 func (ss *Sim) ConfigTrnEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
@@ -641,8 +679,31 @@ func (ss *Sim) ConfigTrnEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Run", false, true, 0, false, 0)
 	plt.SetColParams("Epoch", false, true, 0, false, 0)
+	plt.SetColParams("UniqPats", true, true, 0, true, 10)
 
 	return plt
+}
+
+func (ss *Sim) HidFmInput(dt etensor.Tensor) {
+	col := dt.(*etensor.Float32)
+	vals := col.Values
+	inp := ss.Net.LayerByName("Input").(*leabra.Layer)
+	isz := inp.Shape().Len()
+	hid := ss.Net.LayerByName("Hidden").(*leabra.Layer)
+	ysz := hid.Shape().Dim(0)
+	xsz := hid.Shape().Dim(1)
+	for y := 0; y < ysz; y++ {
+		for x := 0; x < xsz; x++ {
+			ui := (y*xsz + x)
+			ust := ui * isz
+			vls := vals[ust : ust+isz]
+			inp.SendPrjnVals(&vls, "Wt", hid, ui)
+		}
+	}
+}
+
+func (ss *Sim) ConfigHidFmInput(dt etensor.Tensor) {
+	dt.SetShape([]int{4, 5, 5, 5}, nil, nil)
 }
 
 //////////////////////////////////////////////
@@ -769,7 +830,7 @@ func (ss *Sim) LogRun(dt *etable.Table) {
 	epclog := ss.TrnEpcLog
 	epcix := etable.NewIdxView(epclog)
 	// compute mean over last N epochs for run level
-	nlast := 5
+	nlast := 1
 	if nlast > epcix.Len()-1 {
 		nlast = epcix.Len() - 1
 	}
@@ -779,6 +840,7 @@ func (ss *Sim) LogRun(dt *etable.Table) {
 
 	dt.SetCellFloat("Run", row, float64(run))
 	dt.SetCellString("Params", row, params)
+	dt.SetCellFloat("UniqPats", row, agg.Mean(epcix, "UniqPats")[0])
 }
 
 func (ss *Sim) ConfigRunLog(dt *etable.Table) {
@@ -790,6 +852,7 @@ func (ss *Sim) ConfigRunLog(dt *etable.Table) {
 	dt.SetFromSchema(etable.Schema{
 		{"Run", etensor.INT64, nil, nil},
 		{"Params", etensor.STRING, nil, nil},
+		{"UniqPats", etensor.FLOAT64, nil, nil},
 	}, 0)
 }
 
@@ -799,6 +862,7 @@ func (ss *Sim) ConfigRunPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D 
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Run", false, true, 0, false, 0)
+	plt.SetColParams("UniqPats", true, true, 0, true, 10)
 	return plt
 }
 
