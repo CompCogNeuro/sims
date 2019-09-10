@@ -9,6 +9,7 @@ inhibitory competition, rich-get-richer Hebbian learning, and homeostasis (negat
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"math/rand"
@@ -26,7 +27,6 @@ import (
 	"github.com/emer/etable/etable"
 	"github.com/emer/etable/etensor"
 	_ "github.com/emer/etable/etview" // include to get gui views
-	"github.com/emer/etable/metric"
 	"github.com/emer/etable/simat"
 	"github.com/emer/leabra/leabra"
 	"github.com/goki/gi/gi"
@@ -569,12 +569,12 @@ func (ss *Sim) OpenPats() {
 	dt := ss.Lines2
 	dt.SetMetaData("name", "Lines2")
 	dt.SetMetaData("desc", "Lines2 Training patterns")
-	err := dt.OpenCSV("lines_5x5x2.dat", etable.Tab)
-	// ab, err := Asset("lines_5x5x2.dat") // embedded in executable
-	// if err != nil {
-	// 	log.Println(err)
-	// }
-	// err = dt.ReadCSV(bytes.NewBuffer(ab), etable.Tab)
+	// err := dt.OpenCSV("lines_5x5x2.dat", etable.Tab)
+	ab, err := Asset("lines_5x5x2.dat") // embedded in executable
+	if err != nil {
+		log.Println(err)
+	}
+	err = dt.ReadCSV(bytes.NewBuffer(ab), etable.Tab)
 	if err != nil {
 		log.Println(err)
 	}
@@ -582,12 +582,12 @@ func (ss *Sim) OpenPats() {
 	dt = ss.Lines1
 	dt.SetMetaData("name", "Lines1")
 	dt.SetMetaData("desc", "Lines1 Testing patterns")
-	err = dt.OpenCSV("lines_5x5x1.dat", etable.Tab)
-	// ab, err = Asset("lines_5x5x1.dat") // embedded in executable
-	// if err != nil {
-	// 	log.Println(err)
-	// }
-	// err = dt.ReadCSV(bytes.NewBuffer(ab), etable.Tab)
+	// err = dt.OpenCSV("lines_5x5x1.dat", etable.Tab)
+	ab, err = Asset("lines_5x5x1.dat") // embedded in executable
+	if err != nil {
+		log.Println(err)
+	}
+	err = dt.ReadCSV(bytes.NewBuffer(ab), etable.Tab)
 	if err != nil {
 		log.Println(err)
 	}
@@ -802,10 +802,6 @@ func (ss *Sim) ConfigRunPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D 
 	return plt
 }
 
-func (ss *Sim) SimMatLines2() {
-	simat.TableCol(ss.SimMat, ss.Lines2, "Input", "Name", metric.Cosine64)
-}
-
 ////////////////////////////////////////////////////////////////////////////////////////////
 // 		Gui
 
@@ -972,11 +968,6 @@ inhibitory competition, rich-get-richer Hebbian learning, and homeostasis (negat
 		})
 
 	tbar.AddSeparator("misc")
-
-	tbar.AddAction(gi.ActOpts{Label: "Sim Mat", Icon: "new", Tooltip: "slkjdfa"}, win.This(),
-		func(recv, send ki.Ki, sig int64, data interface{}) {
-			ss.SimMatLines2()
-		})
 
 	tbar.AddAction(gi.ActOpts{Label: "New Seed", Icon: "new", Tooltip: "Generate a new initial random seed to get different results.  By default, Init re-establishes the same initial seed every time."}, win.This(),
 		func(recv, send ki.Ki, sig int64, data interface{}) {

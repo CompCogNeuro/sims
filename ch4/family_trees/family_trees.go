@@ -25,6 +25,7 @@ import (
 	"github.com/emer/emergent/prjn"
 	"github.com/emer/emergent/relpos"
 	"github.com/emer/etable/agg"
+	"github.com/emer/etable/clust"
 	"github.com/emer/etable/eplot"
 	"github.com/emer/etable/etable"
 	"github.com/emer/etable/etensor"
@@ -142,11 +143,11 @@ var ParamSets = params.Sets{
 
 // Reps contains standard analysis of representations
 type Reps struct {
-	SimMat  *simat.SimMat `view:"no-inline" desc:"similarity matrix"`
-	PCAPlot *eplot.Plot2D `view:"no-inline" desc:"plot of pca data"`
-	PCA     *pca.PCA      `view:"-" desc:"pca results"`
-	PCAPrjn *etable.Table `view:"-" desc:"pca projections onto eigenvectors"`
-	// clust
+	SimMat    *simat.SimMat `view:"no-inline" desc:"similarity matrix"`
+	PCAPlot   *eplot.Plot2D `view:"no-inline" desc:"plot of pca data"`
+	ClustPlot *eplot.Plot2D `view:"no-inline" desc:"cluster plot"`
+	PCA       *pca.PCA      `view:"-" desc:"pca results"`
+	PCAPrjn   *etable.Table `view:"-" desc:"pca projections onto eigenvectors"`
 }
 
 func (rp *Reps) Init() {
@@ -157,6 +158,8 @@ func (rp *Reps) Init() {
 	rp.PCAPrjn = &etable.Table{}
 	rp.PCAPlot = &eplot.Plot2D{}
 	rp.PCAPlot.InitName(rp.PCAPlot, "PCAPlot") // any Ki obj needs this
+	rp.ClustPlot = &eplot.Plot2D{}
+	rp.ClustPlot.InitName(rp.ClustPlot, "ClustPlot") // any Ki obj needs this
 }
 
 // Sim encapsulates the entire simulation model, and we define all the
@@ -753,10 +756,11 @@ func (ss *Sim) RepsAnalysis() {
 
 	rels := etable.NewIdxView(ss.TstTrlLog)
 	rels.SortCol(ss.TstTrlLog.ColIdx("TrialName"), true)
-	ss.HiddenRel.SimMat.TableCol(rels, "Hidden", "TrialName", metric.Correlation64)
+	ss.HiddenRel.SimMat.TableCol(rels, "Hidden", "TrialName", true, metric.Correlation64)
 	ss.HiddenRel.PCA.TableCol(rels, "Hidden", metric.Covariance64)
 	ss.HiddenRel.PCA.ProjectColToTable(ss.HiddenRel.PCAPrjn, rels, "Hidden", "TrialName", []int{0, 1})
 	ss.ConfigPCAPlot(ss.HiddenRel.PCAPlot, ss.HiddenRel.PCAPrjn)
+	ss.ClustPlot(ss.HiddenRel.ClustPlot, rels, "Hidden")
 
 	// replace name with just agent
 	for i, nm := range names {
@@ -765,17 +769,19 @@ func (ss *Sim) RepsAnalysis() {
 	}
 	ags := etable.NewIdxView(ss.TstTrlLog)
 	ags.SortCol(ss.TstTrlLog.ColIdx("TrialName"), true)
-	ss.HiddenAgent.SimMat.TableCol(ags, "Hidden", "TrialName", metric.Correlation64)
+	ss.HiddenAgent.SimMat.TableCol(ags, "Hidden", "TrialName", true, metric.Correlation64)
 	ss.HiddenAgent.PCA.TableCol(ags, "Hidden", metric.Covariance64)
 	ss.HiddenAgent.PCA.ProjectColToTable(ss.HiddenAgent.PCAPrjn, ags, "Hidden", "TrialName", []int{2, 3})
 	ss.ConfigPCAPlot(ss.HiddenAgent.PCAPlot, ss.HiddenAgent.PCAPrjn)
 	ss.HiddenAgent.PCAPlot.SetColParams("Prjn3", true, true, 0, false, 0)
 	ss.HiddenAgent.PCAPlot.Params.XAxisCol = "Prjn2"
+	ss.ClustPlot(ss.HiddenAgent.ClustPlot, ags, "Hidden")
 
-	ss.AgentAgent.SimMat.TableCol(ags, "AgentCode", "TrialName", metric.Correlation64)
+	ss.AgentAgent.SimMat.TableCol(ags, "AgentCode", "TrialName", true, metric.Correlation64)
 	ss.AgentAgent.PCA.TableCol(ags, "AgentCode", metric.Covariance64)
 	ss.AgentAgent.PCA.ProjectColToTable(ss.AgentAgent.PCAPrjn, ags, "AgentCode", "TrialName", []int{0, 1})
 	ss.ConfigPCAPlot(ss.AgentAgent.PCAPlot, ss.AgentAgent.PCAPrjn)
+	ss.ClustPlot(ss.AgentAgent.ClustPlot, ags, "AgentCode")
 
 	copy(nmtsr.Values, names) // restore
 	ss.Stopped()
@@ -792,6 +798,23 @@ func (ss *Sim) ConfigPCAPlot(plt *eplot.Plot2D, dt *etable.Table) {
 	plt.SetColParams("TrialName", true, true, 0, false, 0)
 	plt.SetColParams("Prjn0", false, true, 0, false, 0)
 	plt.SetColParams("Prjn1", true, true, 0, false, 0)
+}
+
+// ClustPlot does one cluster plot on given table column
+func (ss *Sim) ClustPlot(plt *eplot.Plot2D, ix *etable.IdxView, colNm string) {
+	nm, _ := ix.Table.MetaData["name"]
+	smat := &simat.SimMat{}
+	smat.TableCol(ix, colNm, "TrialName", false, metric.Euclidean64)
+	pt := &etable.Table{}
+	clust.Plot(pt, clust.Glom(smat, clust.MinDist), smat)
+	plt.InitName(plt, colNm)
+	plt.Params.Title = "Cluster Plot of: " + nm + " " + colNm
+	plt.Params.XAxisCol = "X"
+	plt.SetTable(pt)
+	// order of params: on, fixMin, min, fixMax, max
+	plt.SetColParams("X", false, true, 0, false, 0)
+	plt.SetColParams("Y", true, true, 0, false, 0)
+	plt.SetColParams("Label", true, false, 0, false, 0)
 }
 
 /////////////////////////////////////////////////////////////////////////
