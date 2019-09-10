@@ -6,7 +6,7 @@ These models are implemented in the new *Go* (golang) version of [emergent](http
 
 The simplest way to run the simulations is by downloading a `zip` file of all of the built models for your platform.  These are fully self-contained executable files and should "just work" on each platform.
 
-* TODO: link to zip files
+* The full set of files are in the [Releases](https://github.com/CompCogNeuro/sims/releases) directory -- check there for files of the form `ccn_sims_<version>_<platform>.zip` where `<version>` is the version string (higher generally better), and `<platform>` is `mac`, `linux`, or `windows`.
 
 # Usage
 
@@ -22,7 +22,7 @@ You can always access more detailed parameters by clicking on the button to the 
 
 # Status
 
-**8/24/2019**: Initial projects are just being created.  Python versions will be made available pending a program to convert the go files to python more automatically.  Classes may need to depend on the C++ emergent versions for some gaps.
+**9/10/2019**: Chapters 2-4 are nearly complete and an initial binary test release is available.  Python versions will be made available pending a program to convert the go files to python more automatically.  Classes may need to depend on the C++ emergent versions for some gaps.
 
 
 
