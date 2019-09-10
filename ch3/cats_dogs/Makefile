@@ -37,13 +37,13 @@ clean:
 # must do: go get github.com/shuLhan/go-bindata -- go install in cmd/go-bindata
 bindata:
 	go-bindata $(ASSETS)
-mac:
+mac: build
 	- mkdir -p $(DEST)
 	- /bin/cp $(APP) $(DEST)
-linux:
+linux: build
 	- mkdir -p $(DEST)
 	- /bin/cp $(APP) $(DEST)
-windows:
+windows: build
 	- mkdir -p $(DEST)
 	- /bin/cp $(APP) $(DEST)
 

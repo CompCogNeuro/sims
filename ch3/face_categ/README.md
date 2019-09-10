@@ -40,29 +40,18 @@ You should see the network process the face input and activate the appropriate o
 
 A [ClusterPlot](https://github.com/CompCogNeuro/sims/blob/master/ch3/face_categ/ClusterPlot.md) provides a convenient way of visualizing the similarity relationships among a set of items, where multiple different forms of similarity may be in effect at the same time (i.e., multidimensional similarity structure).  If unfamiliar with these, please click that link to read more about how to read a cluster plot.  First, we'll look at the cluster plot of the input faces, and then of the different categorizations performed on them, to see how the network transforms the similarity structure to extract the relevant information and collapse across the irrelevant.
 
-Note: we do not yet have the ability to dynamically compute and display cluster plots, so we are including pre-generated ones at this point.
-
-![Faces Input Cluster Plot](fig_face_categ_clust_faces.png?raw=true "Faces Input Cluster Plot")
-
-The above figure shows the cluster plot run on the face `Input` layer images.
+* Press the `Cluster Plots` button in the toolbar, and then click on the `eplot.Plot2D` button next to the `ClustFaces` line in the control panel on the left.  This will pull up a cluster plot run on the face `Input` layer images.
 
 > **Question 3.1:** Given what you know about how a Cluster Plot works (see above link), explain the similarity structure among the different face inputs. Describe which items are most similar to each other, and next-most similar, etc.  Specifically, list the ordering of the Emotion, Gender, and Identity factors in terms of how similar items are -- i.e., are different versions of the same Identity more similar to each other than faces with the same Emotion?
 
 Now, let's see how this input similarity structure is transformed by the different types of categorization.
 
-![Emotion Cluster Plot](fig_face_categ_clust_emotion.png?raw=true "Emotion Cluster Plot")
-
-The above figure shows the cluster plot run on the `Emotion` layer patterns for each input.
+* Click on the plot for `ClustEmote`, which shows the cluster plot run on the `Emotion` layer patterns for each input.
 
 > **Question 3.2:** How does the Emotion categorization transform the overall face input similarity compared to what we saw in the first cluster plot -- ie., what items are now the most similar to each other?
 
-![Gender Cluster Plot](fig_face_categ_clust_gender.png?raw=true "Gender Cluster Plot")
 
-The above figure shows the cluster plot run on the `Gender` layer patterns for each input.
-
-![Identity Cluster Plot](fig_face_categ_clust_identity.png?raw=true "Identity Cluster Plot")
-
-The above figure shows the cluster plot run on the `Identity` layer patterns for each input.
+* Click on the plot for `ClustGend`, which shows the cluster plot run on the `Gender` layer patterns for each input, and likewise for the `ClustIdent` plot, which shows the cluster plot run on the `Identity` layer patterns for each input.
 
 You should observe that the different ways of categorizing the input faces each emphasize some differences while collapsing across others.  For example, if you go back and look at the `r.Wt` values of the "happy" and "sad" Emotion units, you will clearly see that these units care most about (i.e., have the largest weights from) the mouth and eye features associated with each of the different emotions, while having weaker other weights from the inputs that are common across all faces.  This enables the emotion layer to extract that emotional signal much more clearly than it is represented in the overall face inputs -- the emotion differences are present in those face inputs, but just not very dominant.
 

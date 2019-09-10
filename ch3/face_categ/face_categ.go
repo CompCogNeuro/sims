@@ -19,10 +19,13 @@ import (
 	"github.com/emer/emergent/params"
 	"github.com/emer/emergent/prjn"
 	"github.com/emer/emergent/relpos"
+	"github.com/emer/etable/clust"
 	"github.com/emer/etable/eplot"
 	"github.com/emer/etable/etable"
 	"github.com/emer/etable/etensor"
 	_ "github.com/emer/etable/etview" // include to get gui views
+	"github.com/emer/etable/metric"
+	"github.com/emer/etable/simat"
 	"github.com/emer/leabra/leabra"
 	"github.com/goki/gi/gi"
 	"github.com/goki/gi/gimain"
@@ -93,6 +96,10 @@ type Sim struct {
 	Time       leabra.Time       `desc:"leabra timing parameters and state"`
 	ViewUpdt   leabra.TimeScales `desc:"at what time scale to update the display during testing?  Change to AlphaCyc to make display updating go faster"`
 	TstRecLays []string          `desc:"names of layers to record activations etc of during testing"`
+	ClustFaces *eplot.Plot2D     `view:"no-inline" desc:"cluster plot of faces"`
+	ClustEmote *eplot.Plot2D     `view:"no-inline" desc:"cluster plot of emotions"`
+	ClustGend  *eplot.Plot2D     `view:"no-inline" desc:"cluster plot of genders"`
+	ClustIdent *eplot.Plot2D     `view:"no-inline" desc:"cluster plot of identity"`
 
 	// internal state - view:"-"
 	Win        *gi.Window                  `view:"-" desc:"main GUI window"`
@@ -120,6 +127,10 @@ func (ss *Sim) New() {
 	ss.Params = ParamSets
 	ss.ViewUpdt = leabra.Cycle
 	ss.TstRecLays = []string{"Input", "Emotion", "Gender", "Identity"}
+	ss.ClustFaces = &eplot.Plot2D{}
+	ss.ClustEmote = &eplot.Plot2D{}
+	ss.ClustGend = &eplot.Plot2D{}
+	ss.ClustIdent = &eplot.Plot2D{}
 	ss.Defaults()
 }
 
@@ -467,6 +478,34 @@ func (ss *Sim) OpenPats() {
 }
 
 //////////////////////////////////////////////
+//  Cluster Plots
+
+// ClusterPlots computes all the cluster plots from the faces input data
+func (ss *Sim) ClusterPlots() {
+	ss.ClustPlot(ss.ClustFaces, ss.Pats, "Input")
+	ss.ClustPlot(ss.ClustEmote, ss.Pats, "Emotion")
+	ss.ClustPlot(ss.ClustGend, ss.Pats, "Gender")
+	ss.ClustPlot(ss.ClustIdent, ss.Pats, "Identity")
+}
+
+// ClustPlot does one cluster plot on given table column
+func (ss *Sim) ClustPlot(plt *eplot.Plot2D, dt *etable.Table, colNm string) {
+	ix := etable.NewIdxView(dt)
+	smat := &simat.SimMat{}
+	smat.TableCol(ix, colNm, "Name", false, metric.Euclidean64)
+	pt := &etable.Table{}
+	clust.Plot(pt, clust.Glom(smat, clust.AvgDist), smat)
+	plt.InitName(plt, colNm)
+	plt.Params.Title = "Cluster Plot of Faces " + colNm
+	plt.Params.XAxisCol = "X"
+	plt.SetTable(pt)
+	// order of params: on, fixMin, min, fixMax, max
+	plt.SetColParams("X", false, true, 0, false, 0)
+	plt.SetColParams("Y", true, true, 0, false, 0)
+	plt.SetColParams("Label", true, false, 0, false, 0)
+}
+
+//////////////////////////////////////////////
 //  TstTrlLog
 
 // LogTstTrl adds data from current trial to the TstTrlLog table.
@@ -667,6 +706,11 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	tbar.AddAction(gi.ActOpts{Label: "SetPats", Icon: "gear", Tooltip: "set which set of patterns to present -- full or partial faces"}, win.This(),
 		func(recv, send ki.Ki, sig int64, data interface{}) {
 			giv.CallMethod(ss, "SetPats", vp)
+		})
+	tbar.AddAction(gi.ActOpts{Label: "Cluster Plots", Icon: "image", Tooltip: "generate cluster plots of the different layer patterns"}, win.This(),
+		func(recv, send ki.Ki, sig int64, data interface{}) {
+			ss.ClusterPlots()
+			vp.SetNeedsFullRender()
 		})
 
 	tbar.AddAction(gi.ActOpts{Label: "README", Icon: "file-markdown", Tooltip: "Opens your browser on the README file that contains instructions for how to run this model."}, win.This(),
