@@ -31,6 +31,7 @@ import (
 	"github.com/emer/etable/metric"
 	"github.com/emer/etable/norm"
 	"github.com/emer/etable/simat"
+	"github.com/emer/etable/split"
 	"github.com/emer/leabra/leabra"
 	"github.com/goki/gi/gi"
 	"github.com/goki/gi/gimain"
@@ -66,7 +67,7 @@ var ParamSets = params.Sets{
 				}},
 			{Sel: "Layer", Desc: "pretty much defaults",
 				Params: params.Params{
-					"Layer.Learn.AvgL.Gain":    "2.5", // default
+					"Layer.Learn.AvgL.Gain":    "2.5", // default -- lower sig worse
 					"Layer.Inhib.Layer.Gi":     "1.8", // default
 					"Layer.Inhib.ActAvg.Init":  "0.2",
 					"Layer.Inhib.ActAvg.Fixed": "true",
@@ -89,7 +90,7 @@ var ParamSets = params.Sets{
 		"Network": &params.Sheet{
 			{Sel: "#Hidden", Desc: "higher inhib",
 				Params: params.Params{
-					"Layer.Inhib.Layer.Gi": "3",
+					"Layer.Inhib.Layer.Gi": "2.5",
 				}},
 		},
 	}},
@@ -101,6 +102,8 @@ var ParamSets = params.Sets{
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
+	AvgLGain      float32           `def:"2.5" desc:"key BCM hebbian learning parameter, that determines how high the floating threshold goes -- higher = more homeostatic pressure against rich-get-richer feedback loops"`
+	InputNoise    float32           `def:"0" desc:"variance on gaussian noise to add to inputs"`
 	Net           *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
 	Lines2        *etable.Table     `view:"no-inline" desc:"easy training patterns -- can be learned with Hebbian"`
 	Lines1        *etable.Table     `view:"no-inline" desc:"hard training patterns -- require error-driven"`
@@ -109,6 +112,7 @@ type Sim struct {
 	TstTrlLog     *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
 	HidFmInputWts etensor.Tensor    `view:"no-inline" desc:"weights from input to hidden layer"`
 	RunLog        *etable.Table     `view:"no-inline" desc:"summary log of each run"`
+	RunStats      *etable.Table     `view:"no-inline" desc:"aggregate stats on all runs"`
 	SimMat        *simat.SimMat     `view:"no-inline" desc:"similarity matrix"`
 	Params        params.Sets       `view:"no-inline" desc:"full collection of param sets"`
 	MaxRuns       int               `desc:"maximum number of model runs to perform"`
@@ -157,6 +161,7 @@ func (ss *Sim) New() {
 	ss.TstTrlLog = &etable.Table{}
 	ss.HidFmInputWts = &etensor.Float32{}
 	ss.RunLog = &etable.Table{}
+	ss.RunStats = &etable.Table{}
 	ss.SimMat = &simat.SimMat{}
 	ss.Params = ParamSets
 	ss.RndSeed = 1
@@ -165,6 +170,12 @@ func (ss *Sim) New() {
 	ss.TestUpdt = leabra.AlphaCycle
 	ss.TestInterval = 1
 	ss.TstRecLays = []string{"Input", "Hidden"}
+	ss.Defaults()
+}
+
+func (ss *Sim) Defaults() {
+	ss.AvgLGain = 2.5
+	ss.InputNoise = 0
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -336,9 +347,10 @@ func (ss *Sim) ApplyInputs(en env.Env) {
 	for _, lnm := range lays {
 		ly := ss.Net.LayerByName(lnm).(*leabra.Layer)
 		pats := en.State(ly.Nm)
-		if pats != nil {
-			ly.ApplyExt(pats)
+		if pats == nil {
+			continue
 		}
+		ly.ApplyExt(pats)
 	}
 }
 
@@ -569,6 +581,16 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 		ss.Params.ValidateSheets([]string{"Network", "Sim"})
 	}
 	err := ss.SetParamsSet("Base", sheet, setMsg)
+	ly := ss.Net.LayerByName("Hidden").(*leabra.Layer)
+	ly.Learn.AvgL.Gain = ss.AvgLGain
+	inp := ss.Net.LayerByName("Input").(*leabra.Layer)
+	if ss.InputNoise == 0 {
+		inp.Act.Noise.Var = 0
+		inp.Act.Noise.Type = leabra.NoNoise
+	} else {
+		inp.Act.Noise.Var = float64(ss.InputNoise)
+		inp.Act.Noise.Type = leabra.ActNoise
+	}
 	return err
 }
 
@@ -845,10 +867,21 @@ func (ss *Sim) LogRun(dt *etable.Table) {
 	epcix.Idxs = epcix.Idxs[epcix.Len()-nlast-1:]
 
 	params := "Std"
+	if ss.AvgLGain != 2.5 {
+		params += fmt.Sprintf("_AvgLGain=%v", ss.AvgLGain)
+	}
+	if ss.InputNoise != 0 {
+		params += fmt.Sprintf("_InVar=%v", ss.InputNoise)
+	}
 
 	dt.SetCellFloat("Run", row, float64(run))
 	dt.SetCellString("Params", row, params)
 	dt.SetCellFloat("UniqPats", row, agg.Mean(epcix, "UniqPats")[0])
+
+	runix := etable.NewIdxView(dt)
+	spl := split.GroupBy(runix, []string{"Params"})
+	split.Desc(spl, "UniqPats")
+	ss.RunStats = spl.AggsToTable(false)
 
 	// note: essential to use Go version of update when called from another goroutine
 	ss.RunPlot.GoUpdate()
@@ -1048,6 +1081,14 @@ inhibitory competition, rich-get-richer Hebbian learning, and homeostasis (negat
 		func(recv, send ki.Ki, sig int64, data interface{}) {
 			ss.NewRndSeed()
 		})
+
+	tbar.AddAction(gi.ActOpts{Label: "Defaults", Icon: "reset", Tooltip: "Restore initial default parameters.", UpdateFunc: func(act *gi.Action) {
+		act.SetActiveStateUpdt(!ss.IsRunning)
+	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+		ss.Defaults()
+		ss.Init()
+		vp.SetNeedsFullRender()
+	})
 
 	tbar.AddAction(gi.ActOpts{Label: "README", Icon: "file-markdown", Tooltip: "Opens your browser on the README file that contains instructions for how to run this model."}, win.This(),
 		func(recv, send ki.Ki, sig int64, data interface{}) {
