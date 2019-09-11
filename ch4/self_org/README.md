@@ -69,44 +69,27 @@ The performance of the model on any given run can be quite variable, depending o
 
 * Hit `Train` to run, and switch to viewing the `RunPlot` to see a record of the `UniqPats` statistic for each of the 8 runs. 
 
-**TODO:**
+After the 8 training runs, you can click on the `RunStats` button to view summary statistics about the average (mean), maximum, minimum, etc of the `UniqPats` statistic at the end of each network training run.  Hover the mouse over the header labels to see the full name of the field.
 
-After the 8 training runs, you can click on the `RunStats` button to view summary statistics about the average (mean), maximum, and minimum of the `UniqPats` statistic at the end of each network training run. The last column contains a count of the number of times that a "perfect 10" on the unique pattern statistic was recorded.
-
-> **Question 4.1a:** What statistics for the number of uniquely represented lines did you obtain in your Batch run with default parameters?
+> **Question 4.1:** What statistics (Mean, Min, Max) for the number of uniquely represented lines did you obtain in your 8 runs with default parameters?
 
 
 # Parameter Manipulations
 
-Now, let's explore the effects of some of the parameters in the control
-panel.
+Now, let's explore the effects of some of the parameters in the control panel.
 
-One thing that is a bit unrealistic about this model is the lack of any
-activity at all in the units that are off. In the real brain, inactive
-neurons always have some low level of activity. This can affect the
-extent to which weights decrease to the less active inputs, potentially
-leading to cleaner overall patterns of weights.
+One thing that is a bit unrealistic about this model is the lack of any activity at all in the units that are off. In the real brain, inactive neurons always have some low level of activity. This can affect the extent to which weights decrease to the less active inputs, potentially leading to cleaner overall patterns of weights.
 
-Another factor that will affect learning are the rate constants
-controlling the long term average activation, which then sets the
-floating threshold level. These are in the field in the control panel,
-particularly (the most important parameter) and . You can experiment
-with changing these values, and looking at both the weights and
-uniq_pats stat. Reducing the value from 1.5 to 1, which reduces the
-long term average values, reduces the homeostatic pressure, and causes
-more "hogging" (rich getting richer with no counter-pressure).
-Increasing to 2.0 makes the units less likely to represent multiple
-lines in one unit, by increasing this homeostatic pressure.
+* To add some noise activity in the input, set the InputNoise to .2, and `Init` and `Train` (you can `Step Trial` to see the noise in the input).  
 
-You can also look at the (long term average activity) unit variable
-(found in the NetView control panel) in the Network as it trains. With
-default parameters, you should observe that the active units all have
-roughly the same average activity, while the inactive ones have much
-lower averages. You can also experiment with changing the learning rate.
+> **Question 4.2:** Now what did you get for the `UniqPats` stats in the `RunStats`? Is this an improvement over the no-noise case?
 
-In conclusion, this exercise should give you a feel for the dynamics
-that underlie self-organizing learning, and also for the importance of
-how the floating threshold level and homeostasis dynamic plays a key
-role in this form of learning.
+One of the most important parameters for BCM-style Hebbian learning is how high the `AvgL` long-term running average threshold goes as a function of neural activity (this is denoted by theta in the textbook figures).  The higher this value goes, the stronger the homeostasis force is that balances against the Hebbian rich-get-richer positive feedback loop, which can result in neurons that are more finely tuned to distinctive patterns, versus more broadly-tuned neurons that respond to many different things.
+
+* The parameter that controls how high `AvgL` goes is `AvgLGain`, with a default value of 2.5.  To see how important this factor is, reduce it to 1.5 and note the effects on the `UniqPats` in `RunStats` and also on the learned synaptic weights.
+
+It is also entertaining and informative to watch the `AvgL` value in the `NetView`, to see how this updates over time and is affected by these parameter changes.
+
+In conclusion, this exercise should give you a feel for the dynamics that underlie self-organizing learning, and also for the importance of how the floating threshold level and homeostasis dynamic plays a key role in this form of learning.
 
 
