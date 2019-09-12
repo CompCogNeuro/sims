@@ -454,10 +454,10 @@ func (ss *Sim) AlphaCyc(train bool) {
 		ss.Net.QuarterFinal(&ss.Time)
 		ss.Time.QuarterInc()
 		if ss.ViewOn {
-			switch viewUpdt {
-			case leabra.Quarter:
+			switch {
+			case viewUpdt <= leabra.Quarter:
 				ss.UpdateView(train)
-			case leabra.Phase:
+			case viewUpdt == leabra.Phase:
 				if qtr >= 2 {
 					ss.UpdateView(train)
 				}
