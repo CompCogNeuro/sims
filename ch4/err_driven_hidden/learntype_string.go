@@ -9,6 +9,15 @@ import (
 
 var _ = errors.New("dummy error")
 
+func _() {
+	// An "invalid array index" compiler error signifies that the constant values have changed.
+	// Re-run the stringer command to generate them again.
+	var x [1]struct{}
+	_ = x[Hebbian-0]
+	_ = x[ErrorDriven-1]
+	_ = x[LearnTypeN-2]
+}
+
 const _LearnType_name = "HebbianErrorDrivenLearnTypeN"
 
 var _LearnType_index = [...]uint8{0, 7, 18, 28}
