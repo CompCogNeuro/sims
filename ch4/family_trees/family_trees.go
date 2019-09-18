@@ -806,7 +806,7 @@ func (ss *Sim) ClustPlot(plt *eplot.Plot2D, ix *etable.IdxView, colNm string) {
 	smat := &simat.SimMat{}
 	smat.TableCol(ix, colNm, "TrialName", false, metric.Euclidean64)
 	pt := &etable.Table{}
-	clust.Plot(pt, clust.Glom(smat, clust.MinDist), smat)
+	clust.Plot(pt, clust.Glom(smat, clust.ContrastDist), smat)
 	plt.InitName(plt, colNm)
 	plt.Params.Title = "Cluster Plot of: " + nm + " " + colNm
 	plt.Params.XAxisCol = "X"
