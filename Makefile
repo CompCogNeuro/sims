@@ -10,7 +10,7 @@ $(SUBDIRS):
 
 .PHONY: $(TOPTARGETS) $(SUBDIRS)
 
-# NOTE: MUST update version number here prior to running 'make release'
+# NOTE: MUST update version number here prior to running 'make release' and edit this file!
 VERS=v0.5.2
 PACKAGE=sims
 GIT_COMMIT=`git rev-parse --short HEAD`
