@@ -9,7 +9,7 @@ In this project we have expanded the size of all layers to accommodate a richer 
 
 * Click `Init` and `Step Trial` to see one of the patterns presented to the network. You should see the correct target in the output layer at the end of the trial as the network is using error-driven learning to clamp on that target. If you then click on `ActM` instead of `Act` in the Netview you will see what the network 'guessed' for the labels in the minus phase, before it was told what the correct labels were.   
 
-* Click `Train`, and then switch to  `TrnEpcPlot` to view the SSE error  over epochs of training. You should see that the SSE goes down to zero within a few epochs as the network learns to label the different combination of lines. You can switch to Netview and step through a few trials looking at ActM to convince yourself that it has really learned these. Click `r.Wt` and look at a few of the hidden units to see whether they learn systematic representations.
+* Click `Train`, and then switch to  `TrnEpcPlot` to view the SSE error  over epochs of training. You should see that the SSE goes down to zero within a few epochs as the network learns to label the different combination of lines using pure Error Driven learning. You can switch to Netview and step through a few trials looking at ActM to convince yourself that it has really learned these. Click `r.Wt` and look at a few of the hidden units to see whether they learn systematic representations.
 
 > **Question 4.10:**  Do the hidden units learn to represent the individual lines like they did in `self_org`? Why or why not? Explain in terms of how the learning rule is designed to adjust weights when minimizing error.
 
