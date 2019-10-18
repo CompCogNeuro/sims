@@ -21,6 +21,8 @@ Cats and Dogs Semantics:
 
 The knowledge embedded in the network is summarized in the above table. This knowledge is encoded by simply setting a weight of 1 between an *instance* (`Identity`) node representing an individual cat or dog and thecorresponding feature value that this individual possesses (c.f., the Jets and Sharks model from McClelland & Rumelhart, 1988). Each of the groups of features (i.e., values within one column of the table) are represented within distinct layers that have their own within-layer inhibition. In additon, all of the identity units and the name units are within their own separate layers as well. We use the `FFFB` inhibitory function here which allows considerable flexibility in the actual number of active units per layer.
 
+# Exploration
+
 * As usual, take some time to examine the weights in the network, and verify that the weights implement the knowledge shown in the table. To do so, select the `r.Wt` value in the `NetView` and then click on individual neurons in the different layers. 
 
 Let's first verify that when we present an individual's name as input, it will recall all of the information about that individual. This is a form of pattern completion with a single unique input cue. 
@@ -41,7 +43,7 @@ You should see that the network activates features that are typical of cats, and
 
 * Repeat this test but instead activate the `dog` unit instead of `cat`.
 
-## Constraint Satisfaction
+# Constraint Satisfaction
 
 Now let's make use of some of the constraint satisfaction ideas. We can view the *harmony* of the network over cycles of settling using a graph view.
 
