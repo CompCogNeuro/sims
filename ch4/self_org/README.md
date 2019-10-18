@@ -15,6 +15,8 @@ The net result is the development of a set of neural detectors that relatively e
 
 In this exploration, the network learns about a simple world that consists purely of horizontal and vertical lines, with these lines appearing always in combination with other lines. The clear objective of self-organizing learning in this case is to extract the underlying statistical regularity that these lines exist as reliable collections of pixels, and it would be much more efficient to encode this world in terms of the lines, instead of individual pixels.
 
+# Learning
+
 Let's take a look at the network. The 5x5 input projects to a hidden layer of 20 units, which are all fully connected to the input with random initial weights, and have standard FFFB inhibitory competition dynamics operating amongst them.
 
 * As usual, select `r.Wt` and view the initialized weights for these units by clicking on several hidden units. You will see that the initial wts have been randomized to different values. 

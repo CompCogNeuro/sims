@@ -147,6 +147,8 @@ var TheSim Sim
 // New creates new blank elements and initializes defaults
 func (ss *Sim) New() {
 	ss.Net = &leabra.Network{}
+	ss.Learn = ErrorDriven
+	ss.Pats = Impossible
 	ss.Easy = &etable.Table{}
 	ss.TrnEpcLog = &etable.Table{}
 	ss.TstEpcLog = &etable.Table{}
@@ -594,6 +596,13 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 		ss.Params.ValidateSheets([]string{"Network", "Sim"})
 	}
 	err := ss.SetParamsSet("Base", sheet, setMsg)
+
+	switch ss.Learn {
+	case Hebbian:
+		ss.SetParamsSet("Hebbian", sheet, setMsg)
+	case ErrorDriven:
+		ss.SetParamsSet("ErrorDriven", sheet, setMsg)
+	}
 	return err
 }
 

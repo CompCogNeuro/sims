@@ -4,6 +4,8 @@ Back to [All Sims](https://github.com/CompCogNeuro/sims) (also for general info 
 
 This simulation illustrates how error-driven and hebbian learning can operate within a simple task-driven learning context, with no hidden layers. The situation is reduced to the simplest case, where a set of 4 input units project to 2 output units. The "task" is specified in terms of the relationships between patterns of activation over the input units, and the corresponding desired or **target** values of the output units. This type of network is often called a **pattern associator** because the objective is to associate patterns of activity on the input with those on the output.
 
+# The Easy Task
+
 You should see the network has 2 output units receiving inputs from 4 input units through a set of feedforward weights.
 
 * Click the `Easy` button to view the first set of patterns the network will learn to associate.
