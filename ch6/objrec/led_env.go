@@ -10,6 +10,7 @@ import (
 	"github.com/emer/emergent/env"
 	"github.com/emer/etable/etensor"
 	"github.com/emer/vision/vfilter"
+	"github.com/emer/vision/vxform"
 	"golang.org/x/exp/rand"
 )
 
@@ -17,19 +18,21 @@ import (
 // and vertical elements.  All possible such combinations of 3 out of 6 line segments are created.
 // Renders using SVG.
 type LEDEnv struct {
-	Nm      string          `desc:"name of this environment"`
-	Dsc     string          `desc:"description of this environment"`
-	Draw    LEDraw          `desc:"draws LEDs onto image"`
-	Vis     Vis             `desc:"visual processing params"`
-	MinLED  int             `min:"0" max:"19" desc:"minimum LED number to draw (0-19)"`
-	MaxLED  int             `min:"0" max:"19" desc:"maximum LED number to draw (0-19)"`
-	CurLED  int             `inactive:"+" desc:"current LED number that was drawn"`
-	PrvLED  int             `inactive:"+" desc:"previous LED number that was drawn"`
-	Run     env.Ctr         `view:"inline" desc:"current run of model as provided during Init"`
-	Epoch   env.Ctr         `view:"inline" desc:"number of times through Seq.Max number of sequences"`
-	Trial   env.Ctr         `view:"inline" desc:"trial is the step counter within epoch"`
-	OrigImg etensor.Float32 `desc:"visual processing params"`
-	Output  etensor.Float32 `desc:"CurLED one-hot output tensor"`
+	Nm        string          `desc:"name of this environment"`
+	Dsc       string          `desc:"description of this environment"`
+	Draw      LEDraw          `desc:"draws LEDs onto image"`
+	Vis       Vis             `desc:"visual processing params"`
+	MinLED    int             `min:"0" max:"19" desc:"minimum LED number to draw (0-19)"`
+	MaxLED    int             `min:"0" max:"19" desc:"maximum LED number to draw (0-19)"`
+	CurLED    int             `inactive:"+" desc:"current LED number that was drawn"`
+	PrvLED    int             `inactive:"+" desc:"previous LED number that was drawn"`
+	XFormRand vxform.Rand     `desc:"random transform parameters"`
+	XForm     vxform.XForm    `desc:"current -- prev transforms"`
+	Run       env.Ctr         `view:"inline" desc:"current run of model as provided during Init"`
+	Epoch     env.Ctr         `view:"inline" desc:"number of times through Seq.Max number of sequences"`
+	Trial     env.Ctr         `view:"inline" desc:"trial is the step counter within epoch"`
+	OrigImg   etensor.Float32 `desc:"visual processing params"`
+	Output    etensor.Float32 `desc:"CurLED one-hot output tensor"`
 }
 
 func (le *LEDEnv) Name() string { return le.Nm }
@@ -72,9 +75,16 @@ func (le *LEDEnv) Actions() env.Elements {
 	return nil
 }
 
+func (le *LEDEnv) Defaults() {
+	le.Draw.Defaults()
+	le.Vis.Defaults()
+	le.XFormRand.TransX.Set(-0.125, 0.125)
+	le.XFormRand.Scale.Set(0.7, 1)
+	le.XFormRand.Rot.Set(-4, 4)
+}
+
 func (le *LEDEnv) Init(run int) {
 	le.Draw.Init()
-	le.Vis.Defaults()
 	le.Run.Scale = env.Run
 	le.Epoch.Scale = env.Epoch
 	le.Trial.Scale = env.Trial
@@ -147,5 +157,7 @@ func (le *LEDEnv) DrawLED(led int) {
 
 // FilterImg filters the image from LED
 func (le *LEDEnv) FilterImg() {
-	le.Vis.Filter(le.Draw.Image)
+	le.XFormRand.Gen(&le.XForm)
+	img := le.XForm.Image(le.Draw.Image)
+	le.Vis.Filter(img)
 }
