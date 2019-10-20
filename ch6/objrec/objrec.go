@@ -195,6 +195,7 @@ func (ss *Sim) ConfigEnv() {
 
 	ss.TrainEnv.Nm = "TrainEnv"
 	ss.TrainEnv.Dsc = "training params and state"
+	ss.TrainEnv.Defaults()
 	ss.TrainEnv.MinLED = 0
 	ss.TrainEnv.MaxLED = 17 // exclude last 2 by default
 	ss.TrainEnv.Validate()
@@ -203,8 +204,9 @@ func (ss *Sim) ConfigEnv() {
 
 	ss.TestEnv.Nm = "TestEnv"
 	ss.TestEnv.Dsc = "testing params and state"
-	ss.TrainEnv.MinLED = 0
-	ss.TrainEnv.MaxLED = 19 // all by default
+	ss.TestEnv.Defaults()
+	ss.TestEnv.MinLED = 0
+	ss.TestEnv.MaxLED = 19 // all by default
 	ss.TestEnv.Trial.Max = 500
 	ss.TestEnv.Validate()
 
