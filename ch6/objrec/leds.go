@@ -14,19 +14,19 @@ import (
 // and vertical elements.  All possible such combinations of 3 out of 6 line segments are created.
 // Renders using SVG.
 type LEDraw struct {
-	Width     float32        `def:"0.04" desc:"line width of LEDraw in proportion of display size"`
+	Width     float32        `def:"4" desc:"line width of LEDraw as percent of display size"`
 	Size      float32        `def:"0.6" desc:"size of overall LED as proportion of overall image size"`
 	LineColor gi.ColorName   `desc:"color name for drawing lines"`
 	BgColor   gi.ColorName   `desc:"color name for background"`
 	ImgSize   image.Point    `desc:"size of image to render"`
 	Image     *image.RGBA    `view:"-" desc:"rendered image"`
-	Paint     gi.Paint       `view:"-" desc:"painter object"`
+	Paint     gi.Paint       `view:"+" desc:"painter object"`
 	Render    gi.RenderState `view:"-" desc:"rendering state"`
 }
 
 func (ld *LEDraw) Defaults() {
 	ld.ImgSize = image.Point{120, 120}
-	ld.Width = 0.04
+	ld.Width = 4
 	ld.Size = 0.6
 	ld.LineColor = "white"
 	ld.BgColor = "black"
@@ -47,6 +47,7 @@ func (ld *LEDraw) Init() {
 		ld.Image = image.NewRGBA(image.Rectangle{Max: ld.ImgSize})
 	}
 	ld.Render.Init(ld.ImgSize.X, ld.ImgSize.Y, ld.Image)
+	ld.Paint.Defaults()
 	ld.Paint.StrokeStyle.Width.SetPct(ld.Width)
 	ld.Paint.StrokeStyle.Color.SetName(string(ld.LineColor))
 	ld.Paint.FillStyle.Color.SetName(string(ld.BgColor))
