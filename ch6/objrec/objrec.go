@@ -62,15 +62,20 @@ var ParamSets = params.Sets{
 				}},
 			{Sel: "Layer", Desc: "needs some special inhibition and learning params",
 				Params: params.Params{
-					"Layer.Learn.AvgL.Gain":    "1.5", // this is critical! 2.5 def doesn't work
-					"Layer.Inhib.Layer.Gi":     "1.3",
-					"Layer.Inhib.ActAvg.Init":  "0.5",
-					"Layer.Inhib.ActAvg.Fixed": "true",
-					"Layer.Act.Gbar.L":         "0.1",
+					"Layer.Learn.AvgL.Gain": "2.5", // standard
+					// "Layer.Act.Gbar.L":         "0.1",
 				}},
-			{Sel: ".Back", Desc: "top-down back-projections MUST have lower relative weight scale, otherwise network hallucinates",
+			{Sel: ".Back", Desc: "top-down back-projections MUST have lower relative weight scale, otherwise network hallucinates -- smaller as network gets bigger",
 				Params: params.Params{
-					"Prjn.WtScale.Rel": "0.2",
+					"Prjn.WtScale.Rel": "0.1",
+				}},
+			{Sel: "#V4", Desc: "pool inhib",
+				Params: params.Params{
+					"Layer.Inhib.Pool.On": "true", // needs pool-level
+				}},
+			{Sel: "#Output", Desc: "high inhib for one-hot output",
+				Params: params.Params{
+					"Layer.Inhib.Layer.Gi": "2.8",
 				}},
 		},
 	}},
@@ -82,26 +87,26 @@ var ParamSets = params.Sets{
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
-	Net          *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
-	Easy         *etable.Table     `view:"no-inline" desc:"easy training patterns -- can be learned with Hebbian"`
-	TrnEpcLog    *etable.Table     `view:"no-inline" desc:"training epoch-level log data"`
-	TstEpcLog    *etable.Table     `view:"no-inline" desc:"testing epoch-level log data"`
-	TstTrlLog    *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
-	RunLog       *etable.Table     `view:"no-inline" desc:"summary log of each run"`
-	RunStats     *etable.Table     `view:"no-inline" desc:"aggregate stats on all runs"`
-	Params       params.Sets       `view:"no-inline" desc:"full collection of param sets"`
-	V1V4Prjn     *prjn.PoolTile    `view:"projection from V1 to V4 which is tiled 4x4 skip 2 with topo scale values"`
-	MaxRuns      int               `desc:"maximum number of model runs to perform"`
-	MaxEpcs      int               `desc:"maximum number of epochs to run per model run"`
-	NZeroStop    int               `desc:"if a positive number, training will stop after this many epochs with zero SSE"`
-	TrainEnv     env.FixedTable    `desc:"Training environment -- contains everything about iterating over input / output patterns over training"`
-	TestEnv      env.FixedTable    `desc:"Testing environment -- manages iterating over testing"`
-	Time         leabra.Time       `desc:"leabra timing parameters and state"`
-	ViewOn       bool              `desc:"whether to update the network view while running"`
-	TrainUpdt    leabra.TimeScales `desc:"at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model"`
-	TestUpdt     leabra.TimeScales `desc:"at what time scale to update the display during testing?  Anything longer than Epoch updates at Epoch in this model"`
-	TestInterval int               `desc:"how often to run through all the test patterns, in terms of training epochs"`
-	LayStatNms   []string          `desc:"names of layers to collect more detailed stats on (avg act, etc)"`
+	Net        *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
+	Easy       *etable.Table     `view:"no-inline" desc:"easy training patterns -- can be learned with Hebbian"`
+	TrnEpcLog  *etable.Table     `view:"no-inline" desc:"training epoch-level log data"`
+	TstEpcLog  *etable.Table     `view:"no-inline" desc:"testing epoch-level log data"`
+	TstTrlLog  *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
+	RunLog     *etable.Table     `view:"no-inline" desc:"summary log of each run"`
+	RunStats   *etable.Table     `view:"no-inline" desc:"aggregate stats on all runs"`
+	Params     params.Sets       `view:"no-inline" desc:"full collection of param sets"`
+	V1V4Prjn   *prjn.PoolTile    `view:"projection from V1 to V4 which is tiled 4x4 skip 2 with topo scale values"`
+	MaxRuns    int               `desc:"maximum number of model runs to perform"`
+	MaxEpcs    int               `desc:"maximum number of epochs to run per model run"`
+	MaxTrls    int               `desc:"maximum number of training trials per epoch"`
+	NZeroStop  int               `desc:"if a positive number, training will stop after this many epochs with zero SSE"`
+	TrainEnv   LEDEnv            `desc:"Training environment -- LED training"`
+	TestEnv    LEDEnv            `desc:"Testing environment -- LED testing"`
+	Time       leabra.Time       `desc:"leabra timing parameters and state"`
+	ViewOn     bool              `desc:"whether to update the network view while running"`
+	TrainUpdt  leabra.TimeScales `desc:"at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model"`
+	TestUpdt   leabra.TimeScales `desc:"at what time scale to update the display during testing?  Anything longer than Epoch updates at Epoch in this model"`
+	LayStatNms []string          `desc:"names of layers to collect more detailed stats on (avg act, etc)"`
 
 	// statistics: note use float64 as that is best for etable.Table
 	TrlSSE     float64 `inactive:"+" desc:"current trial's sum squared error"`
@@ -160,7 +165,6 @@ func (ss *Sim) New() {
 	ss.ViewOn = true
 	ss.TrainUpdt = leabra.Quarter
 	ss.TestUpdt = leabra.Quarter
-	ss.TestInterval = 5
 	ss.LayStatNms = []string{"V1", "Output"}
 }
 
@@ -182,27 +186,27 @@ func (ss *Sim) ConfigEnv() {
 		ss.MaxRuns = 10
 	}
 	if ss.MaxEpcs == 0 { // allow user override
-		ss.MaxEpcs = 500
-		ss.NZeroStop = 5
+		ss.MaxEpcs = 50
+		ss.NZeroStop = -1
+	}
+	if ss.MaxTrls == 0 { // allow user override
+		ss.MaxTrls = 100
 	}
 
 	ss.TrainEnv.Nm = "TrainEnv"
 	ss.TrainEnv.Dsc = "training params and state"
-	ss.TrainEnv.Table = etable.NewIdxView(ss.Easy)
+	ss.TrainEnv.MinLED = 0
+	ss.TrainEnv.MaxLED = 17 // exclude last 2 by default
 	ss.TrainEnv.Validate()
 	ss.TrainEnv.Run.Max = ss.MaxRuns // note: we are not setting epoch max -- do that manually
+	ss.TrainEnv.Trial.Max = ss.MaxTrls
 
 	ss.TestEnv.Nm = "TestEnv"
 	ss.TestEnv.Dsc = "testing params and state"
-	ss.TestEnv.Table = etable.NewIdxView(ss.Easy)
-	ss.TestEnv.Sequential = true
+	ss.TrainEnv.MinLED = 0
+	ss.TrainEnv.MaxLED = 19 // all by default
+	ss.TestEnv.Trial.Max = 500
 	ss.TestEnv.Validate()
-
-	// note: to create a train / test split of pats, do this:
-	// all := etable.NewIdxView(ss.Pats)
-	// splits, _ := split.Permuted(all, []float64{.8, .2}, []string{"Train", "Test"})
-	// ss.TrainEnv.Table = splits.Splits[0]
-	// ss.TestEnv.Table = splits.Splits[1]
 
 	ss.TrainEnv.Init(0)
 	ss.TestEnv.Init(0)
@@ -221,6 +225,9 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 
 	it.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "V4", YAlign: relpos.Front, Space: 2})
 	out.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "IT", YAlign: relpos.Front, Space: 2})
+
+	v4.SetThread(1)
+	it.SetThread(2)
 
 	net.Defaults()
 	ss.SetParams("Network", false) // only set Network params
@@ -267,9 +274,9 @@ func (ss *Sim) NewRndSeed() {
 // and add a few tabs at the end to allow for expansion..
 func (ss *Sim) Counters(train bool) string {
 	if train {
-		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TrainEnv.Trial.Cur, ss.Time.Cycle, ss.TrainEnv.TrialName)
+		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TrainEnv.Trial.Cur, ss.Time.Cycle, ss.TrainEnv.CurLED)
 	} else {
-		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TestEnv.Trial.Cur, ss.Time.Cycle, ss.TestEnv.TrialName)
+		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TestEnv.Trial.Cur, ss.Time.Cycle, ss.TestEnv.CurLED)
 	}
 }
 
@@ -377,9 +384,6 @@ func (ss *Sim) TrainTrial() {
 		ss.LogTrnEpc(ss.TrnEpcLog)
 		if ss.ViewOn && ss.TrainUpdt > leabra.AlphaCycle {
 			ss.UpdateView(true)
-		}
-		if epc%ss.TestInterval == 0 { // note: epc is *next* so won't trigger first time
-			ss.TestAll()
 		}
 		if epc >= ss.MaxEpcs || (ss.NZeroStop > 0 && ss.NZero >= ss.NZeroStop) {
 			// done with training..
@@ -553,7 +557,7 @@ func (ss *Sim) TestTrial(returnOnChg bool) {
 func (ss *Sim) TestItem(idx int) {
 	cur := ss.TestEnv.Trial.Cur
 	ss.TestEnv.Trial.Cur = idx
-	ss.TestEnv.SetTrialName()
+	ss.TestEnv.DrawLED(idx)
 	// note: type must be in place before apply inputs
 	ss.Net.LayerByName("Output").SetType(emer.Compare)
 	ss.ApplyInputs(&ss.TestEnv)
@@ -652,8 +656,8 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 	row := dt.Rows
 	dt.SetNumRows(row + 1)
 
-	epc := ss.TrainEnv.Epoch.Prv           // this is triggered by increment so use previous value
-	nt := float64(ss.TrainEnv.Table.Len()) // number of trials in view
+	epc := ss.TrainEnv.Epoch.Prv         // this is triggered by increment so use previous value
+	nt := float64(ss.TrainEnv.Trial.Max) // number of trials in view
 
 	ss.EpcSSE = ss.SumSSE / nt
 	ss.SumSSE = 0
@@ -724,9 +728,9 @@ func (ss *Sim) ConfigTrnEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Run", false, true, 0, false, 0)
 	plt.SetColParams("Epoch", false, true, 0, false, 0)
-	plt.SetColParams("SSE", true, true, 0, false, 0) // default plot
+	plt.SetColParams("SSE", false, true, 0, false, 0)
 	plt.SetColParams("AvgSSE", false, true, 0, false, 0)
-	plt.SetColParams("PctErr", false, true, 0, true, 1)
+	plt.SetColParams("PctErr", true, true, 0, true, 1) // default plot
 	plt.SetColParams("PctCor", false, true, 0, true, 1)
 	plt.SetColParams("CosDiff", false, true, 0, true, 1)
 
@@ -756,7 +760,7 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
 	dt.SetCellFloat("Trial", row, float64(trl))
-	dt.SetCellString("TrialName", row, ss.TestEnv.TrialName)
+	dt.SetCellString("TrialName", row, ss.TestEnv.String())
 	dt.SetCellFloat("SSE", row, ss.TrlSSE)
 	dt.SetCellFloat("AvgSSE", row, ss.TrlAvgSSE)
 	dt.SetCellFloat("CosDiff", row, ss.TrlCosDiff)
@@ -789,7 +793,7 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 	dt.SetMetaData("read-only", "true")
 	dt.SetMetaData("precision", strconv.Itoa(LogPrec))
 
-	nt := ss.TestEnv.Table.Len() // number in view
+	nt := ss.TestEnv.Trial.Max
 	sch := etable.Schema{
 		{"Run", etensor.INT64, nil, nil},
 		{"Epoch", etensor.INT64, nil, nil},
@@ -1112,17 +1116,13 @@ func (ss *Sim) ConfigGui() *gi.Window {
 				dlg := send.(*gi.Dialog)
 				if sig == int64(gi.DialogAccepted) {
 					val := gi.StringPromptDialogValue(dlg)
-					idxs := ss.TestEnv.Table.RowsByString("Name", val, true, true) // contains, ignoreCase
-					if len(idxs) == 0 {
-						gi.PromptDialog(nil, gi.DlgOpts{Title: "Name Not Found", Prompt: "No patterns found containing: " + val}, true, false, nil, nil)
-					} else {
-						if !ss.IsRunning {
-							ss.IsRunning = true
-							fmt.Printf("testing index: %v\n", idxs[0])
-							ss.TestItem(idxs[0])
-							ss.IsRunning = false
-							vp.SetNeedsFullRender()
-						}
+					idx, _ := strconv.Atoi(val)
+					if !ss.IsRunning {
+						ss.IsRunning = true
+						fmt.Printf("testing index: %v\n", idx)
+						ss.TestItem(idx)
+						ss.IsRunning = false
+						vp.SetNeedsFullRender()
 					}
 				}
 			})

@@ -5,8 +5,11 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/emer/emergent/env"
 	"github.com/emer/etable/etensor"
+	"github.com/emer/vision/vfilter"
 	"golang.org/x/exp/rand"
 )
 
@@ -14,16 +17,19 @@ import (
 // and vertical elements.  All possible such combinations of 3 out of 6 line segments are created.
 // Renders using SVG.
 type LEDEnv struct {
-	Nm     string  `desc:"name of this environment"`
-	Dsc    string  `desc:"description of this environment"`
-	Draw   LEDraw  `desc:"draws LEDs onto image"`
-	MinLED int     `min:"0" max:"19" desc:"minimum LED number to draw (0-19)"`
-	MaxLED int     `min:"0" max:"19" desc:"maximum LED number to draw (0-19)"`
-	CurLED int     `inactive:"+" desc:"current LED number that was drawn"`
-	PrvLED int     `inactive:"+" desc:"previous LED number that was drawn"`
-	Run    env.Ctr `view:"inline" desc:"current run of model as provided during Init"`
-	Epoch  env.Ctr `view:"inline" desc:"number of times through Seq.Max number of sequences"`
-	Trial  env.Ctr `view:"inline" desc:"trial is the step counter within epoch"`
+	Nm      string          `desc:"name of this environment"`
+	Dsc     string          `desc:"description of this environment"`
+	Draw    LEDraw          `desc:"draws LEDs onto image"`
+	Vis     Vis             `desc:"visual processing params"`
+	MinLED  int             `min:"0" max:"19" desc:"minimum LED number to draw (0-19)"`
+	MaxLED  int             `min:"0" max:"19" desc:"maximum LED number to draw (0-19)"`
+	CurLED  int             `inactive:"+" desc:"current LED number that was drawn"`
+	PrvLED  int             `inactive:"+" desc:"previous LED number that was drawn"`
+	Run     env.Ctr         `view:"inline" desc:"current run of model as provided during Init"`
+	Epoch   env.Ctr         `view:"inline" desc:"number of times through Seq.Max number of sequences"`
+	Trial   env.Ctr         `view:"inline" desc:"trial is the step counter within epoch"`
+	OrigImg etensor.Float32 `desc:"visual processing params"`
+	Output  etensor.Float32 `desc:"CurLED one-hot output tensor"`
 }
 
 func (le *LEDEnv) Name() string { return le.Nm }
@@ -38,24 +44,27 @@ func (le *LEDEnv) Counters() []env.TimeScales {
 }
 
 func (le *LEDEnv) States() env.Elements {
-	sz := le.Draw.ImgSize
+	isz := le.Draw.ImgSize
+	sz := le.Vis.V1AllTsr.Shapes()
+	nms := le.Vis.V1AllTsr.DimNames()
 	els := env.Elements{
-		{"OrigImage", []int{sz.Y, sz.X}, []string{"Y", "X"}},
-		{"Image", []int{sz.Y, sz.X}, []string{"Y", "X"}},
+		{"Image", []int{isz.Y, isz.X}, []string{"Y", "X"}},
+		{"V1", sz, nms},
+		{"Output", []int{4, 5}, []string{"Y", "X"}},
 	}
 	return els
 }
 
 func (le *LEDEnv) State(element string) etensor.Tensor {
-	// switch element {
-	// case "NNext":
-	// 	return &le.NNext
-	// case "NextStates":
-	// 	return &le.NextStates
-	// case "NextLabels":
-	// 	return &le.NextLabels
-	// }
-	// return nil
+	switch element {
+	case "Image":
+		vfilter.RGBToGrey(le.Draw.Image, &le.OrigImg, 0, false) // pad for filt, bot zero
+		return &le.OrigImg
+	case "V1":
+		return &le.Vis.V1AllTsr
+	case "Output":
+		return &le.Output
+	}
 	return nil
 }
 
@@ -65,6 +74,7 @@ func (le *LEDEnv) Actions() env.Elements {
 
 func (le *LEDEnv) Init(run int) {
 	le.Draw.Init()
+	le.Vis.Defaults()
 	le.Run.Scale = env.Run
 	le.Epoch.Scale = env.Epoch
 	le.Trial.Scale = env.Trial
@@ -72,14 +82,19 @@ func (le *LEDEnv) Init(run int) {
 	le.Epoch.Init()
 	le.Trial.Init()
 	le.Run.Cur = run
-	le.Trial.Max = 0
 	le.Trial.Cur = -1 // init state -- key so that first Step() = 0
+	le.Output.SetShape([]int{4, 5}, nil, []string{"Y", "X"})
 }
 
 func (le *LEDEnv) Step() bool {
-	le.Epoch.Same() // good idea to just reset all non-inner-most counters at start
-	le.Trial.Incr()
-	le.DrawLED()
+	le.Epoch.Same()      // good idea to just reset all non-inner-most counters at start
+	if le.Trial.Incr() { // if true, hit max, reset to 0
+		le.Epoch.Incr()
+	}
+	le.DrawRndLED()
+	le.FilterImg()
+	// debug only:
+	vfilter.RGBToGrey(le.Draw.Image, &le.OrigImg, 0, false) // pad for filt, bot zero
 	// then distort
 	return true
 }
@@ -103,12 +118,34 @@ func (le *LEDEnv) Counter(scale env.TimeScales) (cur, prv int, chg bool) {
 // Compile-time check that implements Env interface
 var _ env.Env = (*LEDEnv)(nil)
 
-// DrawLED picks a new random LED and draws it
-func (le *LEDEnv) DrawLED() {
+// String returns the string rep of the LED env state
+func (le *LEDEnv) String() string {
+	return fmt.Sprintf("%v", le.CurLED)
+}
+
+// SetOutput sets the output LED bit
+func (le *LEDEnv) SetOutput(out int) {
+	le.Output.SetZeros()
+	le.Output.SetFloat1D(out, 1)
+}
+
+// DrawRndLED picks a new random LED and draws it
+func (le *LEDEnv) DrawRndLED() {
 	rng := 1 + le.MaxLED - le.MinLED
 	led := le.MinLED + rand.Intn(rng)
+	le.DrawLED(led)
+}
+
+// DrawLED draw specified LED
+func (le *LEDEnv) DrawLED(led int) {
 	le.Draw.Clear()
 	le.Draw.DrawLED(led)
 	le.PrvLED = le.CurLED
 	le.CurLED = led
+	le.SetOutput(le.CurLED)
+}
+
+// FilterImg filters the image from LED
+func (le *LEDEnv) FilterImg() {
+	le.Vis.Filter(le.Draw.Image)
 }
