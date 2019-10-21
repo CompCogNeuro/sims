@@ -10,6 +10,8 @@ This simulation illustrates the case of learning in a deep network using the fam
 
 The structure of the environment is shown in Figure 1. The network is trained to produce the correct name in response to questions like "Rob is married to whom?" These questions are presented by activating one of 24 name units in an agent input layer (e.g., "Rob"), in conjunction with one of 12 units in a relation input layer (e.g., "Married'"), and training the network to produce the correct unit activation over the patient output layer.
 
+# Training
+
 First, notice that the network (displayed in `NetView` tab) has `Agent` and `Relation` input layers, and a `Patient` output layer all at the bottom of the network. These layers have localist representations of the 24 different people and 12 different relationships, which means that there is no overlap, and thus no overt similarity, in these input patterns between any of the people. The `AgentCode`, `RelationCode`, and `PatientCode` hidden layers provide a means for the network to re-represent these localist representations as richer distributed patterns that should facilitate the learning of the mapping by emphasizing relevant distinctions and deemphasizing irrelevant ones. The central `Hidden` layer is responsible for performing the mapping between these recoded representations to produce the correct answers.
 
 * Click on the `Pats` to browse through the input / output patterns, which should help you understand how the task is presented to the network. The names of the events in the first column are in the following format: Agent.Relation.Patient, and can be interpreted along the following lines: "Christo's wife is who?" "Penny." 
