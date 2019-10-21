@@ -6,6 +6,8 @@ This simulation explores how inhibitory interneurons can dynamically control ove
 
 The network in the right view panel contains a 10x10 unit `Input` layer, which projects to both the 10x10 hidden layer of excitatory units, and a layer of 20 inhibitory neurons. These inhibitory neurons will regulate the activation level of the hidden layer units, and should be thought of as the inhibitory units for the hidden layer (even though they are in their own layer for the purposes of this simulation). The ratio of 20 inhibitory units to 120 total hidden units (17 percent) is like that found in the cortex, which is commonly cited as roughly 15 percent (White, 1989a; Zilles, 1990). The inhibitory neurons are just like the excitatory neurons, except that their outputs contribute to the inhibitory conductance of a neuron instead of its excitatory conductance. We have also set one of the activation parameters to be different for these inhibitory neurons, as discussed below.
 
+# Exploration
+
 Let's begin as usual by viewing the weights of the network.
 
 * Select `r.Wt` in the `FF Net` netview and then click on some of the `Hidden` layer and `Inhib` layer units.
@@ -22,7 +24,7 @@ You will see the input units activated by a random activity pattern, and after s
 
 In the next sections, we manipulate some of the parameters in the control panel to get a better sense of the principles underlying the inhibitory dynamics in the network -- you can just stay with this plot view to see the results more quickly than watching the network view update.
 
-## Strength of Inhibitory Conductances
+# Strength of Inhibitory Conductances
 
 Let's start by manipulating the maximal conductance for the inhibitory current into the excitatory units, `HiddenGbarI`, which multiplies the level of inhibition coming into the hidden layer (excitatory) neurons (this sets the `Act.Gbar.I` parameter in the Hidden layer). Clearly, one would predict that this plays an important role.
 
@@ -47,7 +49,7 @@ A more intuitive (but somewhat inaccurate in the details) way of understanding t
 * Set `InhibGbarI` back to .75 before continuing (or hit Defaults). 
 
 
-## Roles of Feedforward and Feedback Inhibition
+# Roles of Feedforward and Feedback Inhibition
 
 Next we assess the importance and properties of the feedforward versus feedback inhibitory projections by manipulating their relative strengths. The control panel has two parameters that determine the relative contribution of the feedforward and feedback inhibitory pathways: `FFinhibWtScale` applies to the feedforward weights from the input to the inhibitory units, and `FBinhibWtScale` applies to the feedback weights from the hidden layer to the inhibitory units. These parameters (specifically the .rel components of them) uniformly scale the strengths of an entire projection of connections from one layer to another, and are the arbitrary `WtScale.Rel` (r_k) relative scaling parameters described in [Net Input Detail](https://grey.colorado.edu/CompCogNeuro/index.php/CCNBook/Neuron/NetInput) from the [Neuron Chapter](https://grey.colorado.edu/CompCogNeuro/index.php/CCNBook/Neuron).
 
@@ -75,7 +77,7 @@ One other important practical point about these update rate constants will prove
 
 The major, persistent oscillations that are observed here are largely prevented with slower time scale upgrading, because the excitatory neurons update their activity in smaller steps, to which the inhibitory neurons are better able to smoothly react.
 
-## Effects of Learning
+# Effects of Learning
 
 One of the important things that inhibition must do is to compensate adequately for the changes in weight values that accompany learning.  Typically, as units learn, they develop greater levels of variance in the amount of excitatory input received from the input patterns, with some patterns providing strong excitation to a given unit and others producing less. This is a natural result of the specialization of units for representing (detecting) some things and not others. We can test whether the current inhibitory mechanism adequately handles these changes by simulating the effects of learning, by giving units excitatory weight values with a higher level of variance.
 
@@ -93,7 +95,7 @@ You should observe a greater level of excitation using the trained weights compa
 
 * Before continuing, set `TrainedWts` back off, and do `Init` again.
 
-## Bidirectional Excitation
+# Bidirectional Excitation
 
 To make things simpler at the outset, we have so far been exploring a relatively easy case for inhibition where the network does not have bidirectional excitatory connectivity, which is where inhibition really becomes essential to prevent runaway positive feedback dynamics. Now, let's try running a network with two bidirectionally connected hidden layers.
 
@@ -115,7 +117,7 @@ This reduces the amount of inhibition on the excitatory neurons. Note that this 
 
 * Set the `HiddenGbarI` parameter back to .4.
 
-## Exploration of FFFB Inhibition
+# Exploration of FFFB Inhibition
 
 You should run this section after having read the [FFFB_Inhibition_Function](https://grey.colorado.edu/CompCogNeuro/index.php/CCNBook/Networks#FFFB_Inhibition_Function) section of the main text.
 

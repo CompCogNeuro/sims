@@ -4,8 +4,6 @@ Back to [All Sims](https://github.com/CompCogNeuro/sims) (also for general info 
 
 This simulation shows how XCAL error driven learning can train a hidden layer to solve problems that are otherwise impossible for a simple two layer network (as we saw in the Pattern Associator (`pat_assoc`) exploration, which should be completed first before doing this one).
 
-# Exploration
-
 This project is identical to the pattern associator one, with one major exception: we have introduced a `Hidden` layer with 4 units.  Note that there are only feedforward connections from the input to this hidden layer, because the input is clamped in both minus and plus phases and so would not be affected by feedback connections anyway, but that there are bidirectional connections between the `Hidden` and `Output` layers, as required for the XCal algorithm to be able to do error-driven learning. By default, the Learn rule value is set to `ErrorDriven`, and `Pats` is `Impossible`.
 
 * Click on `Init` and then `Step Run`. 
