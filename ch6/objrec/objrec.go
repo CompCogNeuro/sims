@@ -195,7 +195,11 @@ func (ss *Sim) New() {
 	ss.RunStats = &etable.Table{}
 	ss.Params = ParamSets
 	ss.V1V4Prjn = prjn.NewPoolTile()
-	ss.V1V4Prjn.TopoRange.Min = 0.8
+	ss.V1V4Prjn.TopoRange.Min = 0.8 // note: none of these make a very big diff
+	// but using a symmetric scale range .8 - 1.2 seems like it might be good -- otherwise
+	// weights are systematicaly smaller.
+	// ss.V1V4Prjn.GaussFull.DefNoWrap()
+	// ss.V1V4Prjn.GaussInPool.DefNoWrap()
 	ss.RndSeed = 1
 	ss.ViewOn = true
 	ss.TrainUpdt = leabra.Quarter
