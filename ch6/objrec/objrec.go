@@ -251,8 +251,8 @@ func (ss *Sim) ConfigEnv() {
 	ss.NovelTrainEnv.Validate()
 	ss.NovelTrainEnv.Run.Max = ss.MaxRuns // note: we are not setting epoch max -- do that manually
 	ss.NovelTrainEnv.Trial.Max = ss.MaxTrls
-	ss.NovelTrainEnv.XFormRand.TransX.Set(0.5*-0.125, 0.5*0.125)
-	ss.NovelTrainEnv.XFormRand.TransY.Set(0.5*-0.125, 0.5*0.125)
+	ss.NovelTrainEnv.XFormRand.TransX.Set(-0.125, 0.125)
+	ss.NovelTrainEnv.XFormRand.TransY.Set(-0.125, 0.125)
 	ss.NovelTrainEnv.XFormRand.Scale.Set(0.775, 0.925) // 1/2 around midpoint
 	ss.NovelTrainEnv.XFormRand.Rot.Set(-2, 2)
 
