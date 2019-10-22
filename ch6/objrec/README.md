@@ -45,6 +45,14 @@ You will see that error rates are generally below 5% (and often zero) except for
 
 Having seen that the network is solving this difficult problem, the obvious next question is, "how?" To answer this, we need to examine how input patterns are transformed over the successive layers of the network. We do this by computing the *receptive fields* of units in the V4 and IT layers. The receptive field essentially means the range of different stimuli that a given unit in the network responds to -- what it is tuned to detect. During the Test process, the system computes an activation-based receptive field for the layer listed in the control panel ( ), which should be V4 to start with.
 
+![V4 Activation-based RFs](fig_objrec_actrf_v4_both.png?raw=true "V4 Activation-based RFs")
+
+**Figure 3:** Sample of V4 activation-based receptive fields for the Image and the Output layer.  The same V4 units are shown (in the outer grid) so you can compare each with its corresponding receptive field for Image and Output.
+
+![IT Activation-based RFs](fig_objrec_actrf_it_both.png?raw=true "IT Activation-based RFs")
+
+**Figure 4:** All IT activation-based receptive fields for the Image and the Output layer, with each unit in the corresponding outer-grid 
+
 In this procedure, we present all the input patterns to the network and record how units respond to them. If we are interested in which patterns activate, e.g., a given V4 unit, then we aggregate activity over other layers every time that V4 unit is active (and weighted by how much it is active). If for a given input pattern the target V4 unit is not active, then the current activity pattern across all the other layers doesn't count toward that unit's overall receptive field. When the unit is active, the activity patterns do count, and do so in proportion to the unit's activity. This weighted-average computation ends up producing a useful aggregate picture of what tends to activate that unit. Of particular interest is activity in the Image layer, which is just a copy of the input image, not directly connected to anything, and used only for this statistic.
 
 The columns show the different layers of the network, with the right-most one being the input Image column, which we will focus on first. Change to the red arrow (interactive) mode (can also just press the ESC key after clicking in the right panel), and scroll the right scroll bar down, while noting the kinds of patterns you observe in the Image column. Each row of the table corresponds to a different V4 unit, starting with the lower left unit and goes within hypercolumn first, to the upper right. (It will often be the brightest yellow unit in the V4 layer in the same row, because every time that unit is active, it is active! But not always: sometimes when a V4 unit is active, it might be part of an attractor whereby another unit is always active with it, and maybe even more so).
