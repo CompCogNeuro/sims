@@ -11,6 +11,7 @@ input images.
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"math/rand"
@@ -91,6 +92,20 @@ var ParamSets = params.Sets{
 				Params: params.Params{
 					"Layer.Inhib.Layer.Gi":    "2.8",
 					"Layer.Inhib.ActAvg.Init": "0.05",
+				}},
+		},
+	}},
+	{Name: "NovelLearn", Desc: "learning for novel objects case -- IT, Output connections learn", Sheets: params.Sheets{
+		"Network": &params.Sheet{
+			{Sel: "Prjn", Desc: "lr = 0",
+				Params: params.Params{
+					"Prjn.Learn.Lrate":     "0",
+					"Prjn.Learn.LrateInit": "0", // make sure for sched
+				}},
+			{Sel: ".NovLearn", Desc: "lr = 0.04",
+				Params: params.Params{
+					"Prjn.Learn.Lrate":     "0.04",
+					"Prjn.Learn.LrateInit": "0.04", // double sure
 				}},
 		},
 	}},
@@ -241,8 +256,8 @@ func (ss *Sim) ConfigEnv() {
 	ss.TestEnv.Dsc = "testing params and state"
 	ss.TestEnv.Defaults()
 	ss.TestEnv.MinLED = 0
-	ss.TestEnv.MaxLED = 19 // all by default
-	ss.TestEnv.Trial.Max = 1000
+	ss.TestEnv.MaxLED = 19     // all by default
+	ss.TestEnv.Trial.Max = 500 // 1000 is too long!
 	ss.TestEnv.Validate()
 
 	ss.TrainEnv.Init(0)
@@ -258,11 +273,15 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 	out := net.AddLayer2D("Output", 4, 5, emer.Target)
 
 	net.ConnectLayers(v1, v4, ss.V1V4Prjn, emer.Forward)
-	net.BidirConnectLayers(v4, it, prjn.NewFull())
-	net.BidirConnectLayers(it, out, prjn.NewFull())
+	v4IT, _ := net.BidirConnectLayers(v4, it, prjn.NewFull())
+	itOut, outIT := net.BidirConnectLayers(it, out, prjn.NewFull())
 
 	it.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "V4", YAlign: relpos.Front, Space: 2})
 	out.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "IT", YAlign: relpos.Front, Space: 2})
+
+	v4IT.SetClass("NovLearn")
+	itOut.SetClass("NovLearn")
+	outIT.SetClass("NovLearn")
 
 	v4.SetThread(1)
 	it.SetThread(2)
@@ -572,9 +591,9 @@ func (ss *Sim) Stopped() {
 	}
 }
 
-// SaveWeights saves the network weights -- when called with giv.CallMethod
+// SaveWts saves the network weights -- when called with giv.CallMethod
 // it will auto-prompt for filename
-func (ss *Sim) SaveWeights(filename gi.FileName) {
+func (ss *Sim) SaveWts(filename gi.FileName) {
 	ss.Net.SaveWtsJSON(filename)
 }
 
@@ -585,6 +604,27 @@ func (ss *Sim) LrateSched(epc int) {
 		ss.Net.LrateMult(0.5)
 		fmt.Printf("dropped lrate 0.5 at epoch: %d\n", epc)
 	}
+}
+
+// OpenTrainedWts opens trained weights
+func (ss *Sim) OpenTrainedWts() {
+	ab, err := Asset("objrec_train1.wts") // embedded in executable
+	if err != nil {
+		log.Println(err)
+	}
+	ss.Net.ReadWtsJSON(bytes.NewBuffer(ab))
+	// ss.Net.OpenWtsJSON("objrec_train1.wts.gz")
+}
+
+// TrainNovel prepares network for training novel items: loads saved weights
+// changes PNovel -- just do Step Run after this.
+func (ss *Sim) TrainNovel() {
+	ss.NewRun()
+	ss.OpenTrainedWts()
+	ss.SetParamsSet("NovelLearn", "Network", true)
+	ss.TrainEnv.Epoch.Cur = 40
+	ss.LrateSched(40)
+	ss.PNovel = 0.5
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -1211,6 +1251,22 @@ func (ss *Sim) ConfigGui() *gi.Window {
 		}
 	})
 
+	tbar.AddSeparator("spcl")
+
+	tbar.AddAction(gi.ActOpts{Label: "Open Trained Wts", Icon: "update", Tooltip: "open weights trained on first phase of training (excluding 'novel' objects)", UpdateFunc: func(act *gi.Action) {
+		act.SetActiveStateUpdt(!ss.IsRunning)
+	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+		ss.OpenTrainedWts()
+		vp.SetNeedsFullRender()
+	})
+
+	tbar.AddAction(gi.ActOpts{Label: "Train Novel", Icon: "update", Tooltip: "prepares network for training novel items: loads saved weight, changes PNovel -- just do Step Run after this..", UpdateFunc: func(act *gi.Action) {
+		act.SetActiveStateUpdt(!ss.IsRunning)
+	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+		ss.TrainNovel()
+		vp.SetNeedsFullRender()
+	})
+
 	tbar.AddSeparator("test")
 
 	tbar.AddAction(gi.ActOpts{Label: "Test Trial", Icon: "step-fwd", Tooltip: "Runs the next testing trial.", UpdateFunc: func(act *gi.Action) {
@@ -1350,7 +1406,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 // These props register Save methods so they can be used
 var SimProps = ki.Props{
 	"CallMethods": ki.PropSlice{
-		{"SaveWeights", ki.Props{
+		{"SaveWts", ki.Props{
 			"desc": "save network weights to file",
 			"icon": "file-save",
 			"Args": ki.PropSlice{
