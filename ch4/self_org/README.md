@@ -39,7 +39,7 @@ You should see one of the event patterns containing two lines in the input of th
 
 After 30 *epochs* (passes through all 45 different events in the environment) of learning, the network will stop. 
 
-* Click the `HidFmInputWts` `etensor.Tensor` button, and then hit the `Grid` button in the toolbar of that window to pull up a grid view of all of the synaptic weights that were learned in the projection from the Input to the Hidden layer.
+* Click the `Weights` tab to see a grid view of all of the synaptic weights that were learned in the projection from the Input to the Hidden layer.
 
 The larger-scale 5x4 grid is topographically arranged in the same layout as the `Hidden` layer of the network. Within each of these 20 grid elements is a smaller 5x5 grid representing the input units, showing the weights for each unit. By clicking on the hidden units in the network window with the `r.Wt` variable selected, you should be able to verify this correspondence.  You should see that the network has extracted the individual line elements from these input patterns.
 

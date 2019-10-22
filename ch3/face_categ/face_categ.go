@@ -57,7 +57,7 @@ var ParamSets = params.Sets{
 				Params: params.Params{
 					"Layer.Inhib.ActAvg.Init":  "0.15",
 					"Layer.Inhib.ActAvg.Fixed": "true",
-					"Layer.Act.Gbar.L":         "0.1", // needs lower leaqk
+					"Layer.Act.Gbar.L":         "0.1", // needs lower leak
 				}},
 			{Sel: "#Input", Desc: "specific inhibition",
 				Params: params.Params{
@@ -619,8 +619,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	split := gi.AddNewSplitView(mfr, "split")
 	split.Dim = gi.X
-	split.SetStretchMaxWidth()
-	split.SetStretchMaxHeight()
+	split.SetStretchMax()
 
 	sv := giv.AddNewStructView(split, "sv")
 	sv.SetStruct(ss)

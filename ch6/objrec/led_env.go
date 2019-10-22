@@ -79,8 +79,9 @@ func (le *LEDEnv) Defaults() {
 	le.Draw.Defaults()
 	le.Vis.Defaults()
 	le.XFormRand.TransX.Set(-0.125, 0.125)
+	le.XFormRand.TransY.Set(-0.125, 0.125)
 	le.XFormRand.Scale.Set(0.7, 1)
-	le.XFormRand.Rot.Set(-4, 4)
+	le.XFormRand.Rot.Set(-3.6, 3.6)
 }
 
 func (le *LEDEnv) Init(run int) {
@@ -104,9 +105,14 @@ func (le *LEDEnv) Step() bool {
 	le.DrawRndLED()
 	le.FilterImg()
 	// debug only:
-	vfilter.RGBToGrey(le.Draw.Image, &le.OrigImg, 0, false) // pad for filt, bot zero
-	// then distort
+	// vfilter.RGBToGrey(le.Draw.Image, &le.OrigImg, 0, false) // pad for filt, bot zero
 	return true
+}
+
+// DoObject renders specific object (LED number)
+func (le *LEDEnv) DoObject(objno int) {
+	le.DrawLED(objno)
+	le.FilterImg()
 }
 
 func (le *LEDEnv) Action(element string, input etensor.Tensor) {
@@ -130,7 +136,7 @@ var _ env.Env = (*LEDEnv)(nil)
 
 // String returns the string rep of the LED env state
 func (le *LEDEnv) String() string {
-	return fmt.Sprintf("%v", le.CurLED)
+	return fmt.Sprintf("Obj: %02d, %s", le.CurLED, le.XForm.String())
 }
 
 // SetOutput sets the output LED bit

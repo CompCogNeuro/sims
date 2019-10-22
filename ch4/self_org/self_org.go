@@ -27,7 +27,7 @@ import (
 	"github.com/emer/etable/eplot"
 	"github.com/emer/etable/etable"
 	"github.com/emer/etable/etensor"
-	_ "github.com/emer/etable/etview" // include to get gui views
+	"github.com/emer/etable/etview" // include to get gui views
 	"github.com/emer/etable/metric"
 	"github.com/emer/etable/norm"
 	"github.com/emer/etable/simat"
@@ -131,6 +131,7 @@ type Sim struct {
 	Win         *gi.Window                  `view:"-" desc:"main GUI window"`
 	NetView     *netview.NetView            `view:"-" desc:"the network viewer"`
 	ToolBar     *gi.ToolBar                 `view:"-" desc:"the master toolbar"`
+	WtsGrid     *etview.TensorGrid          `view:"-" desc:"the weights grid view"`
 	TrnEpcPlot  *eplot.Plot2D               `view:"-" desc:"the training epoch plot"`
 	TstEpcPlot  *eplot.Plot2D               `view:"-" desc:"the testing epoch plot"`
 	TstTrlPlot  *eplot.Plot2D               `view:"-" desc:"the test-trial plot"`
@@ -665,6 +666,9 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 	// nt := float64(ss.TrainEnv.Table.Len()) // number of trials in view
 
 	ss.HidFmInput(ss.HidFmInputWts)
+	if ss.WtsGrid != nil {
+		ss.WtsGrid.UpdateSig()
+	}
 
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
@@ -936,8 +940,7 @@ inhibitory competition, rich-get-richer Hebbian learning, and homeostasis (negat
 
 	split := gi.AddNewSplitView(mfr, "split")
 	split.Dim = gi.X
-	split.SetStretchMaxWidth()
-	split.SetStretchMaxHeight()
+	split.SetStretchMax()
 
 	sv := giv.AddNewStructView(split, "sv")
 	sv.SetStruct(ss)
@@ -951,6 +954,11 @@ inhibitory competition, rich-get-richer Hebbian learning, and homeostasis (negat
 
 	plt := tv.AddNewTab(eplot.KiT_Plot2D, "TrnEpcPlot").(*eplot.Plot2D)
 	ss.TrnEpcPlot = ss.ConfigTrnEpcPlot(plt, ss.TrnEpcLog)
+
+	tg := tv.AddNewTab(etview.KiT_TensorGrid, "Weights").(*etview.TensorGrid)
+	tg.SetStretchMax()
+	ss.WtsGrid = tg
+	tg.SetTensor(ss.HidFmInputWts)
 
 	plt = tv.AddNewTab(eplot.KiT_Plot2D, "TstTrlPlot").(*eplot.Plot2D)
 	ss.TstTrlPlot = ss.ConfigTstTrlPlot(plt, ss.TstTrlLog)

@@ -66,7 +66,7 @@ func (vi *Vis) SetImage(img image.Image) {
 	}
 	vfilter.RGBToGrey(vi.Img, &vi.ImgTsr, vi.V1sGeom.FiltRt.X, false) // pad for filt, bot zero
 	vfilter.WrapPad(&vi.ImgTsr, vi.V1sGeom.FiltRt.X)
-	vi.ImgTsr.SetMetaData("image", "+")
+	// vi.ImgTsr.SetMetaData("image", "+")
 }
 
 // V1Simple runs V1Simple Gabor filtering on input image
