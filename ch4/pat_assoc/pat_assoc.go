@@ -1089,8 +1089,7 @@ layers. See <a href="href="https://github.com/CompCogNeuro/sims/ch4/pat_assoc/RE
 
 	split := gi.AddNewSplitView(mfr, "split")
 	split.Dim = gi.X
-	split.SetStretchMaxWidth()
-	split.SetStretchMaxHeight()
+	split.SetStretchMax()
 
 	sv := giv.AddNewStructView(split, "sv")
 	sv.SetStruct(ss)

@@ -580,8 +580,7 @@ feedforward and feedback inhibition to excitatory pyramidal neurons.
 
 	split := gi.AddNewSplitView(mfr, "split")
 	split.Dim = gi.X
-	split.SetStretchMaxWidth()
-	split.SetStretchMaxHeight()
+	split.SetStretchMax()
 
 	sv := giv.AddNewStructView(split, "sv")
 	sv.SetStruct(ss)
