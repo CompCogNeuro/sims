@@ -1,0 +1,67 @@
+// Copyright (c) 2019, The Emergent Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+package main
+
+import (
+	"image"
+
+	"github.com/anthonynsimon/bild/transform"
+	"github.com/emer/etable/etensor"
+	"github.com/emer/vision/dog"
+	"github.com/emer/vision/vfilter"
+	"github.com/goki/ki/kit"
+)
+
+// Vis does DoG filtering on images
+type Vis struct {
+	DoG     dog.Filter      `desc:"LGN DoG filter parameters"`
+	Geom    vfilter.Geom    `inactive:"+" view:"inline" desc:"geometry of input, output"`
+	ImgSize image.Point     `desc:"target image size to use -- images will be rescaled to this size"`
+	DoGTsr  etensor.Float32 `view:"no-inline" desc:"DoG filter tensor"`
+	Img     image.Image     `view:"-" desc:"current input image"`
+	ImgTsr  etensor.Float32 `view:"no-inline" desc:"input image as tensor"`
+	OutTsr  etensor.Float32 `view:"no-inline" desc:"DoG filter output tensor"`
+}
+
+var KiT_Vis = kit.Types.AddType(&Vis{}, nil)
+
+func (vi *Vis) Defaults() {
+	vi.DoG.Defaults()
+	sz := 16
+	spc := 2
+	vi.DoG.SetSize(sz, spc)
+	// note: first arg is border -- we are relying on Geom
+	// to set border to .5 * filter size
+	// any further border sizes on same image need to add Geom.FiltRt!
+	vi.Geom.Set(image.Point{14, 14}, image.Point{spc, spc}, image.Point{sz, sz})
+	vi.ImgSize = image.Point{51, 51} // ??
+	vi.DoG.ToTensor(&vi.DoGTsr)
+}
+
+// SetImage sets current image for processing
+func (vi *Vis) SetImage(img image.Image) {
+	vi.Img = img
+	isz := vi.Img.Bounds().Size()
+	if isz != vi.ImgSize {
+		vi.Img = transform.Resize(vi.Img, vi.ImgSize.X, vi.ImgSize.Y, transform.Linear)
+	}
+	vfilter.RGBToGrey(vi.Img, &vi.ImgTsr, vi.Geom.FiltRt.X, false) // pad for filt, bot zero
+	vfilter.WrapPad(&vi.ImgTsr, vi.Geom.FiltRt.X)
+	// vi.ImgTsr.SetMetaData("image", "+")
+}
+
+// LGNDoG runs DoG filtering on input image
+// must have valid Img in place to start.
+func (vi *Vis) LGNDoG() {
+	flt := vi.DoG.FilterTensor(&vi.DoGTsr, dog.Net)
+	vfilter.Conv1(&vi.Geom, flt, &vi.ImgTsr, &vi.OutTsr, vi.DoG.Gain)
+	// todo: log renorm
+}
+
+// Filter is overall method to run filters on given image
+func (vi *Vis) Filter(img image.Image) {
+	vi.SetImage(img)
+	vi.LGNDoG()
+}
