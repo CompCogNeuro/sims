@@ -65,16 +65,14 @@ func (le *ImgEnv) Actions() env.Elements {
 }
 
 func (le *ImgEnv) Defaults() {
-	le.Draw.Defaults()
 	le.Vis.Defaults()
-	le.XFormRand.TransX.Set(-0.125, 0.125)
-	le.XFormRand.TransY.Set(-0.125, 0.125)
-	le.XFormRand.Scale.Set(0.7, 1)
-	le.XFormRand.Rot.Set(-3.6, 3.6)
+	le.XFormRand.TransX.Set(-.8, .8)
+	le.XFormRand.TransY.Set(-.8, .8)
+	le.XFormRand.Scale.Set(0.5, 1)
+	le.XFormRand.Rot.Set(-72, 72)
 }
 
 func (le *ImgEnv) Init(run int) {
-	le.Draw.Init()
 	le.Run.Scale = env.Run
 	le.Epoch.Scale = env.Epoch
 	le.Trial.Scale = env.Trial
