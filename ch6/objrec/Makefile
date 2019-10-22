@@ -1,7 +1,7 @@
 # Makefile for CCN sims projects
 
 # important: update these for each app
-ASSETS=easy.dat hard.dat impossible.dat
+ASSETS=objrec_train1.wts
 
 # default package install 
 PKGDIR=$(HOME)/ccnsimpkg
