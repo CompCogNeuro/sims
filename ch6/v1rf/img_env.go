@@ -6,177 +6,145 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 
 	"github.com/emer/emergent/env"
-	"github.com/emer/emergent/erand"
 	"github.com/emer/etable/etensor"
+	"github.com/emer/vision/vfilter"
+	"github.com/emer/vision/vxform"
 )
 
-// LEDEnv generates images of old-school "LED" style "letters" composed of a set of horizontal
-// and vertical elements.  All possible such combinations of 3 out of 6 line segments are created.
-// Renders using SVG.
-type LEDEnv struct {
-	Nm    string  `desc:"name of this environment"`
-	Dsc   string  `desc:"description of this environment"`
-	Run   env.Ctr `view:"inline" desc:"current run of model as provided during Init"`
-	Epoch env.Ctr `view:"inline" desc:"number of times through Seq.Max number of sequences"`
-	Trial env.Ctr `view:"inline" desc:"trial is the step counter within epoch"`
+// ImgEnv presents images from a list of image files, using V1 simple and complex filtering.
+type ImgEnv struct {
+	Nm        string          `desc:"name of this environment"`
+	Dsc       string          `desc:"description of this environment"`
+	Vis       Vis             `desc:"visual processing params"`
+	XFormRand vxform.Rand     `desc:"random transform parameters"`
+	XForm     vxform.XForm    `desc:"current -- prev transforms"`
+	Run       env.Ctr         `view:"inline" desc:"current run of model as provided during Init"`
+	Epoch     env.Ctr         `view:"inline" desc:"number of times through Seq.Max number of sequences"`
+	Trial     env.Ctr         `view:"inline" desc:"trial is the step counter within epoch"`
+	OrigImg   etensor.Float32 `desc:"original image prior to random transforms"`
 }
 
-func (fe *LEDEnv) Name() string { return fe.Nm }
-func (fe *LEDEnv) Desc() string { return fe.Dsc }
+func (le *ImgEnv) Name() string { return le.Nm }
+func (le *ImgEnv) Desc() string { return le.Dsc }
 
-// InitTMat initializes matrix and labels to given size
-func (fe *LEDEnv) InitTMat(nst int) {
-	fe.TMat.SetShape([]int{nst, nst}, nil, []string{"cur", "next"})
-	fe.Labels.SetShape([]int{nst, nst}, nil, []string{"cur", "next"})
-	fe.TMat.SetZeros()
-	fe.Labels.SetZeros()
-	fe.NNext.SetShape([]int{1}, nil, nil)
-	fe.NextStates.SetShape([]int{nst}, nil, nil)
-	fe.NextLabels.SetShape([]int{nst}, nil, nil)
-}
-
-// SetTMat sets given transition matrix probability and label
-func (fe *LEDEnv) SetTMat(fm, to int, p float64, lbl string) {
-	fe.TMat.Set([]int{fm, to}, p)
-	fe.Labels.Set([]int{fm, to}, lbl)
-}
-
-// TMatReber sets the transition matrix to the standard Reber grammar FSA
-func (fe *LEDEnv) TMatReber() {
-	fe.InitTMat(8)
-	fe.SetTMat(0, 1, 1, "B")   // 0 = start
-	fe.SetTMat(1, 2, 0.5, "T") // 1 = state 0 in usu diagram (+1 for all states)
-	fe.SetTMat(1, 3, 0.5, "P")
-	fe.SetTMat(2, 2, 0.5, "S")
-	fe.SetTMat(2, 4, 0.5, "X")
-	fe.SetTMat(3, 3, 0.5, "T")
-	fe.SetTMat(3, 5, 0.5, "V")
-	fe.SetTMat(4, 6, 0.5, "S")
-	fe.SetTMat(4, 3, 0.5, "X")
-	fe.SetTMat(5, 6, 0.5, "V")
-	fe.SetTMat(5, 4, 0.5, "P")
-	fe.SetTMat(6, 7, 1, "E") // 7 = end
-	fe.Init(0)
-}
-
-func (fe *LEDEnv) Validate() error {
-	if fe.TMat.Len() == 0 {
-		return fmt.Errorf("LEDEnv: %v has no transition matrix TMat set", fe.Nm)
-	}
+func (le *ImgEnv) Validate() error {
 	return nil
 }
 
-func (fe *LEDEnv) Counters() []env.TimeScales {
+func (le *ImgEnv) Counters() []env.TimeScales {
 	return []env.TimeScales{env.Run, env.Epoch, env.Sequence, env.Trial}
 }
 
-func (fe *LEDEnv) States() env.Elements {
-	nst := fe.TMat.Dim(0)
-	if nst < 2 {
-		nst = 2 // at least usu
-	}
+func (le *ImgEnv) States() env.Elements {
+	isz := le.Draw.ImgSize
+	sz := le.Vis.V1AllTsr.Shapes()
+	nms := le.Vis.V1AllTsr.DimNames()
 	els := env.Elements{
-		{"NNext", []int{1}, nil},
-		{"NextStates", []int{nst}, []string{"nstates"}},
-		{"NextLabels", []int{nst}, []string{"nstates"}},
+		{"Image", []int{isz.Y, isz.X}, []string{"Y", "X"}},
+		{"V1", sz, nms},
 	}
 	return els
 }
 
-func (fe *LEDEnv) State(element string) etensor.Tensor {
+func (le *ImgEnv) State(element string) etensor.Tensor {
 	switch element {
-	case "NNext":
-		return &fe.NNext
-	case "NextStates":
-		return &fe.NextStates
-	case "NextLabels":
-		return &fe.NextLabels
+	case "Image":
+		vfilter.RGBToGrey(le.Draw.Image, &le.OrigImg, 0, false) // pad for filt, bot zero
+		return &le.OrigImg
+	case "V1":
+		return &le.Vis.V1AllTsr
 	}
 	return nil
 }
 
-func (fe *LEDEnv) Actions() env.Elements {
+func (le *ImgEnv) Actions() env.Elements {
 	return nil
 }
 
-// String returns the current state as a string
-func (fe *LEDEnv) String() string {
-	nn := fe.NNext.Values[0]
-	lbls := fe.NextLabels.Values[0:nn]
-	return fmt.Sprintf("S_%d_%v", fe.CurState, lbls)
+func (le *ImgEnv) Defaults() {
+	le.Draw.Defaults()
+	le.Vis.Defaults()
+	le.XFormRand.TransX.Set(-0.125, 0.125)
+	le.XFormRand.TransY.Set(-0.125, 0.125)
+	le.XFormRand.Scale.Set(0.7, 1)
+	le.XFormRand.Rot.Set(-3.6, 3.6)
 }
 
-func (fe *LEDEnv) Init(run int) {
-	fe.Run.Scale = env.Run
-	fe.Epoch.Scale = env.Epoch
-	fe.Trial.Scale = env.Trial
-	fe.Run.Init()
-	fe.Epoch.Init()
-	fe.Seq.Init()
-	fe.Trial.Init()
-	fe.Run.Cur = run
-	fe.Trial.Max = 0
-	fe.Trial.Cur = -1 // init state -- key so that first Step() = 0
-	fe.CurState = 0
-	fe.PrvState = -1
+func (le *ImgEnv) Init(run int) {
+	le.Draw.Init()
+	le.Run.Scale = env.Run
+	le.Epoch.Scale = env.Epoch
+	le.Trial.Scale = env.Trial
+	le.Run.Init()
+	le.Epoch.Init()
+	le.Trial.Init()
+	le.Run.Cur = run
+	le.Trial.Cur = -1 // init state -- key so that first Step() = 0
 }
 
-// NextState sets NextStates including randomly chosen one at start
-func (fe *LEDEnv) NextState() {
-	nst := fe.TMat.Dim(0)
-	if fe.CurState < 0 || fe.CurState >= nst-1 {
-		fe.CurState = 0
+func (le *ImgEnv) Step() bool {
+	le.Epoch.Same()      // good idea to just reset all non-inner-most counters at start
+	if le.Trial.Incr() { // if true, hit max, reset to 0
+		le.Epoch.Incr()
 	}
-	ri := fe.CurState * nst
-	ps := fe.TMat.Values[ri : ri+nst]
-	ls := fe.Labels.Values[ri : ri+nst]
-	nxt := erand.PChoose64(ps) // next state chosen at random
-	fe.NextStates.Set1D(0, nxt)
-	fe.NextLabels.Set1D(0, ls[nxt])
-	idx := 1
-	for i, p := range ps {
-		if i != nxt && p > 0 {
-			fe.NextStates.Set1D(idx, i)
-			fe.NextLabels.Set1D(idx, ls[i])
-			idx++
-		}
-	}
-	fe.NNext.Set1D(0, idx)
-	fe.PrvState = fe.CurState
-	fe.CurState = nxt
-}
-
-func (fe *LEDEnv) Step() bool {
-	fe.Epoch.Same() // good idea to just reset all non-inner-most counters at start
-	fe.NextState()
-	fe.Trial.Incr()
-	if fe.PrvState == 0 {
-		if fe.Seq.Incr() {
-			fe.Epoch.Incr()
-		}
-	}
+	le.FilterImg()
+	// debug only:
+	// vfilter.RGBToGrey(le.Draw.Image, &le.OrigImg, 0, false) // pad for filt, bot zero
 	return true
 }
 
-func (fe *LEDEnv) Action(element string, input etensor.Tensor) {
+// DoObject renders specific object (LED number)
+// func (le *ImgEnv) DoObject(objno int) {
+// 	le.DrawLED(objno)
+// 	le.FilterImg()
+// }
+
+func (le *ImgEnv) Action(element string, input etensor.Tensor) {
 	// nop
 }
 
-func (fe *LEDEnv) Counter(scale env.TimeScales) (cur, prv int, chg bool) {
+func (le *ImgEnv) Counter(scale env.TimeScales) (cur, prv int, chg bool) {
 	switch scale {
 	case env.Run:
-		return fe.Run.Query()
+		return le.Run.Query()
 	case env.Epoch:
-		return fe.Epoch.Query()
-	case env.Sequence:
-		return fe.Seq.Query()
+		return le.Epoch.Query()
 	case env.Trial:
-		return fe.Trial.Query()
+		return le.Trial.Query()
 	}
 	return -1, -1, false
 }
 
 // Compile-time check that implements Env interface
-var _ env.Env = (*LEDEnv)(nil)
+var _ env.Env = (*ImgEnv)(nil)
+
+// String returns the string rep of the LED env state
+func (le *ImgEnv) String() string {
+	return fmt.Sprintf("Obj: %02d, %s", le.CurLED, le.XForm.String())
+}
+
+// DrawRndLED picks a new random LED and draws it
+func (le *ImgEnv) DrawRndLED() {
+	rng := 1 + le.MaxLED - le.MinLED
+	led := le.MinLED + rand.Intn(rng)
+	le.DrawLED(led)
+}
+
+// DrawLED draw specified LED
+func (le *ImgEnv) DrawLED(led int) {
+	le.Draw.Clear()
+	le.Draw.DrawLED(led)
+	le.PrvLED = le.CurLED
+	le.CurLED = led
+	le.SetOutput(le.CurLED)
+}
+
+// FilterImg filters the image from LED
+func (le *ImgEnv) FilterImg() {
+	le.XFormRand.Gen(&le.XForm)
+	img := le.XForm.Image(le.Draw.Image)
+	le.Vis.Filter(img)
+}
