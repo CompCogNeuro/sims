@@ -6,12 +6,12 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 
 	"github.com/emer/emergent/env"
 	"github.com/emer/etable/etensor"
 	"github.com/emer/vision/vfilter"
 	"github.com/emer/vision/vxform"
-	"golang.org/x/exp/rand"
 )
 
 // LEDEnv generates images of old-school "LED" style "letters" composed of a set of horizontal
@@ -31,7 +31,7 @@ type LEDEnv struct {
 	Run       env.Ctr         `view:"inline" desc:"current run of model as provided during Init"`
 	Epoch     env.Ctr         `view:"inline" desc:"number of times through Seq.Max number of sequences"`
 	Trial     env.Ctr         `view:"inline" desc:"trial is the step counter within epoch"`
-	OrigImg   etensor.Float32 `desc:"visual processing params"`
+	OrigImg   etensor.Float32 `desc:"original image prior to random transforms"`
 	Output    etensor.Float32 `desc:"CurLED one-hot output tensor"`
 }
 
