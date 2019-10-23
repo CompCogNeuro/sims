@@ -6,112 +6,127 @@ package main
 
 import (
 	"fmt"
+	"image"
+	"log"
 	"math/rand"
 
+	"github.com/anthonynsimon/bild/clone"
 	"github.com/emer/emergent/env"
 	"github.com/emer/etable/etensor"
 	"github.com/emer/vision/vfilter"
 	"github.com/emer/vision/vxform"
+	"github.com/goki/gi/gi"
 )
 
 // ImgEnv presents images from a list of image files, using V1 simple and complex filtering.
+// images are just selected at random each trial -- nothing fancy here.
 type ImgEnv struct {
-	Nm        string          `desc:"name of this environment"`
-	Dsc       string          `desc:"description of this environment"`
-	Vis       Vis             `desc:"visual processing params"`
-	XFormRand vxform.Rand     `desc:"random transform parameters"`
-	XForm     vxform.XForm    `desc:"current -- prev transforms"`
-	Run       env.Ctr         `view:"inline" desc:"current run of model as provided during Init"`
-	Epoch     env.Ctr         `view:"inline" desc:"number of times through Seq.Max number of sequences"`
-	Trial     env.Ctr         `view:"inline" desc:"trial is the step counter within epoch"`
-	OrigImg   etensor.Float32 `desc:"original image prior to random transforms"`
+	Nm         string          `desc:"name of this environment"`
+	Dsc        string          `desc:"description of this environment"`
+	ImageFiles []string        `desc:"paths to images"`
+	Images     []*image.RGBA   `desc:"images (preload for speed)"`
+	ImageIdx   env.CurPrvInt   `desc:"current image index"`
+	Vis        Vis             `desc:"visual processing params"`
+	XFormRand  vxform.Rand     `desc:"random transform parameters"`
+	XForm      vxform.XForm    `desc:"current -- prev transforms"`
+	Run        env.Ctr         `view:"inline" desc:"current run of model as provided during Init"`
+	Epoch      env.Ctr         `view:"inline" desc:"number of times through Seq.Max number of sequences"`
+	Trial      env.Ctr         `view:"inline" desc:"trial is the step counter within epoch"`
+	OrigImg    etensor.Float32 `desc:"original image prior to random transforms"`
 }
 
-func (le *ImgEnv) Name() string { return le.Nm }
-func (le *ImgEnv) Desc() string { return le.Dsc }
+func (ie *ImgEnv) Name() string { return ie.Nm }
+func (ie *ImgEnv) Desc() string { return ie.Dsc }
 
-func (le *ImgEnv) Validate() error {
+func (ie *ImgEnv) Validate() error {
 	return nil
 }
 
-func (le *ImgEnv) Counters() []env.TimeScales {
+func (ie *ImgEnv) Counters() []env.TimeScales {
 	return []env.TimeScales{env.Run, env.Epoch, env.Sequence, env.Trial}
 }
 
-func (le *ImgEnv) States() env.Elements {
-	isz := le.Draw.ImgSize
-	sz := le.Vis.V1AllTsr.Shapes()
-	nms := le.Vis.V1AllTsr.DimNames()
+func (ie *ImgEnv) States() env.Elements {
+	isz := ie.Vis.ImgSize
+	sz := ie.Vis.OutTsr.Shapes()
+	nms := ie.Vis.OutTsr.DimNames()
 	els := env.Elements{
 		{"Image", []int{isz.Y, isz.X}, []string{"Y", "X"}},
-		{"V1", sz, nms},
+		{"LGN", sz, nms},
+		{"LGNon", sz[1:], nms[1:]},
+		{"LGNoff", sz[1:], nms[1:]},
 	}
 	return els
 }
 
-func (le *ImgEnv) State(element string) etensor.Tensor {
+func (ie *ImgEnv) State(element string) etensor.Tensor {
 	switch element {
 	case "Image":
-		vfilter.RGBToGrey(le.Draw.Image, &le.OrigImg, 0, false) // pad for filt, bot zero
-		return &le.OrigImg
-	case "V1":
-		return &le.Vis.V1AllTsr
+		return &ie.Vis.ImgTsr
+	case "LGN":
+		return &ie.Vis.OutTsr
+	case "LGNon":
+		return ie.Vis.OutTsr.SubSpace(2, []int{0})
+	case "LGNoff":
+		return ie.Vis.OutTsr.SubSpace(2, []int{1})
 	}
 	return nil
 }
 
-func (le *ImgEnv) Actions() env.Elements {
+func (ie *ImgEnv) Actions() env.Elements {
 	return nil
 }
 
-func (le *ImgEnv) Defaults() {
-	le.Vis.Defaults()
-	le.XFormRand.TransX.Set(-.8, .8)
-	le.XFormRand.TransY.Set(-.8, .8)
-	le.XFormRand.Scale.Set(0.5, 1)
-	le.XFormRand.Rot.Set(-72, 72)
+func (ie *ImgEnv) Defaults() {
+	ie.Vis.Defaults()
+	ie.XFormRand.TransX.Set(0, 0) // translation happens in random chunk selection
+	ie.XFormRand.TransY.Set(0, 0)
+	ie.XFormRand.Scale.Set(0.5, 1)
+	ie.XFormRand.Rot.Set(-90, 90)
 }
 
-func (le *ImgEnv) Init(run int) {
-	le.Run.Scale = env.Run
-	le.Epoch.Scale = env.Epoch
-	le.Trial.Scale = env.Trial
-	le.Run.Init()
-	le.Epoch.Init()
-	le.Trial.Init()
-	le.Run.Cur = run
-	le.Trial.Cur = -1 // init state -- key so that first Step() = 0
+func (ie *ImgEnv) Init(run int) {
+	ie.Run.Scale = env.Run
+	ie.Epoch.Scale = env.Epoch
+	ie.Trial.Scale = env.Trial
+	ie.Run.Init()
+	ie.Epoch.Init()
+	ie.Trial.Init()
+	ie.Run.Cur = run
+	ie.Trial.Cur = -1 // init state -- key so that first Step() = 0
 }
 
-func (le *ImgEnv) Step() bool {
-	le.Epoch.Same()      // good idea to just reset all non-inner-most counters at start
-	if le.Trial.Incr() { // if true, hit max, reset to 0
-		le.Epoch.Incr()
+func (ie *ImgEnv) Step() bool {
+	ie.Epoch.Same()      // good idea to just reset all non-inner-most counters at start
+	if ie.Trial.Incr() { // if true, hit max, reset to 0
+		ie.Epoch.Incr()
 	}
-	le.FilterImg()
+	ie.PickRndImage()
+	ie.FilterImg()
 	// debug only:
-	// vfilter.RGBToGrey(le.Draw.Image, &le.OrigImg, 0, false) // pad for filt, bot zero
+	img := ie.Images[ie.ImageIdx.Cur]
+	vfilter.RGBToGrey(img, &ie.OrigImg, 0, false) // pad for filt, bot zero
 	return true
 }
 
-// DoObject renders specific object (LED number)
-// func (le *ImgEnv) DoObject(objno int) {
-// 	le.DrawLED(objno)
-// 	le.FilterImg()
-// }
+// DoImage processes specified image number
+func (ie *ImgEnv) DoImage(imgNo int) {
+	ie.ImageIdx.Set(imgNo)
+	ie.FilterImg()
+}
 
-func (le *ImgEnv) Action(element string, input etensor.Tensor) {
+func (ie *ImgEnv) Action(element string, input etensor.Tensor) {
 	// nop
 }
 
-func (le *ImgEnv) Counter(scale env.TimeScales) (cur, prv int, chg bool) {
+func (ie *ImgEnv) Counter(scale env.TimeScales) (cur, prv int, chg bool) {
 	switch scale {
 	case env.Run:
-		return le.Run.Query()
+		return ie.Run.Query()
 	case env.Epoch:
-		return le.Epoch.Query()
+		return ie.Epoch.Query()
 	case env.Trial:
-		return le.Trial.Query()
+		return ie.Trial.Query()
 	}
 	return -1, -1, false
 }
@@ -120,29 +135,55 @@ func (le *ImgEnv) Counter(scale env.TimeScales) (cur, prv int, chg bool) {
 var _ env.Env = (*ImgEnv)(nil)
 
 // String returns the string rep of the LED env state
-func (le *ImgEnv) String() string {
-	return fmt.Sprintf("Obj: %02d, %s", le.CurLED, le.XForm.String())
+func (ie *ImgEnv) String() string {
+	cfn := ie.ImageFiles[ie.ImageIdx.Cur]
+	return fmt.Sprintf("Obj: %s, %s", cfn, ie.XForm.String())
 }
 
-// DrawRndLED picks a new random LED and draws it
-func (le *ImgEnv) DrawRndLED() {
-	rng := 1 + le.MaxLED - le.MinLED
-	led := le.MinLED + rand.Intn(rng)
-	le.DrawLED(led)
+// PickRndImage picks an image at random
+func (ie *ImgEnv) PickRndImage() {
+	nimg := len(ie.Images)
+	ie.ImageIdx.Set(rand.Intn(nimg))
 }
 
-// DrawLED draw specified LED
-func (le *ImgEnv) DrawLED(led int) {
-	le.Draw.Clear()
-	le.Draw.DrawLED(led)
-	le.PrvLED = le.CurLED
-	le.CurLED = led
-	le.SetOutput(le.CurLED)
+// FilterImg filters the image using new random xforms
+func (ie *ImgEnv) FilterImg() {
+	ie.XFormRand.Gen(&ie.XForm)
+	oimg := ie.Images[ie.ImageIdx.Cur]
+	// following logic first extracts a sub-image of 2x the ultimate filtered size of image
+	// from original image, which greatly speeds up the xform processes, relative to working
+	// on entire 800x600 original image
+	insz := ie.Vis.Geom.In.Mul(2) // target size * 2
+	ibd := oimg.Bounds()
+	isz := ibd.Size()
+	irng := isz.Sub(insz)
+	var st image.Point
+	st.X = rand.Intn(irng.X)
+	st.Y = rand.Intn(irng.Y)
+	ed := st.Add(insz)
+	simg := oimg.SubImage(image.Rectangle{Min: st, Max: ed})
+	img := ie.XForm.Image(simg)
+	ie.Vis.Filter(img)
 }
 
-// FilterImg filters the image from LED
-func (le *ImgEnv) FilterImg() {
-	le.XFormRand.Gen(&le.XForm)
-	img := le.XForm.Image(le.Draw.Image)
-	le.Vis.Filter(img)
+// OpenImages opens all the images
+func (ie *ImgEnv) OpenImages() error {
+	nimg := len(ie.ImageFiles)
+	if len(ie.Images) != nimg {
+		ie.Images = make([]*image.RGBA, nimg)
+	}
+	var lsterr error
+	for i, fn := range ie.ImageFiles {
+		img, err := gi.OpenImage(fn)
+		if err != nil {
+			log.Println(err)
+			lsterr = err
+		}
+		if rg, ok := img.(*image.RGBA); ok {
+			ie.Images[i] = rg
+		} else {
+			ie.Images[i] = clone.AsRGBA(img)
+		}
+	}
+	return lsterr
 }
