@@ -270,7 +270,7 @@ func (ss *Sim) ConfigEnv() {
 }
 
 func (ss *Sim) ConfigNet(net *leabra.Network) {
-	net.InitName(net, "PatAssoc")
+	net.InitName(net, "Objrec")
 	v1 := net.AddLayer4D("V1", 10, 10, 5, 4, emer.Input)
 	v4 := net.AddLayer4D("V4", 5, 5, 7, 7, emer.Hidden)
 	it := net.AddLayer2D("IT", 10, 10, emer.Hidden)
