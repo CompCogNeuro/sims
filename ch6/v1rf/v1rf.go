@@ -76,6 +76,10 @@ var ParamSets = params.Sets{
 				Params: params.Params{
 					"Prjn.WtScale.Rel": "0.2",
 				}},
+			{Sel: ".ExciteLateral", Desc: "lateral excitatory connection",
+				Params: params.Params{
+					"Prjn.WtScale.Rel": "0.2",
+				}},
 		},
 	}},
 }
@@ -210,6 +214,12 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 	full := prjn.NewFull()
 	net.ConnectLayers(lgnOn, v1, full, emer.Forward)
 	net.ConnectLayers(lgnOff, v1, full, emer.Forward)
+
+	circ := prjn.NewCircle()
+	circ.Radius = 4
+
+	rec := net.ConnectLayers(v1, v1, circ, emer.Lateral)
+	rec.SetClass("ExciteLateral")
 
 	lgnOff.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "LGNon", YAlign: relpos.Front, Space: 2})
 	v1.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "LGNon", XAlign: relpos.Left, YAlign: relpos.Front, XOffset: 5, Space: 2})
