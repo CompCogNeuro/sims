@@ -217,6 +217,7 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 
 	circ := prjn.NewCircle()
 	circ.Radius = 4
+	circ.Sigma = .75
 
 	rec := net.ConnectLayers(v1, v1, circ, emer.Lateral)
 	rec.SetClass("ExciteLateral")
@@ -235,6 +236,11 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 }
 
 func (ss *Sim) InitWts(net *leabra.Network) {
+	// set scales after building but before InitWts
+	v1 := net.LayerByName("V1")
+	v1v1 := v1.RecvPrjns().SendName("V1").(*leabra.Prjn) // first one is excite
+	pat := v1v1.Pattern().(*prjn.Circle)
+	v1v1.SetScalesFunc(pat.GaussWts)
 	net.InitWts()
 }
 
