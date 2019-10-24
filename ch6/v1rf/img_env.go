@@ -5,15 +5,16 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"image"
+	"image/jpeg"
 	"log"
 	"math/rand"
 
 	"github.com/anthonynsimon/bild/clone"
 	"github.com/emer/emergent/env"
 	"github.com/emer/etable/etensor"
-	"github.com/emer/vision/vfilter"
 	"github.com/emer/vision/vxform"
 	"github.com/goki/gi/gi"
 )
@@ -104,8 +105,8 @@ func (ie *ImgEnv) Step() bool {
 	ie.PickRndImage()
 	ie.FilterImg()
 	// debug only:
-	img := ie.Images[ie.ImageIdx.Cur]
-	vfilter.RGBToGrey(img, &ie.OrigImg, 0, false) // pad for filt, bot zero
+	// img := ie.Images[ie.ImageIdx.Cur]
+	// vfilter.RGBToGrey(img, &ie.OrigImg, 0, false) // pad for filt, bot zero
 	return true
 }
 
@@ -178,6 +179,36 @@ func (ie *ImgEnv) OpenImages() error {
 		if err != nil {
 			log.Println(err)
 			lsterr = err
+			continue
+		}
+		if rg, ok := img.(*image.RGBA); ok {
+			ie.Images[i] = rg
+		} else {
+			ie.Images[i] = clone.AsRGBA(img)
+		}
+	}
+	return lsterr
+}
+
+// OpenImagesAsset opens all the images as assets
+func (ie *ImgEnv) OpenImagesAsset() error {
+	nimg := len(ie.ImageFiles)
+	if len(ie.Images) != nimg {
+		ie.Images = make([]*image.RGBA, nimg)
+	}
+	var lsterr error
+	for i, fn := range ie.ImageFiles {
+		ab, err := Asset(fn) // embedded in executable
+		if err != nil {
+			log.Println(err)
+			lsterr = err
+			continue
+		}
+		img, err := jpeg.Decode(bytes.NewBuffer(ab))
+		if err != nil {
+			log.Println(err)
+			lsterr = err
+			continue
 		}
 		if rg, ok := img.(*image.RGBA); ok {
 			ie.Images[i] = rg

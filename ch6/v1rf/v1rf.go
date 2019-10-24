@@ -8,6 +8,7 @@ v1rf illustrates how self-organizing learning in response to natural images prod
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"math/rand"
@@ -57,6 +58,7 @@ var ParamSets = params.Sets{
 					"Prjn.Learn.XCal.MLrn":    "0", // pure hebb
 					"Prjn.Learn.XCal.SetLLrn": "true",
 					"Prjn.Learn.XCal.LLrn":    "1",
+					"Prjn.Learn.WtSig.Gain":   "1", // key: more graded weights
 				}},
 			{Sel: "Layer", Desc: "needs some special inhibition and learning params",
 				Params: params.Params{
@@ -78,7 +80,17 @@ var ParamSets = params.Sets{
 				}},
 			{Sel: ".ExciteLateral", Desc: "lateral excitatory connection",
 				Params: params.Params{
+					"Prjn.WtInit.Mean": ".5",
+					"Prjn.WtInit.Var":  "0",
+					"Prjn.WtInit.Sym":  "false",
 					"Prjn.WtScale.Rel": "0.2",
+				}},
+			{Sel: ".InhibLateral", Desc: "lateral inhibitory connection",
+				Params: params.Params{
+					"Prjn.WtInit.Mean": "0",
+					"Prjn.WtInit.Var":  "0",
+					"Prjn.WtInit.Sym":  "false",
+					"Prjn.WtScale.Abs": "0.2",
 				}},
 		},
 	}},
@@ -90,32 +102,38 @@ var ParamSets = params.Sets{
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
-	Net        *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
-	Probes     *etable.Table     `view:"no-inline" desc:"probe inputs"`
-	TrnEpcLog  *etable.Table     `view:"no-inline" desc:"training epoch-level log data"`
-	TstEpcLog  *etable.Table     `view:"no-inline" desc:"testing epoch-level log data"`
-	TstTrlLog  *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
-	RunLog     *etable.Table     `view:"no-inline" desc:"summary log of each run"`
-	RunStats   *etable.Table     `view:"no-inline" desc:"aggregate stats on all runs"`
-	Params     params.Sets       `view:"no-inline" desc:"full collection of param sets"`
-	V1V4Prjn   *prjn.PoolTile    `view:"projection from V1 to V4 which is tiled 4x4 skip 2 with topo scale values"`
-	MaxRuns    int               `desc:"maximum number of model runs to perform"`
-	MaxEpcs    int               `desc:"maximum number of epochs to run per model run"`
-	MaxTrls    int               `desc:"maximum number of training trials per epoch"`
-	NZeroStop  int               `desc:"if a positive number, training will stop after this many epochs with zero SSE"`
-	TrainEnv   ImgEnv            `desc:"Training environment -- visual images"`
-	TestEnv    env.FixedTable    `desc:"Testing environment -- manages iterating over testing"`
-	Time       leabra.Time       `desc:"leabra timing parameters and state"`
-	ViewOn     bool              `desc:"whether to update the network view while running"`
-	TrainUpdt  leabra.TimeScales `desc:"at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model"`
-	TestUpdt   leabra.TimeScales `desc:"at what time scale to update the display during testing?  Anything longer than Epoch updates at Epoch in this model"`
-	LayStatNms []string          `desc:"names of layers to collect more detailed stats on (avg act, etc)"`
+	ExcitLateralScale float32           `def:"0.2" desc:"excitatory lateral (recurrent) WtScale.Rel value"`
+	InhibLateralScale float32           `def:"0.2" desc:"inhibitory lateral (recurrent) WtScale.Abs value"`
+	ExcitLateralLearn bool              `def:"true" desc:"do excitatory lateral (recurrent) connections learn?"`
+	Net               *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
+	Probes            *etable.Table     `view:"no-inline" desc:"probe inputs"`
+	TrnEpcLog         *etable.Table     `view:"no-inline" desc:"training epoch-level log data"`
+	TstEpcLog         *etable.Table     `view:"no-inline" desc:"testing epoch-level log data"`
+	TstTrlLog         *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
+	RunLog            *etable.Table     `view:"no-inline" desc:"summary log of each run"`
+	RunStats          *etable.Table     `view:"no-inline" desc:"aggregate stats on all runs"`
+	Params            params.Sets       `view:"no-inline" desc:"full collection of param sets"`
+	V1onWts           *etensor.Float32  `view:"-" desc:"weights from input to V1 layer"`
+	V1offWts          *etensor.Float32  `view:"-" desc:"weights from input to V1 layer"`
+	V1Wts             *etensor.Float32  `view:"no-inline" desc:"net on - off weights from input to V1 layer"`
+	MaxRuns           int               `desc:"maximum number of model runs to perform"`
+	MaxEpcs           int               `desc:"maximum number of epochs to run per model run"`
+	MaxTrls           int               `desc:"maximum number of training trials per epoch"`
+	NZeroStop         int               `desc:"if a positive number, training will stop after this many epochs with zero SSE"`
+	TrainEnv          ImgEnv            `desc:"Training environment -- visual images"`
+	TestEnv           env.FixedTable    `desc:"Testing environment -- manages iterating over testing"`
+	Time              leabra.Time       `desc:"leabra timing parameters and state"`
+	ViewOn            bool              `desc:"whether to update the network view while running"`
+	TrainUpdt         leabra.TimeScales `desc:"at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model"`
+	TestUpdt          leabra.TimeScales `desc:"at what time scale to update the display during testing?  Anything longer than Epoch updates at Epoch in this model"`
+	LayStatNms        []string          `desc:"names of layers to collect more detailed stats on (avg act, etc)"`
 
 	// statistics: note use float64 as that is best for etable.Table
 	Win         *gi.Window                  `view:"-" desc:"main GUI window"`
 	NetView     *netview.NetView            `view:"-" desc:"the network viewer"`
 	ToolBar     *gi.ToolBar                 `view:"-" desc:"the master toolbar"`
 	CurImgGrid  *etview.TensorGrid          `view:"-" desc:"the current image grid view"`
+	WtsGrid     *etview.TensorGrid          `view:"-" desc:"the weights grid view"`
 	TrnEpcPlot  *eplot.Plot2D               `view:"-" desc:"the training epoch plot"`
 	TstEpcPlot  *eplot.Plot2D               `view:"-" desc:"the testing epoch plot"`
 	TstTrlPlot  *eplot.Plot2D               `view:"-" desc:"the test-trial plot"`
@@ -138,20 +156,24 @@ var TheSim Sim
 
 // New creates new blank elements and initializes defaults
 func (ss *Sim) New() {
+	ss.ExcitLateralScale = 0.2
+	ss.InhibLateralScale = 0.2
+	ss.ExcitLateralLearn = true
 	ss.Net = &leabra.Network{}
 	ss.Probes = &etable.Table{}
 	ss.TrnEpcLog = &etable.Table{}
 	ss.TstEpcLog = &etable.Table{}
 	ss.TstTrlLog = &etable.Table{}
+	ss.V1onWts = &etensor.Float32{}
+	ss.V1offWts = &etensor.Float32{}
+	ss.V1Wts = &etensor.Float32{}
 	ss.RunLog = &etable.Table{}
 	ss.RunStats = &etable.Table{}
 	ss.Params = ParamSets
-	ss.V1V4Prjn = prjn.NewPoolTile()
-	ss.V1V4Prjn.TopoRange.Min = 0.5
 	ss.RndSeed = 1
 	ss.ViewOn = true
 	ss.TrainUpdt = leabra.AlphaCycle
-	ss.TestUpdt = leabra.AlphaCycle
+	ss.TestUpdt = leabra.Cycle
 	ss.LayStatNms = []string{"V1"}
 }
 
@@ -160,6 +182,7 @@ func (ss *Sim) New() {
 
 // Config configures all the elements using the standard functions
 func (ss *Sim) Config() {
+	ss.OpenPats()
 	ss.ConfigEnv()
 	ss.ConfigNet(ss.Net)
 	ss.ConfigTrnEpcLog(ss.TrnEpcLog)
@@ -173,7 +196,7 @@ func (ss *Sim) ConfigEnv() {
 		ss.MaxRuns = 1
 	}
 	if ss.MaxEpcs == 0 { // allow user override
-		ss.MaxEpcs = 500
+		ss.MaxEpcs = 100
 		ss.NZeroStop = -1
 	}
 	if ss.MaxTrls == 0 { // allow user override
@@ -184,22 +207,16 @@ func (ss *Sim) ConfigEnv() {
 	ss.TrainEnv.Dsc = "training params and state"
 	ss.TrainEnv.Defaults()
 	ss.TrainEnv.ImageFiles = []string{"v1rf_img1.jpg", "v1rf_img2.jpg", "v1rf_img3.jpg", "v1rf_img4.jpg"}
-	ss.TrainEnv.OpenImages()
+	ss.TrainEnv.OpenImagesAsset()
 	ss.TrainEnv.Validate()
 	ss.TrainEnv.Run.Max = ss.MaxRuns // note: we are not setting epoch max -- do that manually
 	ss.TrainEnv.Trial.Max = ss.MaxTrls
 
 	ss.TestEnv.Nm = "TestEnv"
-	ss.TestEnv.Dsc = "testing params and state"
+	ss.TestEnv.Dsc = "testing (probe) params and state"
 	ss.TestEnv.Table = etable.NewIdxView(ss.Probes)
 	ss.TestEnv.Sequential = true
 	ss.TestEnv.Validate()
-
-	// note: to create a train / test split of pats, do this:
-	// all := etable.NewIdxView(ss.Pats)
-	// splits, _ := split.Permuted(all, []float64{.8, .2}, []string{"Train", "Test"})
-	// ss.TrainEnv.Table = splits.Splits[0]
-	// ss.TestEnv.Table = splits.Splits[1]
 
 	ss.TrainEnv.Init(0)
 	ss.TestEnv.Init(0)
@@ -221,6 +238,9 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 
 	rec := net.ConnectLayers(v1, v1, circ, emer.Lateral)
 	rec.SetClass("ExciteLateral")
+
+	inh := net.ConnectLayers(v1, v1, full, emer.Inhib)
+	inh.SetClass("InhibLateral")
 
 	lgnOff.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "LGNon", YAlign: relpos.Front, Space: 2})
 	v1.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "LGNon", XAlign: relpos.Left, YAlign: relpos.Front, XOffset: 5, Space: 2})
@@ -490,10 +510,63 @@ func (ss *Sim) Stopped() {
 	}
 }
 
-// SaveWeights saves the network weights -- when called with giv.CallMethod
+// SaveWts saves the network weights -- when called with giv.CallMethod
 // it will auto-prompt for filename
-func (ss *Sim) SaveWeights(filename gi.FileName) {
+func (ss *Sim) SaveWts(filename gi.FileName) {
 	ss.Net.SaveWtsJSON(filename)
+}
+
+// OpenRec2Wts opens trained weights w/ rec=0.2
+func (ss *Sim) OpenRec2Wts() {
+	ab, err := Asset("v1rf_rec2.wts") // embedded in executable
+	if err != nil {
+		log.Println(err)
+	}
+	ss.Net.ReadWtsJSON(bytes.NewBuffer(ab))
+	// ss.Net.OpenWtsJSON("v1rf_rec2.wts.gz")
+}
+
+// OpenRec05Wts opens trained weights w/ rec=0.05
+func (ss *Sim) OpenRec05Wts() {
+	ab, err := Asset("v1rf_rec05.wts") // embedded in executable
+	if err != nil {
+		log.Println(err)
+	}
+	ss.Net.ReadWtsJSON(bytes.NewBuffer(ab))
+	// ss.Net.OpenWtsJSON("v1rf_rec05.wts.gz")
+}
+
+func (ss *Sim) V1RFs() {
+	onVals := ss.V1onWts.Values
+	offVals := ss.V1offWts.Values
+	netVals := ss.V1Wts.Values
+	on := ss.Net.LayerByName("LGNon").(*leabra.Layer)
+	off := ss.Net.LayerByName("LGNoff").(*leabra.Layer)
+	isz := on.Shape().Len()
+	v1 := ss.Net.LayerByName("V1").(*leabra.Layer)
+	ysz := v1.Shape().Dim(0)
+	xsz := v1.Shape().Dim(1)
+	for y := 0; y < ysz; y++ {
+		for x := 0; x < xsz; x++ {
+			ui := (y*xsz + x)
+			ust := ui * isz
+			onvls := onVals[ust : ust+isz]
+			offvls := offVals[ust : ust+isz]
+			netvls := netVals[ust : ust+isz]
+			on.SendPrjnVals(&onvls, "Wt", v1, ui)
+			off.SendPrjnVals(&offvls, "Wt", v1, ui)
+			for ui := 0; ui < isz; ui++ {
+				netvls[ui] = 1.5 * (onvls[ui] - offvls[ui])
+			}
+		}
+	}
+	if ss.WtsGrid != nil {
+		ss.WtsGrid.UpdateSig()
+	}
+}
+
+func (ss *Sim) ConfigWts(dt *etensor.Float32) {
+	dt.SetShape([]int{14, 14, 12, 12}, nil, nil)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -515,8 +588,6 @@ func (ss *Sim) TestTrial(returnOnChg bool) {
 		}
 	}
 
-	// note: type must be in place before apply inputs
-	ss.Net.LayerByName("Output").SetType(emer.Compare)
 	ss.ApplyInputs(&ss.TestEnv)
 	ss.AlphaCyc(false)   // !train
 	ss.TrialStats(false) // !accumulate
@@ -528,8 +599,6 @@ func (ss *Sim) TestItem(idx int) {
 	cur := ss.TestEnv.Trial.Cur
 	ss.TestEnv.Trial.Cur = idx
 	ss.TestEnv.SetTrialName()
-	// note: type must be in place before apply inputs
-	ss.Net.LayerByName("Output").SetType(emer.Compare)
 	ss.ApplyInputs(&ss.TestEnv)
 	ss.AlphaCyc(false)   // !train
 	ss.TrialStats(false) // !accumulate
@@ -568,6 +637,15 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 		ss.Params.ValidateSheets([]string{"Network", "Sim"})
 	}
 	err := ss.SetParamsSet("Base", sheet, setMsg)
+
+	nt := ss.Net
+	v1 := nt.LayerByName("V1").(*leabra.Layer)
+	elat := v1.RcvPrjns[2].(*leabra.Prjn)
+	elat.WtScale.Rel = ss.ExcitLateralScale
+	elat.Learn.Learn = ss.ExcitLateralLearn
+	ilat := v1.RcvPrjns[3].(*leabra.Prjn)
+	ilat.WtScale.Abs = ss.InhibLateralScale
+
 	return err
 }
 
@@ -599,19 +677,19 @@ func (ss *Sim) SetParamsSet(setNm string, sheet string, setMsg bool) error {
 }
 
 func (ss *Sim) OpenPats() {
+	// patgen.ReshapeCppFile(ss.Probes, "ProbeInputData.dat", "probes.csv") // one-time reshape
 	dt := ss.Probes
 	dt.SetMetaData("name", "Probes")
 	dt.SetMetaData("desc", "Probe inputs for testing")
 	// err := dt.OpenCSV("easy.dat", etable.Tab)
-	// ab, err := Asset("easy.dat") // embedded in executable
-	// if err != nil {
-	// 	log.Println(err)
-	// }
-	// err = dt.ReadCSV(bytes.NewBuffer(ab), etable.Tab)
-	// if err != nil {
-	// 	log.Println(err)
-	// }
-
+	ab, err := Asset("probes.tsv") // embedded in executable
+	if err != nil {
+		log.Println(err)
+	}
+	err = dt.ReadCSV(bytes.NewBuffer(ab), etable.Tab)
+	if err != nil {
+		log.Println(err)
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -641,6 +719,8 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 
 	epc := ss.TrainEnv.Epoch.Prv // this is triggered by increment so use previous value
 	// nt := float64(ss.TrainEnv.Trial.Max)
+
+	ss.V1RFs()
 
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
@@ -674,6 +754,9 @@ func (ss *Sim) ConfigTrnEpcLog(dt *etable.Table) {
 		sch = append(sch, etable.Column{lnm + " ActAvg", etensor.FLOAT64, nil, nil})
 	}
 	dt.SetFromSchema(sch, 0)
+	ss.ConfigWts(ss.V1onWts)
+	ss.ConfigWts(ss.V1offWts)
+	ss.ConfigWts(ss.V1Wts)
 }
 
 func (ss *Sim) ConfigTrnEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
@@ -911,6 +994,11 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	ss.CurImgGrid = tg
 	tg.SetTensor(&ss.TrainEnv.Vis.ImgTsr)
 
+	tg = tv.AddNewTab(etview.KiT_TensorGrid, "V1 RFs").(*etview.TensorGrid)
+	tg.SetStretchMax()
+	ss.WtsGrid = tg
+	tg.SetTensor(ss.V1Wts)
+
 	plt = tv.AddNewTab(eplot.KiT_Plot2D, "TstTrlPlot").(*eplot.Plot2D)
 	ss.TstTrlPlot = ss.ConfigTstTrlPlot(plt, ss.TstTrlLog)
 
@@ -976,6 +1064,26 @@ func (ss *Sim) ConfigGui() *gi.Window {
 			tbar.UpdateActions()
 			go ss.TrainRun()
 		}
+	})
+
+	tbar.AddSeparator("spec")
+
+	tbar.AddAction(gi.ActOpts{Label: "Open Rec=.2 Wts", Icon: "updt", Tooltip: "Open weights trained with excitatory lateral (recurrent) con scale = .2.", UpdateFunc: func(act *gi.Action) {
+		act.SetActiveStateUpdt(!ss.IsRunning)
+	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+		ss.OpenRec2Wts()
+	})
+
+	tbar.AddAction(gi.ActOpts{Label: "Open Rec=.05 Wts", Icon: "updt", Tooltip: "Open weights trained with excitatory lateral (recurrent) con scale = .05.", UpdateFunc: func(act *gi.Action) {
+		act.SetActiveStateUpdt(!ss.IsRunning)
+	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+		ss.OpenRec05Wts()
+	})
+
+	tbar.AddAction(gi.ActOpts{Label: "V1 RFs", Icon: "file-image", Tooltip: "Update the V1 Receptive Field (Weights) plot in V1 RFs tab.", UpdateFunc: func(act *gi.Action) {
+		act.SetActiveStateUpdt(!ss.IsRunning)
+	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+		ss.V1RFs()
 	})
 
 	tbar.AddSeparator("test")
@@ -1121,7 +1229,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 // These props register Save methods so they can be used
 var SimProps = ki.Props{
 	"CallMethods": ki.PropSlice{
-		{"SaveWeights", ki.Props{
+		{"SaveWts", ki.Props{
 			"desc": "save network weights to file",
 			"icon": "file-save",
 			"Args": ki.PropSlice{
