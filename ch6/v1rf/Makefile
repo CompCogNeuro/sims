@@ -1,7 +1,7 @@
 # Makefile for CCN sims projects
 
 # important: update these for each app
-ASSETS=easy.dat hard.dat impossible.dat
+ASSETS=v1rf_img1.jpg v1rf_img2.jpg v1rf_img3.jpg v1rf_img4.jpg v1rf_rec2.wts v1rf_rec05.wts probes.tsv
 
 # default package install 
 PKGDIR=$(HOME)/ccnsimpkg
