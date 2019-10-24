@@ -3,7 +3,11 @@
 // license that can be found in the LICENSE file.
 
 /*
-v1rf illustrates how self-organizing learning in response to natural images produces the oriented edge detector receptive field properties of neurons in primary visual cortex (V1). This provides insight into why the visual system encodes information in the way it does, while also providing an important test of the biological relevance of our computational models.
+v1rf illustrates how self-organizing learning in response to natural images
+produces the oriented edge detector receptive field properties of neurons
+in primary visual cortex (V1). This provides insight into why the visual
+system encodes information in the way it does, while also providing an
+important test of the biological relevance of our computational models.
 */
 package main
 
