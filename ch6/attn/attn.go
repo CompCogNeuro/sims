@@ -124,6 +124,7 @@ var ParamSets = params.Sets{
 					"Layer.Act.Noise.Type":     "GeNoise",
 					"Layer.Act.Noise.Fixed":    "false",
 					"Layer.Act.Init.Decay":     "0",
+					"Layer.Act.KNa.On":         "false",
 				}},
 			{Sel: "#Input", Desc: "no noise",
 				Params: params.Params{
@@ -191,6 +192,14 @@ var ParamSets = params.Sets{
 				}},
 		},
 	}},
+	{Name: "KNaAdapt", Desc: "Turn on KNa adaptation", Sheets: params.Sheets{
+		"Network": &params.Sheet{
+			{Sel: "Layer", Desc: "KNa adapt on",
+				Params: params.Params{
+					"Layer.Act.KNa.On": "true",
+				}},
+		},
+	}},
 }
 
 // Sim encapsulates the entire simulation model, and we define all the
@@ -199,8 +208,10 @@ var ParamSets = params.Sets{
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
-	SpatToObj     float32           `def:"2" view:"spatial to object projection WtScale.Rel strength -- reduce to 1.5, 1 to test"`
-	V1ToSpat1     float32           `def:"0.6" view:"V1 to Spat1 projection WtScale.Rel strength -- reduce to .55, .5 to test"`
+	SpatToObj     float32           `def:"2" desc:"spatial to object projection WtScale.Rel strength -- reduce to 1.5, 1 to test"`
+	V1ToSpat1     float32           `def:"0.6" desc:"V1 to Spat1 projection WtScale.Rel strength -- reduce to .55, .5 to test"`
+	KNaAdapt      bool              `def:"false" desc:"sodium (Na) gated potassium (K) channels that cause neurons to fatigue over time"`
+	CueDur        int               `def:"100" desc:"number of cycles to present the cue -- 100 by default, 50 to 300 for KNa adapt testing"`
 	Net           *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
 	Test          TestType          `desc:"select which type of test (input patterns) to use"`
 	MultiObjs     *etable.Table     `view:"no-inline" desc:"click to see these testing input patterns"`
@@ -255,6 +266,8 @@ func (ss *Sim) New() {
 func (ss *Sim) Defaults() {
 	ss.SpatToObj = 2
 	ss.V1ToSpat1 = 0.6
+	ss.KNaAdapt = false
+	ss.CueDur = 100
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -514,14 +527,12 @@ func (ss *Sim) AlphaCyc() {
 		for cyc := 0; cyc < ss.Time.CycPerQtr; cyc++ {
 			ss.Net.Cycle(&ss.Time)
 			ss.Time.CycleInc()
-			if ss.TestEnv.TrialName != "Cue" {
-				switch viewUpdt {
-				case leabra.Cycle:
+			switch viewUpdt {
+			case leabra.Cycle:
+				ss.UpdateView()
+			case leabra.FastSpike:
+				if (cyc+1)%10 == 0 {
 					ss.UpdateView()
-				case leabra.FastSpike:
-					if (cyc+1)%10 == 0 {
-						ss.UpdateView()
-					}
 				}
 			}
 			trgact := out.Neurons[1].Act
@@ -533,7 +544,7 @@ func (ss *Sim) AlphaCyc() {
 		ss.Net.QuarterFinal(&ss.Time)
 		ss.Time.QuarterInc()
 		switch {
-		case viewUpdt <= leabra.Quarter || ss.TestEnv.TrialName == "Cue":
+		case viewUpdt <= leabra.Quarter:
 			ss.UpdateView()
 		case viewUpdt == leabra.Phase:
 			if qtr >= 2 {
@@ -544,6 +555,23 @@ func (ss *Sim) AlphaCyc() {
 			break
 		}
 	}
+
+	ss.UpdateView()
+}
+
+// AlphaCycCue just runs over fixed number of cycles -- for Cue trials
+func (ss *Sim) AlphaCycCue() {
+	ss.Net.AlphaCycInit()
+	ss.Time.AlphaCycStart()
+	for cyc := 0; cyc < ss.CueDur; cyc++ {
+		ss.Net.Cycle(&ss.Time)
+		ss.Time.CycleInc()
+		if (cyc+1)%10 == 0 {
+			ss.UpdateView()
+		}
+	}
+	ss.Net.QuarterFinal(&ss.Time) // whatever.
+	ss.Time.QuarterInc()
 
 	ss.UpdateView()
 }
@@ -607,12 +635,16 @@ func (ss *Sim) TestTrial() {
 		return
 	}
 
+	isCue := (ss.TestEnv.TrialName == "Cue")
+
 	if ss.TestEnv.PrvTrialName != "Cue" {
 		ss.Net.InitActs()
 	}
 	ss.ApplyInputs(&ss.TestEnv)
-	ss.AlphaCyc()
-	if ss.TestEnv.TrialName != "Cue" {
+	if isCue {
+		ss.AlphaCycCue()
+	} else {
+		ss.AlphaCyc()
 		ss.LogTstTrl(ss.TstTrlLog)
 	}
 }
@@ -681,6 +713,10 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 	vsp.Params.SetParamByName("Prjn.WtScale.Rel", fmt.Sprintf("%g", ss.V1ToSpat1))
 
 	err := ss.SetParamsSet("Base", sheet, setMsg)
+
+	if ss.KNaAdapt {
+		err = ss.SetParamsSet("KNaAdapt", sheet, setMsg)
+	}
 	return err
 }
 
@@ -896,30 +932,6 @@ func (ss *Sim) ConfigGui() *gi.Window {
 			tbar.UpdateActions()
 			go ss.TestTrialGUI()
 		}
-	})
-
-	tbar.AddAction(gi.ActOpts{Label: "Test Item", Icon: "step-fwd", Tooltip: "Prompts for a specific input pattern name to run, and runs it in testing mode.", UpdateFunc: func(act *gi.Action) {
-		act.SetActiveStateUpdt(!ss.IsRunning)
-	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
-		gi.StringPromptDialog(vp, "", "Test Item",
-			gi.DlgOpts{Title: "Test Item", Prompt: "Enter the Name of a given input pattern to test (case insensitive, contains given string."},
-			win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
-				dlg := send.(*gi.Dialog)
-				if sig == int64(gi.DialogAccepted) {
-					val := gi.StringPromptDialogValue(dlg)
-					idxs := ss.TestEnv.Table.RowsByString("Name", val, true, true) // contains, ignoreCase
-					if len(idxs) == 0 {
-						gi.PromptDialog(nil, gi.DlgOpts{Title: "Name Not Found", Prompt: "No patterns found containing: " + val}, true, false, nil, nil)
-					} else {
-						if !ss.IsRunning {
-							ss.IsRunning = true
-							tbar.UpdateActions()
-							fmt.Printf("testing index: %v\n", idxs[0])
-							go ss.TestItemGUI(idxs[0])
-						}
-					}
-				}
-			})
 	})
 
 	tbar.AddAction(gi.ActOpts{Label: "Test All", Icon: "fast-fwd", Tooltip: "Tests all of the testing trials.", UpdateFunc: func(act *gi.Action) {
