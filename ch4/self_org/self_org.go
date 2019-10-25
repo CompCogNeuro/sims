@@ -21,7 +21,6 @@ import (
 	"github.com/emer/emergent/env"
 	"github.com/emer/emergent/netview"
 	"github.com/emer/emergent/params"
-	"github.com/emer/emergent/patgen"
 	"github.com/emer/emergent/prjn"
 	"github.com/emer/etable/agg"
 	"github.com/emer/etable/eplot"
@@ -184,8 +183,6 @@ func (ss *Sim) Defaults() {
 
 // Config configures all the elements using the standard functions
 func (ss *Sim) Config() {
-	patgen.ReshapeCppFile(ss.Lines2, "lines_5x5x2.dat", "lines_5x5x2.dat") // one-time reshape
-	patgen.ReshapeCppFile(ss.Lines1, "lines_5x5x1.dat", "lines_5x5x1.dat") // one-time reshape
 	ss.OpenPats()
 	ss.ConfigEnv()
 	ss.ConfigNet(ss.Net)
@@ -622,32 +619,33 @@ func (ss *Sim) SetParamsSet(setNm string, sheet string, setMsg bool) error {
 	return err
 }
 
-func (ss *Sim) OpenPats() {
-	dt := ss.Lines2
-	dt.SetMetaData("name", "Lines2")
-	dt.SetMetaData("desc", "Lines2 Training patterns")
-	// err := dt.OpenCSV("lines_5x5x2.dat", etable.Tab)
-	ab, err := Asset("lines_5x5x2.dat") // embedded in executable
+// OpenPatAsset opens pattern file from embedded assets
+func (ss *Sim) OpenPatAsset(dt *etable.Table, fnm, name, desc string) error {
+	dt.SetMetaData("name", name)
+	dt.SetMetaData("desc", desc)
+	ab, err := Asset(fnm)
 	if err != nil {
 		log.Println(err)
+		return err
 	}
 	err = dt.ReadCSV(bytes.NewBuffer(ab), etable.Tab)
 	if err != nil {
 		log.Println(err)
+	} else {
+		for i := 1; i < len(dt.Cols); i++ {
+			dt.Cols[i].SetMetaData("grid-fill", "0.9")
+		}
 	}
+	return err
+}
 
-	dt = ss.Lines1
-	dt.SetMetaData("name", "Lines1")
-	dt.SetMetaData("desc", "Lines1 Testing patterns")
+func (ss *Sim) OpenPats() {
+	// patgen.ReshapeCppFile(ss.Lines2, "lines_5x5x2.dat", "lines_5x5x2.dat") // one-time reshape
+	// patgen.ReshapeCppFile(ss.Lines1, "lines_5x5x1.dat", "lines_5x5x1.dat") // one-time reshape
+	ss.OpenPatAsset(ss.Lines2, "lines_5x5x2.dat", "Lines2", "Lines2 Training patterns")
+	// err := dt.OpenCSV("lines_5x5x2.dat", etable.Tab)
+	ss.OpenPatAsset(ss.Lines1, "lines_5x5x1.dat", "Lines1", "Lines1 Testing patterns")
 	// err = dt.OpenCSV("lines_5x5x1.dat", etable.Tab)
-	ab, err = Asset("lines_5x5x1.dat") // embedded in executable
-	if err != nil {
-		log.Println(err)
-	}
-	err = dt.ReadCSV(bytes.NewBuffer(ab), etable.Tab)
-	if err != nil {
-		log.Println(err)
-	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////

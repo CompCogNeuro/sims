@@ -226,9 +226,6 @@ func (ss *Sim) New() {
 
 // Config configures all the elements using the standard functions
 func (ss *Sim) Config() {
-	// patgen.ReshapeCppFile(ss.Easy, "easy.dat", "easy.dat")                   // one-time reshape
-	// patgen.ReshapeCppFile(ss.Hard, "hard.dat", "hard.dat")                   // one-time reshape
-	// patgen.ReshapeCppFile(ss.Impossible, "impossible.dat", "impossible.dat") // one-time reshape
 	ss.OpenPats()
 	ss.ConfigEnv()
 	ss.ConfigNet(ss.Net)
@@ -689,45 +686,36 @@ func (ss *Sim) SetParamsSet(setNm string, sheet string, setMsg bool) error {
 	return err
 }
 
+// OpenPatAsset opens pattern file from embedded assets
+func (ss *Sim) OpenPatAsset(dt *etable.Table, fnm, name, desc string) error {
+	dt.SetMetaData("name", name)
+	dt.SetMetaData("desc", desc)
+	ab, err := Asset(fnm)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	err = dt.ReadCSV(bytes.NewBuffer(ab), etable.Tab)
+	if err != nil {
+		log.Println(err)
+	} else {
+		for i := 1; i < len(dt.Cols); i++ {
+			dt.Cols[i].SetMetaData("grid-fill", "0.9")
+		}
+	}
+	return err
+}
+
 func (ss *Sim) OpenPats() {
-	dt := ss.Easy
-	dt.SetMetaData("name", "Easy")
-	dt.SetMetaData("desc", "Easy Training patterns")
+	// patgen.ReshapeCppFile(ss.Easy, "easy.dat", "easy.dat")                   // one-time reshape
+	// patgen.ReshapeCppFile(ss.Hard, "hard.dat", "hard.dat")                   // one-time reshape
+	// patgen.ReshapeCppFile(ss.Impossible, "impossible.dat", "impossible.dat") // one-time reshape
+	ss.OpenPatAsset(ss.Easy, "easy.dat", "Easy", "Easy Training patterns")
 	// err := dt.OpenCSV("easy.dat", etable.Tab)
-	ab, err := Asset("easy.dat") // embedded in executable
-	if err != nil {
-		log.Println(err)
-	}
-	err = dt.ReadCSV(bytes.NewBuffer(ab), etable.Tab)
-	if err != nil {
-		log.Println(err)
-	}
-
-	dt = ss.Hard
-	dt.SetMetaData("name", "Hard")
-	dt.SetMetaData("desc", "Hard Training patterns")
+	ss.OpenPatAsset(ss.Hard, "hard.dat", "Hard", "Hard Training patterns")
 	// err = dt.OpenCSV("hard.dat", etable.Tab)
-	ab, err = Asset("hard.dat") // embedded in executable
-	if err != nil {
-		log.Println(err)
-	}
-	err = dt.ReadCSV(bytes.NewBuffer(ab), etable.Tab)
-	if err != nil {
-		log.Println(err)
-	}
-
-	dt = ss.Impossible
-	dt.SetMetaData("name", "Impossible")
-	dt.SetMetaData("desc", "Impossible Training patterns")
+	ss.OpenPatAsset(ss.Impossible, "impossible.dat", "Impossible", "Impossible Training patterns")
 	// err = dt.OpenCSV("impossible.dat", etable.Tab)
-	ab, err = Asset("impossible.dat") // embedded in executable
-	if err != nil {
-		log.Println(err)
-	}
-	err = dt.ReadCSV(bytes.NewBuffer(ab), etable.Tab)
-	if err != nil {
-		log.Println(err)
-	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////

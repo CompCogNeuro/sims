@@ -791,22 +791,6 @@ func (ss *Sim) SetParamsSet(setNm string, sheet string, setMsg bool) error {
 	return err
 }
 
-func (ss *Sim) OpenPats() {
-	dt := ss.Easy
-	dt.SetMetaData("name", "Easy")
-	dt.SetMetaData("desc", "Easy Training patterns")
-	// err := dt.OpenCSV("easy.dat", etable.Tab)
-	// ab, err := Asset("easy.dat") // embedded in executable
-	// if err != nil {
-	// 	log.Println(err)
-	// }
-	// err = dt.ReadCSV(bytes.NewBuffer(ab), etable.Tab)
-	// if err != nil {
-	// 	log.Println(err)
-	// }
-
-}
-
 ////////////////////////////////////////////////////////////////////////////////////////////
 // 		Logging
 
@@ -1213,7 +1197,6 @@ func (ss *Sim) ConfigGui() *gi.Window {
 		if !ss.IsRunning {
 			ss.IsRunning = true
 			tbar.UpdateActions()
-			// ss.Train()
 			go ss.Train()
 		}
 	})

@@ -26,10 +26,12 @@ import (
 	"github.com/emer/etable/etable"
 	"github.com/emer/etable/etensor"
 	_ "github.com/emer/etable/etview" // include to get gui views
+	"github.com/emer/etable/split"
 	"github.com/emer/leabra/leabra"
 	"github.com/goki/gi/gi"
 	"github.com/goki/gi/gimain"
 	"github.com/goki/gi/giv"
+	"github.com/goki/gi/mat32"
 	"github.com/goki/ki/ki"
 	"github.com/goki/ki/kit"
 )
@@ -63,6 +65,40 @@ const (
 	TestTypeN
 )
 
+// LesionType is the type of lesion
+type LesionType int32
+
+//go:generate stringer -type=LesionType
+
+var KiT_LesionType = kit.Enums.AddEnum(LesionTypeN, false, nil)
+
+func (ev LesionType) MarshalJSON() ([]byte, error)  { return kit.EnumMarshalJSON(ev) }
+func (ev *LesionType) UnmarshalJSON(b []byte) error { return kit.EnumUnmarshalJSON(ev, b) }
+
+const (
+	NoLesion LesionType = iota
+	LesionSpat1
+	LesionSpat2
+	LesionSpat12
+	LesionTypeN
+)
+
+// LesionSize is the size of lesion
+type LesionSize int32
+
+//go:generate stringer -type=LesionSize
+
+var KiT_LesionSize = kit.Enums.AddEnum(LesionSizeN, false, nil)
+
+func (ev LesionSize) MarshalJSON() ([]byte, error)  { return kit.EnumMarshalJSON(ev) }
+func (ev *LesionSize) UnmarshalJSON(b []byte) error { return kit.EnumUnmarshalJSON(ev, b) }
+
+const (
+	LesionHalf LesionSize = iota
+	LesionFull
+	LesionSizeN
+)
+
 // ParamSets is the default set of parameters -- Base is always applied, and others can be optionally
 // selected to apply on top of that
 var ParamSets = params.Sets{
@@ -81,6 +117,19 @@ var ParamSets = params.Sets{
 					"Layer.Inhib.ActAvg.Fixed": "true",
 					"Layer.Inhib.Layer.FBTau":  "3",   // slower better for small nets
 					"Layer.Act.Gbar.L":         "0.1", // needs lower leak
+					"Layer.Act.Dt.VmTau":       "7",   // slower
+					"Layer.Act.Dt.GTau":        "3",   // slower
+					"Layer.Act.Noise.Dist":     "Gaussian",
+					"Layer.Act.Noise.Var":      "0.001",
+					"Layer.Act.Noise.Type":     "GeNoise",
+					"Layer.Act.Noise.Fixed":    "false",
+					"Layer.Act.Init.Decay":     "0",
+				}},
+			{Sel: "#Input", Desc: "no noise",
+				Params: params.Params{
+					"Layer.Inhib.Layer.Gi":    "2.0",
+					"Layer.Act.Noise.Type":    "NoNoise",
+					"Layer.Inhib.ActAvg.Init": "0.07",
 				}},
 			{Sel: "#V1", Desc: "specific inhibition",
 				Params: params.Params{
@@ -158,6 +207,7 @@ type Sim struct {
 	ReversePosner *etable.Table     `view:"no-inline" desc:"click to see these testing input patterns"`
 	ObjAttn       *etable.Table     `view:"no-inline" desc:"click to see these testing input patterns"`
 	TstTrlLog     *etable.Table     `view:"no-inline" desc:"testing trial-level log data -- click to see record of network's response to each input"`
+	TstStats      *etable.Table     `view:"no-inline" desc:"aggregate stats on testing data"`
 	Params        params.Sets       `view:"no-inline" desc:"full collection of param sets -- not really interesting for this model"`
 	TestEnv       env.FixedTable    `desc:"Testing environment -- manages iterating over testing"`
 	Time          leabra.Time       `desc:"leabra timing parameters and state"`
@@ -191,9 +241,10 @@ func (ss *Sim) New() {
 	ss.ReversePosner = &etable.Table{}
 	ss.ObjAttn = &etable.Table{}
 	ss.TstTrlLog = &etable.Table{}
+	ss.TstStats = &etable.Table{}
 	ss.Params = ParamSets
-	ss.ViewUpdt = leabra.Cycle
-	ss.TstRecLays = []string{"Input", "V1", "Spat1", "Spat2", "Obj1", "Obj2"}
+	ss.ViewUpdt = leabra.FastSpike
+	ss.TstRecLays = []string{"Input", "V1", "Spat1", "Spat2", "Obj1", "Obj2", "Output"}
 	ss.Defaults()
 }
 
@@ -243,7 +294,7 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 	sp1 := net.AddLayer4D("Spat1", 1, 5, 2, 1, emer.Hidden)
 	sp2 := net.AddLayer4D("Spat2", 1, 3, 2, 1, emer.Hidden)
 	ob1 := net.AddLayer4D("Obj1", 1, 5, 2, 1, emer.Hidden)
-	out := net.AddLayer2D("Output", 2, 1, emer.Target)
+	out := net.AddLayer2D("Output", 2, 1, emer.Compare)
 	ob2 := net.AddLayer4D("Obj2", 1, 3, 2, 1, emer.Hidden)
 
 	ob1.SetClass("Object")
@@ -339,15 +390,66 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 // InitWts loads the saved weights
 func (ss *Sim) InitWts(net *leabra.Network) {
 	net.InitWts()
-	// ab, err := Asset("faces.wts") // embedded in executable
-	// if err != nil {
-	// 	log.Println(err)
-	// }
-	// net.ReadWtsJSON(bytes.NewBuffer(ab))
-	// net.OpenWtsJSON("faces.wts")
-	// below is one-time conversion from c++ weights
-	// net.OpenWtsCpp("FaceNetworkCpp.wts")
-	// net.SaveWtsJSON("faces.wts")
+}
+
+// LesionUnit lesions given unit number in given layer by setting all weights to 0
+func (ss *Sim) LesionUnit(lay *leabra.Layer, unx, uny int) {
+	ui := etensor.Prjn2DIdx(&lay.Shp, false, uny, unx)
+	rpj := lay.RecvPrjns()
+	for _, pji := range *rpj {
+		pj := pji.(*leabra.Prjn)
+		nc := int(pj.RConN[ui])
+		st := int(pj.RConIdxSt[ui])
+		for ci := 0; ci < nc; ci++ {
+			rsi := pj.RSynIdx[st+ci]
+			sy := &pj.Syns[rsi]
+			sy.Wt = 0
+			pj.Learn.LWtFmWt(sy)
+		}
+	}
+}
+
+// Lesion lesions given set of layers (or unlesions for NoLesion) and
+// locations and number of units (Half = partial = 1/2 units, Full = both units)
+func (ss *Sim) Lesion(lay LesionType, locations LesionSize, units LesionSize) {
+	ss.InitWts(ss.Net)
+	if lay == NoLesion {
+		return
+	}
+	if lay == LesionSpat1 || lay == LesionSpat12 {
+		sp1 := ss.Net.LayerByName("Spat1").(*leabra.Layer)
+		ss.LesionUnit(sp1, 3, 1)
+		ss.LesionUnit(sp1, 4, 1)
+		if units == LesionFull {
+			ss.LesionUnit(sp1, 3, 0)
+			ss.LesionUnit(sp1, 4, 0)
+		}
+		if locations == LesionFull {
+			ss.LesionUnit(sp1, 0, 1)
+			ss.LesionUnit(sp1, 1, 1)
+			ss.LesionUnit(sp1, 2, 1)
+			if units == LesionFull {
+				ss.LesionUnit(sp1, 0, 0)
+				ss.LesionUnit(sp1, 1, 0)
+				ss.LesionUnit(sp1, 2, 0)
+			}
+		}
+	}
+	if lay == LesionSpat2 || lay == LesionSpat12 {
+		sp2 := ss.Net.LayerByName("Spat2").(*leabra.Layer)
+		ss.LesionUnit(sp2, 2, 1)
+		if units == LesionFull {
+			ss.LesionUnit(sp2, 2, 0)
+		}
+		if locations == LesionFull {
+			ss.LesionUnit(sp2, 0, 1)
+			ss.LesionUnit(sp2, 1, 1)
+			if units == LesionFull {
+				ss.LesionUnit(sp2, 0, 0)
+				ss.LesionUnit(sp2, 1, 0)
+			}
+		}
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -359,10 +461,11 @@ func (ss *Sim) Init() {
 	ss.UpdateEnv()
 	ss.TestEnv.Init(0)
 	ss.Time.Reset()
-	ss.Time.CycPerQtr = 50 // 200 total
-	ss.InitWts(ss.Net)
+	ss.Time.CycPerQtr = 55 // 220 total
+	// ss.InitWts(ss.Net)
 	ss.StopNow = false
 	ss.SetParams("", false) // all sheets
+	ss.TstTrlLog.SetNumRows(0)
 	ss.UpdateView()
 }
 
@@ -370,7 +473,11 @@ func (ss *Sim) Init() {
 // use tabs to achieve a reasonable formatting overall
 // and add a few tabs at the end to allow for expansion..
 func (ss *Sim) Counters() string {
-	return fmt.Sprintf("Trial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TestEnv.Trial.Cur, ss.Time.Cycle, ss.TestEnv.TrialName)
+	nm := ss.TestEnv.GroupName.Cur
+	if ss.TestEnv.TrialName != nm {
+		nm += ": " + ss.TestEnv.TrialName
+	}
+	return fmt.Sprintf("Trial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TestEnv.Trial.Cur, ss.Time.Cycle, nm)
 }
 
 func (ss *Sim) UpdateView() {
@@ -393,37 +500,47 @@ func (ss *Sim) AlphaCyc() {
 	viewUpdt := ss.ViewUpdt
 
 	// note: this has no learning calls
+	out := ss.Net.LayerByName("Output").(*leabra.Layer)
 
 	ss.Net.AlphaCycInit()
 	ss.Time.AlphaCycStart()
+	overThresh := false
 	for qtr := 0; qtr < 4; qtr++ {
 		for cyc := 0; cyc < ss.Time.CycPerQtr; cyc++ {
 			ss.Net.Cycle(&ss.Time)
 			ss.Time.CycleInc()
-			switch viewUpdt {
-			case leabra.Cycle:
-				ss.UpdateView()
-			case leabra.FastSpike:
-				if (cyc+1)%10 == 0 {
+			if ss.TestEnv.TrialName != "Cue" {
+				switch viewUpdt {
+				case leabra.Cycle:
 					ss.UpdateView()
+				case leabra.FastSpike:
+					if (cyc+1)%10 == 0 {
+						ss.UpdateView()
+					}
 				}
+			}
+			trgact := out.Neurons[1].Act
+			if trgact > 0.5 {
+				overThresh = true
+				break
 			}
 		}
 		ss.Net.QuarterFinal(&ss.Time)
 		ss.Time.QuarterInc()
 		switch {
-		case viewUpdt <= leabra.Quarter:
+		case viewUpdt <= leabra.Quarter || ss.TestEnv.TrialName == "Cue":
 			ss.UpdateView()
 		case viewUpdt == leabra.Phase:
 			if qtr >= 2 {
 				ss.UpdateView()
 			}
 		}
+		if overThresh {
+			break
+		}
 	}
 
-	if viewUpdt == leabra.AlphaCycle {
-		ss.UpdateView()
-	}
+	ss.UpdateView()
 }
 
 // ApplyInputs applies input patterns from given envirbonment.
@@ -485,9 +602,20 @@ func (ss *Sim) TestTrial() {
 		return
 	}
 
+	if ss.TestEnv.PrvTrialName != "Cue" {
+		ss.Net.InitActs()
+	}
 	ss.ApplyInputs(&ss.TestEnv)
 	ss.AlphaCyc()
-	ss.LogTstTrl(ss.TstTrlLog)
+	if ss.TestEnv.TrialName != "Cue" {
+		ss.LogTstTrl(ss.TstTrlLog)
+	}
+}
+
+// TestTrialGUI runs one trial of testing -- always sequentially presented inputs
+func (ss *Sim) TestTrialGUI() {
+	ss.TestTrial()
+	ss.Stopped()
 }
 
 // TestItem tests given item which is at given index in test item list
@@ -500,6 +628,12 @@ func (ss *Sim) TestItem(idx int) {
 	ss.TestEnv.Trial.Cur = cur
 }
 
+// TestItemGUI tests given item which is at given index in test item list
+func (ss *Sim) TestItemGUI(idx int) {
+	ss.TestItem(idx)
+	ss.Stopped()
+}
+
 // TestAll runs through the full set of testing items
 func (ss *Sim) TestAll() {
 	ss.TestEnv.Init(0)
@@ -510,6 +644,7 @@ func (ss *Sim) TestAll() {
 			break
 		}
 	}
+	ss.TestStats()
 }
 
 // RunTestAll runs through the full set of testing items, has stop running = false at end -- for gui
@@ -574,6 +709,10 @@ func (ss *Sim) OpenPatAsset(dt *etable.Table, fnm, name, desc string) error {
 	err = dt.ReadCSV(bytes.NewBuffer(ab), etable.Tab)
 	if err != nil {
 		log.Println(err)
+	} else {
+		for i := 1; i < len(dt.Cols); i++ {
+			dt.Cols[i].SetMetaData("grid-fill", "0.9")
+		}
 	}
 	return err
 }
@@ -599,13 +738,13 @@ func (ss *Sim) OpenPats() {
 // log always contains number of testing items
 func (ss *Sim) LogTstTrl(dt *etable.Table) {
 	trl := ss.TestEnv.Trial.Cur
-	row := trl
-
+	row := dt.Rows
 	if dt.Rows <= row {
 		dt.SetNumRows(row + 1)
 	}
 	dt.SetCellFloat("Trial", row, float64(trl))
-	dt.SetCellString("TrialName", row, ss.TestEnv.TrialName)
+	dt.SetCellString("TrialName", row, ss.TestEnv.GroupName.Cur)
+	dt.SetCellFloat("Cycle", row, float64(ss.Time.Cycle))
 
 	if ss.LayRecTsr == nil {
 		ss.LayRecTsr = make(map[string]*etensor.Float32)
@@ -635,6 +774,7 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 	sch := etable.Schema{
 		{"Trial", etensor.INT64, nil, nil},
 		{"TrialName", etensor.STRING, nil, nil},
+		{"Cycle", etensor.INT64, nil, nil},
 	}
 	for _, lnm := range ss.TstRecLays {
 		ly := ss.Net.LayerByName(lnm).(*leabra.Layer)
@@ -647,9 +787,11 @@ func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.Params.Title = "Attn Test Trial Plot"
 	plt.Params.XAxisCol = "Trial"
 	plt.SetTable(dt)
+	plt.Params.Points = true
 	// order of params: on, fixMin, min, fixMax, max
-	plt.SetColParams("Trial", false, true, 0, false, 0)
-	plt.SetColParams("TrialName", false, true, 0, false, 0)
+	plt.SetColParams("Trial", false, true, -0.5, true, 2.5)
+	plt.SetColParams("TrialName", true, true, 0, false, 0)
+	plt.SetColParams("Cycle", true, true, 0, true, 220)
 
 	for _, lnm := range ss.TstRecLays {
 		plt.SetColParams(lnm, false, true, 0, true, 1)
@@ -657,10 +799,21 @@ func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	return plt
 }
 
+func (ss *Sim) TestStats() {
+	dt := ss.TstTrlLog
+	runix := etable.NewIdxView(dt)
+	spl := split.GroupBy(runix, []string{"TrialName"})
+	split.Desc(spl, "Cycle")
+	ss.TstStats = spl.AggsToTable(false)
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////
 // 		Gui
 
 func (ss *Sim) ConfigNetView(nv *netview.NetView) {
+	nv.Scene().Camera.Pose.Pos.Set(0, 1.2, 3.0) // more "head on" than default which is more "top down"
+	nv.Scene().Camera.LookAt(mat32.Vec3{0, 0, 0}, mat32.Vec3{0, 1, 0})
+	nv.SetMaxRecs(1100)
 }
 
 // ConfigGui configures the GoGi gui interface for this simulation,
@@ -726,9 +879,8 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.IsRunning = true
-			ss.TestTrial()
-			ss.IsRunning = false
-			vp.SetNeedsFullRender()
+			tbar.UpdateActions()
+			go ss.TestTrialGUI()
 		}
 	})
 
@@ -747,10 +899,9 @@ func (ss *Sim) ConfigGui() *gi.Window {
 					} else {
 						if !ss.IsRunning {
 							ss.IsRunning = true
+							tbar.UpdateActions()
 							fmt.Printf("testing index: %v\n", idxs[0])
-							ss.TestItem(idxs[0])
-							ss.IsRunning = false
-							vp.SetNeedsFullRender()
+							go ss.TestItemGUI(idxs[0])
 						}
 					}
 				}
@@ -767,9 +918,15 @@ func (ss *Sim) ConfigGui() *gi.Window {
 		}
 	})
 
+	tbar.AddAction(gi.ActOpts{Label: "Lesion", Icon: "cut", Tooltip: "Lesion spatial pathways.", UpdateFunc: func(act *gi.Action) {
+		act.SetActiveStateUpdt(!ss.IsRunning)
+	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+		giv.CallMethod(ss, "Lesion", vp)
+	})
+
 	tbar.AddAction(gi.ActOpts{Label: "README", Icon: "file-markdown", Tooltip: "Opens your browser on the README file that contains instructions for how to run this model."}, win.This(),
 		func(recv, send ki.Ki, sig int64, data interface{}) {
-			gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch3/face_categ/README.md")
+			gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch6/attn/README.md")
 		})
 
 	vp.UpdateEndNoSig(updt)
@@ -841,6 +998,15 @@ var SimProps = ki.Props{
 				{"File Name", ki.Props{
 					"ext": ".wts",
 				}},
+			},
+		}},
+		{"Lesion", ki.Props{
+			"desc": "lesions given set of layers (or unlesions for NoLesion) and locations and number of units (Half = partial = 1/2 units, Full = both units)",
+			"icon": "cut",
+			"Args": ki.PropSlice{
+				{"Layers", ki.Props{}},
+				{"Locations", ki.Props{}},
+				{"Units", ki.Props{}},
 			},
 		}},
 	},

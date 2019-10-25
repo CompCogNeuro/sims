@@ -143,8 +143,6 @@ func (ss *Sim) Defaults() {
 
 // Config configures all the elements using the standard functions
 func (ss *Sim) Config() {
-	// patgen.ReshapeCppFile(ss.Pats, "faces.dat", "faces.dat")     // one-time reshape
-	// patgen.ReshapeCppFile(ss.PartPats, "partial_faces.dat", "partial_faces.dat") // one-time reshape
 	ss.OpenPats()
 	ss.ConfigEnv()
 	ss.ConfigNet(ss.Net)
@@ -449,32 +447,33 @@ func (ss *Sim) SetPats(partial bool) {
 	}
 }
 
-func (ss *Sim) OpenPats() {
-	dt := ss.Pats
-	dt.SetMetaData("name", "FacePats")
-	dt.SetMetaData("desc", "Testing Face patterns: full faces")
-	// err := dt.OpenCSV("digits.dat", etable.Tab)
-	ab, err := Asset("faces.dat") // embedded in executable
+// OpenPatAsset opens pattern file from embedded assets
+func (ss *Sim) OpenPatAsset(dt *etable.Table, fnm, name, desc string) error {
+	dt.SetMetaData("name", name)
+	dt.SetMetaData("desc", desc)
+	ab, err := Asset(fnm)
 	if err != nil {
 		log.Println(err)
+		return err
 	}
 	err = dt.ReadCSV(bytes.NewBuffer(ab), etable.Tab)
 	if err != nil {
 		log.Println(err)
+	} else {
+		for i := 1; i < len(dt.Cols); i++ {
+			dt.Cols[i].SetMetaData("grid-fill", "0.9")
+		}
 	}
+	return err
+}
 
-	dt = ss.PartPats
-	dt.SetMetaData("name", "PartFacePats")
-	dt.SetMetaData("desc", "Testing Face patterns: partial faces")
+func (ss *Sim) OpenPats() {
+	// patgen.ReshapeCppFile(ss.Pats, "faces.dat", "faces.dat")     // one-time reshape
+	// patgen.ReshapeCppFile(ss.PartPats, "partial_faces.dat", "partial_faces.dat") // one-time reshape
+	ss.OpenPatAsset(ss.Pats, "faces.dat", "FacePats", "Testing Face patterns: full faces")
 	// err := dt.OpenCSV("digits.dat", etable.Tab)
-	ab, err = Asset("partial_faces.dat") // embedded in executable
-	if err != nil {
-		log.Println(err)
-	}
-	err = dt.ReadCSV(bytes.NewBuffer(ab), etable.Tab)
-	if err != nil {
-		log.Println(err)
-	}
+	ss.OpenPatAsset(ss.PartPats, "partial_faces.dat", "PartFacePats", "Testing Face patterns: partial faces")
+	// err := dt.OpenCSV("digits.dat", etable.Tab)
 }
 
 //////////////////////////////////////////////

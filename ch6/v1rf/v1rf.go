@@ -680,20 +680,30 @@ func (ss *Sim) SetParamsSet(setNm string, sheet string, setMsg bool) error {
 	return err
 }
 
-func (ss *Sim) OpenPats() {
-	// patgen.ReshapeCppFile(ss.Probes, "ProbeInputData.dat", "probes.csv") // one-time reshape
-	dt := ss.Probes
-	dt.SetMetaData("name", "Probes")
-	dt.SetMetaData("desc", "Probe inputs for testing")
-	// err := dt.OpenCSV("easy.dat", etable.Tab)
-	ab, err := Asset("probes.tsv") // embedded in executable
+// OpenPatAsset opens pattern file from embedded assets
+func (ss *Sim) OpenPatAsset(dt *etable.Table, fnm, name, desc string) error {
+	dt.SetMetaData("name", name)
+	dt.SetMetaData("desc", desc)
+	ab, err := Asset(fnm)
 	if err != nil {
 		log.Println(err)
+		return err
 	}
 	err = dt.ReadCSV(bytes.NewBuffer(ab), etable.Tab)
 	if err != nil {
 		log.Println(err)
+	} else {
+		for i := 1; i < len(dt.Cols); i++ {
+			dt.Cols[i].SetMetaData("grid-fill", "0.9")
+		}
 	}
+	return err
+}
+
+func (ss *Sim) OpenPats() {
+	// patgen.ReshapeCppFile(ss.Probes, "ProbeInputData.dat", "probes.csv") // one-time reshape
+	ss.OpenPatAsset(ss.Probes, "probes.tsv", "Probes", "Probe inputs for testing")
+	// err := dt.OpenCSV("probes.tsv", etable.Tab)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
