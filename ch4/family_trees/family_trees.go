@@ -260,7 +260,6 @@ func (ss *Sim) New() {
 
 // Config configures all the elements using the standard functions
 func (ss *Sim) Config() {
-	// patgen.ReshapeCppFile(ss.Pats, "family_trees.dat", "family_trees.dat") // one-time reshape
 	ss.OpenPats()
 	ss.ConfigEnv()
 	ss.ConfigNet(ss.Net)
@@ -869,19 +868,30 @@ func (ss *Sim) SetParamsSet(setNm string, sheet string, setMsg bool) error {
 	return err
 }
 
-func (ss *Sim) OpenPats() {
-	dt := ss.Pats
-	dt.SetMetaData("name", "Family Trees")
-	dt.SetMetaData("desc", "Family Trees Training patterns")
-	// err := dt.OpenCSV("family_trees.dat", etable.Tab)
-	ab, err := Asset("family_trees.dat") // embedded in executable
+// OpenPatAsset opens pattern file from embedded assets
+func (ss *Sim) OpenPatAsset(dt *etable.Table, fnm, name, desc string) error {
+	dt.SetMetaData("name", name)
+	dt.SetMetaData("desc", desc)
+	ab, err := Asset(fnm)
 	if err != nil {
 		log.Println(err)
+		return err
 	}
 	err = dt.ReadCSV(bytes.NewBuffer(ab), etable.Tab)
 	if err != nil {
 		log.Println(err)
+	} else {
+		for i := 1; i < len(dt.Cols); i++ {
+			dt.Cols[i].SetMetaData("grid-fill", "0.9")
+		}
 	}
+	return err
+}
+
+func (ss *Sim) OpenPats() {
+	// patgen.ReshapeCppFile(ss.Pats, "family_trees.dat", "family_trees.dat") // one-time reshape
+	ss.OpenPatAsset(ss.Pats, "family_trees.dat", "Family Trees", "Family Trees Training patterns")
+	// err := dt.OpenCSV("family_trees.dat", etable.Tab)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
