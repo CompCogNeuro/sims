@@ -167,7 +167,7 @@ var ParamSets = params.Sets{
 				}},
 			{Sel: ".SpatToObj", Desc: "spatial to obj",
 				Params: params.Params{
-					"Prjn.WtScale.Rel": "2",
+					"Prjn.WtScale.Rel": "2", // note: controlled by Sim param
 				}},
 			{Sel: ".ObjToSpat", Desc: "obj to spatial",
 				Params: params.Params{
@@ -179,7 +179,7 @@ var ParamSets = params.Sets{
 				}},
 			{Sel: "#V1ToSpat1", Desc: "wt scale",
 				Params: params.Params{
-					"Prjn.WtScale.Rel": "0.6",
+					"Prjn.WtScale.Rel": "0.6", // note: controlled by Sim param
 				}},
 			{Sel: "#Spat1ToV1", Desc: "stronger spatial top-down wt scale",
 				Params: params.Params{
@@ -199,6 +199,8 @@ var ParamSets = params.Sets{
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
+	SpatToObj     float32           `def:"2" view:"spatial to object projection WtScale.Rel strength -- reduce to 1.5, 1 to test"`
+	V1ToSpat1     float32           `def:"0.6" view:"V1 to Spat1 projection WtScale.Rel strength -- reduce to .55, .5 to test"`
 	Net           *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
 	Test          TestType          `desc:"select which type of test (input patterns) to use"`
 	MultiObjs     *etable.Table     `view:"no-inline" desc:"click to see these testing input patterns"`
@@ -233,6 +235,7 @@ var TheSim Sim
 
 // New creates new blank elements and initializes defaults
 func (ss *Sim) New() {
+	ss.Defaults()
 	ss.Net = &leabra.Network{}
 	ss.Test = MultiObjs
 	ss.MultiObjs = &etable.Table{}
@@ -250,6 +253,8 @@ func (ss *Sim) New() {
 
 // Defaults sets default params
 func (ss *Sim) Defaults() {
+	ss.SpatToObj = 2
+	ss.V1ToSpat1 = 0.6
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -636,6 +641,8 @@ func (ss *Sim) TestItemGUI(idx int) {
 
 // TestAll runs through the full set of testing items
 func (ss *Sim) TestAll() {
+	ss.SetParams("", false) // in case params were changed
+	ss.UpdateEnv()
 	ss.TestEnv.Init(0)
 	for {
 		ss.TestTrial()
@@ -666,6 +673,13 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 		// this is important for catching typos and ensuring that all sheets can be used
 		ss.Params.ValidateSheets([]string{"Network", "Sim"})
 	}
+
+	spo := ss.Params.SetByName("Base").SheetByName("Network").SelByName(".SpatToObj")
+	spo.Params.SetParamByName("Prjn.WtScale.Rel", fmt.Sprintf("%g", ss.SpatToObj))
+
+	vsp := ss.Params.SetByName("Base").SheetByName("Network").SelByName("#V1ToSpat1")
+	vsp.Params.SetParamByName("Prjn.WtScale.Rel", fmt.Sprintf("%g", ss.V1ToSpat1))
+
 	err := ss.SetParamsSet("Base", sheet, setMsg)
 	return err
 }
@@ -918,10 +932,19 @@ func (ss *Sim) ConfigGui() *gi.Window {
 		}
 	})
 
+	tbar.AddSeparator("msep")
+
 	tbar.AddAction(gi.ActOpts{Label: "Lesion", Icon: "cut", Tooltip: "Lesion spatial pathways.", UpdateFunc: func(act *gi.Action) {
 		act.SetActiveStateUpdt(!ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		giv.CallMethod(ss, "Lesion", vp)
+	})
+
+	tbar.AddAction(gi.ActOpts{Label: "Defaults", Icon: "update", Tooltip: "Restore default parameters.", UpdateFunc: func(act *gi.Action) {
+		act.SetActiveStateUpdt(!ss.IsRunning)
+	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+		ss.Defaults()
+		vp.SetNeedsFullRender()
 	})
 
 	tbar.AddAction(gi.ActOpts{Label: "README", Icon: "file-markdown", Tooltip: "Opens your browser on the README file that contains instructions for how to run this model."}, win.This(),
