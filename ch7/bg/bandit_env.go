@@ -16,17 +16,19 @@ import (
 // BanditEnv simulates an n-armed bandit, where each of n inputs is associated with
 // a specific probability of reward.
 type BanditEnv struct {
-	Nm     string          `desc:"name of this environment"`
-	Dsc    string          `desc:"description of this environment"`
-	N      int             `desc:"number of different inputs"`
-	P      []float32       `view:"no-inline" desc:"probabilities for each option"`
-	Option env.CurPrvInt   `desc:"bandit option current / prev"`
-	RndOpt bool            `desc:"if true, select option at random each Step -- otherwise must be set externally (e.g., by model)"`
-	Input  etensor.Float64 `desc:"one-hot input representation of current option"`
-	Reward etensor.Float64 `desc:"single reward value"`
-	Run    env.Ctr         `view:"inline" desc:"current run of model as provided during Init"`
-	Epoch  env.Ctr         `view:"inline" desc:"number of times through Seq.Max number of sequences"`
-	Trial  env.Ctr         `view:"inline" desc:"trial is the step counter within sequence - how many steps taken within current sequence -- it resets to 0 at start of each sequence"`
+	Nm       string          `desc:"name of this environment"`
+	Dsc      string          `desc:"description of this environment"`
+	N        int             `desc:"number of different inputs"`
+	P        []float32       `view:"no-inline" desc:"probabilities for each option"`
+	RewVal   float32         `view:"value for reward"`
+	NoRewVal float32         `view:"value for non-reward"`
+	Option   env.CurPrvInt   `desc:"bandit option current / prev"`
+	RndOpt   bool            `desc:"if true, select option at random each Step -- otherwise must be set externally (e.g., by model)"`
+	Input    etensor.Float64 `desc:"one-hot input representation of current option"`
+	Reward   etensor.Float64 `desc:"single reward value"`
+	Run      env.Ctr         `view:"inline" desc:"current run of model as provided during Init"`
+	Epoch    env.Ctr         `view:"inline" desc:"number of times through Seq.Max number of sequences"`
+	Trial    env.Ctr         `view:"inline" desc:"trial is the step counter within sequence - how many steps taken within current sequence -- it resets to 0 at start of each sequence"`
 }
 
 func (be *BanditEnv) Name() string { return be.Nm }
@@ -38,6 +40,9 @@ func (be *BanditEnv) SetN(n int) {
 	be.P = make([]float32, n)
 	be.Input.SetShape([]int{n}, nil, []string{"N"})
 	be.Reward.SetShape([]int{1}, nil, []string{"1"})
+	if be.RewVal == 0 {
+		be.RewVal = 1
+	}
 }
 
 func (be *BanditEnv) Validate() error {
@@ -86,7 +91,6 @@ func (be *BanditEnv) Init(run int) {
 	be.Epoch.Init()
 	be.Trial.Init()
 	be.Run.Cur = run
-	be.Trial.Max = 0
 	be.Trial.Cur = -1 // init state -- key so that first Step() = 0
 	be.Option.Cur = 0
 	be.Option.Prv = -1
@@ -110,9 +114,9 @@ func (be *BanditEnv) SetReward() bool {
 	p := be.P[be.Option.Cur]
 	rw := erand.BoolP(p)
 	if rw {
-		be.Reward.Values[0] = 1
+		be.Reward.Values[0] = float64(be.RewVal)
 	} else {
-		be.Reward.Values[0] = 0
+		be.Reward.Values[0] = float64(be.NoRewVal)
 	}
 	return rw
 }
