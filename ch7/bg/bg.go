@@ -27,15 +27,11 @@ import (
 	"github.com/emer/emergent/params"
 	"github.com/emer/emergent/prjn"
 	"github.com/emer/emergent/relpos"
-	"github.com/emer/etable/agg"
 	"github.com/emer/etable/eplot"
 	"github.com/emer/etable/etable"
 	"github.com/emer/etable/etensor"
 	"github.com/emer/etable/etview" // include to get gui views
-	"github.com/emer/etable/metric"
-	"github.com/emer/etable/norm"
 	"github.com/emer/etable/simat"
-	"github.com/emer/etable/split"
 	"github.com/emer/leabra/deep"
 	"github.com/emer/leabra/leabra"
 	"github.com/emer/leabra/pbwm"
@@ -63,40 +59,74 @@ var ParamSets = params.Sets{
 		"Network": &params.Sheet{
 			{Sel: "Prjn", Desc: "no extra learning factors",
 				Params: params.Params{
-					"Prjn.Learn.Norm.On":      "false",
-					"Prjn.Learn.Momentum.On":  "false",
-					"Prjn.Learn.WtBal.On":     "true", // note: was on!
-					"Prjn.Learn.Lrate":        "0.02",
-					"Prjn.Learn.XCal.MLrn":    "0", // pure hebb
-					"Prjn.Learn.XCal.SetLLrn": "true",
-					"Prjn.Learn.XCal.LLrn":    "1",
+					"Prjn.Learn.Norm.On":     "false",
+					"Prjn.Learn.Momentum.On": "false",
+					"Prjn.Learn.WtBal.On":    "false",
 				}},
-			{Sel: "Layer", Desc: "pretty much defaults",
+			{Sel: "Layer", Desc: "faster average",
 				Params: params.Params{
-					"Layer.Learn.AvgL.Gain":    "2.5", // default -- lower sig worse
-					"Layer.Inhib.Layer.Gi":     "1.8", // default
+					"Layer.Act.Dt.AvgTau": "200",
+				}},
+			{Sel: ".BgFixed", Desc: "BG Matrix -> GP wiring",
+				Params: params.Params{
+					"Prjn.Learn.Learn": "false",
+					"Prjn.WtInit.Mean": "0.8",
+					"Prjn.WtInit.Var":  "0",
+					"Prjn.WtInit.Sym":  "false",
+				}},
+			{Sel: ".PFCFixed", Desc: "Input -> PFC",
+				Params: params.Params{
+					"Prjn.Learn.Learn": "false",
+					"Prjn.WtInit.Mean": "0.8",
+					"Prjn.WtInit.Var":  "0",
+					"Prjn.WtInit.Sym":  "false",
+				}},
+			{Sel: ".MatrixPrjn", Desc: "Matrix learning",
+				Params: params.Params{
+					"Prjn.Learn.Lrate": "0.04",
+					"Prjn.WtInit.Var":  "0.1",
+				}},
+			{Sel: "MatrixLayer", Desc: "defaults also set automatically by layer but included here just to be sure",
+				Params: params.Params{
+					"Layer.Act.XX1.Gain":       "20",
+					"Layer.Inhib.Layer.Gi":     "1.9",
+					"Layer.Inhib.Layer.FB":     "0.5",
+					"Layer.Inhib.Pool.On":      "true",
+					"Layer.Inhib.Pool.Gi":      "1.9",
+					"Layer.Inhib.Pool.FB":      "0",
+					"Layer.Inhib.Self.On":      "true",
+					"Layer.Inhib.Self.Gi":      "1.3",
 					"Layer.Inhib.ActAvg.Init":  "0.2",
 					"Layer.Inhib.ActAvg.Fixed": "true",
 				}},
-			{Sel: "#Input", Desc: "higher activity",
+			{Sel: "#GPiThal", Desc: "defaults also set automatically by layer but included here just to be sure",
 				Params: params.Params{
-					"Layer.Inhib.ActAvg.Init": "0.4",
+					"Layer.Inhib.Layer.Gi":     "1.8",
+					"Layer.Inhib.Layer.FB":     "0.2",
+					"Layer.Inhib.Pool.On":      "false",
+					"Layer.Inhib.ActAvg.Init":  "1",
+					"Layer.Inhib.ActAvg.Fixed": "true",
+					"Layer.Gate.NoGo":          "1",
+					"Layer.Gate.Thr":           "0.5", // higher
 				}},
-		},
-	}},
-	{Name: "Hidden2Act", Desc: "hidden layer with ~2 units active", Sheets: params.Sheets{
-		"Network": &params.Sheet{
-			{Sel: "#Hidden", Desc: "std inhib",
+			{Sel: "#GPeNoGo", Desc: "GPe is a regular layer -- needs special",
 				Params: params.Params{
-					"Layer.Inhib.Layer.Gi": "1.8",
+					"Layer.Inhib.Layer.Gi":     "1.8",
+					"Layer.Inhib.Layer.FB":     "0.5",
+					"Layer.Inhib.Layer.FBTau":  "3", // otherwise a bit jumpy
+					"Layer.Inhib.Pool.On":      "false",
+					"Layer.Inhib.ActAvg.Init":  "1",
+					"Layer.Inhib.ActAvg.Fixed": "true",
 				}},
-		},
-	}},
-	{Name: "Hidden1Act", Desc: "hidden layer with ~1 unit active", Sheets: params.Sheets{
-		"Network": &params.Sheet{
-			{Sel: "#Hidden", Desc: "higher inhib",
+			{Sel: "#Input", Desc: "Basic params",
 				Params: params.Params{
-					"Layer.Inhib.Layer.Gi": "2.5",
+					"Layer.Inhib.ActAvg.Init":  "0.2",
+					"Layer.Inhib.ActAvg.Fixed": "true",
+				}},
+			{Sel: "#SNc", Desc: "allow negative",
+				Params: params.Params{
+					"Layer.Act.Clamp.Range.Min": "-1",
+					"Layer.Act.Clamp.Range.Max": "1",
 				}},
 		},
 	}},
@@ -108,25 +138,26 @@ var ParamSets = params.Sets{
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
-	Net           *pbwm.Network     `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
-	TrnEpcLog     *etable.Table     `view:"no-inline" desc:"training epoch-level log data"`
-	TstEpcLog     *etable.Table     `view:"no-inline" desc:"testing epoch-level log data"`
-	TstTrlLog     *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
-	HidFmInputWts etensor.Tensor    `view:"no-inline" desc:"weights from input to hidden layer"`
-	RunLog        *etable.Table     `view:"no-inline" desc:"summary log of each run"`
-	RunStats      *etable.Table     `view:"no-inline" desc:"aggregate stats on all runs"`
-	SimMat        *simat.SimMat     `view:"no-inline" desc:"similarity matrix"`
-	Params        params.Sets       `view:"no-inline" desc:"full collection of param sets"`
-	MaxRuns       int               `desc:"maximum number of model runs to perform"`
-	MaxEpcs       int               `desc:"maximum number of epochs to run per model run"`
-	TrainEnv      BanditEnv         `desc:"Training environment -- bandit environment"`
-	Time          leabra.Time       `desc:"leabra timing parameters and state"`
-	ViewOn        bool              `desc:"whether to update the network view while running"`
-	TrainUpdt     leabra.TimeScales `desc:"at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model"`
-	TestUpdt      leabra.TimeScales `desc:"at what time scale to update the display during testing?  Anything longer than Epoch updates at Epoch in this model"`
-	TestInterval  int               `desc:"how often to run through all the test patterns, in terms of training epochs"`
-	TstRecLays    []string          `desc:"names of layers to record activations etc of during testing"`
-	UniqPats      float64           `inactive:"+" desc:"number of uniquely-coded line patterns, computed during testing -- maximum 10, higher is better"`
+	BurstDaGain float32           `desc:"strength of dopamine bursts: 1 default -- reduce for PD OFF, increase for PD ON"`
+	DipDaGain   float32           `desc:"strength of dopamine dips: 1 default -- reduce to siulate D2 agonists"`
+	Net         *pbwm.Network     `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
+	TrnEpcLog   *etable.Table     `view:"no-inline" desc:"training epoch-level log data"`
+	TstEpcLog   *etable.Table     `view:"no-inline" desc:"testing epoch-level log data"`
+	TstTrlLog   *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
+	MtxInputWts etensor.Tensor    `view:"no-inline" desc:"weights from input to hidden layer"`
+	RunLog      *etable.Table     `view:"no-inline" desc:"summary log of each run"`
+	RunStats    *etable.Table     `view:"no-inline" desc:"aggregate stats on all runs"`
+	SimMat      *simat.SimMat     `view:"no-inline" desc:"similarity matrix"`
+	Params      params.Sets       `view:"no-inline" desc:"full collection of param sets"`
+	MaxRuns     int               `desc:"maximum number of model runs to perform"`
+	MaxEpcs     int               `desc:"maximum number of epochs to run per model run"`
+	MaxTrls     int               `desc:"maximum number of training trials per epoch"`
+	TrainEnv    BanditEnv         `desc:"Training environment -- bandit environment"`
+	Time        leabra.Time       `desc:"leabra timing parameters and state"`
+	ViewOn      bool              `desc:"whether to update the network view while running"`
+	TrainUpdt   leabra.TimeScales `desc:"at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model"`
+	TestUpdt    leabra.TimeScales `desc:"at what time scale to update the display during testing?  Anything longer than Epoch updates at Epoch in this model"`
+	TstRecLays  []string          `desc:"names of layers to record activations etc of during testing"`
 
 	// internal state - view:"-"
 	Win         *gi.Window                  `view:"-" desc:"main GUI window"`
@@ -159,7 +190,7 @@ func (ss *Sim) New() {
 	ss.TrnEpcLog = &etable.Table{}
 	ss.TstEpcLog = &etable.Table{}
 	ss.TstTrlLog = &etable.Table{}
-	ss.HidFmInputWts = &etensor.Float32{}
+	ss.MtxInputWts = &etensor.Float32{}
 	ss.RunLog = &etable.Table{}
 	ss.RunStats = &etable.Table{}
 	ss.SimMat = &simat.SimMat{}
@@ -168,12 +199,13 @@ func (ss *Sim) New() {
 	ss.ViewOn = true
 	ss.TrainUpdt = leabra.AlphaCycle
 	ss.TestUpdt = leabra.AlphaCycle
-	ss.TestInterval = 1
-	ss.TstRecLays = []string{"Input"}
+	ss.TstRecLays = []string{"MatrixGo", "MatrixNoGo"}
 	ss.Defaults()
 }
 
 func (ss *Sim) Defaults() {
+	ss.BurstDaGain = 1
+	ss.DipDaGain = 1
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -196,14 +228,20 @@ func (ss *Sim) ConfigEnv() {
 	if ss.MaxEpcs == 0 { // allow user override
 		ss.MaxEpcs = 30
 	}
+	if ss.MaxTrls == 0 { // allow user override
+		ss.MaxTrls = 100
+	}
 
 	ss.TrainEnv.Nm = "TrainEnv"
 	ss.TrainEnv.Dsc = "training params and state"
 	ss.TrainEnv.SetN(6)
 	ss.TrainEnv.RndOpt = true
 	ss.TrainEnv.P = []float32{1, .8, .6, .4, .2, 0}
+	ss.TrainEnv.RewVal = 1
+	ss.TrainEnv.NoRewVal = -1
 	ss.TrainEnv.Validate()
 	ss.TrainEnv.Run.Max = ss.MaxRuns // note: we are not setting epoch max -- do that manually
+	ss.TrainEnv.Trial.Max = ss.MaxTrls
 
 	ss.TrainEnv.Init(0)
 }
@@ -223,9 +261,12 @@ func (ss *Sim) ConfigNet(net *pbwm.Network) {
 	_ = pfcOutD
 
 	onetoone := prjn.NewOneToOne()
-	net.ConnectLayers(inp, mtxGo, onetoone, emer.Forward)
-	net.ConnectLayers(inp, mtxNoGo, onetoone, emer.Forward)
-	net.ConnectLayers(inp, pfcOut, onetoone, emer.Forward)
+	pj := net.ConnectLayersPrjn(inp, mtxGo, onetoone, emer.Forward, &pbwm.DaHebbPrjn{})
+	pj.SetClass("MatrixPrjn")
+	pj = net.ConnectLayersPrjn(inp, mtxNoGo, onetoone, emer.Forward, &pbwm.DaHebbPrjn{})
+	pj.SetClass("MatrixPrjn")
+	pj = net.ConnectLayers(inp, pfcOut, onetoone, emer.Forward)
+	pj.SetClass("PFCFixed")
 
 	mtxGo.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "SNc", YAlign: relpos.Front, Space: 2})
 
@@ -376,9 +417,6 @@ func (ss *Sim) TrainTrial() {
 		if ss.ViewOn && ss.TrainUpdt > leabra.AlphaCycle {
 			ss.UpdateView(true)
 		}
-		if epc%ss.TestInterval == 0 { // note: epc is *next* so won't trigger first time
-			ss.TestAll()
-		}
 		ss.LogTrnEpc(ss.TrnEpcLog)
 		if epc >= ss.MaxEpcs {
 			// done with training..
@@ -393,7 +431,6 @@ func (ss *Sim) TrainTrial() {
 		}
 	}
 
-	ss.SetParamsSet("Hidden2Act", "Network", false) // 2 units active for training
 	ss.ApplyInputs(&ss.TrainEnv)
 	ss.AlphaCyc(true)   // train
 	ss.TrialStats(true) // accumulate
@@ -423,33 +460,6 @@ func (ss *Sim) InitStats() {
 }
 
 func (ss *Sim) TrialStats(accum bool) {
-}
-
-// UniquePatStat analyzes the hidden activity patterns for the single-line test inputs
-// to determine how many such lines have a distinct hidden pattern, as computed
-// from the similarity matrix across patterns
-func (ss *Sim) UniquePatStat(dt *etable.Table) float64 {
-	hc := dt.ColByName("Hidden").(*etensor.Float64)
-	norm.Binarize64(hc.Values, .5, 1, 0)
-	ix := etable.NewIdxView(dt)
-	ss.SimMat.TableCol(ix, "Hidden", "TrialName", false, metric.SumSquares64)
-	dm := ss.SimMat.Mat
-	nrow := dm.Dim(0)
-	nd := dm.NumDims()
-	uniq := 0
-	for row := 0; row < nrow; row++ {
-		tsr := dm.SubSpace(nd-1, []int{row}).(*etensor.Float64)
-		nzero := 0
-		for _, vl := range tsr.Values {
-			if vl == 0 {
-				nzero++
-			}
-		}
-		if nzero == 1 { // one zero in dist matrix means it was only identical to itself
-			uniq++
-		}
-	}
-	return float64(uniq)
 }
 
 // TrainEpoch runs training trials for remainder of this epoch
@@ -533,8 +543,6 @@ func (ss *Sim) TestTrial(returnOnChg bool) {
 			return
 		}
 	}
-	ss.SetParamsSet("Hidden1Act", "Network", false) // 1 unit active for testing
-
 	ss.ApplyInputs(&ss.TrainEnv)
 	ss.AlphaCyc(false)   // !train
 	ss.TrialStats(false) // !accumulate
@@ -551,7 +559,6 @@ func (ss *Sim) TestAll() {
 			break
 		}
 	}
-	ss.UniqPats = ss.UniquePatStat(ss.TstTrlLog)
 }
 
 // RunTestAll runs through the full set of testing items, has stop running = false at end -- for gui
@@ -574,16 +581,19 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 		ss.Params.ValidateSheets([]string{"Network", "Sim"})
 	}
 	err := ss.SetParamsSet("Base", sheet, setMsg)
-	// ly := ss.Net.LayerByName("Hidden").(deep.DeepLayer).AsDeep()
-	// ly.Learn.AvgL.Gain = ss.AvgLGain
-	// inp := ss.Net.LayerByName("Input").(deep.DeepLayer).AsDeep()
-	// if ss.InputNoise == 0 {
-	// 	inp.Act.Noise.Var = 0
-	// 	inp.Act.Noise.Type = leabra.NoNoise
-	// } else {
-	// 	inp.Act.Noise.Var = float64(ss.InputNoise)
-	// 	inp.Act.Noise.Type = leabra.ActNoise
-	// }
+
+	// gpi := ss.Net.LayerByName("GPiThal").(*pbwm.GPiThalLayer)
+	// gpi.Gate.Thr = 0.5 // todo: these are not taking in params
+	// gpi.Gate.NoGo = 0.4
+	//
+	matg := ss.Net.LayerByName("MatrixGo").(*pbwm.MatrixLayer)
+	matn := ss.Net.LayerByName("MatrixNoGo").(*pbwm.MatrixLayer)
+
+	matg.Matrix.BurstGain = ss.BurstDaGain
+	matg.Matrix.DipGain = ss.DipDaGain
+	matn.Matrix.BurstGain = ss.BurstDaGain
+	matn.Matrix.DipGain = ss.DipDaGain
+
 	return err
 }
 
@@ -629,15 +639,14 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 	epc := ss.TrainEnv.Epoch.Prv // this is triggered by increment so use previous value
 	// nt := float64(ss.TrainEnv.Table.Len()) // number of trials in view
 
-	ss.HidFmInput(ss.HidFmInputWts)
+	ss.MtxInput(ss.MtxInputWts)
 	if ss.WtsGrid != nil {
 		ss.WtsGrid.UpdateSig()
 	}
 
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
-	dt.SetCellFloat("UniqPats", row, ss.UniqPats)
-	dt.SetCellTensor("HidFmInputWts", row, ss.HidFmInputWts)
+	dt.SetCellTensor("MtxInputWts", row, ss.MtxInputWts)
 
 	// note: essential to use Go version of update when called from another goroutine
 	ss.TrnEpcPlot.GoUpdate()
@@ -658,11 +667,10 @@ func (ss *Sim) ConfigTrnEpcLog(dt *etable.Table) {
 	sch := etable.Schema{
 		{"Run", etensor.INT64, nil, nil},
 		{"Epoch", etensor.INT64, nil, nil},
-		{"UniqPats", etensor.FLOAT64, nil, nil},
-		{"HidFmInputWts", etensor.FLOAT32, []int{4, 5, 5, 5}, nil},
+		{"MtxInputWts", etensor.FLOAT32, []int{6, 1, 1, 6}, nil},
 	}
 	dt.SetFromSchema(sch, 0)
-	ss.ConfigHidFmInput(ss.HidFmInputWts)
+	ss.ConfigMtxInput(ss.MtxInputWts)
 }
 
 func (ss *Sim) ConfigTrnEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
@@ -672,32 +680,31 @@ func (ss *Sim) ConfigTrnEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Run", false, true, 0, false, 0)
 	plt.SetColParams("Epoch", false, true, 0, false, 0)
-	plt.SetColParams("UniqPats", true, true, 0, true, 10)
-	plt.SetColParams("HidFmInputWts", false, true, 0, true, 1)
+	plt.SetColParams("MtxInputWts", true, true, 0, true, 1)
 
 	return plt
 }
 
-func (ss *Sim) HidFmInput(dt etensor.Tensor) {
-	// col := dt.(*etensor.Float32)
-	// vals := col.Values
-	// inp := ss.Net.LayerByName("Input").(deep.DeepLayer).AsDeep()
-	// isz := inp.Shape().Len()
-	// hid := ss.Net.LayerByName("Hidden").(deep.DeepLayer).AsDeep()
-	// ysz := hid.Shape().Dim(0)
-	// xsz := hid.Shape().Dim(1)
-	// for y := 0; y < ysz; y++ {
-	// 	for x := 0; x < xsz; x++ {
-	// 		ui := (y*xsz + x)
-	// 		ust := ui * isz
-	// 		vls := vals[ust : ust+isz]
-	// 		inp.SendPrjnVals(&vls, "Wt", hid, ui)
-	// 	}
-	// }
+func (ss *Sim) MtxInput(dt etensor.Tensor) {
+	col := dt.(*etensor.Float32)
+	vals := col.Values
+	inp := ss.Net.LayerByName("Input").(deep.DeepLayer).AsDeep()
+	isz := inp.Shape().Len()
+	hid := ss.Net.LayerByName("MatrixGo").(deep.DeepLayer).AsDeep()
+	ysz := hid.Shape().Dim(2)
+	xsz := hid.Shape().Dim(3)
+	for y := 0; y < ysz; y++ {
+		for x := 0; x < xsz; x++ {
+			ui := (y*xsz + x)
+			ust := ui * isz
+			vls := vals[ust : ust+isz]
+			inp.SendPrjnVals(&vls, "Wt", hid, ui)
+		}
+	}
 }
 
-func (ss *Sim) ConfigHidFmInput(dt etensor.Tensor) {
-	dt.SetShape([]int{4, 5, 5, 5}, nil, nil)
+func (ss *Sim) ConfigMtxInput(dt etensor.Tensor) {
+	dt.SetShape([]int{6, 1, 1, 6}, nil, nil)
 }
 
 //////////////////////////////////////////////
@@ -730,7 +737,7 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 			ss.LayRecTsr[lnm] = tsr
 		}
 		ly := ss.Net.LayerByName(lnm).(deep.DeepLayer).AsDeep()
-		ly.UnitValsTensor(tsr, "Act")
+		ly.UnitValsTensor(tsr, "ActAvg")
 		dt.SetCellTensor(lnm, row, tsr)
 	}
 
@@ -752,7 +759,7 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 		{"TrialName", etensor.STRING, nil, nil},
 	}
 	for _, lnm := range ss.TstRecLays {
-		ly := ss.Net.LayerByName(lnm).(*pbwm.Layer)
+		ly := ss.Net.LayerByName(lnm).(deep.DeepLayer).AsDeep()
 		sch = append(sch, etable.Column{lnm, etensor.FLOAT64, ly.Shp.Shp, nil})
 	}
 	dt.SetFromSchema(sch, nt)
@@ -844,12 +851,11 @@ func (ss *Sim) LogRun(dt *etable.Table) {
 
 	dt.SetCellFloat("Run", row, float64(run))
 	dt.SetCellString("Params", row, params)
-	dt.SetCellFloat("UniqPats", row, agg.Mean(epcix, "UniqPats")[0])
 
-	runix := etable.NewIdxView(dt)
-	spl := split.GroupBy(runix, []string{"Params"})
-	split.Desc(spl, "UniqPats")
-	ss.RunStats = spl.AggsToTable(false)
+	// runix := etable.NewIdxView(dt)
+	// spl := split.GroupBy(runix, []string{"Params"})
+	// split.Desc(spl, "UniqPats")
+	// ss.RunStats = spl.AggsToTable(false)
 
 	// note: essential to use Go version of update when called from another goroutine
 	ss.RunPlot.GoUpdate()
@@ -864,7 +870,6 @@ func (ss *Sim) ConfigRunLog(dt *etable.Table) {
 	dt.SetFromSchema(etable.Schema{
 		{"Run", etensor.INT64, nil, nil},
 		{"Params", etensor.STRING, nil, nil},
-		{"UniqPats", etensor.FLOAT64, nil, nil},
 	}, 0)
 }
 
@@ -874,7 +879,6 @@ func (ss *Sim) ConfigRunPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D 
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Run", false, true, 0, false, 0)
-	plt.SetColParams("UniqPats", true, true, 0, true, 10)
 	return plt
 }
 
@@ -921,7 +925,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	tg := tv.AddNewTab(etview.KiT_TensorGrid, "Weights").(*etview.TensorGrid)
 	tg.SetStretchMax()
 	ss.WtsGrid = tg
-	tg.SetTensor(ss.HidFmInputWts)
+	tg.SetTensor(ss.MtxInputWts)
 
 	plt = tv.AddNewTab(eplot.KiT_Plot2D, "TstTrlPlot").(*eplot.Plot2D)
 	ss.TstTrlPlot = ss.ConfigTstTrlPlot(plt, ss.TstTrlLog)
