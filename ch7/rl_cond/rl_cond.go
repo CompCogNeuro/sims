@@ -3,13 +3,7 @@
 // license that can be found in the LICENSE file.
 
 /*
-bg is a simplified basal ganglia (BG) network showing how dopamine bursts can
-reinforce *Go* (direct pathway) firing for actions that lead to reward,
-and dopamine dips reinforce *NoGo* (indirect pathway) firing for actions
-that do not lead to positive outcomes, producing Thorndike's classic
-*Law of Effect* for instrumental conditioning, and also providing a
-mechanism to learn and select among actions with different reward
-probabilities over multiple experiences.
+rl_cond explores the temporal differences (TD) reinforcement learning algorithm under some basic Pavlovian conditioning environments.
 */
 package main
 
@@ -67,63 +61,21 @@ var ParamSets = params.Sets{
 				Params: params.Params{
 					"Layer.Act.Dt.AvgTau": "200",
 				}},
-			{Sel: ".BgFixed", Desc: "BG Matrix -> GP wiring",
+			{Sel: ".TDRewToInteg", Desc: "rew to integ",
 				Params: params.Params{
 					"Prjn.Learn.Learn": "false",
-					"Prjn.WtInit.Mean": "0.8",
+					"Prjn.WtInit.Mean": "1",
 					"Prjn.WtInit.Var":  "0",
 					"Prjn.WtInit.Sym":  "false",
 				}},
-			{Sel: ".PFCFixed", Desc: "Input -> PFC",
+			{Sel: "#InputToRewPred", Desc: "input to rewpred",
 				Params: params.Params{
-					"Prjn.Learn.Learn": "false",
-					"Prjn.WtInit.Mean": "0.8",
+					"Prjn.WtInit.Mean": "0",
 					"Prjn.WtInit.Var":  "0",
 					"Prjn.WtInit.Sym":  "false",
+					"Prjn.Learn.Lrate": "0.5",
 				}},
-			{Sel: ".MatrixPrjn", Desc: "Matrix learning",
-				Params: params.Params{
-					"Prjn.Learn.Lrate": "0.04",
-					"Prjn.WtInit.Var":  "0.1",
-				}},
-			{Sel: "MatrixLayer", Desc: "defaults also set automatically by layer but included here just to be sure",
-				Params: params.Params{
-					"Layer.Act.XX1.Gain":       "20",
-					"Layer.Inhib.Layer.Gi":     "1.9",
-					"Layer.Inhib.Layer.FB":     "0.5",
-					"Layer.Inhib.Pool.On":      "true",
-					"Layer.Inhib.Pool.Gi":      "1.9",
-					"Layer.Inhib.Pool.FB":      "0",
-					"Layer.Inhib.Self.On":      "true",
-					"Layer.Inhib.Self.Gi":      "1.3",
-					"Layer.Inhib.ActAvg.Init":  "0.2",
-					"Layer.Inhib.ActAvg.Fixed": "true",
-				}},
-			{Sel: "#GPiThal", Desc: "defaults also set automatically by layer but included here just to be sure",
-				Params: params.Params{
-					"Layer.Inhib.Layer.Gi":     "1.8",
-					"Layer.Inhib.Layer.FB":     "0.2",
-					"Layer.Inhib.Pool.On":      "false",
-					"Layer.Inhib.ActAvg.Init":  "1",
-					"Layer.Inhib.ActAvg.Fixed": "true",
-					"Layer.Gate.NoGo":          "1",
-					"Layer.Gate.Thr":           "0.5", // higher
-				}},
-			{Sel: "#GPeNoGo", Desc: "GPe is a regular layer -- needs special",
-				Params: params.Params{
-					"Layer.Inhib.Layer.Gi":     "1.8",
-					"Layer.Inhib.Layer.FB":     "0.5",
-					"Layer.Inhib.Layer.FBTau":  "3", // otherwise a bit jumpy
-					"Layer.Inhib.Pool.On":      "false",
-					"Layer.Inhib.ActAvg.Init":  "1",
-					"Layer.Inhib.ActAvg.Fixed": "true",
-				}},
-			{Sel: "#Input", Desc: "Basic params",
-				Params: params.Params{
-					"Layer.Inhib.ActAvg.Init":  "0.2",
-					"Layer.Inhib.ActAvg.Fixed": "true",
-				}},
-			{Sel: "#SNc", Desc: "allow negative",
+			{Sel: "#Rew", Desc: "allow negative",
 				Params: params.Params{
 					"Layer.Act.Clamp.Range.Min": "-1",
 					"Layer.Act.Clamp.Range.Max": "1",
@@ -138,26 +90,23 @@ var ParamSets = params.Sets{
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
-	BurstDaGain float32           `desc:"strength of dopamine bursts: 1 default -- reduce for PD OFF, increase for PD ON"`
-	DipDaGain   float32           `desc:"strength of dopamine dips: 1 default -- reduce to siulate D2 agonists"`
-	Net         *pbwm.Network     `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
-	TrnEpcLog   *etable.Table     `view:"no-inline" desc:"training epoch-level log data"`
-	TstEpcLog   *etable.Table     `view:"no-inline" desc:"testing epoch-level log data"`
-	TstTrlLog   *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
-	MtxInputWts etensor.Tensor    `view:"no-inline" desc:"weights from input to hidden layer"`
-	RunLog      *etable.Table     `view:"no-inline" desc:"summary log of each run"`
-	RunStats    *etable.Table     `view:"no-inline" desc:"aggregate stats on all runs"`
-	SimMat      *simat.SimMat     `view:"no-inline" desc:"similarity matrix"`
-	Params      params.Sets       `view:"no-inline" desc:"full collection of param sets"`
-	MaxRuns     int               `desc:"maximum number of model runs to perform"`
-	MaxEpcs     int               `desc:"maximum number of epochs to run per model run"`
-	MaxTrls     int               `desc:"maximum number of training trials per epoch"`
-	TrainEnv    BanditEnv         `desc:"Training environment -- bandit environment"`
-	Time        leabra.Time       `desc:"leabra timing parameters and state"`
-	ViewOn      bool              `desc:"whether to update the network view while running"`
-	TrainUpdt   leabra.TimeScales `desc:"at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model"`
-	TestUpdt    leabra.TimeScales `desc:"at what time scale to update the display during testing?  Anything longer than Epoch updates at Epoch in this model"`
-	TstRecLays  []string          `desc:"names of layers to record activations etc of during testing"`
+	Discount        float32           `def:"0.9" desc:"discount factor for future rewards"`
+	Lrate           float32           `def:"0.5" desc:"learning rate"`
+	Net             *pbwm.Network     `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
+	TrnEpcLog       *etable.Table     `view:"no-inline" desc:"training epoch-level log data"`
+	TrnTrlLog       *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
+	RewPredInputWts etensor.Tensor    `view:"no-inline" desc:"weights from input to hidden layer"`
+	SimMat          *simat.SimMat     `view:"no-inline" desc:"similarity matrix"`
+	Params          params.Sets       `view:"no-inline" desc:"full collection of param sets"`
+	MaxRuns         int               `desc:"maximum number of model runs to perform"`
+	MaxEpcs         int               `desc:"maximum number of epochs to run per model run"`
+	MaxTrls         int               `desc:"maximum number of training trials per epoch"`
+	TrainEnv        CondEnv           `desc:"Training environment -- conditioning environment"`
+	Time            leabra.Time       `desc:"leabra timing parameters and state"`
+	ViewOn          bool              `desc:"whether to update the network view while running"`
+	TrainUpdt       leabra.TimeScales `desc:"at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model"`
+	TestUpdt        leabra.TimeScales `desc:"at what time scale to update the display during testing?  Anything longer than Epoch updates at Epoch in this model"`
+	TstRecLays      []string          `desc:"names of layers to record activations etc of during testing"`
 
 	// internal state - view:"-"
 	Win         *gi.Window                  `view:"-" desc:"main GUI window"`
@@ -165,8 +114,7 @@ type Sim struct {
 	ToolBar     *gi.ToolBar                 `view:"-" desc:"the master toolbar"`
 	WtsGrid     *etview.TensorGrid          `view:"-" desc:"the weights grid view"`
 	TrnEpcPlot  *eplot.Plot2D               `view:"-" desc:"the training epoch plot"`
-	TstEpcPlot  *eplot.Plot2D               `view:"-" desc:"the testing epoch plot"`
-	TstTrlPlot  *eplot.Plot2D               `view:"-" desc:"the test-trial plot"`
+	TrnTrlPlot  *eplot.Plot2D               `view:"-" desc:"the test-trial plot"`
 	RunPlot     *eplot.Plot2D               `view:"-" desc:"the run plot"`
 	TrnEpcFile  *os.File                    `view:"-" desc:"log file"`
 	RunFile     *os.File                    `view:"-" desc:"log file"`
@@ -188,24 +136,21 @@ var TheSim Sim
 func (ss *Sim) New() {
 	ss.Net = &pbwm.Network{}
 	ss.TrnEpcLog = &etable.Table{}
-	ss.TstEpcLog = &etable.Table{}
-	ss.TstTrlLog = &etable.Table{}
-	ss.MtxInputWts = &etensor.Float32{}
-	ss.RunLog = &etable.Table{}
-	ss.RunStats = &etable.Table{}
+	ss.TrnTrlLog = &etable.Table{}
+	ss.RewPredInputWts = &etensor.Float32{}
 	ss.SimMat = &simat.SimMat{}
 	ss.Params = ParamSets
 	ss.RndSeed = 1
 	ss.ViewOn = true
 	ss.TrainUpdt = leabra.AlphaCycle
 	ss.TestUpdt = leabra.AlphaCycle
-	ss.TstRecLays = []string{"MatrixGo", "MatrixNoGo"}
+	ss.TstRecLays = []string{"Input"}
 	ss.Defaults()
 }
 
 func (ss *Sim) Defaults() {
-	ss.BurstDaGain = 1
-	ss.DipDaGain = 1
+	ss.Discount = 0.9
+	ss.Lrate = 0.5
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -216,9 +161,7 @@ func (ss *Sim) Config() {
 	ss.ConfigEnv()
 	ss.ConfigNet(ss.Net)
 	ss.ConfigTrnEpcLog(ss.TrnEpcLog)
-	ss.ConfigTstEpcLog(ss.TstEpcLog)
-	ss.ConfigTstTrlLog(ss.TstTrlLog)
-	ss.ConfigRunLog(ss.RunLog)
+	ss.ConfigTrnTrlLog(ss.TrnTrlLog)
 }
 
 func (ss *Sim) ConfigEnv() {
@@ -234,11 +177,9 @@ func (ss *Sim) ConfigEnv() {
 
 	ss.TrainEnv.Nm = "TrainEnv"
 	ss.TrainEnv.Dsc = "training params and state"
-	ss.TrainEnv.SetN(6)
-	ss.TrainEnv.RndOpt = true
-	ss.TrainEnv.P = []float32{1, .8, .6, .4, .2, 0}
+	ss.TrainEnv.Defaults()
 	ss.TrainEnv.RewVal = 1
-	ss.TrainEnv.NoRewVal = -1
+	ss.TrainEnv.NoRewVal = 0
 	ss.TrainEnv.Validate()
 	ss.TrainEnv.Run.Max = ss.MaxRuns // note: we are not setting epoch max -- do that manually
 	ss.TrainEnv.Trial.Max = ss.MaxTrls
@@ -247,30 +188,17 @@ func (ss *Sim) ConfigEnv() {
 }
 
 func (ss *Sim) ConfigNet(net *pbwm.Network) {
-	net.InitName(net, "BG")
-	snc := net.AddClampDaLayer("SNc")
-	inp := net.AddLayer2D("Input", 1, 6, emer.Input)
-	inp.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "SNc", YAlign: relpos.Front, XAlign: relpos.Left})
+	net.InitName(net, "RLCond")
 
-	// args: nY, nMaint, nOUt, nNeurBgY, nNeurBgX, nNeurPfcY, nNeurPfcX
-	mtxGo, mtxNoGo, gpe, gpi, pfcMnt, pfcMntD, pfcOut, pfcOutD := net.AddPBWM("", 1, 0, 1, 1, 6, 1, 6)
-	_ = gpe
-	_ = gpi
-	_ = pfcMnt  // nil
-	_ = pfcMntD // nil
-	_ = pfcOutD
+	rew, rp, ri, td := net.AddTDLayers("", 4)
+	_ = rew
+	_ = ri
+	inp := net.AddLayer2D("Input", 3, 20, emer.Input)
+	inp.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Rew", YAlign: relpos.Front, XAlign: relpos.Left})
 
-	onetoone := prjn.NewOneToOne()
-	pj := net.ConnectLayersPrjn(inp, mtxGo, onetoone, emer.Forward, &pbwm.DaHebbPrjn{})
-	pj.SetClass("MatrixPrjn")
-	pj = net.ConnectLayersPrjn(inp, mtxNoGo, onetoone, emer.Forward, &pbwm.DaHebbPrjn{})
-	pj.SetClass("MatrixPrjn")
-	pj = net.ConnectLayers(inp, pfcOut, onetoone, emer.Forward)
-	pj.SetClass("PFCFixed")
+	net.ConnectLayersPrjn(inp, rp, prjn.NewFull(), emer.Forward, &pbwm.TDRewPredPrjn{})
 
-	mtxGo.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "SNc", YAlign: relpos.Front, Space: 2})
-
-	snc.SendToAllBut(nil) // send dopamine to all layers..
+	td.(*pbwm.TDDaLayer).SendToAllBut(nil) // send dopamine to all layers..
 
 	net.Defaults()
 	ss.SetParams("Network", false) // only set Network params
@@ -397,12 +325,12 @@ func (ss *Sim) ApplyInputs(en env.Env) {
 	}
 
 	pats := en.State("Reward")
-	ly := ss.Net.LayerByName("SNc").(deep.DeepLayer).AsDeep()
+	ly := ss.Net.LayerByName("Rew").(deep.DeepLayer).AsDeep()
 	ly.ApplyExt1DTsr(pats)
 }
 
-// TrainTrial runs one trial of training using TrainEnv
-func (ss *Sim) TrainTrial() {
+// TrainEvent runs one event of training using TrainEnv
+func (ss *Sim) TrainEvent() {
 
 	if ss.NeedsNewRun {
 		ss.NewRun()
@@ -434,11 +362,11 @@ func (ss *Sim) TrainTrial() {
 	ss.ApplyInputs(&ss.TrainEnv)
 	ss.AlphaCyc(true)   // train
 	ss.TrialStats(true) // accumulate
+	ss.LogTrnTrl(ss.TrnTrlLog)
 }
 
 // RunEnd is called at the end of a run -- save weights, record final log, etc here
 func (ss *Sim) RunEnd() {
-	ss.LogRun(ss.RunLog)
 }
 
 // NewRun intializes a new run of the model, using the TrainEnv.Run counter
@@ -450,7 +378,7 @@ func (ss *Sim) NewRun() {
 	ss.Net.InitWts()
 	ss.InitStats()
 	ss.TrnEpcLog.SetNumRows(0)
-	ss.TstEpcLog.SetNumRows(0)
+	ss.TrnTrlLog.SetNumRows(0)
 	ss.NeedsNewRun = false
 }
 
@@ -462,12 +390,30 @@ func (ss *Sim) InitStats() {
 func (ss *Sim) TrialStats(accum bool) {
 }
 
+// TrainTrial runs training events for remainder of this trial
+func (ss *Sim) TrainTrial() {
+	ss.StopNow = false
+	curTrl := ss.TrainEnv.Trial.Cur
+	for {
+		ss.TrainEvent()
+		if ss.StopNow || ss.TrainEnv.Trial.Cur != curTrl {
+			break
+		}
+	}
+	ss.RewPredInput(ss.RewPredInputWts)
+	if ss.WtsGrid != nil {
+		ss.WtsGrid.UpdateSig()
+	}
+
+	ss.Stopped()
+}
+
 // TrainEpoch runs training trials for remainder of this epoch
 func (ss *Sim) TrainEpoch() {
 	ss.StopNow = false
 	curEpc := ss.TrainEnv.Epoch.Cur
 	for {
-		ss.TrainTrial()
+		ss.TrainEvent()
 		if ss.StopNow || ss.TrainEnv.Epoch.Cur != curEpc {
 			break
 		}
@@ -480,7 +426,7 @@ func (ss *Sim) TrainRun() {
 	ss.StopNow = false
 	curRun := ss.TrainEnv.Run.Cur
 	for {
-		ss.TrainTrial()
+		ss.TrainEvent()
 		if ss.StopNow || ss.TrainEnv.Run.Cur != curRun {
 			break
 		}
@@ -492,7 +438,7 @@ func (ss *Sim) TrainRun() {
 func (ss *Sim) Train() {
 	ss.StopNow = false
 	for {
-		ss.TrainTrial()
+		ss.TrainEvent()
 		if ss.StopNow {
 			break
 		}
@@ -525,49 +471,6 @@ func (ss *Sim) SaveWeights(filename gi.FileName) {
 	ss.Net.SaveWtsJSON(filename)
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////
-// Testing
-
-// TestTrial runs one trial of testing -- always sequentially presented inputs
-func (ss *Sim) TestTrial(returnOnChg bool) {
-	ss.TrainEnv.Step()
-
-	// Query counters FIRST
-	_, _, chg := ss.TrainEnv.Counter(env.Epoch)
-	if chg {
-		if ss.ViewOn && ss.TestUpdt > leabra.AlphaCycle {
-			ss.UpdateView(false)
-		}
-		ss.LogTstEpc(ss.TstEpcLog)
-		if returnOnChg {
-			return
-		}
-	}
-	ss.ApplyInputs(&ss.TrainEnv)
-	ss.AlphaCyc(false)   // !train
-	ss.TrialStats(false) // !accumulate
-	ss.LogTstTrl(ss.TstTrlLog)
-}
-
-// TestAll runs through the full set of testing items
-func (ss *Sim) TestAll() {
-	ss.TrainEnv.Init(ss.TrainEnv.Run.Cur)
-	for {
-		ss.TestTrial(true) // return on chg, don't present
-		_, _, chg := ss.TrainEnv.Counter(env.Epoch)
-		if chg || ss.StopNow {
-			break
-		}
-	}
-}
-
-// RunTestAll runs through the full set of testing items, has stop running = false at end -- for gui
-func (ss *Sim) RunTestAll() {
-	ss.StopNow = false
-	ss.TestAll()
-	ss.Stopped()
-}
-
 /////////////////////////////////////////////////////////////////////////
 //   Params setting
 
@@ -586,13 +489,13 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 	// gpi.Gate.Thr = 0.5 // todo: these are not taking in params
 	// gpi.Gate.NoGo = 0.4
 	//
-	matg := ss.Net.LayerByName("MatrixGo").(*pbwm.MatrixLayer)
-	matn := ss.Net.LayerByName("MatrixNoGo").(*pbwm.MatrixLayer)
-
-	matg.Matrix.BurstGain = ss.BurstDaGain
-	matg.Matrix.DipGain = ss.DipDaGain
-	matn.Matrix.BurstGain = ss.BurstDaGain
-	matn.Matrix.DipGain = ss.DipDaGain
+	// matg := ss.Net.LayerByName("MatrixGo").(*pbwm.MatrixLayer)
+	// matn := ss.Net.LayerByName("MatrixNoGo").(*pbwm.MatrixLayer)
+	//
+	// matg.Matrix.BurstGain = ss.BurstDaGain
+	// matg.Matrix.DipGain = ss.DipDaGain
+	// matn.Matrix.BurstGain = ss.BurstDaGain
+	// matn.Matrix.DipGain = ss.DipDaGain
 
 	return err
 }
@@ -639,14 +542,14 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 	epc := ss.TrainEnv.Epoch.Prv // this is triggered by increment so use previous value
 	// nt := float64(ss.TrainEnv.Table.Len()) // number of trials in view
 
-	ss.MtxInput(ss.MtxInputWts)
+	ss.RewPredInput(ss.RewPredInputWts)
 	if ss.WtsGrid != nil {
 		ss.WtsGrid.UpdateSig()
 	}
 
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
-	dt.SetCellTensor("MtxInputWts", row, ss.MtxInputWts)
+	dt.SetCellTensor("RewPredInputWts", row, ss.RewPredInputWts)
 
 	// note: essential to use Go version of update when called from another goroutine
 	ss.TrnEpcPlot.GoUpdate()
@@ -667,32 +570,32 @@ func (ss *Sim) ConfigTrnEpcLog(dt *etable.Table) {
 	sch := etable.Schema{
 		{"Run", etensor.INT64, nil, nil},
 		{"Epoch", etensor.INT64, nil, nil},
-		{"MtxInputWts", etensor.FLOAT32, []int{6, 1, 1, 6}, nil},
+		{"RewPredInputWts", etensor.FLOAT32, []int{6, 1, 1, 6}, nil},
 	}
 	dt.SetFromSchema(sch, 0)
-	ss.ConfigMtxInput(ss.MtxInputWts)
+	ss.ConfigRewPredInput(ss.RewPredInputWts)
 }
 
 func (ss *Sim) ConfigTrnEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
-	plt.Params.Title = "Basal Ganglia Epoch Plot"
+	plt.Params.Title = "Reinforcement Learning Epoch Plot"
 	plt.Params.XAxisCol = "Epoch"
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Run", false, true, 0, false, 0)
 	plt.SetColParams("Epoch", false, true, 0, false, 0)
-	plt.SetColParams("MtxInputWts", true, true, 0, true, 1)
+	plt.SetColParams("RewPredInputWts", true, true, 0, true, 1)
 
 	return plt
 }
 
-func (ss *Sim) MtxInput(dt etensor.Tensor) {
+func (ss *Sim) RewPredInput(dt etensor.Tensor) {
 	col := dt.(*etensor.Float32)
 	vals := col.Values
 	inp := ss.Net.LayerByName("Input").(deep.DeepLayer).AsDeep()
 	isz := inp.Shape().Len()
-	hid := ss.Net.LayerByName("MatrixGo").(deep.DeepLayer).AsDeep()
-	ysz := hid.Shape().Dim(2)
-	xsz := hid.Shape().Dim(3)
+	hid := ss.Net.LayerByName("RewPred").(deep.DeepLayer).AsDeep()
+	ysz := hid.Shape().Dim(0)
+	xsz := hid.Shape().Dim(1)
 	for y := 0; y < ysz; y++ {
 		for x := 0; x < xsz; x++ {
 			ui := (y*xsz + x)
@@ -703,21 +606,22 @@ func (ss *Sim) MtxInput(dt etensor.Tensor) {
 	}
 }
 
-func (ss *Sim) ConfigMtxInput(dt etensor.Tensor) {
-	dt.SetShape([]int{6, 1, 1, 6}, nil, nil)
+func (ss *Sim) ConfigRewPredInput(dt etensor.Tensor) {
+	dt.SetShape([]int{1, 1, 3, 20}, nil, nil)
 }
 
 //////////////////////////////////////////////
-//  TstTrlLog
+//  TrnTrlLog
 
-// LogTstTrl adds data from current trial to the TstTrlLog table.
+// LogTrnTrl adds data from current trial to the TrnTrlLog table.
 // log always contains number of testing items
-func (ss *Sim) LogTstTrl(dt *etable.Table) {
+func (ss *Sim) LogTrnTrl(dt *etable.Table) {
 	epc := ss.TrainEnv.Epoch.Prv // this is triggered by increment so use previous value
 
+	evt := ss.TrainEnv.Event.Cur
 	trl := ss.TrainEnv.Trial.Cur
-	row := trl
 
+	row := dt.Rows
 	if dt.Rows <= row {
 		dt.SetNumRows(row + 1)
 	}
@@ -725,7 +629,13 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
 	dt.SetCellFloat("Trial", row, float64(trl))
-	dt.SetCellString("TrialName", row, ss.TrainEnv.String())
+	dt.SetCellFloat("Event", row, float64(evt))
+
+	td := ss.Net.LayerByName("TD").(deep.DeepLayer).AsDeep()
+	rp := ss.Net.LayerByName("RewPred").(deep.DeepLayer).AsDeep()
+
+	dt.SetCellFloat("TD", row, float64(td.Neurons[0].Act))
+	dt.SetCellFloat("RewPred", row, float64(rp.Neurons[0].Act))
 
 	if ss.LayRecTsr == nil {
 		ss.LayRecTsr = make(map[string]*etensor.Float32)
@@ -742,12 +652,12 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 	}
 
 	// note: essential to use Go version of update when called from another goroutine
-	ss.TstTrlPlot.GoUpdate()
+	ss.TrnTrlPlot.GoUpdate()
 }
 
-func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
-	dt.SetMetaData("name", "TstTrlLog")
-	dt.SetMetaData("desc", "Record of testing per input pattern")
+func (ss *Sim) ConfigTrnTrlLog(dt *etable.Table) {
+	dt.SetMetaData("name", "TrnTrlLog")
+	dt.SetMetaData("desc", "Record of training per input event (time step)")
 	dt.SetMetaData("read-only", "true")
 	dt.SetMetaData("precision", strconv.Itoa(LogPrec))
 
@@ -756,7 +666,9 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 		{"Run", etensor.INT64, nil, nil},
 		{"Epoch", etensor.INT64, nil, nil},
 		{"Trial", etensor.INT64, nil, nil},
-		{"TrialName", etensor.STRING, nil, nil},
+		{"Event", etensor.INT64, nil, nil},
+		{"TD", etensor.FLOAT64, nil, nil},
+		{"RewPred", etensor.FLOAT64, nil, nil},
 	}
 	for _, lnm := range ss.TstRecLays {
 		ly := ss.Net.LayerByName(lnm).(deep.DeepLayer).AsDeep()
@@ -765,120 +677,21 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 	dt.SetFromSchema(sch, nt)
 }
 
-func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
-	plt.Params.Title = "Basal Ganglia Test Trial Plot"
-	plt.Params.XAxisCol = "Trial"
+func (ss *Sim) ConfigTrnTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
+	plt.Params.Title = "Reinforcement Learning Test Trial Plot"
+	plt.Params.XAxisCol = "Event"
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Run", false, true, 0, false, 0)
 	plt.SetColParams("Epoch", false, true, 0, false, 0)
 	plt.SetColParams("Trial", false, true, 0, false, 0)
-	plt.SetColParams("TrialName", false, true, 0, false, 0)
+	plt.SetColParams("Event", false, true, 0, false, 0)
+	plt.SetColParams("TD", true, true, -1, true, 1)
+	plt.SetColParams("RewPred", false, true, -1, true, 1)
 
 	for _, lnm := range ss.TstRecLays {
 		plt.SetColParams(lnm, false, true, 0, true, 1)
 	}
-	return plt
-}
-
-//////////////////////////////////////////////
-//  TstEpcLog
-
-func (ss *Sim) LogTstEpc(dt *etable.Table) {
-	row := dt.Rows
-	dt.SetNumRows(row + 1)
-
-	// trl := ss.TstTrlLog
-	// tix := etable.NewIdxView(trl)
-	epc := ss.TrainEnv.Epoch.Prv // ?
-
-	// note: this shows how to use agg methods to compute summary data from another
-	// data table, instead of incrementing on the Sim
-	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
-	dt.SetCellFloat("Epoch", row, float64(epc))
-
-	// note: essential to use Go version of update when called from another goroutine
-	ss.TstEpcPlot.GoUpdate()
-}
-
-func (ss *Sim) ConfigTstEpcLog(dt *etable.Table) {
-	dt.SetMetaData("name", "TstEpcLog")
-	dt.SetMetaData("desc", "Summary stats for testing trials")
-	dt.SetMetaData("read-only", "true")
-	dt.SetMetaData("precision", strconv.Itoa(LogPrec))
-
-	dt.SetFromSchema(etable.Schema{
-		{"Run", etensor.INT64, nil, nil},
-		{"Epoch", etensor.INT64, nil, nil},
-	}, 0)
-}
-
-func (ss *Sim) ConfigTstEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
-	plt.Params.Title = "Basal Ganglia Testing Epoch Plot"
-	plt.Params.XAxisCol = "Epoch"
-	plt.SetTable(dt)
-	// order of params: on, fixMin, min, fixMax, max
-	plt.SetColParams("Run", false, true, 0, false, 0)
-	plt.SetColParams("Epoch", false, true, 0, false, 0)
-	return plt
-}
-
-//////////////////////////////////////////////
-//  RunLog
-
-// LogRun adds data from current run to the RunLog table.
-func (ss *Sim) LogRun(dt *etable.Table) {
-	run := ss.TrainEnv.Run.Cur // this is NOT triggered by increment yet -- use Cur
-	row := dt.Rows
-	dt.SetNumRows(row + 1)
-
-	epclog := ss.TrnEpcLog
-	epcix := etable.NewIdxView(epclog)
-	// compute mean over last N epochs for run level
-	nlast := 1
-	if nlast > epcix.Len()-1 {
-		nlast = epcix.Len() - 1
-	}
-	epcix.Idxs = epcix.Idxs[epcix.Len()-nlast-1:]
-
-	params := "Std"
-	// if ss.AvgLGain != 2.5 {
-	// 	params += fmt.Sprintf("_AvgLGain=%v", ss.AvgLGain)
-	// }
-	// if ss.InputNoise != 0 {
-	// 	params += fmt.Sprintf("_InVar=%v", ss.InputNoise)
-	// }
-
-	dt.SetCellFloat("Run", row, float64(run))
-	dt.SetCellString("Params", row, params)
-
-	// runix := etable.NewIdxView(dt)
-	// spl := split.GroupBy(runix, []string{"Params"})
-	// split.Desc(spl, "UniqPats")
-	// ss.RunStats = spl.AggsToTable(false)
-
-	// note: essential to use Go version of update when called from another goroutine
-	ss.RunPlot.GoUpdate()
-}
-
-func (ss *Sim) ConfigRunLog(dt *etable.Table) {
-	dt.SetMetaData("name", "RunLog")
-	dt.SetMetaData("desc", "Record of performance at end of training")
-	dt.SetMetaData("read-only", "true")
-	dt.SetMetaData("precision", strconv.Itoa(LogPrec))
-
-	dt.SetFromSchema(etable.Schema{
-		{"Run", etensor.INT64, nil, nil},
-		{"Params", etensor.STRING, nil, nil},
-	}, 0)
-}
-
-func (ss *Sim) ConfigRunPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
-	plt.Params.Title = "Basal Ganglia Run Plot"
-	plt.Params.XAxisCol = "Run"
-	plt.SetTable(dt)
-	// order of params: on, fixMin, min, fixMax, max
-	plt.SetColParams("Run", false, true, 0, false, 0)
 	return plt
 }
 
@@ -890,10 +703,10 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	width := 1600
 	height := 1200
 
-	gi.SetAppName("bg")
-	gi.SetAppAbout(`is a simplified basal ganglia (BG) network showing how dopamine bursts can reinforce *Go* (direct pathway) firing for actions that lead to reward, and dopamine dips reinforce *NoGo* (indirect pathway) firing for actions that do not lead to positive outcomes, producing Thorndike's classic *Law of Effect* for instrumental conditioning, and also providing a mechanism to learn and select among actions with different reward probabilities over multiple experiences. See <a href="href="https://github.com/CompCogNeuro/sims/ch7/bg/README.md">README.md on GitHub</a>.</p>`)
+	gi.SetAppName("rl_cond")
+	gi.SetAppAbout(`rl_cond explores the temporal differences (TD) reinforcement learning algorithm under some basic Pavlovian conditioning environments. See <a href="href="https://github.com/CompCogNeuro/sims/ch7/rl_cond/README.md">README.md on GitHub</a>.</p>`)
 
-	win := gi.NewWindow2D("bg", "Basal Ganglia", width, height, true)
+	win := gi.NewWindow2D("rl_cond", "Reinforcement Learning", width, height, true)
 	ss.Win = win
 
 	vp := win.WinViewport2D()
@@ -919,22 +732,16 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	nv.SetNet(ss.Net)
 	ss.NetView = nv
 
-	plt := tv.AddNewTab(eplot.KiT_Plot2D, "TrnEpcPlot").(*eplot.Plot2D)
-	ss.TrnEpcPlot = ss.ConfigTrnEpcPlot(plt, ss.TrnEpcLog)
+	plt := tv.AddNewTab(eplot.KiT_Plot2D, "TrnTrlPlot").(*eplot.Plot2D)
+	ss.TrnTrlPlot = ss.ConfigTrnTrlPlot(plt, ss.TrnTrlLog)
 
 	tg := tv.AddNewTab(etview.KiT_TensorGrid, "Weights").(*etview.TensorGrid)
 	tg.SetStretchMax()
 	ss.WtsGrid = tg
-	tg.SetTensor(ss.MtxInputWts)
+	tg.SetTensor(ss.RewPredInputWts)
 
-	plt = tv.AddNewTab(eplot.KiT_Plot2D, "TstTrlPlot").(*eplot.Plot2D)
-	ss.TstTrlPlot = ss.ConfigTstTrlPlot(plt, ss.TstTrlLog)
-
-	plt = tv.AddNewTab(eplot.KiT_Plot2D, "TstEpcPlot").(*eplot.Plot2D)
-	ss.TstEpcPlot = ss.ConfigTstEpcPlot(plt, ss.TstEpcLog)
-
-	plt = tv.AddNewTab(eplot.KiT_Plot2D, "RunPlot").(*eplot.Plot2D)
-	ss.RunPlot = ss.ConfigRunPlot(plt, ss.RunLog)
+	plt = tv.AddNewTab(eplot.KiT_Plot2D, "TrnEpcPlot").(*eplot.Plot2D)
+	ss.TrnEpcPlot = ss.ConfigTrnEpcPlot(plt, ss.TrnEpcLog)
 
 	split.SetSplits(.3, .7)
 
@@ -963,14 +770,24 @@ func (ss *Sim) ConfigGui() *gi.Window {
 		ss.Stop()
 	})
 
+	tbar.AddAction(gi.ActOpts{Label: "Step Event", Icon: "step-fwd", Tooltip: "Advances one training event (time step) at a time.", UpdateFunc: func(act *gi.Action) {
+		act.SetActiveStateUpdt(!ss.IsRunning)
+	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+		if !ss.IsRunning {
+			ss.IsRunning = true
+			ss.TrainEvent()
+			ss.IsRunning = false
+			vp.SetNeedsFullRender()
+		}
+	})
+
 	tbar.AddAction(gi.ActOpts{Label: "Step Trial", Icon: "step-fwd", Tooltip: "Advances one training trial at a time.", UpdateFunc: func(act *gi.Action) {
 		act.SetActiveStateUpdt(!ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.IsRunning = true
-			ss.TrainTrial()
-			ss.IsRunning = false
-			vp.SetNeedsFullRender()
+			tbar.UpdateActions()
+			go ss.TrainTrial()
 		}
 	})
 
@@ -994,38 +811,14 @@ func (ss *Sim) ConfigGui() *gi.Window {
 		}
 	})
 
+	tbar.AddAction(gi.ActOpts{Label: "Reset Trl Log", Icon: "reset", Tooltip: "Reset trial log.", UpdateFunc: func(act *gi.Action) {
+		act.SetActiveStateUpdt(!ss.IsRunning)
+	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+		ss.TrnTrlLog.SetNumRows(0)
+		ss.TrnTrlPlot.Update()
+	})
+
 	tbar.AddSeparator("test")
-
-	tbar.AddAction(gi.ActOpts{Label: "Test Trial", Icon: "step-fwd", Tooltip: "Runs the next testing trial.", UpdateFunc: func(act *gi.Action) {
-		act.SetActiveStateUpdt(!ss.IsRunning)
-	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
-		if !ss.IsRunning {
-			ss.IsRunning = true
-			ss.TestTrial(false) // don't break on chg
-			ss.IsRunning = false
-			vp.SetNeedsFullRender()
-		}
-	})
-
-	tbar.AddAction(gi.ActOpts{Label: "Test All", Icon: "fast-fwd", Tooltip: "Tests all of the testing trials.", UpdateFunc: func(act *gi.Action) {
-		act.SetActiveStateUpdt(!ss.IsRunning)
-	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
-		if !ss.IsRunning {
-			ss.IsRunning = true
-			tbar.UpdateActions()
-			go ss.RunTestAll()
-		}
-	})
-
-	tbar.AddSeparator("log")
-
-	tbar.AddAction(gi.ActOpts{Label: "Reset RunLog", Icon: "reset", Tooltip: "Reset the accumulated log of all Runs, which are tagged with the ParamSet used"}, win.This(),
-		func(recv, send ki.Ki, sig int64, data interface{}) {
-			ss.RunLog.SetNumRows(0)
-			ss.RunPlot.Update()
-		})
-
-	tbar.AddSeparator("misc")
 
 	tbar.AddAction(gi.ActOpts{Label: "New Seed", Icon: "new", Tooltip: "Generate a new initial random seed to get different results.  By default, Init re-establishes the same initial seed every time."}, win.This(),
 		func(recv, send ki.Ki, sig int64, data interface{}) {
@@ -1042,7 +835,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	tbar.AddAction(gi.ActOpts{Label: "README", Icon: "file-markdown", Tooltip: "Opens your browser on the README file that contains instructions for how to run this model."}, win.This(),
 		func(recv, send ki.Ki, sig int64, data interface{}) {
-			gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch7/bg/README.md")
+			gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch7/rl_cond/README.md")
 		})
 
 	vp.UpdateEndNoSig(updt)
