@@ -26,6 +26,6 @@ You probably have to do a "right mouse click" (e.g., Ctrl + click) to open the e
 
 # Status
 
-**9/10/2019**: Chapters 2-4 are complete and an initial binary release for all three supported platforms is available.  Python versions will be made available pending a program to convert the go files to python more automatically.
+**11/2/2019**: Chapters 2-7 are complete (excluding pvlv and cereb from ch7 which will come later) with a binary release for *mac* only -- will update for all three supported platforms upon request, or after all projects are done.  Python versions will be made available pending a program to convert the go files to python more automatically.
 
 
