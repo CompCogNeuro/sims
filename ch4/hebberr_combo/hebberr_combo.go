@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 /*
-hebberr_combo shows how XCal hebbian learning in shallower layers of a network can aid an error driven learning network to generalize to unseen combinations of patterns. 
+hebberr_combo shows how XCal hebbian learning in shallower layers of a network can aid an error driven learning network to generalize to unseen combinations of patterns.
 */
 package main
 
@@ -15,11 +15,12 @@ import (
 	"os"
 	"strconv"
 	"time"
+
 	"github.com/emer/emergent/emer"
 	"github.com/emer/emergent/env"
 	"github.com/emer/emergent/netview"
 	"github.com/emer/emergent/params"
-//	"github.com/emer/emergent/patgen"
+	//	"github.com/emer/emergent/patgen"
 	"github.com/emer/emergent/prjn"
 	"github.com/emer/emergent/relpos"
 	"github.com/emer/etable/agg"
@@ -87,7 +88,7 @@ const (
 	Hebbian LearnType = iota
 	ErrorDriven
 	ErrorHebbIn
-LearnTypeN
+	LearnTypeN
 )
 
 // ParamSets is the default set of parameters -- Base is always applied, and others can be optionally
@@ -125,7 +126,7 @@ var ParamSets = params.Sets{
 				}},
 			{Sel: ".Output", Desc: "out inhib",
 				Params: params.Params{
-					"Layer.Inhib.Layer.Gi":     "1.8",
+					"Layer.Inhib.Layer.Gi": "1.8",
 				}},
 		},
 	}},
@@ -139,7 +140,7 @@ var ParamSets = params.Sets{
 				}},
 			{Sel: ".Output", Desc: "out inhib",
 				Params: params.Params{
-					"Layer.Inhib.Layer.Gi":     "1.8",
+					"Layer.Inhib.Layer.Gi": "1.8",
 				}},
 		},
 	}},
@@ -161,11 +162,10 @@ var ParamSets = params.Sets{
 				}},
 			{Sel: ".Output", Desc: "out inhib",
 				Params: params.Params{
-					"Layer.Inhib.Layer.Gi":     "1.8",
+					"Layer.Inhib.Layer.Gi": "1.8",
 				}},
 		},
 	}},
-	
 }
 
 // Sim encapsulates the entire simulation model, and we define all the
@@ -268,10 +268,10 @@ func (ss *Sim) New() {
 
 // Config configures all the elements using the standard functions
 func (ss *Sim) Config() {
-//	patgen.ReshapeCppFile(ss.Easy, "easy.dat", "easy.dat")                   // one-time reshape
-//	patgen.ReshapeCppFile(ss.Hard, "hard.dat", "hard.dat")                   // one-time reshape
-//	patgen.ReshapeCppFile(ss.Impossible, "impossible.dat", "impossible.dat") // one-time reshape
-//	patgen.ReshapeCppFile(ss.Lines2, "lines2out2.dat", "lines2out1.dat") // one-time reshape
+	//	patgen.ReshapeCppFile(ss.Easy, "easy.dat", "easy.dat")                   // one-time reshape
+	//	patgen.ReshapeCppFile(ss.Hard, "hard.dat", "hard.dat")                   // one-time reshape
+	//	patgen.ReshapeCppFile(ss.Impossible, "impossible.dat", "impossible.dat") // one-time reshape
+	//	patgen.ReshapeCppFile(ss.Lines2, "lines2out2.dat", "lines2out1.dat") // one-time reshape
 	ss.OpenPats()
 	ss.ConfigEnv()
 	ss.ConfigNet(ss.Net)
@@ -329,9 +329,9 @@ func (ss *Sim) UpdateEnv() {
 		ss.TrainEnv.Table = splits.Splits[0]
 		ss.TestEnv.Table = splits.Splits[1]
 
-	//	ss.TrainEnv.Table =  splits.Splits[0]//etable.NewIdxView(ss.Lines2)
-	//	ss.TestEnv.Table =  splits.Splits[1]//etable.NewIdxView(ss.Lines2)
-		
+		//	ss.TrainEnv.Table =  splits.Splits[0]//etable.NewIdxView(ss.Lines2)
+		//	ss.TestEnv.Table =  splits.Splits[1]//etable.NewIdxView(ss.Lines2)
+
 	}
 }
 
@@ -341,14 +341,14 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 	hid := net.AddLayer2D("Hidden", 6, 5, emer.Hidden)
 	out := net.AddLayer2D("Output", 5, 2, emer.Target)
 	out.SetClass("Output")
-	
+
 	inhid := net.ConnectLayers(inp, hid, prjn.NewFull(), emer.Forward)
 
 	net.ConnectLayers(hid, out, prjn.NewFull(), emer.Forward)
 	net.ConnectLayers(out, hid, prjn.NewFull(), emer.Back)
 
 	inhid.SetClass("InputToHidden")
-	
+
 	hid.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Input", YAlign: relpos.Front, XAlign: relpos.Left, YOffset: 1})
 
 	net.Defaults()
@@ -472,7 +472,7 @@ func (ss *Sim) ApplyInputs(en env.Env) {
 
 	lays := []string{"Input", "Output"}
 	for _, lnm := range lays {
-		ly := ss.Net.LayerByName(lnm).(*leabra.Layer)
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		pats := en.State(ly.Nm)
 		if pats != nil {
 			ly.ApplyExt(pats)
@@ -567,7 +567,7 @@ func (ss *Sim) InitStats() {
 // different time-scales over which stats could be accumulated etc.
 // You can also aggregate directly from log data, as is done for testing stats
 func (ss *Sim) TrialStats(accum bool) (sse, avgsse, cosdiff float64) {
-	out := ss.Net.LayerByName("Output").(*leabra.Layer)
+	out := ss.Net.LayerByName("Output").(leabra.LeabraLayer).AsLeabra()
 	ss.TrlCosDiff = float64(out.CosDiff.Cos)
 	ss.TrlSSE, ss.TrlAvgSSE = out.MSE(0.5) // 0.5 = per-unit tolerance -- right side of .5
 	if accum {
@@ -723,7 +723,7 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 	case ErrorDriven:
 		ss.SetParamsSet("ErrorDriven", sheet, setMsg)
 	case ErrorHebbIn:
-		ss.SetParamsSet("ErrorHebbIn", sheet, setMsg)	
+		ss.SetParamsSet("ErrorHebbIn", sheet, setMsg)
 	}
 	return err
 }
@@ -807,18 +807,18 @@ func (ss *Sim) OpenPats() {
 	if err != nil {
 		log.Println(err)
 	}
-//	dt = ss.Lines2
-//	dt.SetMetaData("name", "Lines2")
-//	dt.SetMetaData("desc", "Lines2 Training patterns")
+	//	dt = ss.Lines2
+	//	dt.SetMetaData("name", "Lines2")
+	//	dt.SetMetaData("desc", "Lines2 Training patterns")
 	//err = dt.OpenCSV("lines2out.dat", etable.Tab)
-//	ab, err = Asset("lines2out1.dat") // embedded in executable
-//	if err != nil {
-//		log.Println(err)
-//	}
-//	err = dt.ReadCSV(bytes.NewBuffer(ab), etable.Tab)
-//	if err != nil {
-//		log.Println(err)
-//	}
+	//	ab, err = Asset("lines2out1.dat") // embedded in executable
+	//	if err != nil {
+	//		log.Println(err)
+	//	}
+	//	err = dt.ReadCSV(bytes.NewBuffer(ab), etable.Tab)
+	//	if err != nil {
+	//		log.Println(err)
+	//	}
 
 }
 
@@ -864,7 +864,7 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 	dt.SetCellFloat("CosDiff", row, ss.EpcCosDiff)
 
 	for _, lnm := range ss.LayStatNms {
-		ly := ss.Net.LayerByName(lnm).(*leabra.Layer)
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		dt.SetCellFloat(ly.Nm+" ActAvg", row, float64(ly.Pools[0].ActAvg.ActPAvgEff))
 	}
 
@@ -925,8 +925,8 @@ func (ss *Sim) ConfigTrnEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 // log always contains number of testing items
 func (ss *Sim) LogTstTrl(dt *etable.Table) {
 	epc := ss.TrainEnv.Epoch.Prv // this is triggered by increment so use previous value
-	inp := ss.Net.LayerByName("Input").(*leabra.Layer)
-	out := ss.Net.LayerByName("Output").(*leabra.Layer)
+	inp := ss.Net.LayerByName("Input").(leabra.LeabraLayer).AsLeabra()
+	out := ss.Net.LayerByName("Output").(leabra.LeabraLayer).AsLeabra()
 
 	trl := ss.TestEnv.Trial.Cur
 	row := trl
@@ -944,7 +944,7 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 	dt.SetCellFloat("CosDiff", row, ss.TrlCosDiff)
 
 	for _, lnm := range ss.LayStatNms {
-		ly := ss.Net.LayerByName(lnm).(*leabra.Layer)
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		dt.SetCellFloat(ly.Nm+" ActM.Avg", row, float64(ly.Pools[0].ActM.Avg))
 	}
 	if ss.InputValsTsr == nil { // re-use same tensors so not always reallocating mem
@@ -963,8 +963,8 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 }
 
 func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
-	inp := ss.Net.LayerByName("Input").(*leabra.Layer)
-	out := ss.Net.LayerByName("Output").(*leabra.Layer)
+	inp := ss.Net.LayerByName("Input").(leabra.LeabraLayer).AsLeabra()
+	out := ss.Net.LayerByName("Output").(leabra.LeabraLayer).AsLeabra()
 
 	dt.SetMetaData("name", "TstTrlLog")
 	dt.SetMetaData("desc", "Record of testing per input pattern")
@@ -1317,7 +1317,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	tbar.AddSeparator("log")
 
-	tbar.AddAction(gi.ActOpts{Label: "Reset RunLog", Icon: "reset", Tooltip: "Reset the accumulated log of all Runs, which are tagged with the ParamSet used"}, win.This(),
+	tbar.AddAction(gi.ActOpts{Label: "Reset RunLog", Icon: "update", Tooltip: "Reset the accumulated log of all Runs, which are tagged with the ParamSet used"}, win.This(),
 		func(recv, send ki.Ki, sig int64, data interface{}) {
 			ss.RunLog.SetNumRows(0)
 			ss.RunPlot.Update()

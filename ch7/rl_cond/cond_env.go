@@ -6,25 +6,45 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 
 	"github.com/emer/emergent/env"
+	"github.com/emer/emergent/erand"
 	"github.com/emer/etable/etensor"
 )
 
 // OnOff represents stimulus On / Off timing
 type OnOff struct {
-	On  int `desc:"when stimulus turns on"`
-	Off int `desc:"when stimulu turns off"`
+	Act           bool    `desc:"is this stimulus active -- use it?"`
+	On            int     `desc:"when stimulus turns on"`
+	Off           int     `desc:"when stimulu turns off"`
+	P             float32 `desc:"probability of being active on any given trial"`
+	OnVar         int     `desc:"variability in onset timing (max number of trials before/after On that it could start)"`
+	OffVar        int     `desc:"variability in offset timing (max number of trials before/after Off that it could end)"`
+	CurAct        bool    `view:"-" desc:"current active status based on P probability"`
+	CurOn, CurOff int     `view:"-" desc:"current on / off values using Var variability"`
 }
 
-func (oo *OnOff) Set(on, off int) {
+func (oo *OnOff) Set(act bool, on, off int) {
+	oo.Act = act
 	oo.On = on
 	oo.Off = off
+	oo.P = 1 // default
+}
+
+// TrialUpdt updates Cur state at start of trial
+func (oo *OnOff) TrialUpdt() {
+	if !oo.Act {
+		return
+	}
+	oo.CurAct = erand.BoolP(oo.P)
+	oo.CurOn = oo.On - oo.OnVar + 2*rand.Intn(oo.OnVar+1)
+	oo.CurOff = oo.Off - oo.OffVar + 2*rand.Intn(oo.OffVar+1)
 }
 
 // IsOn returns true if should be on according current time
 func (oo *OnOff) IsOn(tm int) bool {
-	return tm >= oo.On && tm < oo.Off
+	return oo.Act && oo.CurAct && tm >= oo.CurOn && tm < oo.CurOff
 }
 
 // CondEnv simulates an n-armed bandit, where each of n inputs is associated with
@@ -33,10 +53,10 @@ type CondEnv struct {
 	Nm       string          `desc:"name of this environment"`
 	Dsc      string          `desc:"description of this environment"`
 	TotTime  int             `desc:"total time for trial"`
-	CSA      OnOff           `desc:"Conditioned stimulus A (e.g., Light)"`
-	CSB      OnOff           `desc:"Conditioned stimulus B (e.g., Tone)"`
-	CSC      OnOff           `desc:"Conditioned stimulus C"`
-	US       OnOff           `desc:"Unconditioned stimulus -- reward"`
+	CSA      OnOff           `view:"inline" desc:"Conditioned stimulus A (e.g., Tone)"`
+	CSB      OnOff           `view:"inline" desc:"Conditioned stimulus B (e.g., Light)"`
+	CSC      OnOff           `view:"inline" desc:"Conditioned stimulus C"`
+	US       OnOff           `view:"inline" desc:"Unconditioned stimulus -- reward"`
 	RewVal   float32         `desc:"value for reward"`
 	NoRewVal float32         `desc:"value for non-reward"`
 	Input    etensor.Float64 `desc:"one-hot input representation of current option"`
@@ -52,10 +72,10 @@ func (ev *CondEnv) Desc() string { return ev.Dsc }
 
 func (ev *CondEnv) Defaults() {
 	ev.TotTime = 20
-	ev.CSA.Set(10, 16)
-	ev.CSB.Set(-2, -1)
-	ev.CSC.Set(-2, -1)
-	ev.US.Set(15, 16)
+	ev.CSA.Set(true, 10, 16)
+	ev.CSB.Set(false, 2, 10)
+	ev.CSC.Set(false, 2, 5)
+	ev.US.Set(true, 15, 16)
 }
 
 func (ev *CondEnv) Validate() error {
@@ -110,6 +130,15 @@ func (ev *CondEnv) Init(run int) {
 	ev.Run.Cur = run
 	ev.Event.Max = ev.TotTime
 	ev.Event.Cur = -1 // init state -- key so that first Step() = 0
+	ev.TrialUpdt()
+}
+
+// TrialUpdt updates all random vars at start of trial
+func (ev *CondEnv) TrialUpdt() {
+	ev.CSA.TrialUpdt()
+	ev.CSB.TrialUpdt()
+	ev.CSC.TrialUpdt()
+	ev.US.TrialUpdt()
 }
 
 // SetInput sets the input state
@@ -141,12 +170,14 @@ func (ev *CondEnv) SetReward() bool {
 
 func (ev *CondEnv) Step() bool {
 	ev.Epoch.Same() // good idea to just reset all non-inner-most counters at start
+	ev.Trial.Same() // this ensures that they only report changed when actually changed
 
 	incr := ev.Event.Incr()
 	ev.SetInput()
 	ev.SetReward()
 
 	if incr {
+		ev.TrialUpdt()
 		if ev.Trial.Incr() {
 			ev.Epoch.Incr()
 		}

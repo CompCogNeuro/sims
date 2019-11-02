@@ -36,21 +36,21 @@ type ImgEnv struct {
 	OrigImg    etensor.Float32 `desc:"original image prior to random transforms"`
 }
 
-func (ie *ImgEnv) Name() string { return ie.Nm }
-func (ie *ImgEnv) Desc() string { return ie.Dsc }
+func (ev *ImgEnv) Name() string { return ev.Nm }
+func (ev *ImgEnv) Desc() string { return ev.Dsc }
 
-func (ie *ImgEnv) Validate() error {
+func (ev *ImgEnv) Validate() error {
 	return nil
 }
 
-func (ie *ImgEnv) Counters() []env.TimeScales {
+func (ev *ImgEnv) Counters() []env.TimeScales {
 	return []env.TimeScales{env.Run, env.Epoch, env.Sequence, env.Trial}
 }
 
-func (ie *ImgEnv) States() env.Elements {
-	isz := ie.Vis.ImgSize
-	sz := ie.Vis.OutTsr.Shapes()
-	nms := ie.Vis.OutTsr.DimNames()
+func (ev *ImgEnv) States() env.Elements {
+	isz := ev.Vis.ImgSize
+	sz := ev.Vis.OutTsr.Shapes()
+	nms := ev.Vis.OutTsr.DimNames()
 	els := env.Elements{
 		{"Image", []int{isz.Y, isz.X}, []string{"Y", "X"}},
 		{"LGN", sz, nms},
@@ -60,74 +60,74 @@ func (ie *ImgEnv) States() env.Elements {
 	return els
 }
 
-func (ie *ImgEnv) State(element string) etensor.Tensor {
+func (ev *ImgEnv) State(element string) etensor.Tensor {
 	switch element {
 	case "Image":
-		return &ie.Vis.ImgTsr
+		return &ev.Vis.ImgTsr
 	case "LGN":
-		return &ie.Vis.OutTsr
+		return &ev.Vis.OutTsr
 	case "LGNon":
-		return ie.Vis.OutTsr.SubSpace(2, []int{0})
+		return ev.Vis.OutTsr.SubSpace(2, []int{0})
 	case "LGNoff":
-		return ie.Vis.OutTsr.SubSpace(2, []int{1})
+		return ev.Vis.OutTsr.SubSpace(2, []int{1})
 	}
 	return nil
 }
 
-func (ie *ImgEnv) Actions() env.Elements {
+func (ev *ImgEnv) Actions() env.Elements {
 	return nil
 }
 
-func (ie *ImgEnv) Defaults() {
-	ie.Vis.Defaults()
-	ie.XFormRand.TransX.Set(0, 0) // translation happens in random chunk selection
-	ie.XFormRand.TransY.Set(0, 0)
-	ie.XFormRand.Scale.Set(0.5, 1)
-	ie.XFormRand.Rot.Set(-90, 90)
+func (ev *ImgEnv) Defaults() {
+	ev.Vis.Defaults()
+	ev.XFormRand.TransX.Set(0, 0) // translation happens in random chunk selection
+	ev.XFormRand.TransY.Set(0, 0)
+	ev.XFormRand.Scale.Set(0.5, 1)
+	ev.XFormRand.Rot.Set(-90, 90)
 }
 
-func (ie *ImgEnv) Init(run int) {
-	ie.Run.Scale = env.Run
-	ie.Epoch.Scale = env.Epoch
-	ie.Trial.Scale = env.Trial
-	ie.Run.Init()
-	ie.Epoch.Init()
-	ie.Trial.Init()
-	ie.Run.Cur = run
-	ie.Trial.Cur = -1 // init state -- key so that first Step() = 0
+func (ev *ImgEnv) Init(run int) {
+	ev.Run.Scale = env.Run
+	ev.Epoch.Scale = env.Epoch
+	ev.Trial.Scale = env.Trial
+	ev.Run.Init()
+	ev.Epoch.Init()
+	ev.Trial.Init()
+	ev.Run.Cur = run
+	ev.Trial.Cur = -1 // init state -- key so that first Step() = 0
 }
 
-func (ie *ImgEnv) Step() bool {
-	ie.Epoch.Same()      // good idea to just reset all non-inner-most counters at start
-	if ie.Trial.Incr() { // if true, hit max, reset to 0
-		ie.Epoch.Incr()
+func (ev *ImgEnv) Step() bool {
+	ev.Epoch.Same()      // good idea to just reset all non-inner-most counters at start
+	if ev.Trial.Incr() { // if true, hit max, reset to 0
+		ev.Epoch.Incr()
 	}
-	ie.PickRndImage()
-	ie.FilterImg()
+	ev.PickRndImage()
+	ev.FilterImg()
 	// debug only:
-	// img := ie.Images[ie.ImageIdx.Cur]
-	// vfilter.RGBToGrey(img, &ie.OrigImg, 0, false) // pad for filt, bot zero
+	// img := ev.Images[ev.ImageIdx.Cur]
+	// vfilter.RGBToGrey(img, &ev.OrigImg, 0, false) // pad for filt, bot zero
 	return true
 }
 
 // DoImage processes specified image number
-func (ie *ImgEnv) DoImage(imgNo int) {
-	ie.ImageIdx.Set(imgNo)
-	ie.FilterImg()
+func (ev *ImgEnv) DoImage(imgNo int) {
+	ev.ImageIdx.Set(imgNo)
+	ev.FilterImg()
 }
 
-func (ie *ImgEnv) Action(element string, input etensor.Tensor) {
+func (ev *ImgEnv) Action(element string, input etensor.Tensor) {
 	// nop
 }
 
-func (ie *ImgEnv) Counter(scale env.TimeScales) (cur, prv int, chg bool) {
+func (ev *ImgEnv) Counter(scale env.TimeScales) (cur, prv int, chg bool) {
 	switch scale {
 	case env.Run:
-		return ie.Run.Query()
+		return ev.Run.Query()
 	case env.Epoch:
-		return ie.Epoch.Query()
+		return ev.Epoch.Query()
 	case env.Trial:
-		return ie.Trial.Query()
+		return ev.Trial.Query()
 	}
 	return -1, -1, false
 }
@@ -136,25 +136,25 @@ func (ie *ImgEnv) Counter(scale env.TimeScales) (cur, prv int, chg bool) {
 var _ env.Env = (*ImgEnv)(nil)
 
 // String returns the string rep of the LED env state
-func (ie *ImgEnv) String() string {
-	cfn := ie.ImageFiles[ie.ImageIdx.Cur]
-	return fmt.Sprintf("Obj: %s, %s", cfn, ie.XForm.String())
+func (ev *ImgEnv) String() string {
+	cfn := ev.ImageFiles[ev.ImageIdx.Cur]
+	return fmt.Sprintf("Obj: %s, %s", cfn, ev.XForm.String())
 }
 
 // PickRndImage picks an image at random
-func (ie *ImgEnv) PickRndImage() {
-	nimg := len(ie.Images)
-	ie.ImageIdx.Set(rand.Intn(nimg))
+func (ev *ImgEnv) PickRndImage() {
+	nimg := len(ev.Images)
+	ev.ImageIdx.Set(rand.Intn(nimg))
 }
 
 // FilterImg filters the image using new random xforms
-func (ie *ImgEnv) FilterImg() {
-	ie.XFormRand.Gen(&ie.XForm)
-	oimg := ie.Images[ie.ImageIdx.Cur]
+func (ev *ImgEnv) FilterImg() {
+	ev.XFormRand.Gen(&ev.XForm)
+	oimg := ev.Images[ev.ImageIdx.Cur]
 	// following logic first extracts a sub-image of 2x the ultimate filtered size of image
 	// from original image, which greatly speeds up the xform processes, relative to working
 	// on entire 800x600 original image
-	insz := ie.Vis.Geom.In.Mul(2) // target size * 2
+	insz := ev.Vis.Geom.In.Mul(2) // target size * 2
 	ibd := oimg.Bounds()
 	isz := ibd.Size()
 	irng := isz.Sub(insz)
@@ -163,18 +163,18 @@ func (ie *ImgEnv) FilterImg() {
 	st.Y = rand.Intn(irng.Y)
 	ed := st.Add(insz)
 	simg := oimg.SubImage(image.Rectangle{Min: st, Max: ed})
-	img := ie.XForm.Image(simg)
-	ie.Vis.Filter(img)
+	img := ev.XForm.Image(simg)
+	ev.Vis.Filter(img)
 }
 
 // OpenImages opens all the images
-func (ie *ImgEnv) OpenImages() error {
-	nimg := len(ie.ImageFiles)
-	if len(ie.Images) != nimg {
-		ie.Images = make([]*image.RGBA, nimg)
+func (ev *ImgEnv) OpenImages() error {
+	nimg := len(ev.ImageFiles)
+	if len(ev.Images) != nimg {
+		ev.Images = make([]*image.RGBA, nimg)
 	}
 	var lsterr error
-	for i, fn := range ie.ImageFiles {
+	for i, fn := range ev.ImageFiles {
 		img, err := gi.OpenImage(fn)
 		if err != nil {
 			log.Println(err)
@@ -182,22 +182,22 @@ func (ie *ImgEnv) OpenImages() error {
 			continue
 		}
 		if rg, ok := img.(*image.RGBA); ok {
-			ie.Images[i] = rg
+			ev.Images[i] = rg
 		} else {
-			ie.Images[i] = clone.AsRGBA(img)
+			ev.Images[i] = clone.AsRGBA(img)
 		}
 	}
 	return lsterr
 }
 
 // OpenImagesAsset opens all the images as assets
-func (ie *ImgEnv) OpenImagesAsset() error {
-	nimg := len(ie.ImageFiles)
-	if len(ie.Images) != nimg {
-		ie.Images = make([]*image.RGBA, nimg)
+func (ev *ImgEnv) OpenImagesAsset() error {
+	nimg := len(ev.ImageFiles)
+	if len(ev.Images) != nimg {
+		ev.Images = make([]*image.RGBA, nimg)
 	}
 	var lsterr error
-	for i, fn := range ie.ImageFiles {
+	for i, fn := range ev.ImageFiles {
 		ab, err := Asset(fn) // embedded in executable
 		if err != nil {
 			log.Println(err)
@@ -211,9 +211,9 @@ func (ie *ImgEnv) OpenImagesAsset() error {
 			continue
 		}
 		if rg, ok := img.(*image.RGBA); ok {
-			ie.Images[i] = rg
+			ev.Images[i] = rg
 		} else {
-			ie.Images[i] = clone.AsRGBA(img)
+			ev.Images[i] = clone.AsRGBA(img)
 		}
 	}
 	return lsterr

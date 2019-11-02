@@ -246,7 +246,7 @@ func (ss *Sim) ApplyInputs(en env.Env) {
 
 	lays := []string{"Input"}
 	for _, lnm := range lays {
-		ly := ss.Net.LayerByName(lnm).(*leabra.Layer)
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		pats := en.State(ly.Nm)
 		if pats != nil {
 			ly.ApplyExt(pats)
@@ -342,7 +342,7 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 		ss.Params.ValidateSheets([]string{"Network", "Sim"})
 	}
 	err := ss.SetParamsSet("Base", sheet, setMsg)
-	recv := ss.Net.LayerByName("RecvNeuron").(*leabra.Layer)
+	recv := ss.Net.LayerByName("RecvNeuron").(leabra.LeabraLayer).AsLeabra()
 	recv.Act.Gbar.L = ss.GbarL
 	return err
 }
@@ -406,8 +406,8 @@ func (ss *Sim) OpenPats() {
 // LogTstTrl adds data from current trial to the TstTrlLog table.
 // log always contains number of testing items
 func (ss *Sim) LogTstTrl(dt *etable.Table) {
-	inp := ss.Net.LayerByName("Input").(*leabra.Layer)
-	recv := ss.Net.LayerByName("RecvNeuron").(*leabra.Layer)
+	inp := ss.Net.LayerByName("Input").(leabra.LeabraLayer).AsLeabra()
+	recv := ss.Net.LayerByName("RecvNeuron").(leabra.LeabraLayer).AsLeabra()
 
 	trl := ss.TestEnv.Trial.Cur
 	row := trl
@@ -435,8 +435,8 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 }
 
 func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
-	inp := ss.Net.LayerByName("Input").(*leabra.Layer)
-	recv := ss.Net.LayerByName("RecvNeuron").(*leabra.Layer)
+	inp := ss.Net.LayerByName("Input").(leabra.LeabraLayer).AsLeabra()
+	recv := ss.Net.LayerByName("RecvNeuron").(leabra.LeabraLayer).AsLeabra()
 
 	dt.SetMetaData("name", "TstTrlLog")
 	dt.SetMetaData("desc", "Record of testing per input pattern")
@@ -575,7 +575,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 		}
 	})
 
-	tbar.AddAction(gi.ActOpts{Label: "Defaults", Icon: "reset", Tooltip: "Restore initial default parameters.", UpdateFunc: func(act *gi.Action) {
+	tbar.AddAction(gi.ActOpts{Label: "Defaults", Icon: "update", Tooltip: "Restore initial default parameters.", UpdateFunc: func(act *gi.Action) {
 		act.SetActiveStateUpdt(!ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		ss.Defaults()

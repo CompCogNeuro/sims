@@ -198,7 +198,7 @@ func (ss *Sim) RunCycles() {
 	ss.StopNow = false
 	ss.Net.InitActs()
 	ss.SetParams("", false)
-	ly := ss.Net.LayerByName("Neuron").(*leabra.Layer)
+	ly := ss.Net.LayerByName("Neuron").(leabra.LeabraLayer).AsLeabra()
 	nrn := &(ly.Neurons[0])
 	inputOn := false
 	for cyc := 0; cyc < ss.NCycles; cyc++ {
@@ -236,7 +236,7 @@ func (ss *Sim) RunCycles() {
 // RateUpdt updates the neuron in rate-code mode
 // this just calls the relevant activation code directly, bypassing most other stuff.
 func (ss *Sim) RateUpdt(nt *leabra.Network, inputOn bool) {
-	ly := ss.Net.LayerByName("Neuron").(*leabra.Layer)
+	ly := ss.Net.LayerByName("Neuron").(leabra.LeabraLayer).AsLeabra()
 	nrn := &(ly.Neurons[0])
 	ly.Act.VmFmG(nrn)
 	ly.Act.ActFmG(nrn)
@@ -246,7 +246,7 @@ func (ss *Sim) RateUpdt(nt *leabra.Network, inputOn bool) {
 // SpikeUpdt updates the neuron in spiking mode
 // which is just computed directly as spiking is not yet implemented in main codebase
 func (ss *Sim) SpikeUpdt(nt *leabra.Network, inputOn bool) {
-	ly := ss.Net.LayerByName("Neuron").(*leabra.Layer)
+	ly := ss.Net.LayerByName("Neuron").(leabra.LeabraLayer).AsLeabra()
 	nrn := &(ly.Neurons[0])
 	ss.SpikeParams.SpikeVmFmG(nrn)
 	ss.SpikeParams.SpikeActFmVm(nrn)
@@ -312,7 +312,7 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 		ss.Params.ValidateSheets([]string{"Network", "Sim"})
 	}
 	err := ss.SetParamsSet("Base", sheet, setMsg)
-	ly := ss.Net.LayerByName("Neuron").(*leabra.Layer)
+	ly := ss.Net.LayerByName("Neuron").(leabra.LeabraLayer).AsLeabra()
 	ly.Act.Gbar.E = float32(ss.GbarE)
 	ly.Act.Gbar.L = float32(ss.GbarL)
 	ly.Act.Erev.E = float32(ss.ErevE)
@@ -362,7 +362,7 @@ func (ss *Sim) LogTstCyc(dt *etable.Table, cyc int) {
 	}
 	row := cyc
 
-	ly := ss.Net.LayerByName("Neuron").(*leabra.Layer)
+	ly := ss.Net.LayerByName("Neuron").(leabra.LeabraLayer).AsLeabra()
 	nrn := &(ly.Neurons[0])
 
 	dt.SetCellFloat("Cycle", row, float64(cyc))
@@ -553,7 +553,7 @@ See <a href="https://github.com/CompCogNeuro/sims/ch2/neuron/README.md">README.m
 		}
 	})
 
-	tbar.AddAction(gi.ActOpts{Label: "Defaults", Icon: "reset", Tooltip: "Restore initial default parameters.", UpdateFunc: func(act *gi.Action) {
+	tbar.AddAction(gi.ActOpts{Label: "Defaults", Icon: "update", Tooltip: "Restore initial default parameters.", UpdateFunc: func(act *gi.Action) {
 		act.SetActiveStateUpdt(!ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		ss.Defaults()

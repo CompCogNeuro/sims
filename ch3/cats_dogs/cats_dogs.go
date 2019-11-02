@@ -287,7 +287,7 @@ func (ss *Sim) ApplyInputs(en env.Env) {
 
 	lays := []string{"Name", "Identity", "Color", "FavoriteFood", "Size", "Species", "FavoriteToy"}
 	for _, lnm := range lays {
-		ly := ss.Net.LayerByName(lnm).(*leabra.Layer)
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		pats := en.State(ly.Nm)
 		if pats != nil {
 			ly.ApplyExt(pats)
@@ -415,10 +415,10 @@ func (ss *Sim) SetParamsSet(setNm string, sheet string, setMsg bool) error {
 // SetInput sets whether the input to the network comes in bottom-up
 // (Input layer) or top-down (Higher-level category layers)
 func (ss *Sim) SetInput(topDown bool) {
-	inp := ss.Net.LayerByName("Input").(*leabra.Layer)
-	emo := ss.Net.LayerByName("Emotion").(*leabra.Layer)
-	gend := ss.Net.LayerByName("Gender").(*leabra.Layer)
-	iden := ss.Net.LayerByName("Identity").(*leabra.Layer)
+	inp := ss.Net.LayerByName("Input").(leabra.LeabraLayer).AsLeabra()
+	emo := ss.Net.LayerByName("Emotion").(leabra.LeabraLayer).AsLeabra()
+	gend := ss.Net.LayerByName("Gender").(leabra.LeabraLayer).AsLeabra()
+	iden := ss.Net.LayerByName("Identity").(leabra.LeabraLayer).AsLeabra()
 	if topDown {
 		inp.SetType(emer.Compare)
 		emo.SetType(emer.Input)
@@ -469,7 +469,7 @@ func (ss *Sim) Harmony(nt *leabra.Network) float32 {
 		if ly.IsOff() {
 			continue
 		}
-		lly := ly.(*leabra.Layer)
+		lly := ly.(leabra.LeabraLayer).AsLeabra()
 		for i := range lly.Neurons {
 			nrn := &(lly.Neurons[i])
 			harm += nrn.Ge * nrn.Act
@@ -504,7 +504,7 @@ func (ss *Sim) LogTstCyc(dt *etable.Table, cyc int) {
 			tsr = &etensor.Float32{}
 			ss.LayRecTsr[lnm] = tsr
 		}
-		ly := ss.Net.LayerByName(lnm).(*leabra.Layer)
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		ly.UnitValsTensor(tsr, "Act")
 		dt.SetCellTensor(lnm, row, tsr)
 	}
@@ -526,7 +526,7 @@ func (ss *Sim) ConfigTstCycLog(dt *etable.Table) {
 		{"Harmony", etensor.FLOAT64, nil, nil},
 	}
 	for _, lnm := range ss.TstRecLays {
-		ly := ss.Net.LayerByName(lnm).(*leabra.Layer)
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		sch = append(sch, etable.Column{lnm, etensor.FLOAT64, ly.Shp.Shp, nil})
 	}
 	dt.SetFromSchema(sch, nt)
