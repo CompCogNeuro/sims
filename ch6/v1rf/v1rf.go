@@ -378,7 +378,7 @@ func (ss *Sim) ApplyInputs(en env.Env) {
 
 	lays := []string{"LGNon", "LGNoff"}
 	for _, lnm := range lays {
-		ly := ss.Net.LayerByName(lnm).(*leabra.Layer)
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		pats := en.State(ly.Nm)
 		if pats != nil {
 			ly.ApplyExt(pats)
@@ -544,10 +544,10 @@ func (ss *Sim) V1RFs() {
 	onVals := ss.V1onWts.Values
 	offVals := ss.V1offWts.Values
 	netVals := ss.V1Wts.Values
-	on := ss.Net.LayerByName("LGNon").(*leabra.Layer)
-	off := ss.Net.LayerByName("LGNoff").(*leabra.Layer)
+	on := ss.Net.LayerByName("LGNon").(leabra.LeabraLayer).AsLeabra()
+	off := ss.Net.LayerByName("LGNoff").(leabra.LeabraLayer).AsLeabra()
 	isz := on.Shape().Len()
-	v1 := ss.Net.LayerByName("V1").(*leabra.Layer)
+	v1 := ss.Net.LayerByName("V1").(leabra.LeabraLayer).AsLeabra()
 	ysz := v1.Shape().Dim(0)
 	xsz := v1.Shape().Dim(1)
 	for y := 0; y < ysz; y++ {
@@ -643,7 +643,7 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 	err := ss.SetParamsSet("Base", sheet, setMsg)
 
 	nt := ss.Net
-	v1 := nt.LayerByName("V1").(*leabra.Layer)
+	v1 := nt.LayerByName("V1").(leabra.LeabraLayer).AsLeabra()
 	elat := v1.RcvPrjns[2].(*leabra.Prjn)
 	elat.WtScale.Rel = ss.ExcitLateralScale
 	elat.Learn.Learn = ss.ExcitLateralLearn
@@ -740,7 +740,7 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 	dt.SetCellFloat("Epoch", row, float64(epc))
 
 	for _, lnm := range ss.LayStatNms {
-		ly := ss.Net.LayerByName(lnm).(*leabra.Layer)
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		dt.SetCellFloat(ly.Nm+" ActAvg", row, float64(ly.Pools[0].ActAvg.ActPAvgEff))
 	}
 
@@ -808,7 +808,7 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 	dt.SetCellString("TrialName", row, ss.TestEnv.TrialName)
 
 	for _, lnm := range ss.LayStatNms {
-		ly := ss.Net.LayerByName(lnm).(*leabra.Layer)
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		dt.SetCellFloat(ly.Nm+" ActM.Avg", row, float64(ly.Pools[0].ActM.Avg))
 	}
 
@@ -1150,7 +1150,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	tbar.AddSeparator("log")
 
-	tbar.AddAction(gi.ActOpts{Label: "Reset RunLog", Icon: "reset", Tooltip: "Reset the accumulated log of all Runs, which are tagged with the ParamSet used"}, win.This(),
+	tbar.AddAction(gi.ActOpts{Label: "Reset RunLog", Icon: "update", Tooltip: "Reset the accumulated log of all Runs, which are tagged with the ParamSet used"}, win.This(),
 		func(recv, send ki.Ki, sig int64, data interface{}) {
 			ss.RunLog.SetNumRows(0)
 			ss.RunPlot.Update()

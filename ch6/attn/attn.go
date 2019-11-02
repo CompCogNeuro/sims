@@ -435,7 +435,7 @@ func (ss *Sim) Lesion(lay LesionType, locations LesionSize, units LesionSize) {
 		return
 	}
 	if lay == LesionSpat1 || lay == LesionSpat12 {
-		sp1 := ss.Net.LayerByName("Spat1").(*leabra.Layer)
+		sp1 := ss.Net.LayerByName("Spat1").(leabra.LeabraLayer).AsLeabra()
 		ss.LesionUnit(sp1, 3, 1)
 		ss.LesionUnit(sp1, 4, 1)
 		if units == LesionFull {
@@ -454,7 +454,7 @@ func (ss *Sim) Lesion(lay LesionType, locations LesionSize, units LesionSize) {
 		}
 	}
 	if lay == LesionSpat2 || lay == LesionSpat12 {
-		sp2 := ss.Net.LayerByName("Spat2").(*leabra.Layer)
+		sp2 := ss.Net.LayerByName("Spat2").(leabra.LeabraLayer).AsLeabra()
 		ss.LesionUnit(sp2, 2, 1)
 		if units == LesionFull {
 			ss.LesionUnit(sp2, 2, 0)
@@ -518,7 +518,7 @@ func (ss *Sim) AlphaCyc() {
 	viewUpdt := ss.ViewUpdt
 
 	// note: this has no learning calls
-	out := ss.Net.LayerByName("Output").(*leabra.Layer)
+	out := ss.Net.LayerByName("Output").(leabra.LeabraLayer).AsLeabra()
 
 	ss.Net.AlphaCycInit()
 	ss.Time.AlphaCycStart()
@@ -586,7 +586,7 @@ func (ss *Sim) ApplyInputs(en env.Env) {
 
 	lays := []string{"Input", "Output"}
 	for _, lnm := range lays {
-		ly := ss.Net.LayerByName(lnm).(*leabra.Layer)
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		pats := en.State(ly.Nm)
 		if pats != nil {
 			ly.ApplyExt(pats)
@@ -805,7 +805,7 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 			tsr = &etensor.Float32{}
 			ss.LayRecTsr[lnm] = tsr
 		}
-		ly := ss.Net.LayerByName(lnm).(*leabra.Layer)
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		ly.UnitValsTensor(tsr, "Act")
 		dt.SetCellTensor(lnm, row, tsr)
 	}
@@ -827,7 +827,7 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 		{"Cycle", etensor.INT64, nil, nil},
 	}
 	for _, lnm := range ss.TstRecLays {
-		ly := ss.Net.LayerByName(lnm).(*leabra.Layer)
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		sch = append(sch, etable.Column{lnm, etensor.FLOAT64, ly.Shp.Shp, nil})
 	}
 	dt.SetFromSchema(sch, nt)

@@ -366,7 +366,7 @@ func (ss *Sim) ApplyInputs() {
 	nt.InitExt() // clear any existing inputs -- not strictly necessary if always
 	// going to the same layers, but good practice and cheap anyway
 
-	ly := nt.LayerByName("Input").(*leabra.Layer)
+	ly := nt.LayerByName("Input").(leabra.LeabraLayer).AsLeabra()
 	pat := ss.Pats.CellTensor("Input", 0)
 	ly.ApplyExt(pat)
 }
@@ -425,45 +425,45 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 	if nt == ss.NetBidir {
 		ffinhsc *= 0.5 // 2 inhib prjns so .5 ea
 	}
-	hid := nt.LayerByName("Hidden").(*leabra.Layer)
+	hid := nt.LayerByName("Hidden").(leabra.LeabraLayer).AsLeabra()
 	hid.Act.Gbar.I = ss.HiddenGbarI
 	hid.Act.Dt.GTau = ss.HiddenGTau
 	hid.Act.Update()
-	inh := nt.LayerByName("Inhib").(*leabra.Layer)
+	inh := nt.LayerByName("Inhib").(leabra.LeabraLayer).AsLeabra()
 	inh.Act.Gbar.I = ss.InhibGbarI
 	inh.Act.Dt.GTau = ss.InhibGTau
 	inh.Act.Update()
-	ff := inh.RcvPrjns.SendName("Input").(*leabra.Prjn)
+	ff := inh.RcvPrjns.SendName("Input").(leabra.LeabraPrjn).AsLeabra()
 	ff.WtScale.Rel = ffinhsc
-	fb := inh.RcvPrjns.SendName("Hidden").(*leabra.Prjn)
+	fb := inh.RcvPrjns.SendName("Hidden").(leabra.LeabraPrjn).AsLeabra()
 	fb.WtScale.Rel = ss.FBinhibWtScale
 	hid.Inhib.Layer.On = ss.FFFBInhib
 	inh.Inhib.Layer.On = ss.FFFBInhib
-	fi := hid.RcvPrjns.SendName("Inhib").(*leabra.Prjn)
+	fi := hid.RcvPrjns.SendName("Inhib").(leabra.LeabraPrjn).AsLeabra()
 	fi.WtScale.Abs = ss.FmInhibWtScaleAbs
-	fi = inh.RcvPrjns.SendName("Inhib").(*leabra.Prjn)
+	fi = inh.RcvPrjns.SendName("Inhib").(leabra.LeabraPrjn).AsLeabra()
 	fi.WtScale.Abs = ss.FmInhibWtScaleAbs
 	if nt == ss.NetBidir {
-		hid = nt.LayerByName("Hidden2").(*leabra.Layer)
+		hid = nt.LayerByName("Hidden2").(leabra.LeabraLayer).AsLeabra()
 		hid.Act.Gbar.I = ss.HiddenGbarI
 		hid.Act.Dt.GTau = ss.HiddenGTau
 		hid.Act.Update()
-		inh = nt.LayerByName("Inhib2").(*leabra.Layer)
+		inh = nt.LayerByName("Inhib2").(leabra.LeabraLayer).AsLeabra()
 		inh.Act.Gbar.I = ss.InhibGbarI
 		inh.Act.Dt.GTau = ss.InhibGTau
 		inh.Act.Update()
 		hid.Inhib.Layer.On = ss.FFFBInhib
 		inh.Inhib.Layer.On = ss.FFFBInhib
-		fi = hid.RcvPrjns.SendName("Inhib2").(*leabra.Prjn)
+		fi = hid.RcvPrjns.SendName("Inhib2").(leabra.LeabraPrjn).AsLeabra()
 		fi.WtScale.Abs = ss.FmInhibWtScaleAbs
-		fi = inh.RcvPrjns.SendName("Inhib2").(*leabra.Prjn)
+		fi = inh.RcvPrjns.SendName("Inhib2").(leabra.LeabraPrjn).AsLeabra()
 		fi.WtScale.Abs = ss.FmInhibWtScaleAbs
-		ff = inh.RcvPrjns.SendName("Hidden").(*leabra.Prjn)
+		ff = inh.RcvPrjns.SendName("Hidden").(leabra.LeabraPrjn).AsLeabra()
 		ff.WtScale.Rel = ffinhsc
-		fb = inh.RcvPrjns.SendName("Hidden2").(*leabra.Prjn)
+		fb = inh.RcvPrjns.SendName("Hidden2").(leabra.LeabraPrjn).AsLeabra()
 		fb.WtScale.Rel = ss.FBinhibWtScale
-		inh = nt.LayerByName("Inhib").(*leabra.Layer)
-		ff = inh.RcvPrjns.SendName("Hidden2").(*leabra.Prjn)
+		inh = nt.LayerByName("Inhib").(leabra.LeabraLayer).AsLeabra()
+		ff = inh.RcvPrjns.SendName("Hidden2").(leabra.LeabraPrjn).AsLeabra()
 		ff.WtScale.Rel = ffinhsc
 	}
 	return err
@@ -509,11 +509,11 @@ func (ss *Sim) LogTstCyc(dt *etable.Table, cyc int) {
 	}
 	row := cyc
 
-	// ly := nt.LayerByName("Input").(*leabra.Layer)
+	// ly := nt.LayerByName("Input").(leabra.LeabraLayer).AsLeabra()
 	dt.SetCellFloat("Cycle", row, float64(cyc))
 
 	for _, lnm := range ss.TstRecLays {
-		ly := nt.LayerByName(lnm).(*leabra.Layer)
+		ly := nt.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		dt.SetCellFloat(lnm+"ActAvg", row, float64(ly.Pools[0].Inhib.Act.Avg))
 	}
 
@@ -638,7 +638,7 @@ feedforward and feedback inhibition to excitatory pyramidal neurons.
 		}
 	})
 
-	tbar.AddAction(gi.ActOpts{Label: "Defaults", Icon: "reset", Tooltip: "Restore initial default parameters.", UpdateFunc: func(act *gi.Action) {
+	tbar.AddAction(gi.ActOpts{Label: "Defaults", Icon: "update", Tooltip: "Restore initial default parameters.", UpdateFunc: func(act *gi.Action) {
 		act.SetActiveStateUpdt(!ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		ss.Defaults()

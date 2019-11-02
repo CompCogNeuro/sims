@@ -61,6 +61,11 @@ var ParamSets = params.Sets{
 				Params: params.Params{
 					"Layer.Act.Dt.AvgTau": "200",
 				}},
+			{Sel: "#Input", Desc: "input fixed act",
+				Params: params.Params{
+					"Layer.Inhib.ActAvg.Fixed": "true", // critical for ensuring weights have same impact!
+					"Layer.Inhib.ActAvg.Init":  "0.015",
+				}},
 			{Sel: ".TDRewToInteg", Desc: "rew to integ",
 				Params: params.Params{
 					"Prjn.Learn.Learn": "false",
@@ -79,6 +84,8 @@ var ParamSets = params.Sets{
 				Params: params.Params{
 					"Layer.Act.Clamp.Range.Min": "-1",
 					"Layer.Act.Clamp.Range.Max": "1",
+					"Layer.Inhib.ActAvg.Fixed":  "true", // critical for ensuring weights have same impact!
+					"Layer.Inhib.ActAvg.Init":   "1",
 				}},
 		},
 	}},
@@ -93,6 +100,7 @@ type Sim struct {
 	Discount        float32           `def:"0.9" desc:"discount factor for future rewards"`
 	Lrate           float32           `def:"0.5" desc:"learning rate"`
 	Net             *pbwm.Network     `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
+	TrainEnv        CondEnv           `desc:"Training environment -- conditioning environment"`
 	TrnEpcLog       *etable.Table     `view:"no-inline" desc:"training epoch-level log data"`
 	TrnTrlLog       *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
 	RewPredInputWts etensor.Tensor    `view:"no-inline" desc:"weights from input to hidden layer"`
@@ -101,7 +109,6 @@ type Sim struct {
 	MaxRuns         int               `desc:"maximum number of model runs to perform"`
 	MaxEpcs         int               `desc:"maximum number of epochs to run per model run"`
 	MaxTrls         int               `desc:"maximum number of training trials per epoch"`
-	TrainEnv        CondEnv           `desc:"Training environment -- conditioning environment"`
 	Time            leabra.Time       `desc:"leabra timing parameters and state"`
 	ViewOn          bool              `desc:"whether to update the network view while running"`
 	TrainUpdt       leabra.TimeScales `desc:"at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model"`
@@ -172,7 +179,7 @@ func (ss *Sim) ConfigEnv() {
 		ss.MaxEpcs = 30
 	}
 	if ss.MaxTrls == 0 { // allow user override
-		ss.MaxTrls = 100
+		ss.MaxTrls = 10
 	}
 
 	ss.TrainEnv.Nm = "TrainEnv"
@@ -233,7 +240,7 @@ func (ss *Sim) NewRndSeed() {
 // use tabs to achieve a reasonable formatting overall
 // and add a few tabs at the end to allow for expansion..
 func (ss *Sim) Counters(train bool) string {
-	return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TrainEnv.Trial.Cur, ss.Time.Cycle, ss.TrainEnv.String())
+	return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tEvent:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TrainEnv.Trial.Cur, ss.TrainEnv.Event.Cur, ss.Time.Cycle, ss.TrainEnv.String())
 }
 
 func (ss *Sim) UpdateView(train bool) {
@@ -338,6 +345,11 @@ func (ss *Sim) TrainEvent() {
 
 	ss.TrainEnv.Step() // the Env encapsulates and manages all counter state
 
+	_, _, tchg := ss.TrainEnv.Counter(env.Trial)
+	if tchg && ss.TrnTrlPlot != nil {
+		ss.TrnTrlPlot.GoUpdate()
+	}
+
 	// Key to query counters FIRST because current state is in NEXT epoch
 	// if epoch counter has changed
 	epc, _, chg := ss.TrainEnv.Counter(env.Epoch)
@@ -399,10 +411,6 @@ func (ss *Sim) TrainTrial() {
 		if ss.StopNow || ss.TrainEnv.Trial.Cur != curTrl {
 			break
 		}
-	}
-	ss.RewPredInput(ss.RewPredInputWts)
-	if ss.WtsGrid != nil {
-		ss.WtsGrid.UpdateSig()
 	}
 
 	ss.Stopped()
@@ -485,17 +493,12 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 	}
 	err := ss.SetParamsSet("Base", sheet, setMsg)
 
-	// gpi := ss.Net.LayerByName("GPiThal").(*pbwm.GPiThalLayer)
-	// gpi.Gate.Thr = 0.5 // todo: these are not taking in params
-	// gpi.Gate.NoGo = 0.4
-	//
-	// matg := ss.Net.LayerByName("MatrixGo").(*pbwm.MatrixLayer)
-	// matn := ss.Net.LayerByName("MatrixNoGo").(*pbwm.MatrixLayer)
-	//
-	// matg.Matrix.BurstGain = ss.BurstDaGain
-	// matg.Matrix.DipGain = ss.DipDaGain
-	// matn.Matrix.BurstGain = ss.BurstDaGain
-	// matn.Matrix.DipGain = ss.DipDaGain
+	ri := ss.Net.LayerByName("RewInteg").(*pbwm.TDRewIntegLayer)
+	ri.RewInteg.Discount = ss.Discount
+
+	rp := ss.Net.LayerByName("RewPred").(*pbwm.TDRewPredLayer)
+	fmi := rp.RcvPrjns.SendName("Input").(deep.DeepPrjn).AsLeabra()
+	fmi.Learn.Lrate = ss.Lrate
 
 	return err
 }
@@ -652,7 +655,7 @@ func (ss *Sim) LogTrnTrl(dt *etable.Table) {
 	}
 
 	// note: essential to use Go version of update when called from another goroutine
-	ss.TrnTrlPlot.GoUpdate()
+	// ss.TrnTrlPlot.GoUpdate()
 }
 
 func (ss *Sim) ConfigTrnTrlLog(dt *etable.Table) {
@@ -811,21 +814,32 @@ func (ss *Sim) ConfigGui() *gi.Window {
 		}
 	})
 
-	tbar.AddAction(gi.ActOpts{Label: "Reset Trl Log", Icon: "reset", Tooltip: "Reset trial log.", UpdateFunc: func(act *gi.Action) {
+	tbar.AddSeparator("views")
+
+	tbar.AddAction(gi.ActOpts{Label: "Reset Trl Log", Icon: "update", Tooltip: "Reset trial log.", UpdateFunc: func(act *gi.Action) {
 		act.SetActiveStateUpdt(!ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		ss.TrnTrlLog.SetNumRows(0)
 		ss.TrnTrlPlot.Update()
 	})
 
-	tbar.AddSeparator("test")
+	tbar.AddAction(gi.ActOpts{Label: "Weights Updt", Icon: "update", Tooltip: "Update the Weights grid display to reflect the current weights.", UpdateFunc: func(act *gi.Action) {
+		act.SetActiveStateUpdt(!ss.IsRunning)
+	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+		ss.RewPredInput(ss.RewPredInputWts)
+		if ss.WtsGrid != nil {
+			ss.WtsGrid.UpdateSig()
+		}
+	})
+
+	tbar.AddSeparator("misc")
 
 	tbar.AddAction(gi.ActOpts{Label: "New Seed", Icon: "new", Tooltip: "Generate a new initial random seed to get different results.  By default, Init re-establishes the same initial seed every time."}, win.This(),
 		func(recv, send ki.Ki, sig int64, data interface{}) {
 			ss.NewRndSeed()
 		})
 
-	tbar.AddAction(gi.ActOpts{Label: "Defaults", Icon: "reset", Tooltip: "Restore initial default parameters.", UpdateFunc: func(act *gi.Action) {
+	tbar.AddAction(gi.ActOpts{Label: "Defaults", Icon: "update", Tooltip: "Restore initial default parameters.", UpdateFunc: func(act *gi.Action) {
 		act.SetActiveStateUpdt(!ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		ss.Defaults()

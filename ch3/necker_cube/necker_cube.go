@@ -243,7 +243,7 @@ func (ss *Sim) ApplyInputs() {
 	// going to the same layers, but good practice and cheap anyway
 
 	// just directly apply all 1s to input
-	ly := ss.Net.LayerByName("NeckerCube").(*leabra.Layer)
+	ly := ss.Net.LayerByName("NeckerCube").(leabra.LeabraLayer).AsLeabra()
 	pats := make([]float64, 16)
 	for i := range pats {
 		pats[i] = 1
@@ -300,7 +300,7 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 		ss.Params.ValidateSheets([]string{"Network", "Sim"})
 	}
 	err := ss.SetParamsSet("Base", sheet, setMsg)
-	ly := ss.Net.LayerByName("NeckerCube").(*leabra.Layer)
+	ly := ss.Net.LayerByName("NeckerCube").(leabra.LeabraLayer).AsLeabra()
 	ly.Act.Noise.Var = float64(ss.Noise)
 	ly.Act.KNa.On = ss.KNaAdapt
 	ly.Act.Update()
@@ -346,7 +346,7 @@ func (ss *Sim) Harmony(nt *leabra.Network) float32 {
 		if ly.IsOff() {
 			continue
 		}
-		lly := ly.(*leabra.Layer)
+		lly := ly.(leabra.LeabraLayer).AsLeabra()
 		for i := range lly.Neurons {
 			nrn := &(lly.Neurons[i])
 			harm += nrn.Ge * nrn.Act
@@ -368,7 +368,7 @@ func (ss *Sim) LogTstCyc(dt *etable.Table, cyc int) {
 	row := cyc
 
 	harm := ss.Harmony(ss.Net)
-	ly := ss.Net.LayerByName("NeckerCube").(*leabra.Layer)
+	ly := ss.Net.LayerByName("NeckerCube").(leabra.LeabraLayer).AsLeabra()
 	dt.SetCellFloat("Cycle", row, float64(cyc))
 	dt.SetCellFloat("Harmony", row, float64(harm))
 	dt.SetCellFloat("GknaFast", row, float64(ly.Neurons[0].GknaFast))
@@ -384,7 +384,7 @@ func (ss *Sim) LogTstCyc(dt *etable.Table, cyc int) {
 			tsr = &etensor.Float32{}
 			ss.LayRecTsr[lnm] = tsr
 		}
-		ly := ss.Net.LayerByName(lnm).(*leabra.Layer)
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		ly.UnitValsTensor(tsr, "Act")
 		dt.SetCellTensor(lnm, row, tsr)
 	}
@@ -411,7 +411,7 @@ func (ss *Sim) ConfigTstCycLog(dt *etable.Table) {
 		{"GknaSlow", etensor.FLOAT64, nil, nil},
 	}
 	for _, lnm := range ss.TstRecLays {
-		ly := ss.Net.LayerByName(lnm).(*leabra.Layer)
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		sch = append(sch, etable.Column{lnm, etensor.FLOAT64, ly.Shp.Shp, nil})
 	}
 	dt.SetFromSchema(sch, nt)
@@ -518,7 +518,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 		}
 	})
 
-	tbar.AddAction(gi.ActOpts{Label: "Defaults", Icon: "reset", Tooltip: "Restore initial default parameters.", UpdateFunc: func(act *gi.Action) {
+	tbar.AddAction(gi.ActOpts{Label: "Defaults", Icon: "update", Tooltip: "Restore initial default parameters.", UpdateFunc: func(act *gi.Action) {
 		act.SetActiveStateUpdt(!ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		ss.Defaults()

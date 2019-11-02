@@ -343,7 +343,7 @@ func (ss *Sim) ApplyInputs(en env.Env) {
 
 	lays := []string{"Input"}
 	for _, lnm := range lays {
-		ly := ss.Net.LayerByName(lnm).(*leabra.Layer)
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		pats := en.State(ly.Nm)
 		if pats == nil {
 			continue
@@ -579,9 +579,9 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 		ss.Params.ValidateSheets([]string{"Network", "Sim"})
 	}
 	err := ss.SetParamsSet("Base", sheet, setMsg)
-	ly := ss.Net.LayerByName("Hidden").(*leabra.Layer)
+	ly := ss.Net.LayerByName("Hidden").(leabra.LeabraLayer).AsLeabra()
 	ly.Learn.AvgL.Gain = ss.AvgLGain
-	inp := ss.Net.LayerByName("Input").(*leabra.Layer)
+	inp := ss.Net.LayerByName("Input").(leabra.LeabraLayer).AsLeabra()
 	if ss.InputNoise == 0 {
 		inp.Act.Noise.Var = 0
 		inp.Act.Noise.Type = leabra.NoNoise
@@ -715,9 +715,9 @@ func (ss *Sim) ConfigTrnEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 func (ss *Sim) HidFmInput(dt etensor.Tensor) {
 	col := dt.(*etensor.Float32)
 	vals := col.Values
-	inp := ss.Net.LayerByName("Input").(*leabra.Layer)
+	inp := ss.Net.LayerByName("Input").(leabra.LeabraLayer).AsLeabra()
 	isz := inp.Shape().Len()
-	hid := ss.Net.LayerByName("Hidden").(*leabra.Layer)
+	hid := ss.Net.LayerByName("Hidden").(leabra.LeabraLayer).AsLeabra()
 	ysz := hid.Shape().Dim(0)
 	xsz := hid.Shape().Dim(1)
 	for y := 0; y < ysz; y++ {
@@ -763,7 +763,7 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 			tsr = &etensor.Float32{}
 			ss.LayRecTsr[lnm] = tsr
 		}
-		ly := ss.Net.LayerByName(lnm).(*leabra.Layer)
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		ly.UnitValsTensor(tsr, "Act")
 		dt.SetCellTensor(lnm, row, tsr)
 	}
@@ -786,7 +786,7 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 		{"TrialName", etensor.STRING, nil, nil},
 	}
 	for _, lnm := range ss.TstRecLays {
-		ly := ss.Net.LayerByName(lnm).(*leabra.Layer)
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		sch = append(sch, etable.Column{lnm, etensor.FLOAT64, ly.Shp.Shp, nil})
 	}
 	dt.SetFromSchema(sch, nt)
@@ -1075,7 +1075,7 @@ inhibitory competition, rich-get-richer Hebbian learning, and homeostasis (negat
 
 	tbar.AddSeparator("log")
 
-	tbar.AddAction(gi.ActOpts{Label: "Reset RunLog", Icon: "reset", Tooltip: "Reset the accumulated log of all Runs, which are tagged with the ParamSet used"}, win.This(),
+	tbar.AddAction(gi.ActOpts{Label: "Reset RunLog", Icon: "update", Tooltip: "Reset the accumulated log of all Runs, which are tagged with the ParamSet used"}, win.This(),
 		func(recv, send ki.Ki, sig int64, data interface{}) {
 			ss.RunLog.SetNumRows(0)
 			ss.RunPlot.Update()
@@ -1088,7 +1088,7 @@ inhibitory competition, rich-get-richer Hebbian learning, and homeostasis (negat
 			ss.NewRndSeed()
 		})
 
-	tbar.AddAction(gi.ActOpts{Label: "Defaults", Icon: "reset", Tooltip: "Restore initial default parameters.", UpdateFunc: func(act *gi.Action) {
+	tbar.AddAction(gi.ActOpts{Label: "Defaults", Icon: "update", Tooltip: "Restore initial default parameters.", UpdateFunc: func(act *gi.Action) {
 		act.SetActiveStateUpdt(!ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		ss.Defaults()
