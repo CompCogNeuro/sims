@@ -143,22 +143,23 @@ type Sim struct {
 	ActRFNms      []string          `desc:"names of layers to compute activation rfields on"`
 
 	// statistics: note use float64 as that is best for etable.Table
+	TrlErr     float64 `inactive:"+" desc:"1 if trial was error, 0 if correct -- based on SSE = 0 (subject to .5 unit-wise tolerance)"`
 	TrlSSE     float64 `inactive:"+" desc:"current trial's sum squared error"`
 	TrlAvgSSE  float64 `inactive:"+" desc:"current trial's average sum squared error"`
 	TrlCosDiff float64 `inactive:"+" desc:"current trial's cosine difference"`
 	EpcSSE     float64 `inactive:"+" desc:"last epoch's total sum squared error"`
 	EpcAvgSSE  float64 `inactive:"+" desc:"last epoch's average sum squared error (average over trials, and over units within layer)"`
-	EpcPctErr  float64 `inactive:"+" desc:"last epoch's percent of trials that had SSE > 0 (subject to .5 unit-wise tolerance)"`
-	EpcPctCor  float64 `inactive:"+" desc:"last epoch's percent of trials that had SSE == 0 (subject to .5 unit-wise tolerance)"`
+	EpcPctErr  float64 `inactive:"+" desc:"last epoch's average TrlErr"`
+	EpcPctCor  float64 `inactive:"+" desc:"1 - last epoch's average TrlErr"`
 	EpcCosDiff float64 `inactive:"+" desc:"last epoch's average cosine difference for output layer (a normalized error measure, maximum of 1 when the minus phase exactly matches the plus)"`
 	FirstZero  int     `inactive:"+" desc:"epoch at when SSE first went to zero"`
 	NZero      int     `inactive:"+" desc:"number of epochs in a row with zero SSE"`
 
 	// internal state - view:"-"
+	SumErr      float64                       `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
 	SumSSE      float64                       `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
 	SumAvgSSE   float64                       `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
 	SumCosDiff  float64                       `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
-	CntErr      int                           `view:"-" inactive:"+" desc:"sum of errs to increment as we go through epoch"`
 	Win         *gi.Window                    `view:"-" desc:"main GUI window"`
 	NetView     *netview.NetView              `view:"-" desc:"the network viewer"`
 	ToolBar     *gi.ToolBar                   `view:"-" desc:"the master toolbar"`
@@ -504,10 +505,11 @@ func (ss *Sim) InitStats() {
 	ss.SumSSE = 0
 	ss.SumAvgSSE = 0
 	ss.SumCosDiff = 0
-	ss.CntErr = 0
+	ss.SumErr = 0
 	ss.FirstZero = -1
 	ss.NZero = 0
 	// clear rest just to make Sim look initialized
+	ss.TrlErr = 0
 	ss.TrlSSE = 0
 	ss.TrlAvgSSE = 0
 	ss.EpcSSE = 0
@@ -525,13 +527,16 @@ func (ss *Sim) TrialStats(accum bool) (sse, avgsse, cosdiff float64) {
 	out := ss.Net.LayerByName("Output").(leabra.LeabraLayer).AsLeabra()
 	ss.TrlCosDiff = float64(out.CosDiff.Cos)
 	ss.TrlSSE, ss.TrlAvgSSE = out.MSE(0.5) // 0.5 = per-unit tolerance -- right side of .5
+	if ss.TrlSSE > 0 {
+		ss.TrlErr = 1
+	} else {
+		ss.TrlErr = 0
+	}
 	if accum {
+		ss.SumErr += ss.TrlErr
 		ss.SumSSE += ss.TrlSSE
 		ss.SumAvgSSE += ss.TrlAvgSSE
 		ss.SumCosDiff += ss.TrlCosDiff
-		if ss.TrlSSE != 0 {
-			ss.CntErr++
-		}
 	} else { // testing
 		ss.UpdtActRFs()
 	}
@@ -823,8 +828,8 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 	ss.SumSSE = 0
 	ss.EpcAvgSSE = ss.SumAvgSSE / nt
 	ss.SumAvgSSE = 0
-	ss.EpcPctErr = float64(ss.CntErr) / nt
-	ss.CntErr = 0
+	ss.EpcPctErr = float64(ss.SumErr) / nt
+	ss.SumErr = 0
 	ss.EpcPctCor = 1 - ss.EpcPctErr
 	ss.EpcCosDiff = ss.SumCosDiff / nt
 	ss.SumCosDiff = 0
@@ -922,14 +927,10 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 	dt.SetCellFloat("Trial", row, float64(trl))
 	dt.SetCellFloat("Obj", row, float64(ss.TestEnv.CurLED))
 	dt.SetCellString("TrialName", row, ss.TestEnv.String())
+	dt.SetCellFloat("Err", row, ss.TrlErr)
 	dt.SetCellFloat("SSE", row, ss.TrlSSE)
 	dt.SetCellFloat("AvgSSE", row, ss.TrlAvgSSE)
 	dt.SetCellFloat("CosDiff", row, ss.TrlCosDiff)
-	err := 0.0
-	if ss.TrlSSE > 0 {
-		err = 1
-	}
-	dt.SetCellFloat("Error", row, err)
 
 	for _, lnm := range ss.LayStatNms {
 		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
@@ -955,10 +956,10 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 		{"Trial", etensor.INT64, nil, nil},
 		{"Obj", etensor.INT64, nil, nil},
 		{"TrialName", etensor.STRING, nil, nil},
+		{"Err", etensor.FLOAT64, nil, nil},
 		{"SSE", etensor.FLOAT64, nil, nil},
 		{"AvgSSE", etensor.FLOAT64, nil, nil},
 		{"CosDiff", etensor.FLOAT64, nil, nil},
-		{"Error", etensor.FLOAT64, nil, nil},
 	}
 	for _, lnm := range ss.LayStatNms {
 		sch = append(sch, etable.Column{lnm + " ActM.Avg", etensor.FLOAT64, nil, nil})
@@ -976,10 +977,10 @@ func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetColParams("Trial", false, true, 0, false, 0)
 	plt.SetColParams("Obj", false, true, 0, false, 0)
 	plt.SetColParams("TrialName", false, true, 0, false, 0)
+	plt.SetColParams("Err", false, true, 0, false, 0)
 	plt.SetColParams("SSE", true, true, 0, false, 0) // default plot
 	plt.SetColParams("AvgSSE", false, true, 0, false, 0)
 	plt.SetColParams("CosDiff", false, true, 0, true, 1)
-	plt.SetColParams("Error", false, true, 0, true, 1)
 
 	for _, lnm := range ss.LayStatNms {
 		plt.SetColParams(lnm+" ActM.Avg", false, true, 0, true, .5)
@@ -996,7 +997,7 @@ func (ss *Sim) LogTstEpc(dt *etable.Table) {
 	// epc := ss.TrainEnv.Epoch.Prv // ?
 
 	spl := split.GroupBy(tix, []string{"Obj"})
-	_, err := split.AggTry(spl, "Error", agg.AggMean)
+	_, err := split.AggTry(spl, "Err", agg.AggMean)
 	if err != nil {
 		log.Println(err)
 	}

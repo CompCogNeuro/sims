@@ -170,7 +170,7 @@ func (rp *Reps) Init() {
 type Sim struct {
 	Net          *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
 	Learn        LearnType         `desc:"select which type of learning to use"`
-	Pats         *etable.Table     `view:"no-inline" desc:"easy training patterns -- can be learned with Hebbian"`
+	Pats         *etable.Table     `view:"no-inline" desc:"training patterns"`
 	TrnEpcLog    *etable.Table     `view:"no-inline" desc:"training epoch-level log data"`
 	TstEpcLog    *etable.Table     `view:"no-inline" desc:"testing epoch-level log data"`
 	TstTrlLog    *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
@@ -314,12 +314,6 @@ func (ss *Sim) ConfigEnv() {
 	ss.AllTestEnv.Table = etable.NewIdxView(ss.Pats)
 	ss.AllTestEnv.Sequential = true
 	ss.AllTestEnv.Validate()
-
-	// note: to create a train / test split of pats, do this:
-	// all := etable.NewIdxView(ss.Pats)
-	// splits, _ := split.Permuted(all, []float64{.8, .2}, []string{"Train", "Test"})
-	// ss.TrainEnv.Table = splits.Splits[0]
-	// ss.GenTestEnv.Table = splits.Splits[1]
 
 	ss.TrainEnv.Init(0)
 	ss.GenTestEnv.Init(0)
