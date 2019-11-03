@@ -986,7 +986,7 @@ func (ss *Sim) LogRun(dt *etable.Table) {
 	if nlast > epcix.Len()-1 {
 		nlast = epcix.Len() - 1
 	}
-	epcix.Idxs = epcix.Idxs[epcix.Len()-nlast-1:]
+	epcix.Idxs = epcix.Idxs[epcix.Len()-nlast:]
 
 	params := ss.Learn.String() + "_" + ss.Pats.String()
 

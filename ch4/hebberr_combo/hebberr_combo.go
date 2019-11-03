@@ -1086,11 +1086,11 @@ func (ss *Sim) LogRun(dt *etable.Table) {
 	epclog := ss.TstEpcLog
 	epcix := etable.NewIdxView(epclog)
 	// compute mean over last N epochs for run level
-	nlast := 10
+	nlast := 5
 	if nlast > epcix.Len()-1 {
 		nlast = epcix.Len() - 1
 	}
-	epcix.Idxs = epcix.Idxs[epcix.Len()-nlast-1:]
+	epcix.Idxs = epcix.Idxs[epcix.Len()-nlast:]
 
 	params := ss.Learn.String() + "_" + ss.Pats.String()
 
