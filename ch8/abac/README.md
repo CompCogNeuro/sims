@@ -2,74 +2,89 @@ Back to [All Sims](https://github.com/CompCogNeuro/sims) (also for general info 
 
 # Introduction
 
-This simulation illustrates the case of learning in a deep network using the family trees task (Hinton, 1986). This task shows how learning can recode inputs that have no similarity structure into a hidden layer that captures the functional similarity structure of the items. In this case, the people at different levels of a family tree get mapped into similar representations. This shows that neural networks are not merely bound by surface similarity structure, but in fact can create their own similarity structure based on functional relationships. Because this network has multiple hidden layers intervening between the input and the output, it also serves as a classic test of error-driven learning in a deep network.
+This project explores the classic paired associates learning task in a cortical-like network, which exhibits catastrophic levels of interference as discovered by [McCloskey & Cohen (1989)](#references).
 
-![The Family Trees](fig_family_trees.png?raw=true "The Family Trees")
+![AB-AC Data](fig_ab_ac_data_catinf.png?raw=true "AB-AC Data")
 
-**Figure 1:** The two isomorphic family trees that are trained, with each pairwise relationship (Husband, Wife, Son, Daughter, Father, Mother, Brother, Sister, Aunt, Uncle, Niece, Nephew) trained as a distinct input/output pattern.
+**Figure 1:** Data from people learning AB-AC paired associates, and comparable data from McCloskey & Cohen (1989) showing *catastrophic interference* of learning AC on AB.
 
-The structure of the environment is shown in Figure 1. The network is trained to produce the correct name in response to questions like "Rob is married to whom?" These questions are presented by activating one of 24 name units in an agent input layer (e.g., "Rob"), in conjunction with one of 12 units in a relation input layer (e.g., "Married'"), and training the network to produce the correct unit activation over the patient output layer.
+The basic framework for implementing the AB--AC task is to have two input patterns, one that represents the A stimulus, and the other that represents the "list context" (see the NetView). Thus, we assume that the subject develops some internal representation that identifies the two different lists, and that this serves as a means of disambiguating which of the two associates should be produced. These input patterns feed into a hidden layer, which then produces an output pattern corresponding to the B or C associate. As in the previous simulation, we use a distributed representation of random bit patterns to represent the word stimuli.
 
 # Training
 
-First, notice that the network (displayed in `NetView` tab) has `Agent` and `Relation` input layers, and a `Patient` output layer all at the bottom of the network. These layers have localist representations of the 24 different people and 12 different relationships, which means that there is no overlap, and thus no overt similarity, in these input patterns between any of the people. The `AgentCode`, `RelationCode`, and `PatientCode` hidden layers provide a means for the network to re-represent these localist representations as richer distributed patterns that should facilitate the learning of the mapping by emphasizing relevant distinctions and deemphasizing irrelevant ones. The central `Hidden` layer is responsible for performing the mapping between these recoded representations to produce the correct answers.
+First, let's look at the training environment.
 
-* Click on the `Pats` to browse through the input / output patterns, which should help you understand how the task is presented to the network. The names of the events in the first column are in the following format: Agent.Relation.Patient, and can be interpreted along the following lines: "Christo's wife is who?" "Penny." 
+* Press the `AB` button next to the `ABPats`, and `AC` below it.
 
-Now, let's see how this works with the network itself.
+The `Input` column for each event shows the A item and the `Output` column is the associate (response). The `Context` column provides a "list context" for each event. Note that the first item in the AB list (`b0`) has the same A pattern as the first item in the AC list (`c0`). This is true for each corresponding pair of items in the two lists. The `Context` patterns for all the items on the AB list are all similar random variations of a common underlying pattern, and likewise for the AC items. Thus, these patterns are not identical for each item on the same list, just very similar (this reflects the fact that even if the external environmental context is constant, the internal perception of it fluctuates, and other internal context factors like a sense of time passing change as well).
 
-* Do `Init` and `Step Trial`  in toolbar.  This will run the network through 4 quarters of processing the input, settling in the minus or expectation phase, and then receiving the plus or outcome activation in the `Patient` layer.  You can use the VCR buttons at the bottom-right of the NetView to review these activation states at the end of each quarter (or click on the `ActQ1`, `ActQ2`, `ActM` and `ActP` variables).  
+Now, let's see how well the network performs on this task.
 
-You should see that all of the hidden layers change their activation patterns to reflect this additional information, feeding backward through the bidirectional connectivity, at least to some extent.   You can click on `ActDif` to see the difference between minus and plus phase activation to see this error signal directly.  The default network is using the default combination of BCM Hebbian (self-organizing) and error-driven learning in XCAL. Let's see how long it takes this network to learn the task.
+* You can start by doing `Init` and then `Step Trial` for a few iterations of training to see how the network is trained (very standard minus-phase plus-phase dynamics -- use Time VCR buttons to rewind as usual). Then, click on the `TrnEcPlot` tab to see a plot of training performance, and do `Step Run`.
 
-* Click on `TrnEpcPlot` to view a plot of performance over epochs of training.
- 
-As the network trains, the graph displays the `PctErr` statistic for training: proportion of trials with a non-zero SSE error. The training times are variable, depending on the random initial weights, but yours should train somewhere between 20 and 50 epochs. During this time, the network has learned to transform the localist input units into systematic internal distributed representations that capture the semantic structure of the relationships between the different members of the two families. To see this, we need to run various analyses of the Hidden layer activations.
+You will see the plot updated as the network is trained, initially on the AB list, and then it automatically switches over to the AC list once error goes to 0. The `PctErr` line shows the error expressed as the number of list items incorrectly produced, with the criterion for correct performance being all units on the right side of .5. 
 
-# Representational Analysis
+* Click on `TstEpcPlot`, which shows the testing results, which are run at the end of every epoch.  Both the AB and AC items are always tested (unlike in people, we can prevent any learning from taking place during testing, so there is no impact on learning from this testing).  You should see the AB testing error go down, but then jump quickly back up, at the point when training switched over to AC, in agreement with the [McCloskey & Cohen (1989)](#references) results.  This is indicates that learning on the AC list (which gradually gets better) has interfered catastrophically with the prior learning on the AB list. Let's collect some statistics by running a batch of several training runs.
 
-To get a sense of how learning has shaped the transformations performed by this network to emphasize relevant similarities, we can do various analyses of the hidden unit activity patterns over all the inputs, comparing trained vs. random initial weights to see what specifically has been learned.
+* Hit `Train` to complete a run of 10 "subjects", and click on the `RunPlot` to monitor results.
 
-* Press the `RepsAnalysis` button in the toolbar, which will test all of the input patterns and then perform various different analyses as described below on recorded activations from the Hidden and AgentCode layers.
+The statistics taken at the end of the AC list training for each "subject" will appear in the `RunPlot`.
 
-The most direct way to examine relationships among different activation patterns is to compute the pairwise similarities / distances between each pattern and all others -- here we use the correlation similarity measure, which produces a 1 for identical patterns, 0 for completely unrelated patterns, and -1 for completely anticorrelated patterns (it is equivalent to the cosine measure except with mean-normalized data).
+* Hit the `RunStats` `etable.Table` in the left control panel to see summary statistics across the 10 runs, including the mean, min and max final err for both AB and AC lists. This AB data is the overall measure of how much interference there was from training on the AC list.
 
-* Press the `simat.SimMat` button next to `HiddenRel` in the left control panel, to bring up this similarity matrix for the Hidden layer, with patterns labeled and sorted according to the type of relationship encoded.
+> **Question 8.1:** Report the `AB Err:Mean` and `Min` in the RunStats for your batch run of 10 simulated subjects. Also do another `Init` and `Step Run` while looking at the `TstEpcLog` and report the general relationship between AC learning and AB interference across runs -- does AC generally show any significant learning before AB performance has mostly evaporated?
 
-You should observe largish red squares along the diagonal yellow line cutting across from the upper left to the lower right, clearly organized according to the relationship groupings. These squares indicate a moderately-high level of similarity among inputs with the same relationship, i.e. the internal hidden representations of people in the same functional relationship, like 'aunt', is more similar than it is to other familial positions. In addition, you should observe a smattering of other similar patterns with similar red color, typically also organized according to the relationship groups.
+# Reducing Interference
 
-* Next, click on the `simat.SimMat` for `HiddenAgent`, which shows the hidden unit activation distances organized by the agent role. Look back and forth between this and the previous relationship-organized plot to compare them.
+Having replicated the basic catastrophic interference phenomenon, let's see if we can do anything to reduce the level of interference. Our strategy will be to retain the same basic architecture and learning mechanisms while manipulating certain key parameters. The intention here is to illuminate some principles that will prove important for understanding the origin of these interference effects, and how they could potentially be reduced -- though we will see that they have relatively small effects in this particular context.
 
-> **Question 4.8:** What do you think this pattern of results means for how the network is encoding the inputs -- what is the primary dimension along which the hidden layer is organizing the input patterns? How might this help the model perform the task?
+* Click back on the `NetView` tab, and do `Step Trial` and pay attention to the overlap of patterns in the `Hidden` layer as you step.  Then do `Step Run` to retrain, and click to the `TstEpcPlot` tab to speed training, and then do `Reps Analysis` which computes the similarity matrix, PCA plot, and cluster plot as we did with the Family Trees network in Chapter 4.  Click on the `TstTrlLog_Hidden` `SimMat` in the `HiddenReps` row in the control panel.
 
-Although the raw distance matricies show all the data, it can be difficult to see the more complex patterns -- distributed representations encode many different forms of similarity at the same time. Thus, we will use two other plots to see more of this structure: cluster plots and principal-components-analysis (PCA) plots.
+This brings up a similarity matrix of the Hidden layer activation patterns for each of the different AB and AC items.  Although you should see an overall increased similarity for AB items with themselves, and likewise for AC items, there is still considerable "red" similarity across lists, and in particular the items with the same A item (e.g., b0 and c0) tend to be quite similar.
 
-* Click on the `eplot.Plot2D` next to `ClustPlot` in the `HiddenRel` row to see the cluster plot of the Hidden activations labeled by relationships.
+This overlap seems obviously problematic from an interference perspective, because the AC list will activate and reuse the same units from the AB list, altering their weights to support the `C` associate instead of the `B`. Thus, by reducing the extent to which the hidden unit representations overlap (i.e., by making them *sparser*), we might be able to encourage the network to use separate representations for learning these two lists of items. 
 
-You can see now that for example Niece and Nephew are grouped together, as are several other related items (e.g., Brother and Sister). However, there are clearly some other dimensions of structure represented here -- the cluster plot can change dramatically based on small differences in distances.
+* Let's test this idea by increasing the inhibition in the hidden layer using the `HiddenInhibGi` parameter in the  control panel -- set it to 2.2 instead of 1.8.  Do a `Train` of 10 runs with these parameters.
 
-Thus, we turn to the PCA plot as a way to cut through some of the complexity. PCA is a way to distill the information about activities across many units into the strongest simpler components that explain much of the data. Here we focus on just the first two principal dimensions - where the first dimension discovers a component with the most shared information among the patterns, and then once that is taken into account, the second component displays the next remaining largest amount of shared variance.
+This increased inhibition will make each activity pattern in the hidden layer smaller (fewer neurons active), which could result in less overlapping distributed representations.
 
-* Click on the `eplot.Plot2D` button in the `HiddenRel` row to see the PCA plot for the Hidden layer organized by relations.
+> **Question 8.2:** Click the `RunStats` and report the resulting `AB Err:Mean` and `Min` statistics -- did this reduce the amount of AB interference?
 
-The resulting plot shows the first principal component of variation on the X axis, and the second component along the Y axis. The exact patterns will differ depending on network and initial weights etc, but one reasonable way for the network to represent the problem which is evident in this plot is that one component (e.g. the X axis) represents relative age in the relationships, and the the other component separates male and female (e.g., Father, Son, Brother, Uncle together, vs. Sister, Mother, Daughter).
+The network may not have performed as well as expected because nothing was done to encourage it to use *different* sets of units to represent the different associates. One way we can encourage this is to increase the variance of the initial random weights, making each unit have a more quirky pattern of responses that should encourage different units to encode the different associates.
 
-You can also look at the cluster and PCA plots of the Agent-based labels (the PCA plot here is for components 2 and 3), to see what kind of organization is taking place there. In general, you can see some sensible organization of similar places in the tree being nearby, but given the high-dimensional nature of the relationships and the distributed representations, it is not totally systematic, and because everyone is related in some way, it is difficult to really determine how sensible the organization is.
+* Change `WtInitVar` from .25 to .4.
 
-* Now, let's see how these results compare to the network with random initial weights.  Do `Init` and then re-run `RepsAnalysis`, and then click on the PCAPlot for `HiddenRel` again, and also look at the similarity matrix `SimMat` for that case too.
+Another thing we can do to improve performance is to enhance the contribution of the `Context` layer inputs relative to the A stimulus, because this list context disambiguates the two different associates.
 
-> **Question 4.9:** How do the untrained representations compare to the previous trained ones? Although some of the same larger structure is still present, is the organization as systematic as with the trained weights? Focus specifically on the relational data, as that was more clear in the trained case.
+* Do this by changing the `FmContext` parameter from 1 to 1.5.
 
-Although there is still a fair amount of structure in the distance matricies present even with random weights.  This is due to the similarity structure of the input patterns themselves -- even though each individual input unit is localist, there is structure across the three layers (agent, relation, patient), and the model representations will tend to reflect this structure even without any learning. Learning refines this initial structure, and, most critically, establishes the proper synaptic weights to produce the correct Patient response for each input. Getting more systematic learned representational structure in the network requires a larger set of training patterns that more strongly constrain and shape the network's internal representations (in the original Hinton (1986) model, a much smaller number of hidden units was used, over a very long training time, to force the model to develop more systematic representations even with this small set of patterns). We'll see examples of larger sets of inputs shaping systematic internal representations in later chapters, for example in the object recognition model in the Perception chapter and the spelling-to-sound model in the Language chapter.
+This increases the weight scaling for Context inputs (i.e., by increasing the r_k (`WtScale.Rel`) parameter (see NetInput Detail section in the textbook). We might imagine that strategic focusing of attention by the subject accomplishes something like this.
 
-# The Roles of Hebbian Vs. Error-Driven Learning
+Finally, increased amounts of self-organizing learning might contribute to better performance because of the strong correlation of all items on a given list with the associated list context representation, which should be emphasized by Hebbian learning. This could lead to different subsets of hidden units representing the items on the two lists because of the different context representations.
 
-As a deep, multi-layered network, this model can demonstrate some of the advantages of combining self-organizing (Hebbian) and error-driven learning, although they are fairly weak effects due to the limited structure and size of the input patterns. The `Learn` variable can be changed from `HebbError` to `PureErr` or `PureHebb` -- you have to hit `Init` after changing this setting, to have it affect the relevant parameters.
+* Do this by increasing `XCalLLrn` to .0005 instead of .0003.
 
-You can try running the model using the `PureErr` setting, and you may (or may not) find that it takes longer to learn than the `HebbErr` setting. Then try `PureHebb` -- although it does learn something (which is impressive given that there is no explicit error-driven learning), it fails to learn the task beyond around 50% correct at best (typically around 25% correct, 75% errors). Nevertheless, this Hebbian learning is beneficial when combined with error-driven learning, in larger networks -- in current large-scale vision models (e.g., O'Reilly, Wyatte, et al, 2013) it is essential and learning fails entirely without the BCM Hebbian.
+Now let's see if performance is improved by making these three parameter adjustments.
 
-Hebbian learning facilitates learning in deep networks, especially as the error signals get weaker once the network has learned much of the task and the remaining error gradients are very small -- the self-organizing constraints provide a continued steady drive on learning (which can also facilitate generalization to new patterns depending on similar structures). Furthermore, if we compare even the error-driven learning network to a pure backpropagation or recurrent GeneRec/CHL error-driven network, both of which lack the inhibitory constraints and learn this family trees problem much more slowly (O'Reilly, 1996), we see that inhibitory competition is also providing a beneficial learning constraint in Leabra networks.
+* Do `Init` and `Train` -- you can watch the `RunPlot` for results as they come in.
 
-Nevertheless, pure Hebbian learning by itself is clearly incapable of learning tasks such as this (and many many others). One reason is evident in the average learning trajectory: the positive feedback dynamics and "myopic" local perspective of pure Hebbian learning end up creating rich-get-richer representations that result in worse performance as learning proceeds. Thus, error-driven learning must play a dominant role overall to actually learn complex cognitive tasks.
+> **Question 8.3:** Click the `RunStats` and report the resulting `AB Err:Mean` and `Min` statistics -- did these parameters reduce the amount of AB interference?  Informal testing has shown that this is close to the best performance that can be obtained in this network with these parameters -- is it now a good model of human performance?
 
+Although the final level of interference on the AB list remains relatively high, you can go back and observe the `TstEpcPlot` during training to see that these manipulations have at least slowed the onset of the interference somewhat. Thus, we have some indication that these manipulations are having an effect in the right direction, providing some support for the principle of using sparse, non-overlapping representations to avoid interference. 
+
+A final, highly impactful manipulation is to increase the Hidden layer size significantly, and increase the inhibition a bit more, which gives a much sparser representation and also gives it more "room" to spread out across the larger population of neurons.
+
+* In the NetView, click on the `Hidden` layer name, which pulls up an editor of the layer properties -- change the `Shp` size from 5 x 10 to 20 x 20 (i.e., an 8-fold increase in size).  Then hit the `Build Net` button in the toolbar, increase `HiddenInhibGi` to 2.6, and do `Init`, `Train` (switch back to `RunPlot`).  You should observe that there are finally cases where the model retains around 40% or so of its AB knowledge after training on AC. 
+
+One important dimension that we have not yet emphasized is the speed with which the network learns -- it is clearly not learning as fast (in terms of number of exposures to the list items) as human subjects do. Further, the manipulations we have made to improve interference performance have resulted in even longer training times (you can see this if you don't clear the graph view between runs with default and these new parameters). Thus, we could play with the `Lrate` parameter to see if we can speed up learning in the network. 
+
+* Keeping the same "optimal" parameters, increase the `Lrate` to .1 (from .04), and do another `Init` and `Train`.
+
+Although the increase in learning rate successfully speeded up the learning process, it is still significantly slower than human learning on this kind of material.  However, in this network, we can push the rate higher and get fairly fast learning before interference starts to increase again -- at some point the higher learning rate results in higher interference as weights change too much.
+
+We will see next that these same kinds of specializations we've been making in this model are exactly what the *hippocampus* uses to achieve very high levels of pattern separation, to enable rapid learning of new information.
+
+# References
+
+McCloskey, M., & Cohen, N. J. (1989). Catastrophic Interference in Connectionist Networks: The Sequential Learning Problem. In G. H. Bower (Ed.), The Psychology of Learning and Motivation, Vol. 24 (pp. 109–164). San Diego, CA: Academic Press.
 

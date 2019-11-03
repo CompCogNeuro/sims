@@ -839,7 +839,7 @@ func (ss *Sim) LogRun(dt *etable.Table) {
 	if nlast > epcix.Len()-1 {
 		nlast = epcix.Len() - 1
 	}
-	epcix.Idxs = epcix.Idxs[epcix.Len()-nlast-1:]
+	epcix.Idxs = epcix.Idxs[epcix.Len()-nlast:]
 
 	params := "Std"
 	// if ss.AvgLGain != 2.5 {
