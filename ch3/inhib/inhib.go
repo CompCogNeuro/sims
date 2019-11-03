@@ -132,7 +132,7 @@ type Sim struct {
 	NetViewBidir *netview.NetView            `view:"-" desc:"the network viewer"`
 	ToolBar      *gi.ToolBar                 `view:"-" desc:"the master toolbar"`
 	TstCycPlot   *eplot.Plot2D               `view:"-" desc:"the test-trial plot"`
-	LayRecTsr    map[string]*etensor.Float32 `view:"-" desc:"for holding layer recording values"`
+	ValsTsrs     map[string]*etensor.Float32 `view:"-" desc:"for holding layer values"`
 	IsRunning    bool                        `view:"-" desc:"true if sim is running"`
 	StopNow      bool                        `view:"-" desc:"flag to stop running"`
 }
@@ -499,6 +499,19 @@ func (ss *Sim) SetParamsSet(setNm string, sheet string, setMsg bool) error {
 
 //////////////////////////////////////////////
 //  TstCycLog
+
+// ValsTsr gets value tensor of given name, creating if not yet made
+func (ss *Sim) ValsTsr(name string) *etensor.Float32 {
+	if ss.ValsTsrs == nil {
+		ss.ValsTsrs = make(map[string]*etensor.Float32)
+	}
+	tsr, ok := ss.ValsTsrs[name]
+	if !ok {
+		tsr = &etensor.Float32{}
+		ss.ValsTsrs[name] = tsr
+	}
+	return tsr
+}
 
 // LogTstCyc adds data from current cycle to the TstCycLog table.
 // log always contains number of testing items

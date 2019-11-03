@@ -232,7 +232,7 @@ type Sim struct {
 	NetView    *netview.NetView            `view:"-" desc:"the network viewer"`
 	ToolBar    *gi.ToolBar                 `view:"-" desc:"the master toolbar"`
 	TstTrlPlot *eplot.Plot2D               `view:"-" desc:"the test-trial plot"`
-	LayRecTsr  map[string]*etensor.Float32 `view:"-" desc:"for holding layer recording values"`
+	ValsTsrs   map[string]*etensor.Float32 `view:"-" desc:"for holding layer values"`
 	IsRunning  bool                        `view:"-" desc:"true if sim is running"`
 	StopNow    bool                        `view:"-" desc:"flag to stop running"`
 }
@@ -784,6 +784,19 @@ func (ss *Sim) OpenPats() {
 //////////////////////////////////////////////
 //  TstTrlLog
 
+// ValsTsr gets value tensor of given name, creating if not yet made
+func (ss *Sim) ValsTsr(name string) *etensor.Float32 {
+	if ss.ValsTsrs == nil {
+		ss.ValsTsrs = make(map[string]*etensor.Float32)
+	}
+	tsr, ok := ss.ValsTsrs[name]
+	if !ok {
+		tsr = &etensor.Float32{}
+		ss.ValsTsrs[name] = tsr
+	}
+	return tsr
+}
+
 // LogTstTrl adds data from current trial to the TstTrlLog table.
 // log always contains number of testing items
 func (ss *Sim) LogTstTrl(dt *etable.Table) {
@@ -796,15 +809,8 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 	dt.SetCellString("TrialName", row, ss.TestEnv.GroupName.Cur)
 	dt.SetCellFloat("Cycle", row, float64(ss.Time.Cycle))
 
-	if ss.LayRecTsr == nil {
-		ss.LayRecTsr = make(map[string]*etensor.Float32)
-	}
 	for _, lnm := range ss.TstRecLays {
-		tsr, ok := ss.LayRecTsr[lnm]
-		if !ok {
-			tsr = &etensor.Float32{}
-			ss.LayRecTsr[lnm] = tsr
-		}
+		tsr := ss.ValsTsr(lnm)
 		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		ly.UnitValsTensor(tsr, "Act")
 		dt.SetCellTensor(lnm, row, tsr)

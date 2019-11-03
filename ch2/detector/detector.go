@@ -78,14 +78,13 @@ type Sim struct {
 	ViewUpdt  leabra.TimeScales `desc:"at what time scale to update the display during testing?  Change to AlphaCyc to make display updating go faster"`
 
 	// internal state - view:"-"
-	Win           *gi.Window       `view:"-" desc:"main GUI window"`
-	NetView       *netview.NetView `view:"-" desc:"the network viewer"`
-	ToolBar       *gi.ToolBar      `view:"-" desc:"the master toolbar"`
-	TstTrlPlot    *eplot.Plot2D    `view:"-" desc:"the test-trial plot"`
-	InputValsTsr  *etensor.Float32 `view:"-" desc:"for holding layer values"`
-	OutputValsTsr *etensor.Float32 `view:"-" desc:"for holding layer values"`
-	IsRunning     bool             `view:"-" desc:"true if sim is running"`
-	StopNow       bool             `view:"-" desc:"flag to stop running"`
+	Win        *gi.Window                  `view:"-" desc:"main GUI window"`
+	NetView    *netview.NetView            `view:"-" desc:"the network viewer"`
+	ToolBar    *gi.ToolBar                 `view:"-" desc:"the master toolbar"`
+	TstTrlPlot *eplot.Plot2D               `view:"-" desc:"the test-trial plot"`
+	ValsTsrs   map[string]*etensor.Float32 `view:"-" desc:"for holding layer values"`
+	IsRunning  bool                        `view:"-" desc:"true if sim is running"`
+	StopNow    bool                        `view:"-" desc:"flag to stop running"`
 }
 
 // this registers this Sim Type and gives it properties that e.g.,
@@ -403,6 +402,19 @@ func (ss *Sim) OpenPats() {
 //////////////////////////////////////////////
 //  TstTrlLog
 
+// ValsTsr gets value tensor of given name, creating if not yet made
+func (ss *Sim) ValsTsr(name string) *etensor.Float32 {
+	if ss.ValsTsrs == nil {
+		ss.ValsTsrs = make(map[string]*etensor.Float32)
+	}
+	tsr, ok := ss.ValsTsrs[name]
+	if !ok {
+		tsr = &etensor.Float32{}
+		ss.ValsTsrs[name] = tsr
+	}
+	return tsr
+}
+
 // LogTstTrl adds data from current trial to the TstTrlLog table.
 // log always contains number of testing items
 func (ss *Sim) LogTstTrl(dt *etable.Table) {
@@ -418,17 +430,14 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 	dt.SetCellFloat("Trial", row, float64(trl))
 	dt.SetCellString("TrialName", row, ss.TestEnv.TrialName)
 
-	if ss.InputValsTsr == nil { // re-use same tensors so not always reallocating mem
-		ss.InputValsTsr = &etensor.Float32{}
-		ss.OutputValsTsr = &etensor.Float32{}
-	}
-
-	inp.UnitValsTensor(ss.InputValsTsr, "Act")
-	dt.SetCellTensor("Input", row, ss.InputValsTsr)
-	recv.UnitValsTensor(ss.OutputValsTsr, "Ge")
-	dt.SetCellTensor("Ge", row, ss.OutputValsTsr)
-	recv.UnitValsTensor(ss.OutputValsTsr, "Act")
-	dt.SetCellTensor("Act", row, ss.OutputValsTsr)
+	ivt := ss.ValsTsr("Input")
+	ovt := ss.ValsTsr("Output")
+	inp.UnitValsTensor(ivt, "Act")
+	dt.SetCellTensor("Input", row, ivt)
+	recv.UnitValsTensor(ovt, "Ge")
+	dt.SetCellTensor("Ge", row, ovt)
+	recv.UnitValsTensor(ovt, "Act")
+	dt.SetCellTensor("Act", row, ovt)
 
 	// note: essential to use Go version of update when called from another goroutine
 	ss.TstTrlPlot.GoUpdate()
