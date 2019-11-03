@@ -2,11 +2,15 @@ Back to [All Sims](https://github.com/CompCogNeuro/sims) (also for general info 
 
 # Introduction
 
-In this exploration of the hippocampus model, we will use the same basic AB--AC paired associates list learning paradigm as we used in the standard cortical network previously (`abac`). The hippocampus should be able to learn the new paired associates (AC) without causing undue levels of interference to the original AB associations, and it should be able to do this much more rapidly than was possible in the cortical model. This model is using the newer *Theta Phase* model of the hippocampus ([Ketz, Morkanda & O'Reilly, 2013](#references)), where the EC <-> CA1 projections along with all the other connections have an error-driven learning component organized according to the theta phase rhythm.
+In this exploration of the hippocampus model, we will use the same basic AB--AC paired associates list learning paradigm as we used in the standard cortical network previously (`abac`). The hippocampus should be able to learn the new paired associates (AC) without causing undue levels of interference to the original AB associations (see Figure 1), and it should be able to do this much more rapidly than was possible in the cortical model. This model is using the newer *Theta Phase* model of the hippocampus ([Ketz, Morkanda & O'Reilly, 2013](#references)), where the EC <-> CA1 projections along with all the other connections have an error-driven learning component organized according to the theta phase rhythm.  See [leabra hip](https://github.com/emer/leabra/tree/master/hip) on github for more implementational details.
+
+![AB-AC Data](fig_ab_ac_data_catinf.png?raw=true "AB-AC Data")
+
+**Figure 1:** Data from people learning AB-AC paired associates, and comparable data from McCloskey & Cohen (1989) showing *catastrophic interference* of learning AC on AB.
 
 * Click on `TrainAB` and `TestAB` buttons to see how the AB training and testing lists are configured -- the A pattern is the first three groups of units (at the bottom of each pattern, going left-right, bottom-top), and the B pattern is the next three, which you can see most easily in the Test_AB patterns where these are blank (to be filled in by hippocampal pattern completion). The 2nd half of the pattern is the list context (as in the `abac` project).
 
-# The Network
+# AB Training and Testing
 
 Let's observe the process of activation spreading through the network during training.
 
@@ -53,7 +57,7 @@ You can now observe the amount of interference on AB after training on AC -- it 
 
 * Do `Train` to run 10 runs through AB / AC training.  Then click on the `RunStats` `Table` to get the final stats across all 10 runs.
 
-> **Question 8.6:** Again report the `Mem:Mean` (average) level for the AB, AC, and Lure tests in the `RunStats` table.  How well does this result compare to the human results shown in the *Memory* chapter of the textbook (or the `abac` simulation)?
+> **Question 8.6:** Again report the `Mem:Mean` (average) level for the AB, AC, and Lure tests in the `RunStats` table.  How well does this result compare to the human results shown in Figure 1?
 
 In summary, you should find that this hippocampal model is able to learn rapidly and with much reduced levels of interference compared to the prior cortical model of this same task. Thus, the specialized biological properties of the hippocampal formation, and its specialized role in episodic memory, can be understood from a computational and functional perspective.
 
