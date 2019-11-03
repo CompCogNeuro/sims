@@ -67,7 +67,7 @@ var ParamSets = params.Sets{
 			{Sel: ".HippoCHL", Desc: "hippo CHL projections -- no norm, moment, but YES wtbal = sig better",
 				Params: params.Params{
 					"Prjn.CHL.Hebb":          "0.05",
-					"Prjn.Learn.Lrate":       "0.2",
+					"Prjn.Learn.Lrate":       "0.4", // note: 0.2 can sometimes take a really long time to learn
 					"Prjn.Learn.Momentum.On": "false",
 					"Prjn.Learn.Norm.On":     "false",
 					"Prjn.Learn.WtBal.On":    "true",
@@ -136,12 +136,6 @@ var ParamSets = params.Sets{
 					"Layer.Inhib.Pool.On":     "true",
 				}},
 		},
-		"Sim": &params.Sheet{
-			{Sel: "Sim", Desc: "best params always finish in this time",
-				Params: params.Params{
-					"Sim.MaxEpcs": "10",
-				}},
-		},
 	}},
 }
 
@@ -170,13 +164,14 @@ type Sim struct {
 	Tag          string            `desc:"extra tag string to add to any file names output from sim (e.g., weights files, log files, params)"`
 	MaxRuns      int               `desc:"maximum number of model runs to perform"`
 	MaxEpcs      int               `desc:"maximum number of epochs to run per model run"`
+	NZeroStop    int               `desc:"if a positive number, training will stop after this many epochs with zero mem errors"`
 	TrainEnv     env.FixedTable    `desc:"Training environment -- contains everything about iterating over input / output patterns over training"`
 	TestEnv      env.FixedTable    `desc:"Testing environment -- manages iterating over testing"`
 	Time         leabra.Time       `desc:"leabra timing parameters and state"`
 	ViewOn       bool              `desc:"whether to update the network view while running"`
 	TrainUpdt    leabra.TimeScales `desc:"at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model"`
 	TestUpdt     leabra.TimeScales `desc:"at what time scale to update the display during testing?  Anything longer than Epoch updates at Epoch in this model"`
-	TestInterval int               `desc:"how often to run through all the test patterns, in terms of training epochs"`
+	TestInterval int               `desc:"how often to run through all the test patterns, in terms of training epochs -- can use 0 or -1 for no testing"`
 	MemThr       float64           `desc:"threshold to use for memory test -- if error proportion is below this number, it is scored as a correct trial"`
 
 	// statistics: note use float64 as that is best for etable.Table
@@ -194,7 +189,8 @@ type Sim struct {
 	EpcPctErr  float64 `inactive:"+" desc:"last epoch's percent of trials that had SSE > 0 (subject to .5 unit-wise tolerance)"`
 	EpcPctCor  float64 `inactive:"+" desc:"last epoch's percent of trials that had SSE == 0 (subject to .5 unit-wise tolerance)"`
 	EpcCosDiff float64 `inactive:"+" desc:"last epoch's average cosine difference for output layer (a normalized error measure, maximum of 1 when the minus phase exactly matches the plus)"`
-	FirstZero  int     `inactive:"+" desc:"epoch at when SSE first went to zero"`
+	FirstZero  int     `inactive:"+" desc:"epoch at when Mem err first went to zero"`
+	NZero      int     `inactive:"+" desc:"number of epochs in a row with zero Mem err"`
 
 	// internal state - view:"-"
 	SumSSE       float64          `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
@@ -247,9 +243,9 @@ func (ss *Sim) New() {
 	ss.TstCycLog = &etable.Table{}
 	ss.RunLog = &etable.Table{}
 	ss.RunStats = &etable.Table{}
-	//	ss.Params = ParamSets
-	ss.Params = SavedParamsSets
-	ss.RndSeed = 1
+	ss.Params = ParamSets
+	// ss.Params = SavedParamsSets
+	ss.RndSeed = 2
 	ss.ViewOn = true
 	ss.TrainUpdt = leabra.AlphaCycle
 	ss.TestUpdt = leabra.Cycle
@@ -283,6 +279,7 @@ func (ss *Sim) ConfigEnv() {
 	}
 	if ss.MaxEpcs == 0 { // allow user override
 		ss.MaxEpcs = 50
+		ss.NZeroStop = 1
 	}
 
 	ss.TrainEnv.Nm = "TrainEnv"
@@ -561,10 +558,15 @@ func (ss *Sim) TrainTrial() {
 		if ss.ViewOn && ss.TrainUpdt > leabra.AlphaCycle {
 			ss.UpdateView(true)
 		}
-		if epc%ss.TestInterval == 0 { // note: epc is *next* so won't trigger first time
+		if ss.TestInterval > 0 && epc%ss.TestInterval == 0 { // note: epc is *next* so won't trigger first time
 			ss.TestAll()
 		}
-		if epc >= ss.MaxEpcs { // done with training..
+		learned := (ss.NZeroStop > 0 && ss.NZero >= ss.NZeroStop)
+		if ss.TrainEnv.Table.Table == ss.TrainAB && (learned || epc == ss.MaxEpcs/2) {
+			ss.TrainEnv.Table = etable.NewIdxView(ss.TrainAC)
+			learned = false
+		}
+		if learned || epc >= ss.MaxEpcs { // done with training..
 			ss.RunEnd()
 			if ss.TrainEnv.Run.Incr() { // we are done!
 				ss.StopNow = true
@@ -596,6 +598,7 @@ func (ss *Sim) RunEnd() {
 // for the new run value
 func (ss *Sim) NewRun() {
 	run := ss.TrainEnv.Run.Cur
+	ss.TrainEnv.Table = etable.NewIdxView(ss.TrainAB)
 	ss.TrainEnv.Init(run)
 	ss.TestEnv.Init(run)
 	ss.Time.Reset()
@@ -616,6 +619,7 @@ func (ss *Sim) InitStats() {
 	ss.SumCosDiff = 0
 	ss.CntErr = 0
 	ss.FirstZero = -1
+	ss.NZero = 0
 	// clear rest just to make Sim look initialized
 	ss.Mem = 0
 	ss.TrgOnWasOffAll = 0
@@ -1079,9 +1083,6 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 	ss.EpcPctCor = 1 - ss.EpcPctErr
 	ss.EpcCosDiff = ss.SumCosDiff / nt
 	ss.SumCosDiff = 0
-	if ss.FirstZero < 0 && ss.EpcPctErr == 0 {
-		ss.FirstZero = epc
-	}
 
 	trlog := ss.TrnTrlLog
 	tix := etable.NewIdxView(trlog)
@@ -1094,7 +1095,8 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 	dt.SetCellFloat("PctCor", row, ss.EpcPctCor)
 	dt.SetCellFloat("CosDiff", row, ss.EpcCosDiff)
 
-	dt.SetCellFloat("Mem", row, agg.Mean(tix, "Mem")[0])
+	mem := agg.Mean(tix, "Mem")[0]
+	dt.SetCellFloat("Mem", row, mem)
 	dt.SetCellFloat("TrgOnWasOff", row, agg.Mean(tix, "TrgOnWasOff")[0])
 	dt.SetCellFloat("TrgOffWasOn", row, agg.Mean(tix, "TrgOffWasOn")[0])
 
@@ -1298,6 +1300,23 @@ func (ss *Sim) LogTstEpc(dt *etable.Table) {
 		}
 	}
 
+	// base zero on testing performance!
+	curAB := ss.TrainEnv.Table.Table == ss.TrainAB
+	var mem float64
+	if curAB {
+		mem = dt.CellFloat("AB Mem", row)
+	} else {
+		mem = dt.CellFloat("AC Mem", row)
+	}
+	if ss.FirstZero < 0 && mem == 1 {
+		ss.FirstZero = epc
+	}
+	if mem == 1 {
+		ss.NZero++
+	} else {
+		ss.NZero = 0
+	}
+
 	// note: essential to use Go version of update when called from another goroutine
 	ss.TstEpcPlot.GoUpdate()
 }
@@ -1432,15 +1451,20 @@ func (ss *Sim) LogRun(dt *etable.Table) {
 	dt.SetCellFloat("PctCor", row, agg.Mean(epcix, "PctCor")[0])
 	dt.SetCellFloat("CosDiff", row, agg.Mean(epcix, "CosDiff")[0])
 
-	dt.SetCellFloat("AB Mem", row, agg.Mean(epcix, "AB Mem")[0])
-	dt.SetCellFloat("AB TrgOnWasOff", row, agg.Mean(epcix, "AB TrgOnWasOff")[0])
-	dt.SetCellFloat("AB TrgOffWasOn", row, agg.Mean(epcix, "AB TrgOffWasOn")[0])
+	for _, tn := range ss.TstNms {
+		for _, ts := range ss.TstStatNms {
+			nm := tn + " " + ts
+			dt.SetCellFloat(nm, row, agg.Mean(epcix, nm)[0])
+		}
+	}
 
 	runix := etable.NewIdxView(dt)
 	spl := split.GroupBy(runix, []string{"Params"})
-	split.Desc(spl, "AB Mem")
-	split.Desc(spl, "AB TrgOnWasOff")
-	split.Desc(spl, "AB TrgOffWasOn")
+	for _, tn := range ss.TstNms {
+		nm := tn + " " + "Mem"
+		split.Desc(spl, nm)
+	}
+	split.Desc(spl, "FirstZero")
 	ss.RunStats = spl.AggsToTable(false)
 
 	// note: essential to use Go version of update when called from another goroutine
@@ -1468,9 +1492,11 @@ func (ss *Sim) ConfigRunLog(dt *etable.Table) {
 		{"PctErr", etensor.FLOAT64, nil, nil},
 		{"PctCor", etensor.FLOAT64, nil, nil},
 		{"CosDiff", etensor.FLOAT64, nil, nil},
-		{"AB Mem", etensor.FLOAT64, nil, nil},
-		{"AB TrgOnWasOff", etensor.FLOAT64, nil, nil},
-		{"AB TrgOffWasOn", etensor.FLOAT64, nil, nil},
+	}
+	for _, tn := range ss.TstNms {
+		for _, ts := range ss.TstStatNms {
+			sch = append(sch, etable.Column{tn + " " + ts, etensor.FLOAT64, nil, nil})
+		}
 	}
 	dt.SetFromSchema(sch, 0)
 }
@@ -1488,9 +1514,15 @@ func (ss *Sim) ConfigRunPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D 
 	plt.SetColParams("PctCor", false, true, 0, true, 1)
 	plt.SetColParams("CosDiff", false, true, 0, true, 1)
 
-	plt.SetColParams("AB Mem", true, true, 0, true, 1)         // default plot
-	plt.SetColParams("AB TrgOnWasOff", true, true, 0, true, 1) // default plot
-	plt.SetColParams("AB TrgOffWasOn", true, true, 0, true, 1) // default plot
+	for _, tn := range ss.TstNms {
+		for _, ts := range ss.TstStatNms {
+			if ts == "Mem" {
+				plt.SetColParams(tn+" "+ts, true, true, 0, true, 1) // default plot
+			} else {
+				plt.SetColParams(tn+" "+ts, false, true, 0, true, 1)
+			}
+		}
+	}
 	return plt
 }
 

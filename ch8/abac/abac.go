@@ -132,7 +132,7 @@ type Sim struct {
 	ViewOn        bool              `desc:"whether to update the network view while running"`
 	TrainUpdt     leabra.TimeScales `desc:"at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model"`
 	TestUpdt      leabra.TimeScales `desc:"at what time scale to update the display during testing?  Anything longer than Epoch updates at Epoch in this model"`
-	TestInterval  int               `desc:"how often to run through all the test patterns, in terms of training epochs"`
+	TestInterval  int               `desc:"how often to run through all the test patterns, in terms of training epochs -- can use 0 or -1 for no testing"`
 	TstRecLays    []string          `desc:"names of layers to record activations etc of during testing"`
 	HiddenReps    Reps              `view:"inline" desc:"representational analysis of Hidden layer, sorted by relationship"`
 
@@ -1071,11 +1071,10 @@ func (ss *Sim) LogRun(dt *etable.Table) {
 	runix := etable.NewIdxView(dt)
 	spl := split.GroupBy(runix, []string{"Params"})
 	for _, tn := range ss.TstNms {
-		for _, ts := range ss.TstStatNms {
-			nm := tn + " " + ts
-			split.Desc(spl, nm)
-		}
+		nm := tn + " " + "Err"
+		split.Desc(spl, nm)
 	}
+	split.Desc(spl, "FirstZero")
 	ss.RunStats = spl.AggsToTable(false)
 
 	// note: essential to use Go version of update when called from another goroutine
@@ -1118,7 +1117,7 @@ func (ss *Sim) ConfigRunPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D 
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Run", false, true, 0, false, 0)
-	plt.SetColParams("FirstZero", false, true, 0, false, 0) // default plot
+	plt.SetColParams("FirstZero", false, true, 0, false, 0)
 	plt.SetColParams("SSE", false, true, 0, false, 0)
 	plt.SetColParams("AvgSSE", false, true, 0, false, 0)
 	plt.SetColParams("PctErr", false, true, 0, true, 1)

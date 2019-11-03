@@ -28,7 +28,7 @@ You should observe that during testing, the input pattern presented to the netwo
 
 * Click on `TstTrlPlot` tab, and let's start over by doing `Init` then `Step Epoch`.
 
-You should see a plot of three values for each test item, ordered AB, AC, then Lure (you can click on `TrialName` to see the labels). The `TrgOnWasOff` shows how many units in `ECout` were off but should have been on, while `TrgOffWasOn` shows the opposite.  When both of these measures are relatively low (below .34), then the network has correctly recalled the original pattern, which is scored as a `Mem` = 1. A large `TrgOffWasOn` indicates that the network has *confabulated* or otherwise recalled a different pattern than the cued one. A large `TrgOnWasOff` indicates that the network has failed to recall much of the probe pattern.  The threshold on these factors assumes a distributed representation of associate items, such that the entire pattern need not be recalled.
+You should see a plot of three values for each test item, ordered AB, AC, then Lure (you can click on `TrialName` to see the labels). The `TrgOnWasOff` shows how many units in `ECout` were off but should have been on, while `TrgOffWasOn` shows the opposite.  When both of these measures are relatively low (below .34 as set in `MemThr` in control panel), then the network has correctly recalled the original pattern, which is scored as a `Mem` = 1. A large `TrgOffWasOn` indicates that the network has *confabulated* or otherwise recalled a different pattern than the cued one. A large `TrgOnWasOff` indicates that the network has failed to recall much of the probe pattern.  The threshold on these factors assumes a distributed representation of associate items, such that the entire pattern need not be recalled.
 
 In general, you should see `TrgOnWasOff` being larger than `TrgOffWasOn` -- the hippocampal network is "high threshold", which accords with extensive data on recollection and recall (see [Norman & O'Reilly, 2003](#references) for more discussion). 
 
@@ -47,15 +47,15 @@ You should see the studied A stimulus, an empty gap where the B stimulus would b
 
 # AC Training and Interference
 
-* Select the `TstEpcPlot` tab, and restart with `Init` and `Step Epoch` until your network gets 1 (100% correct) on the `AB Mem` plot (should take 2-6 epochs or so).
+* Select the `TstEpcPlot` tab, and restart with `Init` and now do `Step Run`. As in the `abac` model, this will automatically train on AB until your network gets 1 (100% correct) on the `AB Mem` score (during *testing* -- the `TrnEpcPlot` value shows the results from training which have the complete `B` pattern and are thus much better), and then automatically switch to AC and train until it gets perfect Mem as well.
 
-* Now we'll switch to training on the AC patterns: click the `Env` button in the toolbar, and select `Train on AC` then continue to `Step Epoch` until the `AC Mem` line reaches the 1 level.  You can click the `TstStats` again to get specific numbers.  Repeat this a few times by doing `New Seed`, `Env` (don't select AC, to switch back to AB), `Init`, `Step Epoch` through AB etc.
+You can now observe the amount of interference on AB after training on AC -- it will be some but probably not a catastrophic amount.  To get a better sense overall, we need to run multiple samples.
 
-> **Question 8.6:** Again report the `Mem` level for the AB, AC, and Lure tests, for each repetition of this interference test. Do you find evidence of any interference from learning AC on the testing results for AB?
+* Do `Train` to run 10 runs through AB / AC training.  Then click on the `RunStats` `Table` to get the final stats across all 10 runs.
+
+> **Question 8.6:** Again report the `Mem:Mean` (average) level for the AB, AC, and Lure tests in the `RunStats` table.  How well does this result compare to the human results shown in the *Memory* chapter of the textbook (or the `abac` simulation)?
 
 In summary, you should find that this hippocampal model is able to learn rapidly and with much reduced levels of interference compared to the prior cortical model of this same task. Thus, the specialized biological properties of the hippocampal formation, and its specialized role in episodic memory, can be understood from a computational and functional perspective.
-
- **TODO: automate the switch to AC like in abac, and just run Train to get full test results.**
 
 # References
 
