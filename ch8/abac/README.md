@@ -82,6 +82,8 @@ One important dimension that we have not yet emphasized is the speed with which 
 
 Although the increase in learning rate successfully speeded up the learning process, it is still significantly slower than human learning on this kind of material.  However, in this network, we can push the rate higher and get fairly fast learning before interference starts to increase again -- at some point the higher learning rate results in higher interference as weights change too much.
 
+* You can also run the `Reps Analysis` again and compare the results with the better-performing model, to see that the patterns are indeed more separated.
+
 We will see next that these same kinds of specializations we've been making in this model are exactly what the *hippocampus* uses to achieve very high levels of pattern separation, to enable rapid learning of new information.
 
 # References
