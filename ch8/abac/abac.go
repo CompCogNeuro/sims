@@ -166,7 +166,7 @@ type Sim struct {
 	RunFile     *os.File                    `view:"-" desc:"log file"`
 	TstNms      []string                    `view:"-" desc:"names of test tables"`
 	TstStatNms  []string                    `view:"-" desc:"names of test stats"`
-	LayRecTsr   map[string]*etensor.Float32 `view:"-" desc:"for holding layer recording values"`
+	ValsTsrs    map[string]*etensor.Float32 `view:"-" desc:"for holding layer values"`
 	IsRunning   bool                        `view:"-" desc:"true if sim is running"`
 	StopNow     bool                        `view:"-" desc:"flag to stop running"`
 	NeedsNewRun bool                        `view:"-" desc:"flag to initialize NewRun if last one finished"`
@@ -767,6 +767,19 @@ func (ss *Sim) OpenPats() {
 ////////////////////////////////////////////////////////////////////////////////////////////
 // 		Logging
 
+// ValsTsr gets value tensor of given name, creating if not yet made
+func (ss *Sim) ValsTsr(name string) *etensor.Float32 {
+	if ss.ValsTsrs == nil {
+		ss.ValsTsrs = make(map[string]*etensor.Float32)
+	}
+	tsr, ok := ss.ValsTsrs[name]
+	if !ok {
+		tsr = &etensor.Float32{}
+		ss.ValsTsrs[name] = tsr
+	}
+	return tsr
+}
+
 //////////////////////////////////////////////
 //  TrnEpcLog
 
@@ -877,15 +890,8 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 	dt.SetCellFloat("AvgSSE", row, ss.TrlAvgSSE)
 	dt.SetCellFloat("CosDiff", row, ss.TrlCosDiff)
 
-	if ss.LayRecTsr == nil {
-		ss.LayRecTsr = make(map[string]*etensor.Float32)
-	}
 	for _, lnm := range ss.TstRecLays {
-		tsr, ok := ss.LayRecTsr[lnm]
-		if !ok {
-			tsr = &etensor.Float32{}
-			ss.LayRecTsr[lnm] = tsr
-		}
+		tsr := ss.ValsTsr(lnm)
 		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		ly.UnitValsTensor(tsr, "ActM") // get minus phase act
 		dt.SetCellTensor(lnm, row, tsr)
