@@ -958,6 +958,7 @@ func (ss *Sim) ConfigRunPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D 
 // 		Gui
 
 func (ss *Sim) ConfigNetView(nv *netview.NetView) {
+	nv.ViewDefaults()
 	cam := &(nv.Scene().Camera)
 	cam.Pose.Pos.Set(0.0, 1.733, 2.3)
 	cam.LookAt(mat32.Vec3{0, 0, 0}, mat32.Vec3{0, 1, 0})
@@ -997,7 +998,6 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	nv.Var = "Act"
 	nv.SetNet(ss.Net)
 	ss.NetView = nv
-	// nv.ViewDefaults()
 	ss.ConfigNetView(nv)
 
 	plt := tv.AddNewTab(eplot.KiT_Plot2D, "TrnEpcPlot").(*eplot.Plot2D)

@@ -1141,6 +1141,7 @@ func (ss *Sim) ConfigRunPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D 
 // 		Gui
 
 func (ss *Sim) ConfigNetView(nv *netview.NetView) {
+	nv.ViewDefaults()
 	nv.Scene().Camera.Pose.Pos.Set(0, .95, 3.2) // more "head on" than default which is more "top down"
 	nv.Scene().Camera.LookAt(mat32.Vec3{0, 0, 0}, mat32.Vec3{0, 1, 0})
 }
