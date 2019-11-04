@@ -285,9 +285,9 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 	hid := net.AddLayer2D("Hidden", 1, 4, emer.Hidden)
 	out := net.AddLayer2D("Output", 1, 2, emer.Target)
 
-	net.ConnectLayers(inp, hid, prjn.NewFull(), emer.Forward)
-	net.ConnectLayers(hid, out, prjn.NewFull(), emer.Forward)
-	net.ConnectLayers(out, hid, prjn.NewFull(), emer.Back)
+	full := prjn.NewFull()
+	net.ConnectLayers(inp, hid, full, emer.Forward)
+	net.BidirConnectLayers(hid, out, full)
 
 	hid.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Input", YAlign: relpos.Front, XAlign: relpos.Left, YOffset: 1})
 
@@ -1071,6 +1071,12 @@ func (ss *Sim) ConfigRunPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D 
 ////////////////////////////////////////////////////////////////////////////////////////////
 // 		Gui
 
+func (ss *Sim) ConfigNetView(nv *netview.NetView) {
+	nv.ViewDefaults()
+	nv.Scene().Camera.Pose.Pos.Set(0.1, 1.5, 4)
+	nv.Scene().Camera.LookAt(mat32.Vec3{0.1, 0.1, 0}, mat32.Vec3{0, 1, 0})
+}
+
 // ConfigGui configures the GoGi gui interface for this simulation,
 func (ss *Sim) ConfigGui() *gi.Window {
 	width := 1600
@@ -1104,9 +1110,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	nv.Var = "Act"
 	nv.SetNet(ss.Net)
 	ss.NetView = nv
-
-	nv.Scene().Camera.Pose.Pos.Set(0.1, 1.5, 4)
-	nv.Scene().Camera.LookAt(mat32.Vec3{0.1, 0.1, 0}, mat32.Vec3{0, 1, 0})
+	ss.ConfigNetView(nv)
 
 	plt := tv.AddNewTab(eplot.KiT_Plot2D, "TrnEpcPlot").(*eplot.Plot2D)
 	ss.TrnEpcPlot = ss.ConfigTrnEpcPlot(plt, ss.TrnEpcLog)

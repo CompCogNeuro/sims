@@ -867,6 +867,7 @@ func (ss *Sim) TestStats() {
 // 		Gui
 
 func (ss *Sim) ConfigNetView(nv *netview.NetView) {
+	nv.ViewDefaults()
 	nv.Scene().Camera.Pose.Pos.Set(0, 1.2, 3.0) // more "head on" than default which is more "top down"
 	nv.Scene().Camera.LookAt(mat32.Vec3{0, 0, 0}, mat32.Vec3{0, 1, 0})
 	nv.SetMaxRecs(1100)
@@ -903,14 +904,9 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	nv := tv.AddNewTab(netview.KiT_NetView, "NetView").(*netview.NetView)
 	nv.Var = "Act"
-	// nv.Params.ColorMap = "Jet" // default is ColdHot
-	// which fares pretty well in terms of discussion here:
-	// https://matplotlib.org/tutorials/colors/colormaps.html
 	nv.SetNet(ss.Net)
 	ss.NetView = nv
-
-	nv.ViewDefaults()
-	ss.ConfigNetView(nv) // add labels etc
+	ss.ConfigNetView(nv)
 
 	plt := tv.AddNewTab(eplot.KiT_Plot2D, "TstTrlPlot").(*eplot.Plot2D)
 	ss.TstTrlPlot = ss.ConfigTstTrlPlot(plt, ss.TstTrlLog)

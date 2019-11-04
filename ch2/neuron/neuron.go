@@ -462,8 +462,7 @@ func (ss *Sim) ConfigSpikeVsRatePlot(plt *eplot.Plot2D, dt *etable.Table) *eplot
 // 		Gui
 
 func (ss *Sim) ConfigNetView(nv *netview.NetView) {
-	// nv.Scene().Camera.Pose.Pos.Set(0, 1.5, 3.0) // more "head on" than default which is more "top down"
-	// nv.Scene().Camera.LookAt(mat32.Vec3{0, 0, 0}, mat32.Vec3{0, 1, 0})
+	nv.ViewDefaults()
 }
 
 // ConfigGui configures the GoGi gui interface for this simulation,
@@ -501,13 +500,8 @@ See <a href="https://github.com/CompCogNeuro/sims/ch2/neuron/README.md">README.m
 
 	nv := tv.AddNewTab(netview.KiT_NetView, "NetView").(*netview.NetView)
 	nv.Var = "Act"
-	// nv.Params.ColorMap = "Jet" // default is ColdHot
-	// which fares pretty well in terms of discussion here:
-	// https://matplotlib.org/tutorials/colors/colormaps.html
 	nv.SetNet(ss.Net)
 	ss.NetView = nv
-
-	nv.ViewDefaults()
 	ss.ConfigNetView(nv) // add labels etc
 
 	plt := tv.AddNewTab(eplot.KiT_Plot2D, "TstCycPlot").(*eplot.Plot2D)
