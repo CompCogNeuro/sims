@@ -1083,7 +1083,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	height := 1200
 
 	gi.SetAppName("err_driven_hidden")
-	gi.SetAppAbout(`shows how XCal error driven learning can train a hidden layer to solve problems that are otherwise impossible for a simple two layer network (as we saw in the Pattern Associator exploration, which should be completed first before doing this one). See <a href="href="https://github.com/CompCogNeuro/sims/ch4/err_driven_hidden/README.md">README.md on GitHub</a>.</p>`)
+	gi.SetAppAbout(`shows how XCal error driven learning can train a hidden layer to solve problems that are otherwise impossible for a simple two layer network (as we saw in the Pattern Associator exploration, which should be completed first before doing this one). See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch4/err_driven_hidden/README.md">README.md on GitHub</a>.</p>`)
 
 	win := gi.NewWindow2D("err_driven_hidden", "Error Driven Hidden Layer Learning", width, height, true)
 	ss.Win = win

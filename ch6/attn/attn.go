@@ -879,7 +879,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	height := 1200
 
 	gi.SetAppName("attn")
-	gi.SetAppAbout(`attn: This simulation illustrates how object recognition (ventral, what) and spatial (dorsal, where) pathways interact to produce spatial attention effects, and accurately capture the effects of brain damage to the spatial pathway. See <a href="https://github.com/CompCogNeuro/sims/ch6/attn/README.md">README.md on GitHub</a>.</p>`)
+	gi.SetAppAbout(`attn: This simulation illustrates how object recognition (ventral, what) and spatial (dorsal, where) pathways interact to produce spatial attention effects, and accurately capture the effects of brain damage to the spatial pathway. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch6/attn/README.md">README.md on GitHub</a>.</p>`)
 
 	win := gi.NewWindow2D("attn", "Attention", width, height, true)
 	ss.Win = win

@@ -20,7 +20,6 @@ import (
 	"github.com/emer/emergent/env"
 	"github.com/emer/emergent/netview"
 	"github.com/emer/emergent/params"
-	//	"github.com/emer/emergent/patgen"
 	"github.com/emer/emergent/prjn"
 	"github.com/emer/emergent/relpos"
 	"github.com/emer/etable/agg"
@@ -1179,7 +1178,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	gi.SetAppName("hebberr_combo")
 	gi.SetAppAbout(`shows how XCal hebbian learning in shallower layers of a network can aid an error driven learning network to generalize to unseen combinations of patterns.
- See <a href="href="https://github.com/CompCogNeuro/sims/ch4/hebberr_combo/README.md">README.md on GitHub</a>.</p>`)
+ See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch4/hebberr_combo/README.md">README.md on GitHub</a>.</p>`)
 
 	win := gi.NewWindow2D("hebberr_combo", "Hebbian+Error Driven Learning", width, height, true)
 	ss.Win = win

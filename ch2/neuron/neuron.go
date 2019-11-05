@@ -474,7 +474,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	gi.SetAppAbout(`This simulation illustrates the basic properties of neural spiking and
 rate-code activation, reflecting a balance of excitatory and inhibitory
 influences (including leak and synaptic inhibition).
-See <a href="https://github.com/CompCogNeuro/sims/ch2/neuron/README.md">README.md on GitHub</a>.</p>`)
+See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch2/neuron/README.md">README.md on GitHub</a>.</p>`)
 
 	win := gi.NewWindow2D("neuron", "Neuron", width, height, true)
 	ss.Win = win

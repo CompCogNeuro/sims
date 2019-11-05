@@ -1075,7 +1075,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	gi.SetAppName("pat_assoc")
 	gi.SetAppAbout(`illustrates how error-driven and hebbian learning can
 operate within a simple task-driven learning context, with no hidden
-layers. See <a href="href="https://github.com/CompCogNeuro/sims/ch4/pat_assoc/README.md">README.md on GitHub</a>.</p>`)
+layers. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch4/pat_assoc/README.md">README.md on GitHub</a>.</p>`)
 
 	win := gi.NewWindow2D("pat_assoc", "Pattern Associator", width, height, true)
 	ss.Win = win

@@ -1208,7 +1208,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	height := 1200
 
 	gi.SetAppName("family_trees")
-	gi.SetAppAbout(`shows how learning can recode inputs that have no similarity structure into a hidden layer that captures the *functional* similarity structure of the items. See <a href="href="https://github.com/CompCogNeuro/sims/ch4/family_trees/README.md">README.md on GitHub</a>.</p>`)
+	gi.SetAppAbout(`shows how learning can recode inputs that have no similarity structure into a hidden layer that captures the *functional* similarity structure of the items. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch4/family_trees/README.md">README.md on GitHub</a>.</p>`)
 
 	win := gi.NewWindow2D("family_trees", "Family Trees", width, height, true)
 	ss.Win = win

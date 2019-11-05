@@ -1152,7 +1152,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	height := 1200
 
 	gi.SetAppName("abac")
-	gi.SetAppAbout(`explores the classic paired associates learning task in a cortical-like network, which exhibits catastrophic levels of interference. See <a href="href="https://github.com/CompCogNeuro/sims/ch8/abac/README.md">README.md on GitHub</a>.</p>`)
+	gi.SetAppAbout(`explores the classic paired associates learning task in a cortical-like network, which exhibits catastrophic levels of interference. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch8/abac/README.md">README.md on GitHub</a>.</p>`)
 
 	win := gi.NewWindow2D("abac", "AB-AC Interference", width, height, true)
 	ss.Win = win

@@ -897,7 +897,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	height := 1200
 
 	gi.SetAppName("bg")
-	gi.SetAppAbout(`is a simplified basal ganglia (BG) network showing how dopamine bursts can reinforce *Go* (direct pathway) firing for actions that lead to reward, and dopamine dips reinforce *NoGo* (indirect pathway) firing for actions that do not lead to positive outcomes, producing Thorndike's classic *Law of Effect* for instrumental conditioning, and also providing a mechanism to learn and select among actions with different reward probabilities over multiple experiences. See <a href="href="https://github.com/CompCogNeuro/sims/ch7/bg/README.md">README.md on GitHub</a>.</p>`)
+	gi.SetAppAbout(`is a simplified basal ganglia (BG) network showing how dopamine bursts can reinforce *Go* (direct pathway) firing for actions that lead to reward, and dopamine dips reinforce *NoGo* (indirect pathway) firing for actions that do not lead to positive outcomes, producing Thorndike's classic *Law of Effect* for instrumental conditioning, and also providing a mechanism to learn and select among actions with different reward probabilities over multiple experiences. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch7/bg/README.md">README.md on GitHub</a>.</p>`)
 
 	win := gi.NewWindow2D("bg", "Basal Ganglia", width, height, true)
 	ss.Win = win
