@@ -47,6 +47,38 @@ func main() {
 // LogPrec is precision for saving float values in logs
 const LogPrec = 4
 
+// EnvType is the type of train / test environment
+type EnvType int32
+
+//go:generate stringer -type=EnvType
+
+var KiT_EnvType = kit.Enums.AddEnum(EnvTypeN, false, nil)
+
+func (ev EnvType) MarshalJSON() ([]byte, error)  { return kit.EnumMarshalJSON(ev) }
+func (ev *EnvType) UnmarshalJSON(b []byte) error { return kit.EnumUnmarshalJSON(ev, b) }
+
+const (
+	// TrainB sets train env to TrainB pats
+	TrainB EnvType = iota
+
+	// TrainA sets train env to TrainA pats
+	TrainA
+
+	// TrainAll sets train to TrainAll pats
+	TrainAll
+
+	// TestA sets testing to TrainA pats, for wt priming
+	TestA
+
+	// TestB sets testing to TrainB pats
+	TestB
+
+	// TestAll sets testing to TrainAll pats, for act priming
+	TestAll
+
+	EnvTypeN
+)
+
 // ParamSets is the default set of parameters -- Base is always applied, and others can be optionally
 // selected to apply on top of that
 var ParamSets = params.Sets{
@@ -64,6 +96,7 @@ var ParamSets = params.Sets{
 					"Layer.Inhib.Layer.Gi":    "1.5",
 					"Layer.Inhib.ActAvg.Init": "0.25",
 					"Layer.Act.Gbar.L":        "0.1",
+					"Layer.Act.Init.Decay":    "1",
 				}},
 			{Sel: "#Hidden", Desc: "slightly less inhib",
 				Params: params.Params{
@@ -84,6 +117,8 @@ var ParamSets = params.Sets{
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
 	Lrate        float32           `def:"0.04" desc:"learning rate -- .04 is default 'cortical' learning rate -- try lower levels to see how low you can go and still get priming"`
+	Decay        float32           `def:"1" desc:"proportion of activation decay between trials"`
+	EnvType      EnvType           `inactive:"+" desc:"environment type -- use Env button (SetEnv) to set"`
 	Net          *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
 	TrainAll     *etable.Table     `view:"no-inline" desc:"All training patterns"`
 	TrainA       *etable.Table     `view:"no-inline" desc:"train A patterns"`
@@ -169,13 +204,15 @@ func (ss *Sim) New() {
 	ss.RndSeed = 1
 	ss.ViewOn = true
 	ss.TrainUpdt = leabra.Quarter
-	ss.TestUpdt = leabra.Quarter
+	ss.TestUpdt = leabra.Cycle
 	ss.TestInterval = 10
 	ss.LayStatNms = []string{"Hidden"}
 }
 
 func (ss *Sim) Defaults() {
+	ss.EnvType = TrainAll
 	ss.Lrate = 0.04
+	ss.Decay = 1
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -419,16 +456,29 @@ func (ss *Sim) NewRun() {
 }
 
 // SetEnv select which set of patterns to train on: AB or AC
-func (ss *Sim) SetEnv(trainA bool) {
-	if trainA {
-		ss.TrainEnv.Table = etable.NewIdxView(ss.TrainA)
-	} else {
-		ss.TrainEnv.Table = etable.NewIdxView(ss.TrainB)
-	}
+func (ss *Sim) SetEnv(envType EnvType) {
+	ss.EnvType = envType
 	ss.NeedsNewRun = false
-	ss.MaxEpcs += 10
-	ss.TrainEnv.Epoch.Max = ss.MaxEpcs
-	ss.TrainEnv.Init(0)
+	switch envType {
+	case TrainA:
+		ss.TrainEnv.Table = etable.NewIdxView(ss.TrainA)
+		ss.TrainEnv.Init(0)
+	case TrainB:
+		ss.TrainEnv.Table = etable.NewIdxView(ss.TrainB)
+		ss.TrainEnv.Init(0)
+	case TrainAll:
+		ss.TrainEnv.Table = etable.NewIdxView(ss.TrainAll)
+		ss.TrainEnv.Init(0)
+	case TestA:
+		ss.TestEnv.Table = etable.NewIdxView(ss.TrainA)
+		ss.TestEnv.Init(0)
+	case TestB:
+		ss.TestEnv.Table = etable.NewIdxView(ss.TrainB)
+		ss.TestEnv.Init(0)
+	case TestAll:
+		ss.TestEnv.Table = etable.NewIdxView(ss.TrainAll)
+		ss.TestEnv.Init(0)
+	}
 }
 
 // InitStats initializes all the statistics, especially important for the
@@ -618,7 +668,7 @@ func (ss *Sim) TestTrial(returnOnChg bool) {
 	}
 
 	// note: type must be in place before apply inputs
-	ss.Net.LayerByName("Output").SetType(emer.Compare)
+	// ss.Net.LayerByName("Output").SetType(emer.Compare)
 	ss.ApplyInputs(&ss.TestEnv)
 	ss.AlphaCyc(false)   // !train
 	ss.TrialStats(false) // !accumulate
@@ -631,7 +681,7 @@ func (ss *Sim) TestItem(idx int) {
 	ss.TestEnv.Trial.Cur = idx
 	ss.TestEnv.SetTrialName()
 	// note: type must be in place before apply inputs
-	ss.Net.LayerByName("Output").SetType(emer.Compare)
+	// ss.Net.LayerByName("Output").SetType(emer.Compare)
 	ss.ApplyInputs(&ss.TestEnv)
 	ss.AlphaCyc(false)   // !train
 	ss.TrialStats(false) // !accumulate
@@ -640,6 +690,7 @@ func (ss *Sim) TestItem(idx int) {
 
 // TestAll runs through the full set of testing items
 func (ss *Sim) TestAll() {
+	ss.SetParams("Network", false)
 	ss.TestEnv.Init(ss.TrainEnv.Run.Cur)
 	for {
 		ss.TestTrial(true) // return on chg, don't present
@@ -671,6 +722,9 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 	}
 	spo := ss.Params.SetByName("Base").SheetByName("Network").SelByName("Prjn")
 	spo.Params.SetParamByName("Prjn.Learn.Lrate", fmt.Sprintf("%g", ss.Lrate))
+
+	spo = ss.Params.SetByName("Base").SheetByName("Network").SelByName("Layer")
+	spo.Params.SetParamByName("Layer.Act.Init.Decay", fmt.Sprintf("%g", ss.Decay))
 
 	err := ss.SetParamsSet("Base", sheet, setMsg)
 	return err
@@ -724,7 +778,7 @@ func (ss *Sim) OpenPatAsset(dt *etable.Table, fnm, name, desc string) error {
 }
 
 func (ss *Sim) OpenPats() {
-	// patgen.ReshapeCppFile(ss.TrainAll, "TwoOut_TrainAll.dat", "twout_all.tsv") // one-time reshape
+	// patgen.ReshapeCppFile(ss.TrainAll, "TwoOut_Alternating.dat", "twout_all.tsv") // one-time reshape
 	// patgen.ReshapeCppFile(ss.TrainA, "TwoOut_TrainA.dat", "twout_a.tsv")       // one-time reshape
 	// patgen.ReshapeCppFile(ss.TrainB, "TwoOut_TrainB.dat", "twout_b.tsv")       // one-time reshape
 	ss.OpenPatAsset(ss.TrainAll, "twout_all.tsv", "TrainAll", "All Training patterns")
@@ -1268,6 +1322,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	tbar.AddAction(gi.ActOpts{Label: "Env", Icon: "gear", Tooltip: "select training input patterns: AB or AC."}, win.This(),
 		func(recv, send ki.Ki, sig int64, data interface{}) {
 			giv.CallMethod(ss, "SetEnv", vp)
+			vp.SetNeedsFullRender()
 		})
 
 	tbar.AddAction(gi.ActOpts{Label: "Reset RunLog", Icon: "update", Tooltip: "Reset the accumulated log of all Runs, which are tagged with the ParamSet used"}, win.This(),
@@ -1373,10 +1428,10 @@ var SimProps = ki.Props{
 			},
 		}},
 		{"SetEnv", ki.Props{
-			"desc": "select which set of patterns to train on: A or B",
+			"desc": "Select environment type (i.e., configure TrainEnv or TestEnv to use given patterns)",
 			"icon": "gear",
 			"Args": ki.PropSlice{
-				{"Train on A", ki.Props{}},
+				{"Env Type", ki.Props{}},
 			},
 		}},
 	},
