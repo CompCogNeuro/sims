@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 /*
-wt_priming illustrates *weight-based priming*, that is, how small weight changes caused by the standard slow cortical learning rate can produce significant behavioral priming, causing the network to favor one output pattern over another.
+priming illustrates *weight-based priming*, that is, how small weight changes caused by the standard slow cortical learning rate can produce significant behavioral priming, causing the network to favor one output pattern over another.
 */
 package main
 
@@ -237,6 +237,7 @@ func (ss *Sim) ConfigEnv() {
 		ss.MaxEpcs = 100
 		ss.NZeroStop = -1
 	}
+	ss.EnvType = TrainAll
 
 	ss.TrainEnv.Nm = "TrainEnv"
 	ss.TrainEnv.Dsc = "training params and state"
@@ -252,9 +253,6 @@ func (ss *Sim) ConfigEnv() {
 
 	ss.TrainEnv.Init(0)
 	ss.TestEnv.Init(0)
-}
-
-func (ss *Sim) UpdateEnv() {
 }
 
 func (ss *Sim) ConfigNet(net *leabra.Network) {
@@ -284,7 +282,7 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 // and resets the epoch log table
 func (ss *Sim) Init() {
 	rand.Seed(ss.RndSeed)
-	ss.UpdateEnv()
+	ss.ConfigEnv()
 	ss.StopNow = false
 	ss.SetParams("", false) // all sheets
 	ss.NewRun()
@@ -881,7 +879,7 @@ func (ss *Sim) ConfigTrnEpcLog(dt *etable.Table) {
 }
 
 func (ss *Sim) ConfigTrnEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
-	plt.Params.Title = "Weight Priming Epoch Plot"
+	plt.Params.Title = "Priming Epoch Plot"
 	plt.Params.XAxisCol = "Epoch"
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
@@ -984,7 +982,7 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 }
 
 func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
-	plt.Params.Title = "Weight Priming Test Trial Plot"
+	plt.Params.Title = "Priming Test Trial Plot"
 	plt.Params.XAxisCol = "Trial"
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
@@ -1060,7 +1058,7 @@ func (ss *Sim) ConfigTstEpcLog(dt *etable.Table) {
 }
 
 func (ss *Sim) ConfigTstEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
-	plt.Params.Title = "Weight Priming Testing Epoch Plot"
+	plt.Params.Title = "Priming Testing Epoch Plot"
 	plt.Params.XAxisCol = "Epoch"
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
@@ -1141,7 +1139,7 @@ func (ss *Sim) ConfigRunLog(dt *etable.Table) {
 }
 
 func (ss *Sim) ConfigRunPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
-	plt.Params.Title = "Weight Priming Run Plot"
+	plt.Params.Title = "Priming Run Plot"
 	plt.Params.XAxisCol = "Run"
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
@@ -1169,10 +1167,10 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	width := 1600
 	height := 1200
 
-	gi.SetAppName("wt_priming")
-	gi.SetAppAbout(`illustrates *weight-based priming*, that is, how small weight changes caused by the standard slow cortical learning rate can produce significant behavioral priming, causing the network to favor one output pattern over another. See <a href="href="https://github.com/CompCogNeuro/sims/ch8/wt_priming/README.md">README.md on GitHub</a>.</p>`)
+	gi.SetAppName("priming")
+	gi.SetAppAbout(`This simulation explores the neural basis of *priming* -- the often surprisingly strong impact of residual traces from prior experience, which can be either *weight-based* (small changes in synapses) or *activation-based* (residual neural activity).  In the first part, we see how small weight changes caused by the standard slow cortical learning rate can produce significant behavioral priming, causing the network to favor one output pattern over another.  Likewise, residual activation can bias subsequent processing, but this is short-lived and transient compared to the long-lasting effects of weight-based priming. See <a href="href="https://github.com/CompCogNeuro/sims/ch8/priming/README.md">README.md on GitHub</a>.</p>`)
 
-	win := gi.NewWindow2D("wt_priming", "Weight-based Priming", width, height, true)
+	win := gi.NewWindow2D("priming", "Priming", width, height, true)
 	ss.Win = win
 
 	vp := win.WinViewport2D()
@@ -1340,7 +1338,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	tbar.AddAction(gi.ActOpts{Label: "README", Icon: "file-markdown", Tooltip: "Opens your browser on the README file that contains instructions for how to run this model."}, win.This(),
 		func(recv, send ki.Ki, sig int64, data interface{}) {
-			gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch8/wt_priming/README.md")
+			gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch8/priming/README.md")
 		})
 
 	vp.UpdateEndNoSig(updt)
