@@ -1,6 +1,6 @@
 Back to [All Sims](https://github.com/CompCogNeuro/sims) (also for general info and executable downloads)
 
-Note: this simulation combines two separate projects from the C++ emergent version (`wt_priming` and `act_priming`).
+Note: this simulation combines two separate projects from the C++ emergent version (`wt_priming` and `act_priming`, which were nearly identical).
 
 # Introduction
 
