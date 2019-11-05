@@ -608,7 +608,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	height := 1200
 
 	gi.SetAppName("face_categ")
-	gi.SetAppAbout(`face_categ: This project explores how sensory inputs (in this case simple cartoon faces) can be categorized in multiple different ways, to extract the relevant information and collapse across the irrelevant. It allows you to explore both bottom-up processing from face image to categories, and top-down processing from category values to face images (imagery), including the ability to dynamically iterate both bottom-up and top-down to cleanup partial inputs (partially occluded face images).  See <a href="https://github.com/CompCogNeuro/sims/ch3/face_categ/README.md">README.md on GitHub</a>.</p>`)
+	gi.SetAppAbout(`face_categ: This project explores how sensory inputs (in this case simple cartoon faces) can be categorized in multiple different ways, to extract the relevant information and collapse across the irrelevant. It allows you to explore both bottom-up processing from face image to categories, and top-down processing from category values to face images (imagery), including the ability to dynamically iterate both bottom-up and top-down to cleanup partial inputs (partially occluded face images).  See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch3/face_categ/README.md">README.md on GitHub</a>.</p>`)
 
 	win := gi.NewWindow2D("face_categ", "Face Categorization", width, height, true)
 	ss.Win = win

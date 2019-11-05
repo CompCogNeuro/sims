@@ -584,7 +584,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	gi.SetAppName("cat_dogs")
 	gi.SetAppAbout(`cats_dogs: This project explores a simple **semantic network** intended to represent a (very small) set of relationships among different features used to represent a set of entities in the world.  In our case, we represent some features of cats and dogs: their color, size, favorite food, and favorite toy.
-  See <a href="https://github.com/CompCogNeuro/sims/ch3/cats_dogs/README.md">README.md on GitHub</a>.</p>`)
+  See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch3/cats_dogs/README.md">README.md on GitHub</a>.</p>`)
 
 	win := gi.NewWindow2D("cats_dogs", "Cats and Dogs", width, height, true)
 	ss.Win = win

@@ -1535,7 +1535,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	height := 1200
 
 	gi.SetAppName("hip")
-	gi.SetAppAbout(`This demonstrates a basic Hippocampus model in Leabra. See <a href="https://github.com/emer/emergent">emergent on GitHub</a>.</p>`)
+	gi.SetAppAbout(`runs a hippocampus model on the AB-AC paired associate learning task. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch8/hip/README.md">README.md on GitHub</a>.</p>`)
 
 	win := gi.NewWindow2D("hip", "Hippocampus AB-AC", width, height, true)
 	ss.Win = win
@@ -1713,7 +1713,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	tbar.AddAction(gi.ActOpts{Label: "README", Icon: "file-markdown", Tooltip: "Opens your browser on the README file that contains instructions for how to run this model."}, win.This(),
 		func(recv, send ki.Ki, sig int64, data interface{}) {
-			gi.OpenURL("https://github.com/emer/leabra/blob/master/examples/ra25/README.md")
+			gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch8/hip/README.md")
 		})
 
 	vp.UpdateEndNoSig(updt)

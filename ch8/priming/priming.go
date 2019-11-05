@@ -1168,7 +1168,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	height := 1200
 
 	gi.SetAppName("priming")
-	gi.SetAppAbout(`This simulation explores the neural basis of *priming* -- the often surprisingly strong impact of residual traces from prior experience, which can be either *weight-based* (small changes in synapses) or *activation-based* (residual neural activity).  In the first part, we see how small weight changes caused by the standard slow cortical learning rate can produce significant behavioral priming, causing the network to favor one output pattern over another.  Likewise, residual activation can bias subsequent processing, but this is short-lived and transient compared to the long-lasting effects of weight-based priming. See <a href="href="https://github.com/CompCogNeuro/sims/ch8/priming/README.md">README.md on GitHub</a>.</p>`)
+	gi.SetAppAbout(`This simulation explores the neural basis of *priming* -- the often surprisingly strong impact of residual traces from prior experience, which can be either *weight-based* (small changes in synapses) or *activation-based* (residual neural activity).  In the first part, we see how small weight changes caused by the standard slow cortical learning rate can produce significant behavioral priming, causing the network to favor one output pattern over another.  Likewise, residual activation can bias subsequent processing, but this is short-lived and transient compared to the long-lasting effects of weight-based priming. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch8/priming/README.md">README.md on GitHub</a>.</p>`)
 
 	win := gi.NewWindow2D("priming", "Priming", width, height, true)
 	ss.Win = win
