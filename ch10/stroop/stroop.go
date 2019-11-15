@@ -3,7 +3,8 @@
 // license that can be found in the LICENSE file.
 
 /*
-err_driven_hidden shows how XCal error driven learning can train a hidden layer to solve problems that are otherwise impossible for a simple two layer network (as we saw in the Pattern Associator exploration, which should be completed first before doing this one).
+family_trees shows how learning can recode inputs that have no similarity structure
+into a hidden layer that captures the *functional* similarity structure of the items.
 */
 package main
 
@@ -14,6 +15,7 @@ import (
 	"math/rand"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/emer/emergent/emer"
@@ -23,16 +25,19 @@ import (
 	"github.com/emer/emergent/prjn"
 	"github.com/emer/emergent/relpos"
 	"github.com/emer/etable/agg"
+	"github.com/emer/etable/clust"
 	"github.com/emer/etable/eplot"
 	"github.com/emer/etable/etable"
 	"github.com/emer/etable/etensor"
 	_ "github.com/emer/etable/etview" // include to get gui views
+	"github.com/emer/etable/metric"
+	"github.com/emer/etable/pca"
+	"github.com/emer/etable/simat"
 	"github.com/emer/etable/split"
 	"github.com/emer/leabra/leabra"
 	"github.com/goki/gi/gi"
 	"github.com/goki/gi/gimain"
 	"github.com/goki/gi/giv"
-	"github.com/goki/gi/mat32"
 	"github.com/goki/ki/ki"
 	"github.com/goki/ki/kit"
 )
@@ -47,63 +52,21 @@ func main() {
 // LogPrec is precision for saving float values in logs
 const LogPrec = 4
 
-// PatsType is the type of training patterns
-type PatsType int32
-
-//go:generate stringer -type=PatsType
-
-var KiT_PatsType = kit.Enums.AddEnum(PatsTypeN, false, nil)
-
-func (ev PatsType) MarshalJSON() ([]byte, error)  { return kit.EnumMarshalJSON(ev) }
-func (ev *PatsType) UnmarshalJSON(b []byte) error { return kit.EnumUnmarshalJSON(ev, b) }
-
-const (
-	// Easy patterns can be learned by Hebbian learning
-	Easy PatsType = iota
-
-	// Hard patterns can only be learned with error-driven learning
-	Hard
-
-	// Impossible patterns require error-driven + a hidden layer
-	Impossible
-
-	PatsTypeN
-)
-
-// LearnType is the type of learning to use
-type LearnType int32
-
-//go:generate stringer -type=LearnType
-
-var KiT_LearnType = kit.Enums.AddEnum(LearnTypeN, false, nil)
-
-func (ev LearnType) MarshalJSON() ([]byte, error)  { return kit.EnumMarshalJSON(ev) }
-func (ev *LearnType) UnmarshalJSON(b []byte) error { return kit.EnumUnmarshalJSON(ev, b) }
-
-const (
-	Hebbian LearnType = iota
-	ErrorDriven
-	LearnTypeN
-)
-
 // ParamSets is the default set of parameters -- Base is always applied, and others can be optionally
 // selected to apply on top of that
 var ParamSets = params.Sets{
 	{Name: "Base", Desc: "these are the best params", Sheets: params.Sheets{
 		"Network": &params.Sheet{
-			{Sel: "Prjn", Desc: "no extra learning factors",
+			{Sel: "Prjn", Desc: "wt bal better",
 				Params: params.Params{
 					"Prjn.Learn.Norm.On":     "false",
 					"Prjn.Learn.Momentum.On": "false",
-					"Prjn.Learn.WtBal.On":    "false",
+					"Prjn.Learn.WtBal.On":    "true", // sig faster learning with this on
 				}},
-			{Sel: "Layer", Desc: "needs some special inhibition and learning params",
+			{Sel: "Layer", Desc: "Default learning, inhib params",
 				Params: params.Params{
-					"Layer.Learn.AvgL.Gain":    "1.5", // this is critical! 2.5 def doesn't work
-					"Layer.Inhib.Layer.Gi":     "1.3",
-					"Layer.Inhib.ActAvg.Init":  "0.5",
-					"Layer.Inhib.ActAvg.Fixed": "true",
-					"Layer.Act.Gbar.L":         "0.1",
+					"Layer.Learn.AvgL.Gain": "1.5", // 2 similar to 1.5 but slightly worse
+					"Layer.Inhib.Layer.Gi":  "1.6",
 				}},
 			{Sel: ".Back", Desc: "top-down back-projections MUST have lower relative weight scale, otherwise network hallucinates",
 				Params: params.Params{
@@ -111,26 +74,27 @@ var ParamSets = params.Sets{
 				}},
 		},
 	}},
-	{Name: "Hebbian", Desc: "Hebbian-only learning params", Sheets: params.Sheets{
-		"Network": &params.Sheet{
-			{Sel: "Prjn", Desc: "",
-				Params: params.Params{
-					"Prjn.Learn.XCal.MLrn":    "0",
-					"Prjn.Learn.XCal.SetLLrn": "true",
-					"Prjn.Learn.XCal.LLrn":    "1",
-				}},
-		},
-	}},
-	{Name: "ErrorDriven", Desc: "Error-driven-only learning params", Sheets: params.Sheets{
-		"Network": &params.Sheet{
-			{Sel: "Prjn", Desc: "",
-				Params: params.Params{
-					"Prjn.Learn.XCal.MLrn":    "1",
-					"Prjn.Learn.XCal.SetLLrn": "true",
-					"Prjn.Learn.XCal.LLrn":    "0",
-				}},
-		},
-	}},
+}
+
+// Reps contains standard analysis of representations
+type Reps struct {
+	SimMat    *simat.SimMat `view:"no-inline" desc:"similarity matrix"`
+	PCAPlot   *eplot.Plot2D `view:"no-inline" desc:"plot of pca data"`
+	ClustPlot *eplot.Plot2D `view:"no-inline" desc:"cluster plot"`
+	PCA       *pca.PCA      `view:"-" desc:"pca results"`
+	PCAPrjn   *etable.Table `view:"-" desc:"pca projections onto eigenvectors"`
+}
+
+func (rp *Reps) Init() {
+	rp.SimMat = &simat.SimMat{}
+	rp.SimMat.Init()
+	rp.PCA = &pca.PCA{}
+	rp.PCA.Init()
+	rp.PCAPrjn = &etable.Table{}
+	rp.PCAPlot = &eplot.Plot2D{}
+	rp.PCAPlot.InitName(rp.PCAPlot, "PCAPlot") // any Ki obj needs this
+	rp.ClustPlot = &eplot.Plot2D{}
+	rp.ClustPlot.InitName(rp.ClustPlot, "ClustPlot") // any Ki obj needs this
 }
 
 // Sim encapsulates the entire simulation model, and we define all the
@@ -140,11 +104,9 @@ var ParamSets = params.Sets{
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
 	Net          *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
-	Learn        LearnType         `desc:"select which type of learning to use"`
-	Pats         PatsType          `desc:"select which type of patterns to use"`
-	Easy         *etable.Table     `view:"no-inline" desc:"easy training patterns -- can be learned with Hebbian"`
-	Hard         *etable.Table     `view:"no-inline" desc:"hard training patterns -- require error-driven"`
-	Impossible   *etable.Table     `view:"no-inline" desc:"impossible training patterns -- require error-driven + hidden layer"`
+	TrainPats    *etable.Table     `view:"no-inline" desc:"training patterns"`
+	TestPats     *etable.Table     `view:"no-inline" desc:"testing patterns"`
+	SOAPats      *etable.Table     `view:"no-inline" desc:"SOA testing patterns"`
 	TrnEpcLog    *etable.Table     `view:"no-inline" desc:"training epoch-level log data"`
 	TstEpcLog    *etable.Table     `view:"no-inline" desc:"testing epoch-level log data"`
 	TstTrlLog    *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
@@ -154,14 +116,18 @@ type Sim struct {
 	MaxRuns      int               `desc:"maximum number of model runs to perform"`
 	MaxEpcs      int               `desc:"maximum number of epochs to run per model run"`
 	NZeroStop    int               `desc:"if a positive number, training will stop after this many epochs with zero SSE"`
-	TrainEnv     env.FixedTable    `desc:"Training environment -- contains everything about iterating over input / output patterns over training"`
-	TestEnv      env.FixedTable    `desc:"Testing environment -- manages iterating over testing"`
+	TrainEnv     env.FreqTable     `desc:"Training environment -- contains everything about iterating over input / output patterns over training"`
+	TestEnv      env.FixedTable    `desc:"Generalization Testing environment (4 held-out items not trained -- not enough training data to really drive generalization here) -- manages iterating over testing"`
+	SOATestEnv   env.FixedTable    `desc:"Test all items -- manages iterating over testing"`
 	Time         leabra.Time       `desc:"leabra timing parameters and state"`
 	ViewOn       bool              `desc:"whether to update the network view while running"`
 	TrainUpdt    leabra.TimeScales `desc:"at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model"`
 	TestUpdt     leabra.TimeScales `desc:"at what time scale to update the display during testing?  Anything longer than Epoch updates at Epoch in this model"`
 	TestInterval int               `desc:"how often to run through all the test patterns, in terms of training epochs -- can use 0 or -1 for no testing"`
-	LayStatNms   []string          `desc:"names of layers to collect more detailed stats on (avg act, etc)"`
+	TstRecLays   []string          `desc:"names of layers to record activations etc of during testing"`
+	HiddenRel    Reps              `view:"inline" desc:"representational analysis of Hidden layer, sorted by relationship"`
+	HiddenAgent  Reps              `view:"inline" desc:"representational analysis of Hidden layer, sorted by agent"`
+	AgentAgent   Reps              `view:"inline" desc:"representational analysis of AgentCode layer, sorted by agent"`
 
 	// statistics: note use float64 as that is best for etable.Table
 	TrlErr     float64 `inactive:"+" desc:"1 if trial was error, 0 if correct -- based on SSE = 0 (subject to .5 unit-wise tolerance)"`
@@ -170,8 +136,8 @@ type Sim struct {
 	TrlCosDiff float64 `inactive:"+" desc:"current trial's cosine difference"`
 	EpcSSE     float64 `inactive:"+" desc:"last epoch's total sum squared error"`
 	EpcAvgSSE  float64 `inactive:"+" desc:"last epoch's average sum squared error (average over trials, and over units within layer)"`
-	EpcPctErr  float64 `inactive:"+" desc:"last epoch's average TrlErr"`
-	EpcPctCor  float64 `inactive:"+" desc:"1 - last epoch's average TrlErr"`
+	EpcPctErr  float64 `inactive:"+" desc:"last epoch's percent of trials that had SSE > 0 (subject to .5 unit-wise tolerance)"`
+	EpcPctCor  float64 `inactive:"+" desc:"last epoch's percent of trials that had SSE == 0 (subject to .5 unit-wise tolerance)"`
 	EpcCosDiff float64 `inactive:"+" desc:"last epoch's average cosine difference for output layer (a normalized error measure, maximum of 1 when the minus phase exactly matches the plus)"`
 	FirstZero  int     `inactive:"+" desc:"epoch at when SSE first went to zero"`
 	NZero      int     `inactive:"+" desc:"number of epochs in a row with zero SSE"`
@@ -207,11 +173,9 @@ var TheSim Sim
 // New creates new blank elements and initializes defaults
 func (ss *Sim) New() {
 	ss.Net = &leabra.Network{}
-	ss.Learn = ErrorDriven
-	ss.Pats = Impossible
-	ss.Easy = &etable.Table{}
-	ss.Hard = &etable.Table{}
-	ss.Impossible = &etable.Table{}
+	ss.TrainPats = &etable.Table{}
+	ss.TestPats = &etable.Table{}
+	ss.SOAPats = &etable.Table{}
 	ss.TrnEpcLog = &etable.Table{}
 	ss.TstEpcLog = &etable.Table{}
 	ss.TstTrlLog = &etable.Table{}
@@ -223,7 +187,10 @@ func (ss *Sim) New() {
 	ss.TrainUpdt = leabra.Quarter
 	ss.TestUpdt = leabra.Quarter
 	ss.TestInterval = 5
-	ss.LayStatNms = []string{"Input", "Output"}
+	ss.TstRecLays = []string{"Hidden", "AgentCode"}
+	ss.HiddenRel.Init()
+	ss.HiddenAgent.Init()
+	ss.AgentAgent.Init()
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -245,51 +212,68 @@ func (ss *Sim) ConfigEnv() {
 		ss.MaxRuns = 10
 	}
 	if ss.MaxEpcs == 0 { // allow user override
-		ss.MaxEpcs = 500
-		ss.NZeroStop = 5
+		ss.MaxEpcs = 100
+		ss.NZeroStop = 1
 	}
 
 	ss.TrainEnv.Nm = "TrainEnv"
 	ss.TrainEnv.Dsc = "training params and state"
-	ss.TrainEnv.Table = etable.NewIdxView(ss.Easy)
+	ss.TrainEnv.Table = etable.NewIdxView(ss.TrainPats)
 	ss.TrainEnv.Validate()
 	ss.TrainEnv.Run.Max = ss.MaxRuns // note: we are not setting epoch max -- do that manually
 
 	ss.TestEnv.Nm = "TestEnv"
 	ss.TestEnv.Dsc = "testing params and state"
-	ss.TestEnv.Table = etable.NewIdxView(ss.Easy)
+	ss.TestEnv.Table = etable.NewIdxView(ss.TestPats)
 	ss.TestEnv.Sequential = true
 	ss.TestEnv.Validate()
 
+	ss.SOATestEnv.Nm = "SOATestEnv"
+	ss.SOATestEnv.Dsc = "test all params and state"
+	ss.SOATestEnv.Table = etable.NewIdxView(ss.SOAPats)
+	ss.SOATestEnv.Sequential = true
+	ss.SOATestEnv.Validate()
+
 	ss.TrainEnv.Init(0)
 	ss.TestEnv.Init(0)
-}
-
-func (ss *Sim) UpdateEnv() {
-	switch ss.Pats {
-	case Easy:
-		ss.TrainEnv.Table = etable.NewIdxView(ss.Easy)
-		ss.TestEnv.Table = etable.NewIdxView(ss.Easy)
-	case Hard:
-		ss.TrainEnv.Table = etable.NewIdxView(ss.Hard)
-		ss.TestEnv.Table = etable.NewIdxView(ss.Hard)
-	case Impossible:
-		ss.TrainEnv.Table = etable.NewIdxView(ss.Impossible)
-		ss.TestEnv.Table = etable.NewIdxView(ss.Impossible)
-	}
+	ss.SOATestEnv.Init(0)
 }
 
 func (ss *Sim) ConfigNet(net *leabra.Network) {
-	net.InitName(net, "PatAssoc")
-	inp := net.AddLayer2D("Input", 1, 4, emer.Input)
-	hid := net.AddLayer2D("Hidden", 1, 4, emer.Hidden)
-	out := net.AddLayer2D("Output", 1, 2, emer.Target)
+	net.InitName(net, "FamTrees")
+	ag := net.AddLayer2D("Agent", 4, 6, emer.Input)
+	rl := net.AddLayer2D("Relation", 2, 6, emer.Input)
+	agcd := net.AddLayer2D("AgentCode", 7, 7, emer.Hidden)
+	rlcd := net.AddLayer2D("RelationCode", 7, 7, emer.Hidden)
+	hid := net.AddLayer2D("Hidden", 7, 7, emer.Hidden)
+	ptcd := net.AddLayer2D("PatientCode", 7, 7, emer.Hidden)
+	pt := net.AddLayer2D("Patient", 4, 6, emer.Target)
+
+	agcd.SetClass("Code")
+	rlcd.SetClass("Code")
+	ptcd.SetClass("Code")
+	ag.SetClass("Person")
+	pt.SetClass("Person")
+	rl.SetClass("Relation")
+
+	agcd.SetThread(1)
+	rlcd.SetThread(1)
+	ptcd.SetThread(1)
 
 	full := prjn.NewFull()
-	net.ConnectLayers(inp, hid, full, emer.Forward)
-	net.BidirConnectLayers(hid, out, full)
+	net.ConnectLayers(ag, agcd, full, emer.Forward)
+	net.ConnectLayers(rl, rlcd, full, emer.Forward)
+	net.BidirConnectLayers(agcd, hid, full)
+	net.BidirConnectLayers(rlcd, hid, full)
+	net.BidirConnectLayers(hid, ptcd, full)
+	net.BidirConnectLayers(ptcd, pt, full)
 
-	hid.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Input", YAlign: relpos.Front, XAlign: relpos.Left, YOffset: 1})
+	rl.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "Agent", YAlign: relpos.Front, Space: 2})
+	pt.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "Relation", YAlign: relpos.Front, Space: 2})
+	agcd.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Agent", YAlign: relpos.Front, XAlign: relpos.Left})
+	rlcd.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "AgentCode", YAlign: relpos.Front, Space: 1})
+	ptcd.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "RelationCode", YAlign: relpos.Front, Space: 1})
+	hid.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "RelationCode", YAlign: relpos.Front, XAlign: relpos.Middle})
 
 	net.Defaults()
 	ss.SetParams("Network", false) // only set Network params
@@ -308,7 +292,6 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 // and resets the epoch log table
 func (ss *Sim) Init() {
 	rand.Seed(ss.RndSeed)
-	ss.UpdateEnv()
 	ss.StopNow = false
 	ss.SetParams("", false) // all sheets
 	ss.NewRun()
@@ -410,7 +393,7 @@ func (ss *Sim) ApplyInputs(en env.Env) {
 	ss.Net.InitExt() // clear any existing inputs -- not strictly necessary if always
 	// going to the same layers, but good practice and cheap anyway
 
-	lays := []string{"Input", "Output"}
+	lays := []string{"Agent", "Relation", "Patient"}
 	for _, lnm := range lays {
 		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		pats := en.State(ly.Nm)
@@ -453,8 +436,6 @@ func (ss *Sim) TrainTrial() {
 		}
 	}
 
-	// note: type must be in place before apply inputs
-	ss.Net.LayerByName("Output").SetType(emer.Target)
 	ss.ApplyInputs(&ss.TrainEnv)
 	ss.AlphaCyc(true)   // train
 	ss.TrialStats(true) // accumulate
@@ -471,6 +452,7 @@ func (ss *Sim) NewRun() {
 	run := ss.TrainEnv.Run.Cur
 	ss.TrainEnv.Init(run)
 	ss.TestEnv.Init(run)
+	ss.SOATestEnv.Init(run)
 	ss.Time.Reset()
 	ss.Net.InitWts()
 	ss.InitStats()
@@ -505,7 +487,7 @@ func (ss *Sim) InitStats() {
 // different time-scales over which stats could be accumulated etc.
 // You can also aggregate directly from log data, as is done for testing stats
 func (ss *Sim) TrialStats(accum bool) (sse, avgsse, cosdiff float64) {
-	out := ss.Net.LayerByName("Output").(leabra.LeabraLayer).AsLeabra()
+	out := ss.Net.LayerByName("Patient").(leabra.LeabraLayer).AsLeabra()
 	ss.TrlCosDiff = float64(out.CosDiff.Cos)
 	ss.TrlSSE, ss.TrlAvgSSE = out.MSE(0.5) // 0.5 = per-unit tolerance -- right side of .5
 	if ss.TrlSSE > 0 {
@@ -586,7 +568,7 @@ func (ss *Sim) SaveWeights(filename gi.FileName) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
-// Testing
+// Generalization Testing
 
 // TestTrial runs one trial of testing -- always sequentially presented inputs
 func (ss *Sim) TestTrial(returnOnChg bool) {
@@ -604,25 +586,10 @@ func (ss *Sim) TestTrial(returnOnChg bool) {
 		}
 	}
 
-	// note: type must be in place before apply inputs
-	ss.Net.LayerByName("Output").SetType(emer.Compare)
 	ss.ApplyInputs(&ss.TestEnv)
 	ss.AlphaCyc(false)   // !train
 	ss.TrialStats(false) // !accumulate
-	ss.LogTstTrl(ss.TstTrlLog)
-}
-
-// TestItem tests given item which is at given index in test item list
-func (ss *Sim) TestItem(idx int) {
-	cur := ss.TestEnv.Trial.Cur
-	ss.TestEnv.Trial.Cur = idx
-	ss.TestEnv.SetTrialName()
-	// note: type must be in place before apply inputs
-	ss.Net.LayerByName("Output").SetType(emer.Compare)
-	ss.ApplyInputs(&ss.TestEnv)
-	ss.AlphaCyc(false)   // !train
-	ss.TrialStats(false) // !accumulate
-	ss.TestEnv.Trial.Cur = cur
+	ss.LogTstTrl(ss.TstTrlLog, ss.TestEnv.Trial.Cur, ss.TestEnv.TrialName)
 }
 
 // TestAll runs through the full set of testing items
@@ -644,6 +611,128 @@ func (ss *Sim) RunTestAll() {
 	ss.Stopped()
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////
+// SOATest
+
+// SOATestTrial runs one trial of testing -- always sequentially presented inputs
+func (ss *Sim) SOATestTrial(returnOnChg bool) {
+	ss.SOATestEnv.Step()
+
+	// Query counters FIRST
+	_, _, chg := ss.SOATestEnv.Counter(env.Epoch)
+	if chg {
+		if ss.ViewOn && ss.TestUpdt > leabra.AlphaCycle {
+			ss.UpdateView(false)
+		}
+		ss.LogTstEpc(ss.TstEpcLog)
+		if returnOnChg {
+			return
+		}
+	}
+
+	ss.ApplyInputs(&ss.SOATestEnv)
+	ss.AlphaCyc(false)   // !train
+	ss.TrialStats(false) // !accumulate
+	ss.LogTstTrl(ss.TstTrlLog, ss.SOATestEnv.Trial.Cur, ss.SOATestEnv.TrialName)
+}
+
+// SOATestAll runs through the full set of testing items
+func (ss *Sim) SOATestAll() {
+	ss.SOATestEnv.Init(ss.TrainEnv.Run.Cur)
+	for {
+		ss.SOATestTrial(true) // return on chg, don't present
+		_, _, chg := ss.SOATestEnv.Counter(env.Epoch)
+		if chg || ss.StopNow {
+			break
+		}
+	}
+}
+
+// RunSOATestAll runs through the full set of testing items, has stop running = false at end -- for gui
+func (ss *Sim) RunSOATestAll() {
+	ss.StopNow = false
+	ss.SOATestAll()
+	ss.Stopped()
+}
+
+// RepsAnalysis does a full test and then runs tests of representations
+func (ss *Sim) RepsAnalysis() {
+	ss.RunSOATestAll()
+
+	names := make([]string, ss.TstTrlLog.Rows)
+	nmtsr := ss.TstTrlLog.ColByName("TrialName").(*etensor.String)
+	copy(names, nmtsr.Values) // save
+
+	// replace name with just rel
+	for i, nm := range nmtsr.Values {
+		nnm := nm[strings.Index(nm, ".")+1:]
+		nnm = nnm[:strings.Index(nnm, ".")]
+		nmtsr.Values[i] = nnm
+	}
+
+	rels := etable.NewIdxView(ss.TstTrlLog)
+	rels.SortCol(ss.TstTrlLog.ColIdx("TrialName"), true)
+	ss.HiddenRel.SimMat.TableCol(rels, "Hidden", "TrialName", true, metric.Correlation64)
+	ss.HiddenRel.PCA.TableCol(rels, "Hidden", metric.Covariance64)
+	ss.HiddenRel.PCA.ProjectColToTable(ss.HiddenRel.PCAPrjn, rels, "Hidden", "TrialName", []int{0, 1})
+	ss.ConfigPCAPlot(ss.HiddenRel.PCAPlot, ss.HiddenRel.PCAPrjn)
+	ss.ClustPlot(ss.HiddenRel.ClustPlot, rels, "Hidden")
+
+	// replace name with just agent
+	for i, nm := range names {
+		nnm := nm[:strings.Index(nm, ".")]
+		nmtsr.Values[i] = nnm
+	}
+	ags := etable.NewIdxView(ss.TstTrlLog)
+	ags.SortCol(ss.TstTrlLog.ColIdx("TrialName"), true)
+	ss.HiddenAgent.SimMat.TableCol(ags, "Hidden", "TrialName", true, metric.Correlation64)
+	ss.HiddenAgent.PCA.TableCol(ags, "Hidden", metric.Covariance64)
+	ss.HiddenAgent.PCA.ProjectColToTable(ss.HiddenAgent.PCAPrjn, ags, "Hidden", "TrialName", []int{2, 3})
+	ss.ConfigPCAPlot(ss.HiddenAgent.PCAPlot, ss.HiddenAgent.PCAPrjn)
+	ss.HiddenAgent.PCAPlot.SetColParams("Prjn3", true, true, 0, false, 0)
+	ss.HiddenAgent.PCAPlot.Params.XAxisCol = "Prjn2"
+	ss.ClustPlot(ss.HiddenAgent.ClustPlot, ags, "Hidden")
+
+	ss.AgentAgent.SimMat.TableCol(ags, "AgentCode", "TrialName", true, metric.Correlation64)
+	ss.AgentAgent.PCA.TableCol(ags, "AgentCode", metric.Covariance64)
+	ss.AgentAgent.PCA.ProjectColToTable(ss.AgentAgent.PCAPrjn, ags, "AgentCode", "TrialName", []int{0, 1})
+	ss.ConfigPCAPlot(ss.AgentAgent.PCAPlot, ss.AgentAgent.PCAPrjn)
+	ss.ClustPlot(ss.AgentAgent.ClustPlot, ags, "AgentCode")
+
+	copy(nmtsr.Values, names) // restore
+	ss.Stopped()
+}
+
+func (ss *Sim) ConfigPCAPlot(plt *eplot.Plot2D, dt *etable.Table) {
+	nm, _ := dt.MetaData["name"]
+	plt.Params.Title = "Family Trees PCA Plot: " + nm
+	plt.Params.XAxisCol = "Prjn0"
+	plt.SetTable(dt)
+	plt.Params.Lines = false
+	plt.Params.Points = true
+	// order of params: on, fixMin, min, fixMax, max
+	plt.SetColParams("TrialName", true, true, 0, false, 0)
+	plt.SetColParams("Prjn0", false, true, 0, false, 0)
+	plt.SetColParams("Prjn1", true, true, 0, false, 0)
+}
+
+// ClustPlot does one cluster plot on given table column
+func (ss *Sim) ClustPlot(plt *eplot.Plot2D, ix *etable.IdxView, colNm string) {
+	nm, _ := ix.Table.MetaData["name"]
+	smat := &simat.SimMat{}
+	smat.TableCol(ix, colNm, "TrialName", false, metric.Euclidean64)
+	pt := &etable.Table{}
+	clust.Plot(pt, clust.Glom(smat, clust.ContrastDist), smat)
+	plt.InitName(plt, colNm)
+	plt.Params.Title = "Cluster Plot of: " + nm + " " + colNm
+	plt.Params.XAxisCol = "X"
+	plt.SetTable(pt)
+	// order of params: on, fixMin, min, fixMax, max
+	plt.SetColParams("X", false, true, 0, false, 0)
+	plt.SetColParams("Y", true, true, 0, false, 0)
+	plt.SetColParams("Label", true, false, 0, false, 0)
+}
+
 /////////////////////////////////////////////////////////////////////////
 //   Params setting
 
@@ -658,12 +747,6 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 	}
 	err := ss.SetParamsSet("Base", sheet, setMsg)
 
-	switch ss.Learn {
-	case Hebbian:
-		ss.SetParamsSet("Hebbian", sheet, setMsg)
-	case ErrorDriven:
-		ss.SetParamsSet("ErrorDriven", sheet, setMsg)
-	}
 	return err
 }
 
@@ -715,15 +798,12 @@ func (ss *Sim) OpenPatAsset(dt *etable.Table, fnm, name, desc string) error {
 }
 
 func (ss *Sim) OpenPats() {
-	// patgen.ReshapeCppFile(ss.Easy, "easy.dat", "easy.dat")                   // one-time reshape
-	// patgen.ReshapeCppFile(ss.Hard, "hard.dat", "hard.dat")                   // one-time reshape
-	// patgen.ReshapeCppFile(ss.Impossible, "impossible.dat", "impossible.dat") // one-time reshape
-	ss.OpenPatAsset(ss.Easy, "easy.dat", "Easy", "Easy Training patterns")
-	// err := dt.OpenCSV("easy.dat", etable.Tab)
-	ss.OpenPatAsset(ss.Hard, "hard.dat", "Hard", "Hard Training patterns")
-	// err = dt.OpenCSV("hard.dat", etable.Tab)
-	ss.OpenPatAsset(ss.Impossible, "impossible.dat", "Impossible", "Impossible Training patterns")
-	// err = dt.OpenCSV("impossible.dat", etable.Tab)
+	// patgen.ReshapeCppFile(ss.TrainPats, "stroop_train.dat", "stroop_train.tsv") // one-time reshape
+	// patgen.ReshapeCppFile(ss.TestPats, "stroop_test.dat", "stroop_test.tsv")    // one-time reshape
+	// patgen.ReshapeCppFile(ss.SOAPats, "stroop_soa.dat", "stroop_soa.tsv")       // one-time reshape
+	ss.OpenPatAsset(ss.TrainPats, "stroop_train.tsv", "Stroop Train", "Stroop Training patterns")
+	ss.OpenPatAsset(ss.TestPats, "stroop_test.tsv", "Stroop Test", "Stroop Testing patterns")
+	ss.OpenPatAsset(ss.SOAPats, "stroop_soa.tsv", "Stroop SOA", "Stroop SOA Testing patterns")
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -780,11 +860,6 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 	dt.SetCellFloat("PctCor", row, ss.EpcPctCor)
 	dt.SetCellFloat("CosDiff", row, ss.EpcCosDiff)
 
-	for _, lnm := range ss.LayStatNms {
-		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
-		dt.SetCellFloat(ly.Nm+" ActAvg", row, float64(ly.Pools[0].ActAvg.ActPAvgEff))
-	}
-
 	// note: essential to use Go version of update when called from another goroutine
 	ss.TrnEpcPlot.GoUpdate()
 	if ss.TrnEpcFile != nil {
@@ -810,28 +885,22 @@ func (ss *Sim) ConfigTrnEpcLog(dt *etable.Table) {
 		{"PctCor", etensor.FLOAT64, nil, nil},
 		{"CosDiff", etensor.FLOAT64, nil, nil},
 	}
-	for _, lnm := range ss.LayStatNms {
-		sch = append(sch, etable.Column{lnm + " ActAvg", etensor.FLOAT64, nil, nil})
-	}
 	dt.SetFromSchema(sch, 0)
 }
 
 func (ss *Sim) ConfigTrnEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
-	plt.Params.Title = "Pattern Associator Epoch Plot"
+	plt.Params.Title = "Family Trees Epoch Plot"
 	plt.Params.XAxisCol = "Epoch"
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Run", false, true, 0, false, 0)
 	plt.SetColParams("Epoch", false, true, 0, false, 0)
-	plt.SetColParams("SSE", true, true, 0, false, 0) // default plot
+	plt.SetColParams("SSE", false, true, 0, false, 0) // default plot
 	plt.SetColParams("AvgSSE", false, true, 0, false, 0)
-	plt.SetColParams("PctErr", false, true, 0, true, 1)
+	plt.SetColParams("PctErr", true, true, 0, true, 1)
 	plt.SetColParams("PctCor", false, true, 0, true, 1)
 	plt.SetColParams("CosDiff", false, true, 0, true, 1)
 
-	for _, lnm := range ss.LayStatNms {
-		plt.SetColParams(lnm+" ActAvg", false, true, 0, true, .5)
-	}
 	return plt
 }
 
@@ -840,14 +909,10 @@ func (ss *Sim) ConfigTrnEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 
 // LogTstTrl adds data from current trial to the TstTrlLog table.
 // log always contains number of testing items
-func (ss *Sim) LogTstTrl(dt *etable.Table) {
+func (ss *Sim) LogTstTrl(dt *etable.Table, trl int, trlnm string) {
 	epc := ss.TrainEnv.Epoch.Prv // this is triggered by increment so use previous value
-	inp := ss.Net.LayerByName("Input").(leabra.LeabraLayer).AsLeabra()
-	out := ss.Net.LayerByName("Output").(leabra.LeabraLayer).AsLeabra()
 
-	trl := ss.TestEnv.Trial.Cur
 	row := trl
-
 	if dt.Rows <= row {
 		dt.SetNumRows(row + 1)
 	}
@@ -855,33 +920,24 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
 	dt.SetCellFloat("Trial", row, float64(trl))
-	dt.SetCellString("TrialName", row, ss.TestEnv.TrialName)
+	dt.SetCellString("TrialName", row, trlnm)
 	dt.SetCellFloat("Err", row, ss.TrlErr)
 	dt.SetCellFloat("SSE", row, ss.TrlSSE)
 	dt.SetCellFloat("AvgSSE", row, ss.TrlAvgSSE)
 	dt.SetCellFloat("CosDiff", row, ss.TrlCosDiff)
 
-	for _, lnm := range ss.LayStatNms {
+	for _, lnm := range ss.TstRecLays {
+		tsr := ss.ValsTsr(lnm)
 		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
-		dt.SetCellFloat(ly.Nm+" ActM.Avg", row, float64(ly.Pools[0].ActM.Avg))
+		ly.UnitValsTensor(tsr, "ActM") // get minus phase act
+		dt.SetCellTensor(lnm, row, tsr)
 	}
-	ivt := ss.ValsTsr("Input")
-	ovt := ss.ValsTsr("Output")
-	inp.UnitValsTensor(ivt, "Act")
-	dt.SetCellTensor("InAct", row, ivt)
-	out.UnitValsTensor(ovt, "ActM")
-	dt.SetCellTensor("OutActM", row, ovt)
-	out.UnitValsTensor(ovt, "Targ")
-	dt.SetCellTensor("OutTarg", row, ovt)
 
 	// note: essential to use Go version of update when called from another goroutine
 	ss.TstTrlPlot.GoUpdate()
 }
 
 func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
-	inp := ss.Net.LayerByName("Input").(leabra.LeabraLayer).AsLeabra()
-	out := ss.Net.LayerByName("Output").(leabra.LeabraLayer).AsLeabra()
-
 	dt.SetMetaData("name", "TstTrlLog")
 	dt.SetMetaData("desc", "Record of testing per input pattern")
 	dt.SetMetaData("read-only", "true")
@@ -898,19 +954,15 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 		{"AvgSSE", etensor.FLOAT64, nil, nil},
 		{"CosDiff", etensor.FLOAT64, nil, nil},
 	}
-	for _, lnm := range ss.LayStatNms {
-		sch = append(sch, etable.Column{lnm + " ActM.Avg", etensor.FLOAT64, nil, nil})
+	for _, lnm := range ss.TstRecLays {
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
+		sch = append(sch, etable.Column{lnm, etensor.FLOAT64, ly.Shp.Shp, nil})
 	}
-	sch = append(sch, etable.Schema{
-		{"InAct", etensor.FLOAT64, inp.Shp.Shp, nil},
-		{"OutActM", etensor.FLOAT64, out.Shp.Shp, nil},
-		{"OutTarg", etensor.FLOAT64, out.Shp.Shp, nil},
-	}...)
 	dt.SetFromSchema(sch, nt)
 }
 
 func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
-	plt.Params.Title = "Pattern Associator Test Trial Plot"
+	plt.Params.Title = "Family Trees Test Trial Plot"
 	plt.Params.XAxisCol = "Trial"
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
@@ -923,13 +975,9 @@ func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetColParams("AvgSSE", false, true, 0, false, 0)
 	plt.SetColParams("CosDiff", false, true, 0, true, 1)
 
-	for _, lnm := range ss.LayStatNms {
-		plt.SetColParams(lnm+" ActM.Avg", false, true, 0, true, .5)
+	for _, lnm := range ss.TstRecLays {
+		plt.SetColParams(lnm, false, true, 0, true, 1)
 	}
-
-	plt.SetColParams("InAct", false, true, 0, true, 1)
-	plt.SetColParams("OutActM", false, true, 0, true, 1)
-	plt.SetColParams("OutTarg", false, true, 0, true, 1)
 	return plt
 }
 
@@ -976,7 +1024,7 @@ func (ss *Sim) ConfigTstEpcLog(dt *etable.Table) {
 }
 
 func (ss *Sim) ConfigTstEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
-	plt.Params.Title = "Pattern Associator Testing Epoch Plot"
+	plt.Params.Title = "Family Trees Testing Epoch Plot"
 	plt.Params.XAxisCol = "Epoch"
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
@@ -1008,7 +1056,7 @@ func (ss *Sim) LogRun(dt *etable.Table) {
 	}
 	epcix.Idxs = epcix.Idxs[epcix.Len()-nlast:]
 
-	params := ss.Learn.String() + "_" + ss.Pats.String()
+	params := ""
 
 	dt.SetCellFloat("Run", row, float64(run))
 	dt.SetCellString("Params", row, params)
@@ -1054,7 +1102,7 @@ func (ss *Sim) ConfigRunLog(dt *etable.Table) {
 }
 
 func (ss *Sim) ConfigRunPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
-	plt.Params.Title = "Pattern Associator Run Plot"
+	plt.Params.Title = "Family Trees Run Plot"
 	plt.Params.XAxisCol = "Run"
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
@@ -1071,21 +1119,15 @@ func (ss *Sim) ConfigRunPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D 
 ////////////////////////////////////////////////////////////////////////////////////////////
 // 		Gui
 
-func (ss *Sim) ConfigNetView(nv *netview.NetView) {
-	nv.ViewDefaults()
-	nv.Scene().Camera.Pose.Pos.Set(0.1, 1.5, 4)
-	nv.Scene().Camera.LookAt(mat32.Vec3{0.1, 0.1, 0}, mat32.Vec3{0, 1, 0})
-}
-
 // ConfigGui configures the GoGi gui interface for this simulation,
 func (ss *Sim) ConfigGui() *gi.Window {
 	width := 1600
 	height := 1200
 
-	gi.SetAppName("err_driven_hidden")
-	gi.SetAppAbout(`shows how XCal error driven learning can train a hidden layer to solve problems that are otherwise impossible for a simple two layer network (as we saw in the Pattern Associator exploration, which should be completed first before doing this one). See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch4/err_driven_hidden/README.md">README.md on GitHub</a>.</p>`)
+	gi.SetAppName("family_trees")
+	gi.SetAppAbout(`shows how learning can recode inputs that have no similarity structure into a hidden layer that captures the *functional* similarity structure of the items. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch4/family_trees/README.md">README.md on GitHub</a>.</p>`)
 
-	win := gi.NewWindow2D("err_driven_hidden", "Error Driven Hidden Layer Learning", width, height, true)
+	win := gi.NewWindow2D("family_trees", "Family Trees", width, height, true)
 	ss.Win = win
 
 	vp := win.WinViewport2D()
@@ -1110,7 +1152,6 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	nv.Var = "Act"
 	nv.SetNet(ss.Net)
 	ss.NetView = nv
-	ss.ConfigNetView(nv)
 
 	plt := tv.AddNewTab(eplot.KiT_Plot2D, "TrnEpcPlot").(*eplot.Plot2D)
 	ss.TrnEpcPlot = ss.ConfigTrnEpcPlot(plt, ss.TrnEpcLog)
@@ -1195,31 +1236,6 @@ func (ss *Sim) ConfigGui() *gi.Window {
 		}
 	})
 
-	tbar.AddAction(gi.ActOpts{Label: "Test Item", Icon: "step-fwd", Tooltip: "Prompts for a specific input pattern name to run, and runs it in testing mode.", UpdateFunc: func(act *gi.Action) {
-		act.SetActiveStateUpdt(!ss.IsRunning)
-	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
-		gi.StringPromptDialog(vp, "", "Test Item",
-			gi.DlgOpts{Title: "Test Item", Prompt: "Enter the Name of a given input pattern to test (case insensitive, contains given string."},
-			win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
-				dlg := send.(*gi.Dialog)
-				if sig == int64(gi.DialogAccepted) {
-					val := gi.StringPromptDialogValue(dlg)
-					idxs := ss.TestEnv.Table.RowsByString("Name", val, true, true) // contains, ignoreCase
-					if len(idxs) == 0 {
-						gi.PromptDialog(nil, gi.DlgOpts{Title: "Name Not Found", Prompt: "No patterns found containing: " + val}, true, false, nil, nil)
-					} else {
-						if !ss.IsRunning {
-							ss.IsRunning = true
-							fmt.Printf("testing index: %v\n", idxs[0])
-							ss.TestItem(idxs[0])
-							ss.IsRunning = false
-							vp.SetNeedsFullRender()
-						}
-					}
-				}
-			})
-	})
-
 	tbar.AddAction(gi.ActOpts{Label: "Test All", Icon: "fast-fwd", Tooltip: "Tests all of the testing trials.", UpdateFunc: func(act *gi.Action) {
 		act.SetActiveStateUpdt(!ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
@@ -1227,6 +1243,37 @@ func (ss *Sim) ConfigGui() *gi.Window {
 			ss.IsRunning = true
 			tbar.UpdateActions()
 			go ss.RunTestAll()
+		}
+	})
+
+	tbar.AddAction(gi.ActOpts{Label: "SOA Test Trial", Icon: "step-fwd", Tooltip: "Runs the next testing trial.", UpdateFunc: func(act *gi.Action) {
+		act.SetActiveStateUpdt(!ss.IsRunning)
+	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+		if !ss.IsRunning {
+			ss.IsRunning = true
+			ss.SOATestTrial(false) // don't break on chg
+			ss.IsRunning = false
+			vp.SetNeedsFullRender()
+		}
+	})
+
+	tbar.AddAction(gi.ActOpts{Label: "SOA Test All", Icon: "fast-fwd", Tooltip: "Tests all of the testing trials.", UpdateFunc: func(act *gi.Action) {
+		act.SetActiveStateUpdt(!ss.IsRunning)
+	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+		if !ss.IsRunning {
+			ss.IsRunning = true
+			tbar.UpdateActions()
+			go ss.RunSOATestAll()
+		}
+	})
+
+	tbar.AddAction(gi.ActOpts{Label: "Reps Analysis", Icon: "fast-fwd", Tooltip: "Does an All Test All and analyzes the resulting Hidden and AgentCode activations.", UpdateFunc: func(act *gi.Action) {
+		act.SetActiveStateUpdt(!ss.IsRunning)
+	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+		if !ss.IsRunning {
+			ss.IsRunning = true
+			tbar.UpdateActions()
+			go ss.RepsAnalysis()
 		}
 	})
 
@@ -1247,7 +1294,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	tbar.AddAction(gi.ActOpts{Label: "README", Icon: "file-markdown", Tooltip: "Opens your browser on the README file that contains instructions for how to run this model."}, win.This(),
 		func(recv, send ki.Ki, sig int64, data interface{}) {
-			gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch4/err_driven_hidden/README.md")
+			gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch4/family_trees/README.md")
 		})
 
 	vp.UpdateEndNoSig(updt)
