@@ -3,8 +3,7 @@
 // license that can be found in the LICENSE file.
 
 /*
-family_trees shows how learning can recode inputs that have no similarity structure
-into a hidden layer that captures the *functional* similarity structure of the items.
+stroop illustrates how the PFC can produce top-down biasing for executive control, in the context of the widely-studied Stroop task.
 */
 package main
 
@@ -38,6 +37,7 @@ import (
 	"github.com/goki/gi/gi"
 	"github.com/goki/gi/gimain"
 	"github.com/goki/gi/giv"
+	"github.com/goki/gi/mat32"
 	"github.com/goki/ki/ki"
 	"github.com/goki/ki/kit"
 )
@@ -57,20 +57,47 @@ const LogPrec = 4
 var ParamSets = params.Sets{
 	{Name: "Base", Desc: "these are the best params", Sheets: params.Sheets{
 		"Network": &params.Sheet{
-			{Sel: "Prjn", Desc: "wt bal better",
+			{Sel: "Prjn", Desc: "lower lrate, uniform init",
 				Params: params.Params{
 					"Prjn.Learn.Norm.On":     "false",
 					"Prjn.Learn.Momentum.On": "false",
-					"Prjn.Learn.WtBal.On":    "true", // sig faster learning with this on
+					"Prjn.Learn.WtBal.On":    "false",
+					"Prjn.Learn.Lrate":       "0.02",
+					"Prjn.WtInit.Mean":       "0.25",
+					"Prjn.WtInit.Var":        "0",
 				}},
-			{Sel: "Layer", Desc: "Default learning, inhib params",
+			{Sel: "Layer", Desc: "high inhibition, layer act avg",
 				Params: params.Params{
-					"Layer.Learn.AvgL.Gain": "1.5", // 2 similar to 1.5 but slightly worse
-					"Layer.Inhib.Layer.Gi":  "1.6",
+					"Layer.Act.XX1.Gain":       "40",
+					"Layer.Learn.AvgL.Gain":    "1", // critical params here
+					"Layer.Learn.AvgL.Init":    "0.2",
+					"Layer.Learn.AvgL.Min":     "0.05",
+					"Layer.Learn.AvgL.LrnMin":  "0.05",
+					"Layer.Learn.AvgL.LrnMax":  "0.05",
+					"Layer.Inhib.Layer.Gi":     "3",
+					"Layer.Inhib.Layer.FB":     "0.5",
+					"Layer.Inhib.ActAvg.Init":  "0.5",
+					"Layer.Inhib.ActAvg.Fixed": "true",
 				}},
-			{Sel: ".Back", Desc: "top-down back-projections MUST have lower relative weight scale, otherwise network hallucinates",
+			{Sel: "#PFCToHidden", Desc: "PFC top-down projection",
 				Params: params.Params{
-					"Prjn.WtScale.Rel": "0.3",
+					"Prjn.WtScale.Rel":        "0.45",
+					"Prjn.Learn.Lrate":        "0.01", // even slower
+					"Prjn.Learn.XCal.SetLLrn": "true",
+					"Prjn.Learn.XCal.LLrn":    "0.1",
+				}},
+			{Sel: "#OutputToHidden", Desc: "Output top-down projection",
+				Params: params.Params{
+					"Prjn.WtScale.Rel":        "0.2",
+					"Prjn.Learn.Lrate":        "0.04",
+					"Prjn.Learn.XCal.SetLLrn": "true",
+					"Prjn.Learn.XCal.LLrn":    "0.1",
+				}},
+			{Sel: "#HiddenToOutput", Desc: "to output",
+				Params: params.Params{
+					"Prjn.Learn.Lrate":        "0.08",
+					"Prjn.Learn.XCal.SetLLrn": "true",
+					"Prjn.Learn.XCal.LLrn":    "0.1",
 				}},
 		},
 	}},
@@ -187,7 +214,7 @@ func (ss *Sim) New() {
 	ss.TrainUpdt = leabra.Quarter
 	ss.TestUpdt = leabra.Quarter
 	ss.TestInterval = 5
-	ss.TstRecLays = []string{"Hidden", "AgentCode"}
+	ss.TstRecLays = []string{"Colors", "Words", "PFC", "Hidden", "Output"}
 	ss.HiddenRel.Init()
 	ss.HiddenAgent.Init()
 	ss.AgentAgent.Init()
@@ -209,16 +236,17 @@ func (ss *Sim) Config() {
 
 func (ss *Sim) ConfigEnv() {
 	if ss.MaxRuns == 0 { // allow user override
-		ss.MaxRuns = 10
+		ss.MaxRuns = 1
 	}
 	if ss.MaxEpcs == 0 { // allow user override
-		ss.MaxEpcs = 100
-		ss.NZeroStop = 1
+		ss.MaxEpcs = 60
+		ss.NZeroStop = -1
 	}
 
 	ss.TrainEnv.Nm = "TrainEnv"
 	ss.TrainEnv.Dsc = "training params and state"
 	ss.TrainEnv.Table = etable.NewIdxView(ss.TrainPats)
+	ss.TrainEnv.NSamples = 1
 	ss.TrainEnv.Validate()
 	ss.TrainEnv.Run.Max = ss.MaxRuns // note: we are not setting epoch max -- do that manually
 
@@ -240,40 +268,31 @@ func (ss *Sim) ConfigEnv() {
 }
 
 func (ss *Sim) ConfigNet(net *leabra.Network) {
-	net.InitName(net, "FamTrees")
-	ag := net.AddLayer2D("Agent", 4, 6, emer.Input)
-	rl := net.AddLayer2D("Relation", 2, 6, emer.Input)
-	agcd := net.AddLayer2D("AgentCode", 7, 7, emer.Hidden)
-	rlcd := net.AddLayer2D("RelationCode", 7, 7, emer.Hidden)
-	hid := net.AddLayer2D("Hidden", 7, 7, emer.Hidden)
-	ptcd := net.AddLayer2D("PatientCode", 7, 7, emer.Hidden)
-	pt := net.AddLayer2D("Patient", 4, 6, emer.Target)
-
-	agcd.SetClass("Code")
-	rlcd.SetClass("Code")
-	ptcd.SetClass("Code")
-	ag.SetClass("Person")
-	pt.SetClass("Person")
-	rl.SetClass("Relation")
-
-	agcd.SetThread(1)
-	rlcd.SetThread(1)
-	ptcd.SetThread(1)
+	net.InitName(net, "Stroop")
+	clr := net.AddLayer2D("Colors", 1, 2, emer.Input)
+	wrd := net.AddLayer2D("Words", 1, 2, emer.Input)
+	hid := net.AddLayer4D("Hidden", 1, 2, 1, 2, emer.Hidden)
+	pfc := net.AddLayer2D("PFC", 1, 2, emer.Input)
+	out := net.AddLayer2D("Output", 1, 2, emer.Target)
 
 	full := prjn.NewFull()
-	net.ConnectLayers(ag, agcd, full, emer.Forward)
-	net.ConnectLayers(rl, rlcd, full, emer.Forward)
-	net.BidirConnectLayers(agcd, hid, full)
-	net.BidirConnectLayers(rlcd, hid, full)
-	net.BidirConnectLayers(hid, ptcd, full)
-	net.BidirConnectLayers(ptcd, pt, full)
+	clr2hid := prjn.NewOneToOne()
+	wrd2hid := prjn.NewOneToOne()
+	wrd2hid.RecvStart = 2
 
-	rl.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "Agent", YAlign: relpos.Front, Space: 2})
-	pt.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "Relation", YAlign: relpos.Front, Space: 2})
-	agcd.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Agent", YAlign: relpos.Front, XAlign: relpos.Left})
-	rlcd.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "AgentCode", YAlign: relpos.Front, Space: 1})
-	ptcd.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "RelationCode", YAlign: relpos.Front, Space: 1})
-	hid.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "RelationCode", YAlign: relpos.Front, XAlign: relpos.Middle})
+	pfc2hid := prjn.NewRect()
+	pfc2hid.Scale.Set(0.5, 0.5)
+	pfc2hid.Size.Set(1, 1)
+
+	net.ConnectLayers(clr, hid, clr2hid, emer.Forward)
+	net.ConnectLayers(wrd, hid, wrd2hid, emer.Forward)
+	net.ConnectLayers(pfc, hid, pfc2hid, emer.Back)
+	net.BidirConnectLayers(hid, out, full)
+
+	wrd.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "Colors", YAlign: relpos.Front, Space: 1})
+	out.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "Words", YAlign: relpos.Front, Space: 1})
+	hid.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Colors", YAlign: relpos.Front, XAlign: relpos.Left, YOffset: 1})
+	pfc.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "Hidden", YAlign: relpos.Front, Space: 1})
 
 	net.Defaults()
 	ss.SetParams("Network", false) // only set Network params
@@ -393,7 +412,7 @@ func (ss *Sim) ApplyInputs(en env.Env) {
 	ss.Net.InitExt() // clear any existing inputs -- not strictly necessary if always
 	// going to the same layers, but good practice and cheap anyway
 
-	lays := []string{"Agent", "Relation", "Patient"}
+	lays := []string{"Colors", "Words", "Output", "PFC"}
 	for _, lnm := range lays {
 		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		pats := en.State(ly.Nm)
@@ -487,7 +506,7 @@ func (ss *Sim) InitStats() {
 // different time-scales over which stats could be accumulated etc.
 // You can also aggregate directly from log data, as is done for testing stats
 func (ss *Sim) TrialStats(accum bool) (sse, avgsse, cosdiff float64) {
-	out := ss.Net.LayerByName("Patient").(leabra.LeabraLayer).AsLeabra()
+	out := ss.Net.LayerByName("Output").(leabra.LeabraLayer).AsLeabra()
 	ss.TrlCosDiff = float64(out.CosDiff.Cos)
 	ss.TrlSSE, ss.TrlAvgSSE = out.MSE(0.5) // 0.5 = per-unit tolerance -- right side of .5
 	if ss.TrlSSE > 0 {
@@ -705,7 +724,7 @@ func (ss *Sim) RepsAnalysis() {
 
 func (ss *Sim) ConfigPCAPlot(plt *eplot.Plot2D, dt *etable.Table) {
 	nm, _ := dt.MetaData["name"]
-	plt.Params.Title = "Family Trees PCA Plot: " + nm
+	plt.Params.Title = "Stroop PCA Plot: " + nm
 	plt.Params.XAxisCol = "Prjn0"
 	plt.SetTable(dt)
 	plt.Params.Lines = false
@@ -889,7 +908,7 @@ func (ss *Sim) ConfigTrnEpcLog(dt *etable.Table) {
 }
 
 func (ss *Sim) ConfigTrnEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
-	plt.Params.Title = "Family Trees Epoch Plot"
+	plt.Params.Title = "Stroop Epoch Plot"
 	plt.Params.XAxisCol = "Epoch"
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
@@ -962,7 +981,7 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 }
 
 func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
-	plt.Params.Title = "Family Trees Test Trial Plot"
+	plt.Params.Title = "Stroop Test Trial Plot"
 	plt.Params.XAxisCol = "Trial"
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
@@ -1024,7 +1043,7 @@ func (ss *Sim) ConfigTstEpcLog(dt *etable.Table) {
 }
 
 func (ss *Sim) ConfigTstEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
-	plt.Params.Title = "Family Trees Testing Epoch Plot"
+	plt.Params.Title = "Stroop Testing Epoch Plot"
 	plt.Params.XAxisCol = "Epoch"
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
@@ -1102,7 +1121,7 @@ func (ss *Sim) ConfigRunLog(dt *etable.Table) {
 }
 
 func (ss *Sim) ConfigRunPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
-	plt.Params.Title = "Family Trees Run Plot"
+	plt.Params.Title = "Stroop Run Plot"
 	plt.Params.XAxisCol = "Run"
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
@@ -1119,15 +1138,21 @@ func (ss *Sim) ConfigRunPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D 
 ////////////////////////////////////////////////////////////////////////////////////////////
 // 		Gui
 
+func (ss *Sim) ConfigNetView(nv *netview.NetView) {
+	nv.ViewDefaults()
+	nv.Scene().Camera.Pose.Pos.Set(0.1, 1.5, 4)
+	nv.Scene().Camera.LookAt(mat32.Vec3{0.1, 0.1, 0}, mat32.Vec3{0, 1, 0})
+}
+
 // ConfigGui configures the GoGi gui interface for this simulation,
 func (ss *Sim) ConfigGui() *gi.Window {
 	width := 1600
 	height := 1200
 
-	gi.SetAppName("family_trees")
-	gi.SetAppAbout(`shows how learning can recode inputs that have no similarity structure into a hidden layer that captures the *functional* similarity structure of the items. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch4/family_trees/README.md">README.md on GitHub</a>.</p>`)
+	gi.SetAppName("stroop")
+	gi.SetAppAbout(`illustrates how the PFC can produce top-down biasing for executive control, in the context of the widely-studied Stroop task. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch10/stroop/README.md">README.md on GitHub</a>.</p>`)
 
-	win := gi.NewWindow2D("family_trees", "Family Trees", width, height, true)
+	win := gi.NewWindow2D("stroop", "Stroop", width, height, true)
 	ss.Win = win
 
 	vp := win.WinViewport2D()
@@ -1152,6 +1177,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	nv.Var = "Act"
 	nv.SetNet(ss.Net)
 	ss.NetView = nv
+	ss.ConfigNetView(nv)
 
 	plt := tv.AddNewTab(eplot.KiT_Plot2D, "TrnEpcPlot").(*eplot.Plot2D)
 	ss.TrnEpcPlot = ss.ConfigTrnEpcPlot(plt, ss.TrnEpcLog)
@@ -1294,7 +1320,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	tbar.AddAction(gi.ActOpts{Label: "README", Icon: "file-markdown", Tooltip: "Opens your browser on the README file that contains instructions for how to run this model."}, win.This(),
 		func(recv, send ki.Ki, sig int64, data interface{}) {
-			gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch4/family_trees/README.md")
+			gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch10/stroop/README.md")
 		})
 
 	vp.UpdateEndNoSig(updt)
