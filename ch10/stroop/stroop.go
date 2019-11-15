@@ -74,14 +74,28 @@ var ParamSets = params.Sets{
 					"Layer.Learn.AvgL.Min":     "0.05",
 					"Layer.Learn.AvgL.LrnMin":  "0.05",
 					"Layer.Learn.AvgL.LrnMax":  "0.05",
-					"Layer.Inhib.Layer.Gi":     "3",
+					"Layer.Inhib.Layer.Gi":     "2.1",
 					"Layer.Inhib.Layer.FB":     "0.5",
+					"Layer.Inhib.ActAvg.Init":  "0.4",
+					"Layer.Inhib.ActAvg.Fixed": "true",
+				}},
+			{Sel: "#Hidden", Desc: "higher inhibition",
+				Params: params.Params{
+					"Layer.Inhib.Layer.Gi":     "3",
 					"Layer.Inhib.ActAvg.Init":  "0.5",
 					"Layer.Inhib.ActAvg.Fixed": "true",
 				}},
+			{Sel: "#Colors", Desc: "layer act avg",
+				Params: params.Params{
+					"Layer.Inhib.ActAvg.Init": "0.5",
+				}},
+			{Sel: "#Words", Desc: "layer act avg",
+				Params: params.Params{
+					"Layer.Inhib.ActAvg.Init": "0.5",
+				}},
 			{Sel: "#PFCToHidden", Desc: "PFC top-down projection",
 				Params: params.Params{
-					"Prjn.WtScale.Rel":        "0.45",
+					"Prjn.WtScale.Rel":        "0.25",
 					"Prjn.Learn.Lrate":        "0.01", // even slower
 					"Prjn.Learn.XCal.SetLLrn": "true",
 					"Prjn.Learn.XCal.LLrn":    "0.1",
@@ -98,6 +112,22 @@ var ParamSets = params.Sets{
 					"Prjn.Learn.Lrate":        "0.08",
 					"Prjn.Learn.XCal.SetLLrn": "true",
 					"Prjn.Learn.XCal.LLrn":    "0.1",
+				}},
+		},
+	}},
+	{Name: "Training", Desc: "training parameters", Sheets: params.Sheets{
+		"Network": &params.Sheet{
+			{Sel: "Layer", Desc: "faster time constant",
+				Params: params.Params{
+					"Layer.Act.Dt.VmTau": "3.3",
+				}},
+		},
+	}},
+	{Name: "Testing", Desc: "testing parameters", Sheets: params.Sheets{
+		"Network": &params.Sheet{
+			{Sel: "Layer", Desc: "slower time constant",
+				Params: params.Params{
+					"Layer.Act.Dt.VmTau": "30",
 				}},
 		},
 	}},
@@ -404,6 +434,58 @@ func (ss *Sim) AlphaCyc(train bool) {
 	}
 }
 
+// AlphaCycTest is for testing -- uses threshold stopping and longer quarters
+func (ss *Sim) AlphaCycTest() {
+	// ss.Win.PollEvents() // this can be used instead of running in a separate goroutine
+	viewUpdt := ss.TestUpdt
+	train := false
+
+	// note: this has no learning calls
+	out := ss.Net.LayerByName("Output").(leabra.LeabraLayer).AsLeabra()
+
+	ss.Net.AlphaCycInit()
+	ss.Time.AlphaCycStart()
+	overThresh := false
+	for qtr := 0; qtr < 4; qtr++ {
+		for cyc := 0; cyc < 50; cyc++ { // note: fixed 50 per quarter = 200 total
+			ss.Net.Cycle(&ss.Time)
+			ss.Time.CycleInc()
+			if ss.ViewOn {
+				switch viewUpdt {
+				case leabra.Cycle:
+					ss.UpdateView(train)
+				case leabra.FastSpike:
+					if (cyc+1)%10 == 0 {
+						ss.UpdateView(train)
+					}
+				}
+			}
+			outact := out.Pools[0].Inhib.Act.Max
+			if outact > 0.5 {
+				overThresh = true
+				break
+			}
+		}
+		ss.Net.QuarterFinal(&ss.Time)
+		ss.Time.QuarterInc()
+		if ss.ViewOn {
+			switch {
+			case viewUpdt <= leabra.Quarter:
+				ss.UpdateView(train)
+			case viewUpdt == leabra.Phase:
+				if qtr >= 2 {
+					ss.UpdateView(train)
+				}
+			}
+		}
+		if overThresh {
+			break
+		}
+	}
+
+	ss.UpdateView(false)
+}
+
 // ApplyInputs applies input patterns from given envirbonment.
 // It is good practice to have this be a separate method with appropriate
 // args so that it can be used for various different contexts
@@ -424,6 +506,7 @@ func (ss *Sim) ApplyInputs(en env.Env) {
 
 // TrainTrial runs one trial of training using TrainEnv
 func (ss *Sim) TrainTrial() {
+	ss.SetParamsSet("Training", "Network", false)
 
 	if ss.NeedsNewRun {
 		ss.NewRun()
@@ -591,6 +674,7 @@ func (ss *Sim) SaveWeights(filename gi.FileName) {
 
 // TestTrial runs one trial of testing -- always sequentially presented inputs
 func (ss *Sim) TestTrial(returnOnChg bool) {
+	ss.SetParamsSet("Testing", "Network", false)
 	ss.TestEnv.Step()
 
 	// Query counters FIRST
@@ -606,7 +690,7 @@ func (ss *Sim) TestTrial(returnOnChg bool) {
 	}
 
 	ss.ApplyInputs(&ss.TestEnv)
-	ss.AlphaCyc(false)   // !train
+	ss.AlphaCycTest()
 	ss.TrialStats(false) // !accumulate
 	ss.LogTstTrl(ss.TstTrlLog, ss.TestEnv.Trial.Cur, ss.TestEnv.TrialName)
 }
@@ -850,8 +934,8 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 	row := dt.Rows
 	dt.SetNumRows(row + 1)
 
-	epc := ss.TrainEnv.Epoch.Prv           // this is triggered by increment so use previous value
-	nt := float64(ss.TrainEnv.Table.Len()) // number of trials in view
+	epc := ss.TrainEnv.Epoch.Prv          // this is triggered by increment so use previous value
+	nt := float64(len(ss.TrainEnv.Order)) // number of trials in view
 
 	ss.EpcSSE = ss.SumSSE / nt
 	ss.SumSSE = 0
@@ -938,8 +1022,9 @@ func (ss *Sim) LogTstTrl(dt *etable.Table, trl int, trlnm string) {
 
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
-	dt.SetCellFloat("Trial", row, float64(trl))
+	dt.SetCellFloat("Trial", row, float64(trl%3))
 	dt.SetCellString("TrialName", row, trlnm)
+	dt.SetCellFloat("Cycle", row, float64(ss.Time.Cycle))
 	dt.SetCellFloat("Err", row, ss.TrlErr)
 	dt.SetCellFloat("SSE", row, ss.TrlSSE)
 	dt.SetCellFloat("AvgSSE", row, ss.TrlAvgSSE)
@@ -968,6 +1053,7 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 		{"Epoch", etensor.INT64, nil, nil},
 		{"Trial", etensor.INT64, nil, nil},
 		{"TrialName", etensor.STRING, nil, nil},
+		{"Cycle", etensor.INT64, nil, nil},
 		{"Err", etensor.FLOAT64, nil, nil},
 		{"SSE", etensor.FLOAT64, nil, nil},
 		{"AvgSSE", etensor.FLOAT64, nil, nil},
@@ -988,9 +1074,10 @@ func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetColParams("Run", false, true, 0, false, 0)
 	plt.SetColParams("Epoch", false, true, 0, false, 0)
 	plt.SetColParams("Trial", false, true, 0, false, 0)
-	plt.SetColParams("TrialName", false, true, 0, false, 0)
-	plt.SetColParams("Err", false, true, 0, false, 0)
-	plt.SetColParams("SSE", true, true, 0, false, 0) // default plot
+	plt.SetColParams("TrialName", true, true, 0, false, 0)
+	plt.SetColParams("Cycle", true, true, 0, true, 220) // default plot
+	plt.SetColParams("Err", true, true, 0, false, 0)
+	plt.SetColParams("SSE", false, true, 0, false, 0)
 	plt.SetColParams("AvgSSE", false, true, 0, false, 0)
 	plt.SetColParams("CosDiff", false, true, 0, true, 1)
 
@@ -1140,8 +1227,8 @@ func (ss *Sim) ConfigRunPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D 
 
 func (ss *Sim) ConfigNetView(nv *netview.NetView) {
 	nv.ViewDefaults()
-	nv.Scene().Camera.Pose.Pos.Set(0.1, 1.5, 4)
-	nv.Scene().Camera.LookAt(mat32.Vec3{0.1, 0.1, 0}, mat32.Vec3{0, 1, 0})
+	nv.Scene().Camera.Pose.Pos.Set(0.1, 1.8, 3.5)
+	nv.Scene().Camera.LookAt(mat32.Vec3{0.1, 0.15, 0}, mat32.Vec3{0, 1, 0})
 }
 
 // ConfigGui configures the GoGi gui interface for this simulation,
