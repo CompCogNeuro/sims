@@ -545,26 +545,6 @@ func (ss *Sim) TrialStats(accum bool) (sse, avgsse, cosdiff float64) {
 	return
 }
 
-// ClosestRow returns the closest fit between probe pattern and patterns in a table with given column
-// using the metric.Correlation32 measure, returns the row and correlation of that row.
-// Col cell sizes must match size of probe
-func (ss *Sim) ClosestRow(probe *etensor.Float32, col *etensor.Float32) (int, float32) {
-	rows := col.Dim(0)
-	csz := col.Len() / rows
-	ci := -1
-	mxcor := float32(-1)
-	for ri := 0; ri < rows; ri++ {
-		st := ri * csz
-		rvals := col.Values[st : st+csz]
-		cor := metric.Correlation32(probe.Values, rvals)
-		if cor > mxcor {
-			ci = ri
-			mxcor = cor
-		}
-	}
-	return ci, mxcor
-}
-
 // ClosestStat finds the closest pattern in given column of given table to
 // given layer activation pattern using given variable.  Returns the row number,
 // correlation value, and value of a column named namecol for that row if non-empty.
@@ -574,7 +554,9 @@ func (ss *Sim) ClosestStat(net emer.Network, lnm, varnm string, dt *etable.Table
 	ly := net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 	ly.UnitValsTensor(vt, varnm)
 	col := dt.ColByName(colnm)
-	row, cor := ss.ClosestRow(vt, col.(*etensor.Float32))
+	// note: requires Increasing metric so using Inv
+	row, cor := metric.ClosestRow32(vt, col.(*etensor.Float32), metric.InvCorrelation32)
+	cor = 1 - cor // convert back to correl
 	nm := ""
 	if namecol != "" {
 		nm = dt.CellString(namecol, row)

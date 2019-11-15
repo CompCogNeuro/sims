@@ -194,6 +194,7 @@ type Sim struct {
 	AgentAgent   Reps              `view:"inline" desc:"representational analysis of AgentCode layer, sorted by agent"`
 
 	// statistics: note use float64 as that is best for etable.Table
+	TrlErr     float64 `inactive:"+" desc:"1 if trial was error, 0 if correct -- based on SSE = 0 (subject to .5 unit-wise tolerance)"`
 	TrlSSE     float64 `inactive:"+" desc:"current trial's sum squared error"`
 	TrlAvgSSE  float64 `inactive:"+" desc:"current trial's average sum squared error"`
 	TrlCosDiff float64 `inactive:"+" desc:"current trial's cosine difference"`
@@ -206,10 +207,10 @@ type Sim struct {
 	NZero      int     `inactive:"+" desc:"number of epochs in a row with zero SSE"`
 
 	// internal state - view:"-"
+	SumErr      float64                     `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
 	SumSSE      float64                     `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
 	SumAvgSSE   float64                     `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
 	SumCosDiff  float64                     `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
-	CntErr      int                         `view:"-" inactive:"+" desc:"sum of errs to increment as we go through epoch"`
 	Win         *gi.Window                  `view:"-" desc:"main GUI window"`
 	NetView     *netview.NetView            `view:"-" desc:"the network viewer"`
 	ToolBar     *gi.ToolBar                 `view:"-" desc:"the master toolbar"`
@@ -546,13 +547,14 @@ func (ss *Sim) NewRun() {
 // cumulative epoch stats -- called at start of new run
 func (ss *Sim) InitStats() {
 	// accumulators
+	ss.SumErr = 0
 	ss.SumSSE = 0
 	ss.SumAvgSSE = 0
 	ss.SumCosDiff = 0
-	ss.CntErr = 0
 	ss.FirstZero = -1
 	ss.NZero = 0
 	// clear rest just to make Sim look initialized
+	ss.TrlErr = 0
 	ss.TrlSSE = 0
 	ss.TrlAvgSSE = 0
 	ss.EpcSSE = 0
@@ -570,13 +572,16 @@ func (ss *Sim) TrialStats(accum bool) (sse, avgsse, cosdiff float64) {
 	out := ss.Net.LayerByName("Patient").(leabra.LeabraLayer).AsLeabra()
 	ss.TrlCosDiff = float64(out.CosDiff.Cos)
 	ss.TrlSSE, ss.TrlAvgSSE = out.MSE(0.5) // 0.5 = per-unit tolerance -- right side of .5
+	if ss.TrlSSE > 0 {
+		ss.TrlErr = 1
+	} else {
+		ss.TrlErr = 0
+	}
 	if accum {
+		ss.SumErr += ss.TrlErr
 		ss.SumSSE += ss.TrlSSE
 		ss.SumAvgSSE += ss.TrlAvgSSE
 		ss.SumCosDiff += ss.TrlCosDiff
-		if ss.TrlSSE != 0 {
-			ss.CntErr++
-		}
 	}
 	return
 }
@@ -920,8 +925,8 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 	ss.SumSSE = 0
 	ss.EpcAvgSSE = ss.SumAvgSSE / nt
 	ss.SumAvgSSE = 0
-	ss.EpcPctErr = float64(ss.CntErr) / nt
-	ss.CntErr = 0
+	ss.EpcPctErr = float64(ss.SumErr) / nt
+	ss.SumErr = 0
 	ss.EpcPctCor = 1 - ss.EpcPctErr
 	ss.EpcCosDiff = ss.SumCosDiff / nt
 	ss.SumCosDiff = 0
@@ -1003,6 +1008,7 @@ func (ss *Sim) LogTstTrl(dt *etable.Table, trl int, trlnm string) {
 	dt.SetCellFloat("Epoch", row, float64(epc))
 	dt.SetCellFloat("Trial", row, float64(trl))
 	dt.SetCellString("TrialName", row, trlnm)
+	dt.SetCellFloat("Err", row, ss.TrlErr)
 	dt.SetCellFloat("SSE", row, ss.TrlSSE)
 	dt.SetCellFloat("AvgSSE", row, ss.TrlAvgSSE)
 	dt.SetCellFloat("CosDiff", row, ss.TrlCosDiff)
@@ -1030,6 +1036,7 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 		{"Epoch", etensor.INT64, nil, nil},
 		{"Trial", etensor.INT64, nil, nil},
 		{"TrialName", etensor.STRING, nil, nil},
+		{"Err", etensor.FLOAT64, nil, nil},
 		{"SSE", etensor.FLOAT64, nil, nil},
 		{"AvgSSE", etensor.FLOAT64, nil, nil},
 		{"CosDiff", etensor.FLOAT64, nil, nil},
@@ -1050,6 +1057,7 @@ func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetColParams("Epoch", false, true, 0, false, 0)
 	plt.SetColParams("Trial", false, true, 0, false, 0)
 	plt.SetColParams("TrialName", false, true, 0, false, 0)
+	plt.SetColParams("Err", false, true, 0, false, 0)
 	plt.SetColParams("SSE", true, true, 0, false, 0) // default plot
 	plt.SetColParams("AvgSSE", false, true, 0, false, 0)
 	plt.SetColParams("CosDiff", false, true, 0, true, 1)
@@ -1077,12 +1085,8 @@ func (ss *Sim) LogTstEpc(dt *etable.Table) {
 	dt.SetCellFloat("Epoch", row, float64(epc))
 	dt.SetCellFloat("SSE", row, agg.Sum(tix, "SSE")[0])
 	dt.SetCellFloat("AvgSSE", row, agg.Mean(tix, "AvgSSE")[0])
-	dt.SetCellFloat("PctErr", row, agg.PropIf(tix, "SSE", func(idx int, val float64) bool {
-		return val > 0
-	})[0])
-	dt.SetCellFloat("PctCor", row, agg.PropIf(tix, "SSE", func(idx int, val float64) bool {
-		return val == 0
-	})[0])
+	dt.SetCellFloat("PctErr", row, agg.Mean(tix, "Err")[0])
+	dt.SetCellFloat("PctCor", row, 1-agg.Mean(tix, "Err")[0])
 	dt.SetCellFloat("CosDiff", row, agg.Mean(tix, "CosDiff")[0])
 
 	// note: essential to use Go version of update when called from another goroutine
