@@ -1058,6 +1058,7 @@ func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.Params.Title = "Stroop Test Trial Plot"
 	plt.Params.XAxisCol = "Trial"
 	plt.SetTable(dt)
+	plt.Params.Points = true
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Run", false, true, 0, false, 0)
 	plt.SetColParams("Epoch", false, true, 0, false, 0)
@@ -1140,6 +1141,7 @@ func (ss *Sim) ConfigSOATrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.Params.Title = "Stroop SOA Test Trial Plot"
 	plt.Params.XAxisCol = "SOA"
 	plt.SetTable(dt)
+	plt.Params.Points = true
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Run", false, true, 0, false, 0)
 	plt.SetColParams("Epoch", false, true, 0, false, 0)
