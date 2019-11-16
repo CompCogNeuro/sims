@@ -95,7 +95,7 @@ var ParamSets = params.Sets{
 				}},
 			{Sel: "#PFCToHidden", Desc: "PFC top-down projection",
 				Params: params.Params{
-					"Prjn.WtScale.Rel":        "0.25",
+					"Prjn.WtScale.Rel":        "0.29",
 					"Prjn.Learn.Lrate":        "0.01", // even slower
 					"Prjn.Learn.XCal.SetLLrn": "true",
 					"Prjn.Learn.XCal.LLrn":    "0.1",
@@ -160,6 +160,7 @@ func (rp *Reps) Init() {
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
+	FmPFC        float32           `def:"0.29" step:"0.01" desc:"strength of projection from PFC to Hidden -- reduce to simulate PFC damage"`
 	Net          *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
 	TrainPats    *etable.Table     `view:"no-inline" desc:"training patterns"`
 	TestPats     *etable.Table     `view:"no-inline" desc:"testing patterns"`
@@ -229,6 +230,7 @@ var TheSim Sim
 
 // New creates new blank elements and initializes defaults
 func (ss *Sim) New() {
+	ss.Defaults()
 	ss.Net = &leabra.Network{}
 	ss.TrainPats = &etable.Table{}
 	ss.TestPats = &etable.Table{}
@@ -250,6 +252,10 @@ func (ss *Sim) New() {
 	ss.AgentAgent.Init()
 }
 
+func (ss *Sim) Defaults() {
+	ss.FmPFC = 0.29
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////
 // 		Configs
 
@@ -269,7 +275,7 @@ func (ss *Sim) ConfigEnv() {
 		ss.MaxRuns = 1
 	}
 	if ss.MaxEpcs == 0 { // allow user override
-		ss.MaxEpcs = 60
+		ss.MaxEpcs = 55
 		ss.NZeroStop = -1
 	}
 
@@ -440,7 +446,6 @@ func (ss *Sim) AlphaCycTest() {
 	viewUpdt := ss.TestUpdt
 	train := false
 
-	// note: this has no learning calls
 	out := ss.Net.LayerByName("Output").(leabra.LeabraLayer).AsLeabra()
 
 	ss.Net.AlphaCycInit()
@@ -461,7 +466,7 @@ func (ss *Sim) AlphaCycTest() {
 				}
 			}
 			outact := out.Pools[0].Inhib.Act.Max
-			if outact > 0.5 {
+			if outact > 0.51 {
 				overThresh = true
 				break
 			}
@@ -538,6 +543,8 @@ func (ss *Sim) TrainTrial() {
 		}
 	}
 
+	out := ss.Net.LayerByName("Output").(leabra.LeabraLayer).AsLeabra()
+	out.SetType(emer.Target)
 	ss.ApplyInputs(&ss.TrainEnv)
 	ss.AlphaCyc(true)   // train
 	ss.TrialStats(true) // accumulate
@@ -697,6 +704,11 @@ func (ss *Sim) TestTrial(returnOnChg bool) {
 
 // TestAll runs through the full set of testing items
 func (ss *Sim) TestAll() {
+	// note: this has no learning calls
+	out := ss.Net.LayerByName("Output").(leabra.LeabraLayer).AsLeabra()
+	out.SetType(emer.Compare)
+
+	ss.SetParamsSet("Testing", "Network", false)
 	ss.TestEnv.Init(ss.TrainEnv.Run.Cur)
 	for {
 		ss.TestTrial(true) // return on chg, don't present
@@ -867,6 +879,9 @@ func (ss *Sim) SetParamsSet(setNm string, sheet string, setMsg bool) error {
 		if ok {
 			ss.Net.ApplyParams(netp, setMsg)
 		}
+		hid := ss.Net.LayerByName("Hidden").(leabra.LeabraLayer).AsLeabra()
+		fmpfc := hid.RcvPrjns.SendName("PFC").(leabra.LeabraPrjn).AsLeabra()
+		fmpfc.WtScale.Rel = ss.FmPFC
 	}
 
 	if sheet == "" || sheet == "Sim" {
