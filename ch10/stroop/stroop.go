@@ -24,14 +24,10 @@ import (
 	"github.com/emer/emergent/prjn"
 	"github.com/emer/emergent/relpos"
 	"github.com/emer/etable/agg"
-	"github.com/emer/etable/clust"
 	"github.com/emer/etable/eplot"
 	"github.com/emer/etable/etable"
 	"github.com/emer/etable/etensor"
 	_ "github.com/emer/etable/etview" // include to get gui views
-	"github.com/emer/etable/metric"
-	"github.com/emer/etable/pca"
-	"github.com/emer/etable/simat"
 	"github.com/emer/etable/split"
 	"github.com/emer/leabra/leabra"
 	"github.com/goki/gi/gi"
@@ -62,7 +58,7 @@ var ParamSets = params.Sets{
 					"Prjn.Learn.Norm.On":     "false",
 					"Prjn.Learn.Momentum.On": "false",
 					"Prjn.Learn.WtBal.On":    "false",
-					"Prjn.Learn.Lrate":       "0.02",
+					"Prjn.Learn.Lrate":       "0.04",
 					"Prjn.WtInit.Mean":       "0.25",
 					"Prjn.WtInit.Var":        "0",
 				}},
@@ -131,27 +127,14 @@ var ParamSets = params.Sets{
 				}},
 		},
 	}},
-}
-
-// Reps contains standard analysis of representations
-type Reps struct {
-	SimMat    *simat.SimMat `view:"no-inline" desc:"similarity matrix"`
-	PCAPlot   *eplot.Plot2D `view:"no-inline" desc:"plot of pca data"`
-	ClustPlot *eplot.Plot2D `view:"no-inline" desc:"cluster plot"`
-	PCA       *pca.PCA      `view:"-" desc:"pca results"`
-	PCAPrjn   *etable.Table `view:"-" desc:"pca projections onto eigenvectors"`
-}
-
-func (rp *Reps) Init() {
-	rp.SimMat = &simat.SimMat{}
-	rp.SimMat.Init()
-	rp.PCA = &pca.PCA{}
-	rp.PCA.Init()
-	rp.PCAPrjn = &etable.Table{}
-	rp.PCAPlot = &eplot.Plot2D{}
-	rp.PCAPlot.InitName(rp.PCAPlot, "PCAPlot") // any Ki obj needs this
-	rp.ClustPlot = &eplot.Plot2D{}
-	rp.ClustPlot.InitName(rp.ClustPlot, "ClustPlot") // any Ki obj needs this
+	{Name: "SOATesting", Desc: "SOA testing parameters", Sheets: params.Sheets{
+		"Network": &params.Sheet{
+			{Sel: "Layer", Desc: "no decay",
+				Params: params.Params{
+					"Layer.Act.Init.Decay": "0",
+				}},
+		},
+	}},
 }
 
 // Sim encapsulates the entire simulation model, and we define all the
@@ -168,6 +151,7 @@ type Sim struct {
 	TrnEpcLog    *etable.Table     `view:"no-inline" desc:"training epoch-level log data"`
 	TstEpcLog    *etable.Table     `view:"no-inline" desc:"testing epoch-level log data"`
 	TstTrlLog    *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
+	SOATrlLog    *etable.Table     `view:"no-inline" desc:"SOA testing trial-level log data"`
 	RunLog       *etable.Table     `view:"no-inline" desc:"summary log of each run"`
 	RunStats     *etable.Table     `view:"no-inline" desc:"aggregate stats on all runs"`
 	Params       params.Sets       `view:"no-inline" desc:"full collection of param sets"`
@@ -175,23 +159,23 @@ type Sim struct {
 	MaxEpcs      int               `desc:"maximum number of epochs to run per model run"`
 	NZeroStop    int               `desc:"if a positive number, training will stop after this many epochs with zero SSE"`
 	TrainEnv     env.FreqTable     `desc:"Training environment -- contains everything about iterating over input / output patterns over training"`
-	TestEnv      env.FixedTable    `desc:"Generalization Testing environment (4 held-out items not trained -- not enough training data to really drive generalization here) -- manages iterating over testing"`
-	SOATestEnv   env.FixedTable    `desc:"Test all items -- manages iterating over testing"`
+	TestEnv      env.FixedTable    `desc:"Testing environment for std strooop -- manages iterating over testing"`
+	SOATestEnv   env.FixedTable    `desc:"Testing environment for SOA tests -- manages iterating over testing"`
 	Time         leabra.Time       `desc:"leabra timing parameters and state"`
 	ViewOn       bool              `desc:"whether to update the network view while running"`
 	TrainUpdt    leabra.TimeScales `desc:"at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model"`
 	TestUpdt     leabra.TimeScales `desc:"at what time scale to update the display during testing?  Anything longer than Epoch updates at Epoch in this model"`
 	TestInterval int               `desc:"how often to run through all the test patterns, in terms of training epochs -- can use 0 or -1 for no testing"`
 	TstRecLays   []string          `desc:"names of layers to record activations etc of during testing"`
-	HiddenRel    Reps              `view:"inline" desc:"representational analysis of Hidden layer, sorted by relationship"`
-	HiddenAgent  Reps              `view:"inline" desc:"representational analysis of Hidden layer, sorted by agent"`
-	AgentAgent   Reps              `view:"inline" desc:"representational analysis of AgentCode layer, sorted by agent"`
 
 	// statistics: note use float64 as that is best for etable.Table
 	TrlErr     float64 `inactive:"+" desc:"1 if trial was error, 0 if correct -- based on SSE = 0 (subject to .5 unit-wise tolerance)"`
 	TrlSSE     float64 `inactive:"+" desc:"current trial's sum squared error"`
 	TrlAvgSSE  float64 `inactive:"+" desc:"current trial's average sum squared error"`
 	TrlCosDiff float64 `inactive:"+" desc:"current trial's cosine difference"`
+	SOA        int     `inactive:"+" desc:"current SOA value"`
+	SOAMaxCyc  int     `inactive:"+" desc:"current max cycles value for SOA"`
+	SOATrlTyp  int     `inactive:"+" desc:"current trial type for SOA"`
 	EpcSSE     float64 `inactive:"+" desc:"last epoch's total sum squared error"`
 	EpcAvgSSE  float64 `inactive:"+" desc:"last epoch's average sum squared error (average over trials, and over units within layer)"`
 	EpcPctErr  float64 `inactive:"+" desc:"last epoch's percent of trials that had SSE > 0 (subject to .5 unit-wise tolerance)"`
@@ -211,6 +195,7 @@ type Sim struct {
 	TrnEpcPlot  *eplot.Plot2D               `view:"-" desc:"the training epoch plot"`
 	TstEpcPlot  *eplot.Plot2D               `view:"-" desc:"the testing epoch plot"`
 	TstTrlPlot  *eplot.Plot2D               `view:"-" desc:"the test-trial plot"`
+	SOATrlPlot  *eplot.Plot2D               `view:"-" desc:"the SOA test-trial plot"`
 	RunPlot     *eplot.Plot2D               `view:"-" desc:"the run plot"`
 	TrnEpcFile  *os.File                    `view:"-" desc:"log file"`
 	RunFile     *os.File                    `view:"-" desc:"log file"`
@@ -238,6 +223,7 @@ func (ss *Sim) New() {
 	ss.TrnEpcLog = &etable.Table{}
 	ss.TstEpcLog = &etable.Table{}
 	ss.TstTrlLog = &etable.Table{}
+	ss.SOATrlLog = &etable.Table{}
 	ss.RunLog = &etable.Table{}
 	ss.RunStats = &etable.Table{}
 	ss.Params = ParamSets
@@ -247,9 +233,6 @@ func (ss *Sim) New() {
 	ss.TestUpdt = leabra.Quarter
 	ss.TestInterval = 5
 	ss.TstRecLays = []string{"Colors", "Words", "PFC", "Hidden", "Output"}
-	ss.HiddenRel.Init()
-	ss.HiddenAgent.Init()
-	ss.AgentAgent.Init()
 }
 
 func (ss *Sim) Defaults() {
@@ -267,6 +250,7 @@ func (ss *Sim) Config() {
 	ss.ConfigTrnEpcLog(ss.TrnEpcLog)
 	ss.ConfigTstEpcLog(ss.TstEpcLog)
 	ss.ConfigTstTrlLog(ss.TstTrlLog)
+	ss.ConfigSOATrlLog(ss.SOATrlLog)
 	ss.ConfigRunLog(ss.RunLog)
 }
 
@@ -491,6 +475,48 @@ func (ss *Sim) AlphaCycTest() {
 	ss.UpdateView(false)
 }
 
+// AlphaCycTestCyc test with specified number of cycles
+func (ss *Sim) AlphaCycTestCyc(cycs int) {
+	// ss.Win.PollEvents() // this can be used instead of running in a separate goroutine
+	viewUpdt := ss.TestUpdt
+	train := false
+
+	out := ss.Net.LayerByName("Output").(leabra.LeabraLayer).AsLeabra()
+
+	ss.Net.AlphaCycInit()
+	ss.Time.AlphaCycStart()
+	for cyc := 0; cyc < cycs; cyc++ { // just fixed cycles, no quarters
+		ss.Net.Cycle(&ss.Time)
+		ss.Time.CycleInc()
+		if ss.ViewOn {
+			switch viewUpdt {
+			case leabra.Cycle:
+				ss.UpdateView(train)
+			case leabra.FastSpike:
+				if (cyc+1)%10 == 0 {
+					ss.UpdateView(train)
+				}
+			}
+		}
+		outact := out.Pools[0].Inhib.Act.Max
+		if cycs > 100 && outact > 0.51 { // only for long trials
+			break
+		}
+	}
+	ss.Net.QuarterFinal(&ss.Time)
+	ss.Time.QuarterInc()
+	if ss.ViewOn {
+		switch {
+		case viewUpdt <= leabra.Quarter:
+			ss.UpdateView(train)
+		case viewUpdt == leabra.Phase:
+			ss.UpdateView(train)
+		}
+	}
+
+	ss.UpdateView(false)
+}
+
 // ApplyInputs applies input patterns from given envirbonment.
 // It is good practice to have this be a separate method with appropriate
 // args so that it can be used for various different contexts
@@ -511,8 +537,6 @@ func (ss *Sim) ApplyInputs(en env.Env) {
 
 // TrainTrial runs one trial of training using TrainEnv
 func (ss *Sim) TrainTrial() {
-	ss.SetParamsSet("Training", "Network", false)
-
 	if ss.NeedsNewRun {
 		ss.NewRun()
 	}
@@ -543,8 +567,10 @@ func (ss *Sim) TrainTrial() {
 		}
 	}
 
+	ss.SetParamsSet("Training", "Network", false)
 	out := ss.Net.LayerByName("Output").(leabra.LeabraLayer).AsLeabra()
 	out.SetType(emer.Target)
+
 	ss.ApplyInputs(&ss.TrainEnv)
 	ss.AlphaCyc(true)   // train
 	ss.TrialStats(true) // accumulate
@@ -681,7 +707,6 @@ func (ss *Sim) SaveWeights(filename gi.FileName) {
 
 // TestTrial runs one trial of testing -- always sequentially presented inputs
 func (ss *Sim) TestTrial(returnOnChg bool) {
-	ss.SetParamsSet("Testing", "Network", false)
 	ss.TestEnv.Step()
 
 	// Query counters FIRST
@@ -696,6 +721,10 @@ func (ss *Sim) TestTrial(returnOnChg bool) {
 		}
 	}
 
+	ss.SetParamsSet("Testing", "Network", false)
+	out := ss.Net.LayerByName("Output").(leabra.LeabraLayer).AsLeabra()
+	out.SetType(emer.Compare)
+
 	ss.ApplyInputs(&ss.TestEnv)
 	ss.AlphaCycTest()
 	ss.TrialStats(false) // !accumulate
@@ -705,9 +734,6 @@ func (ss *Sim) TestTrial(returnOnChg bool) {
 // TestAll runs through the full set of testing items
 func (ss *Sim) TestAll() {
 	// note: this has no learning calls
-	out := ss.Net.LayerByName("Output").(leabra.LeabraLayer).AsLeabra()
-	out.SetType(emer.Compare)
-
 	ss.SetParamsSet("Testing", "Network", false)
 	ss.TestEnv.Init(ss.TrainEnv.Run.Cur)
 	for {
@@ -739,21 +765,38 @@ func (ss *Sim) SOATestTrial(returnOnChg bool) {
 		if ss.ViewOn && ss.TestUpdt > leabra.AlphaCycle {
 			ss.UpdateView(false)
 		}
-		ss.LogTstEpc(ss.TstEpcLog)
 		if returnOnChg {
 			return
 		}
 	}
 
+	trl := ss.SOATestEnv.Trial.Cur
+	ss.SOA = int(ss.SOAPats.CellFloat("SOA", trl))
+	ss.SOAMaxCyc = int(ss.SOAPats.CellFloat("MaxCycles", trl))
+	ss.SOATrlTyp = int(ss.SOAPats.CellFloat("TrialType", trl))
+
+	ss.SetParamsSet("Testing", "Network", false)
+	ss.SetParamsSet("SOATesting", "Network", false)
+	out := ss.Net.LayerByName("Output").(leabra.LeabraLayer).AsLeabra()
+	out.SetType(emer.Compare)
+
+	islate := strings.Contains(ss.SOATestEnv.TrialName, "latestim")
+	if !islate || ss.SOA == 0 {
+		ss.Net.InitActs()
+	}
+
 	ss.ApplyInputs(&ss.SOATestEnv)
-	ss.AlphaCyc(false)   // !train
-	ss.TrialStats(false) // !accumulate
-	ss.LogTstTrl(ss.TstTrlLog, ss.SOATestEnv.Trial.Cur, ss.SOATestEnv.TrialName)
+	ss.AlphaCycTestCyc(ss.SOAMaxCyc)
+	if strings.Contains(ss.SOATestEnv.TrialName, "latestim") {
+		ss.TrialStats(false) // !accumulate
+		ss.LogSOATrl(ss.SOATrlLog, ss.SOATestEnv.Trial.Cur, ss.SOATestEnv.TrialName)
+	}
 }
 
 // SOATestAll runs through the full set of testing items
 func (ss *Sim) SOATestAll() {
 	ss.SOATestEnv.Init(ss.TrainEnv.Run.Cur)
+	ss.SOATrlLog.SetNumRows(0)
 	for {
 		ss.SOATestTrial(true) // return on chg, don't present
 		_, _, chg := ss.SOATestEnv.Counter(env.Epoch)
@@ -768,84 +811,6 @@ func (ss *Sim) RunSOATestAll() {
 	ss.StopNow = false
 	ss.SOATestAll()
 	ss.Stopped()
-}
-
-// RepsAnalysis does a full test and then runs tests of representations
-func (ss *Sim) RepsAnalysis() {
-	ss.RunSOATestAll()
-
-	names := make([]string, ss.TstTrlLog.Rows)
-	nmtsr := ss.TstTrlLog.ColByName("TrialName").(*etensor.String)
-	copy(names, nmtsr.Values) // save
-
-	// replace name with just rel
-	for i, nm := range nmtsr.Values {
-		nnm := nm[strings.Index(nm, ".")+1:]
-		nnm = nnm[:strings.Index(nnm, ".")]
-		nmtsr.Values[i] = nnm
-	}
-
-	rels := etable.NewIdxView(ss.TstTrlLog)
-	rels.SortCol(ss.TstTrlLog.ColIdx("TrialName"), true)
-	ss.HiddenRel.SimMat.TableCol(rels, "Hidden", "TrialName", true, metric.Correlation64)
-	ss.HiddenRel.PCA.TableCol(rels, "Hidden", metric.Covariance64)
-	ss.HiddenRel.PCA.ProjectColToTable(ss.HiddenRel.PCAPrjn, rels, "Hidden", "TrialName", []int{0, 1})
-	ss.ConfigPCAPlot(ss.HiddenRel.PCAPlot, ss.HiddenRel.PCAPrjn)
-	ss.ClustPlot(ss.HiddenRel.ClustPlot, rels, "Hidden")
-
-	// replace name with just agent
-	for i, nm := range names {
-		nnm := nm[:strings.Index(nm, ".")]
-		nmtsr.Values[i] = nnm
-	}
-	ags := etable.NewIdxView(ss.TstTrlLog)
-	ags.SortCol(ss.TstTrlLog.ColIdx("TrialName"), true)
-	ss.HiddenAgent.SimMat.TableCol(ags, "Hidden", "TrialName", true, metric.Correlation64)
-	ss.HiddenAgent.PCA.TableCol(ags, "Hidden", metric.Covariance64)
-	ss.HiddenAgent.PCA.ProjectColToTable(ss.HiddenAgent.PCAPrjn, ags, "Hidden", "TrialName", []int{2, 3})
-	ss.ConfigPCAPlot(ss.HiddenAgent.PCAPlot, ss.HiddenAgent.PCAPrjn)
-	ss.HiddenAgent.PCAPlot.SetColParams("Prjn3", true, true, 0, false, 0)
-	ss.HiddenAgent.PCAPlot.Params.XAxisCol = "Prjn2"
-	ss.ClustPlot(ss.HiddenAgent.ClustPlot, ags, "Hidden")
-
-	ss.AgentAgent.SimMat.TableCol(ags, "AgentCode", "TrialName", true, metric.Correlation64)
-	ss.AgentAgent.PCA.TableCol(ags, "AgentCode", metric.Covariance64)
-	ss.AgentAgent.PCA.ProjectColToTable(ss.AgentAgent.PCAPrjn, ags, "AgentCode", "TrialName", []int{0, 1})
-	ss.ConfigPCAPlot(ss.AgentAgent.PCAPlot, ss.AgentAgent.PCAPrjn)
-	ss.ClustPlot(ss.AgentAgent.ClustPlot, ags, "AgentCode")
-
-	copy(nmtsr.Values, names) // restore
-	ss.Stopped()
-}
-
-func (ss *Sim) ConfigPCAPlot(plt *eplot.Plot2D, dt *etable.Table) {
-	nm, _ := dt.MetaData["name"]
-	plt.Params.Title = "Stroop PCA Plot: " + nm
-	plt.Params.XAxisCol = "Prjn0"
-	plt.SetTable(dt)
-	plt.Params.Lines = false
-	plt.Params.Points = true
-	// order of params: on, fixMin, min, fixMax, max
-	plt.SetColParams("TrialName", true, true, 0, false, 0)
-	plt.SetColParams("Prjn0", false, true, 0, false, 0)
-	plt.SetColParams("Prjn1", true, true, 0, false, 0)
-}
-
-// ClustPlot does one cluster plot on given table column
-func (ss *Sim) ClustPlot(plt *eplot.Plot2D, ix *etable.IdxView, colNm string) {
-	nm, _ := ix.Table.MetaData["name"]
-	smat := &simat.SimMat{}
-	smat.TableCol(ix, colNm, "TrialName", false, metric.Euclidean64)
-	pt := &etable.Table{}
-	clust.Plot(pt, clust.Glom(smat, clust.ContrastDist), smat)
-	plt.InitName(plt, colNm)
-	plt.Params.Title = "Cluster Plot of: " + nm + " " + colNm
-	plt.Params.XAxisCol = "X"
-	plt.SetTable(pt)
-	// order of params: on, fixMin, min, fixMax, max
-	plt.SetColParams("X", false, true, 0, false, 0)
-	plt.SetColParams("Y", true, true, 0, false, 0)
-	plt.SetColParams("Label", true, false, 0, false, 0)
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -1103,6 +1068,89 @@ func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 }
 
 //////////////////////////////////////////////
+//  SOATrlLog
+
+// LogSOATrl adds data from current trial to the SOATrlLog table.
+// log always contains number of testing items
+func (ss *Sim) LogSOATrl(dt *etable.Table, trl int, trlnm string) {
+	epc := ss.TrainEnv.Epoch.Prv // this is triggered by increment so use previous value
+
+	row := dt.Rows
+	if dt.Rows <= row {
+		dt.SetNumRows(row + 1)
+	}
+
+	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
+	dt.SetCellFloat("Epoch", row, float64(epc))
+	dt.SetCellFloat("Trial", row, float64(ss.SOATrlTyp))
+	dt.SetCellFloat("SOA", row, float64(ss.SOA))
+	dt.SetCellString("TrialName", row, trlnm)
+	dt.SetCellFloat("Cycle", row, float64(ss.Time.Cycle))
+	dt.SetCellFloat("Err", row, ss.TrlErr)
+	dt.SetCellFloat("SSE", row, ss.TrlSSE)
+	dt.SetCellFloat("AvgSSE", row, ss.TrlAvgSSE)
+	dt.SetCellFloat("CosDiff", row, ss.TrlCosDiff)
+
+	for _, lnm := range ss.TstRecLays {
+		tsr := ss.ValsTsr(lnm)
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
+		ly.UnitValsTensor(tsr, "ActM") // get minus phase act
+		dt.SetCellTensor(lnm, row, tsr)
+	}
+
+	// note: essential to use Go version of update when called from another goroutine
+	ss.SOATrlPlot.GoUpdate()
+}
+
+func (ss *Sim) ConfigSOATrlLog(dt *etable.Table) {
+	dt.SetMetaData("name", "SOATrlLog")
+	dt.SetMetaData("desc", "Record of testing per input pattern")
+	dt.SetMetaData("read-only", "true")
+	dt.SetMetaData("precision", strconv.Itoa(LogPrec))
+
+	nt := ss.SOATestEnv.Table.Len() // number in view
+	sch := etable.Schema{
+		{"Run", etensor.INT64, nil, nil},
+		{"Epoch", etensor.INT64, nil, nil},
+		{"Trial", etensor.INT64, nil, nil},
+		{"SOA", etensor.INT64, nil, nil},
+		{"TrialName", etensor.STRING, nil, nil},
+		{"Cycle", etensor.INT64, nil, nil},
+		{"Err", etensor.FLOAT64, nil, nil},
+		{"SSE", etensor.FLOAT64, nil, nil},
+		{"AvgSSE", etensor.FLOAT64, nil, nil},
+		{"CosDiff", etensor.FLOAT64, nil, nil},
+	}
+	for _, lnm := range ss.TstRecLays {
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
+		sch = append(sch, etable.Column{lnm, etensor.FLOAT64, ly.Shp.Shp, nil})
+	}
+	dt.SetFromSchema(sch, nt)
+}
+
+func (ss *Sim) ConfigSOATrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
+	plt.Params.Title = "Stroop SOA Test Trial Plot"
+	plt.Params.XAxisCol = "SOA"
+	plt.SetTable(dt)
+	// order of params: on, fixMin, min, fixMax, max
+	plt.SetColParams("Run", false, true, 0, false, 0)
+	plt.SetColParams("Epoch", false, true, 0, false, 0)
+	plt.SetColParams("Trial", false, true, 0, false, 0)
+	plt.SetColParams("SOA", false, true, 0, false, 0)
+	plt.SetColParams("TrialName", false, true, 0, false, 0)
+	plt.SetColParams("Cycle", true, true, 0, true, 220) // default plot
+	plt.SetColParams("Err", false, true, 0, false, 0)
+	plt.SetColParams("SSE", false, true, 0, false, 0)
+	plt.SetColParams("AvgSSE", false, true, 0, false, 0)
+	plt.SetColParams("CosDiff", false, true, 0, true, 1)
+
+	for _, lnm := range ss.TstRecLays {
+		plt.SetColParams(lnm, false, true, 0, true, 1)
+	}
+	return plt
+}
+
+//////////////////////////////////////////////
 //  TstEpcLog
 
 func (ss *Sim) LogTstEpc(dt *etable.Table) {
@@ -1287,6 +1335,9 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	plt = tv.AddNewTab(eplot.KiT_Plot2D, "TstTrlPlot").(*eplot.Plot2D)
 	ss.TstTrlPlot = ss.ConfigTstTrlPlot(plt, ss.TstTrlLog)
 
+	plt = tv.AddNewTab(eplot.KiT_Plot2D, "SOATrlPlot").(*eplot.Plot2D)
+	ss.SOATrlPlot = ss.ConfigSOATrlPlot(plt, ss.SOATrlLog)
+
 	plt = tv.AddNewTab(eplot.KiT_Plot2D, "TstEpcPlot").(*eplot.Plot2D)
 	ss.TstEpcPlot = ss.ConfigTstEpcPlot(plt, ss.TstEpcLog)
 
@@ -1392,16 +1443,6 @@ func (ss *Sim) ConfigGui() *gi.Window {
 			ss.IsRunning = true
 			tbar.UpdateActions()
 			go ss.RunSOATestAll()
-		}
-	})
-
-	tbar.AddAction(gi.ActOpts{Label: "Reps Analysis", Icon: "fast-fwd", Tooltip: "Does an All Test All and analyzes the resulting Hidden and AgentCode activations.", UpdateFunc: func(act *gi.Action) {
-		act.SetActiveStateUpdt(!ss.IsRunning)
-	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
-		if !ss.IsRunning {
-			ss.IsRunning = true
-			tbar.UpdateActions()
-			go ss.RepsAnalysis()
 		}
 	})
 
