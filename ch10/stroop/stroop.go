@@ -115,7 +115,8 @@ var ParamSets = params.Sets{
 		"Network": &params.Sheet{
 			{Sel: "Layer", Desc: "faster time constant",
 				Params: params.Params{
-					"Layer.Act.Dt.VmTau": "3.3",
+					"Layer.Act.Init.Decay": "1",
+					"Layer.Act.Dt.VmTau":   "3.3",
 				}},
 		},
 	}},
@@ -123,7 +124,8 @@ var ParamSets = params.Sets{
 		"Network": &params.Sheet{
 			{Sel: "Layer", Desc: "slower time constant",
 				Params: params.Params{
-					"Layer.Act.Dt.VmTau": "30",
+					"Layer.Act.Init.Decay": "1",
+					"Layer.Act.Dt.VmTau":   "30",
 				}},
 		},
 	}},
@@ -144,6 +146,7 @@ var ParamSets = params.Sets{
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
 	FmPFC        float32           `def:"0.3" step:"0.01" desc:"strength of projection from PFC to Hidden -- reduce to simulate PFC damage"`
+	DtVmTau      float32           `def:"30" step:"5" desc:"time constant for updating the network "`
 	Net          *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
 	TrainPats    *etable.Table     `view:"no-inline" desc:"training patterns"`
 	TestPats     *etable.Table     `view:"no-inline" desc:"testing patterns"`
@@ -237,6 +240,7 @@ func (ss *Sim) New() {
 
 func (ss *Sim) Defaults() {
 	ss.FmPFC = 0.3
+	ss.DtVmTau = 30
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -436,7 +440,7 @@ func (ss *Sim) AlphaCycTest() {
 	ss.Time.AlphaCycStart()
 	overThresh := false
 	for qtr := 0; qtr < 4; qtr++ {
-		for cyc := 0; cyc < 50; cyc++ { // note: fixed 50 per quarter = 200 total
+		for cyc := 0; cyc < 75; cyc++ { // note: fixed 75 per quarter = 200 total
 			ss.Net.Cycle(&ss.Time)
 			ss.Time.CycleInc()
 			if ss.ViewOn {
@@ -840,6 +844,10 @@ func (ss *Sim) SetParamsSet(setNm string, sheet string, setMsg bool) error {
 		return err
 	}
 	if sheet == "" || sheet == "Network" {
+
+		spo := ss.Params.SetByName("Testing").SheetByName("Network").SelByName("Layer")
+		spo.Params.SetParamByName("Layer.Act.Dt.VmTau", fmt.Sprintf("%g", ss.DtVmTau))
+
 		netp, ok := pset.Sheets["Network"]
 		if ok {
 			ss.Net.ApplyParams(netp, setMsg)
@@ -1055,7 +1063,7 @@ func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetColParams("Epoch", false, true, 0, false, 0)
 	plt.SetColParams("Trial", false, true, 0, false, 0)
 	plt.SetColParams("TrialName", true, true, 0, false, 0)
-	plt.SetColParams("Cycle", true, true, 0, true, 220) // default plot
+	plt.SetColParams("Cycle", true, true, 0, true, 250) // default plot
 	plt.SetColParams("Err", true, true, 0, false, 0)
 	plt.SetColParams("SSE", false, true, 0, false, 0)
 	plt.SetColParams("AvgSSE", false, true, 0, false, 0)
@@ -1439,6 +1447,8 @@ func (ss *Sim) ConfigGui() *gi.Window {
 		}
 	})
 
+	tbar.AddSeparator("soa")
+
 	tbar.AddAction(gi.ActOpts{Label: "SOA Test Trial", Icon: "step-fwd", Tooltip: "Runs the next testing trial.", UpdateFunc: func(act *gi.Action) {
 		act.SetActiveStateUpdt(!ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
@@ -1460,20 +1470,19 @@ func (ss *Sim) ConfigGui() *gi.Window {
 		}
 	})
 
-	tbar.AddSeparator("log")
-
-	tbar.AddAction(gi.ActOpts{Label: "Reset RunLog", Icon: "update", Tooltip: "Reset the accumulated log of all Runs, which are tagged with the ParamSet used"}, win.This(),
-		func(recv, send ki.Ki, sig int64, data interface{}) {
-			ss.RunLog.SetNumRows(0)
-			ss.RunPlot.Update()
-		})
-
 	tbar.AddSeparator("misc")
 
 	tbar.AddAction(gi.ActOpts{Label: "New Seed", Icon: "new", Tooltip: "Generate a new initial random seed to get different results.  By default, Init re-establishes the same initial seed every time."}, win.This(),
 		func(recv, send ki.Ki, sig int64, data interface{}) {
 			ss.NewRndSeed()
 		})
+
+	tbar.AddAction(gi.ActOpts{Label: "Defaults", Icon: "update", Tooltip: "Restore initial default parameters.", UpdateFunc: func(act *gi.Action) {
+		act.SetActiveStateUpdt(!ss.IsRunning)
+	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+		ss.Defaults()
+		vp.SetNeedsFullRender()
+	})
 
 	tbar.AddAction(gi.ActOpts{Label: "README", Icon: "file-markdown", Tooltip: "Opens your browser on the README file that contains instructions for how to run this model."}, win.This(),
 		func(recv, send ki.Ki, sig int64, data interface{}) {
