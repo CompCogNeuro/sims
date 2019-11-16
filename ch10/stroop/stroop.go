@@ -91,7 +91,7 @@ var ParamSets = params.Sets{
 				}},
 			{Sel: "#PFCToHidden", Desc: "PFC top-down projection",
 				Params: params.Params{
-					"Prjn.WtScale.Rel":        "0.29",
+					"Prjn.WtScale.Rel":        "0.3",
 					"Prjn.Learn.Lrate":        "0.01", // even slower
 					"Prjn.Learn.XCal.SetLLrn": "true",
 					"Prjn.Learn.XCal.LLrn":    "0.1",
@@ -143,7 +143,7 @@ var ParamSets = params.Sets{
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
-	FmPFC        float32           `def:"0.29" step:"0.01" desc:"strength of projection from PFC to Hidden -- reduce to simulate PFC damage"`
+	FmPFC        float32           `def:"0.3" step:"0.01" desc:"strength of projection from PFC to Hidden -- reduce to simulate PFC damage"`
 	Net          *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
 	TrainPats    *etable.Table     `view:"no-inline" desc:"training patterns"`
 	TestPats     *etable.Table     `view:"no-inline" desc:"testing patterns"`
@@ -230,13 +230,13 @@ func (ss *Sim) New() {
 	ss.RndSeed = 1
 	ss.ViewOn = true
 	ss.TrainUpdt = leabra.Quarter
-	ss.TestUpdt = leabra.Quarter
+	ss.TestUpdt = leabra.Cycle
 	ss.TestInterval = 5
 	ss.TstRecLays = []string{"Colors", "Words", "PFC", "Hidden", "Output"}
 }
 
 func (ss *Sim) Defaults() {
-	ss.FmPFC = 0.29
+	ss.FmPFC = 0.3
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -1292,6 +1292,20 @@ func (ss *Sim) ConfigNetView(nv *netview.NetView) {
 	nv.ViewDefaults()
 	nv.Scene().Camera.Pose.Pos.Set(0.1, 1.8, 3.5)
 	nv.Scene().Camera.LookAt(mat32.Vec3{0.1, 0.15, 0}, mat32.Vec3{0, 1, 0})
+
+	labs := []string{"     g      r", "   G       R", "  gr      rd", "     g      r         G      R", "  cn     wr"}
+	nv.ConfigLabels(labs)
+
+	lays := []string{"Colors", "Words", "Output", "Hidden", "PFC"}
+
+	for li, lnm := range lays {
+		ly := nv.LayerByName(lnm)
+		lbl := nv.LabelByName(labs[li])
+		lbl.Pose = ly.Pose
+		lbl.Pose.Pos.Y += .2
+		lbl.Pose.Pos.Z += .02
+		lbl.Pose.Scale.SetMul(mat32.Vec3{0.4, 0.06, 0.5})
+	}
 }
 
 // ConfigGui configures the GoGi gui interface for this simulation,
