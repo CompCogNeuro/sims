@@ -1,7 +1,7 @@
 # Makefile for CCN sims projects
 
 # important: update these for each app
-ASSETS=
+ASSETS=lines_5x5x1.dat lines_5x5x2.dat
 
 # default package install 
 PKGDIR=$(HOME)/ccnsimpkg

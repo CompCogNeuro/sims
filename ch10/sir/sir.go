@@ -3,13 +3,7 @@
 // license that can be found in the LICENSE file.
 
 /*
-bg is a simplified basal ganglia (BG) network showing how dopamine bursts can
-reinforce *Go* (direct pathway) firing for actions that lead to reward,
-and dopamine dips reinforce *NoGo* (indirect pathway) firing for actions
-that do not lead to positive outcomes, producing Thorndike's classic
-*Law of Effect* for instrumental conditioning, and also providing a
-mechanism to learn and select among actions with different reward
-probabilities over multiple experiences.
+sir illustrates the dynamic gating of information into PFC active maintenance, by the basal ganglia (BG). It uses a simple Store-Ignore-Recall (SIR) task, where the BG system learns via phasic dopamine signals and trial-and-error exploration, discovering what needs to be stored, ignored, and recalled as a function of reinforcement of correct behavior, and learned reinforcement of useful working memory representations.
 */
 package main
 
@@ -52,6 +46,20 @@ func main() {
 // LogPrec is precision for saving float values in logs
 const LogPrec = 4
 
+// PBWM todo:
+// * fix type matching for diff packages
+// * do simple RW da unit
+// * do trace matrix con
+// * do bitwise enums finally??
+
+// * patch -- not *essential*
+// * TAN -- not *essential*
+
+// no benefit / only cost:
+// * del_inhib -- delta inhibition -- MUCH faster learning without!
+// * net_gain -- why do we need this?  maybe not -- not for this model anyway
+// * slow_wts -- also not important for this model!
+
 // ParamSets is the default set of parameters -- Base is always applied, and others can be optionally
 // selected to apply on top of that
 var ParamSets = params.Sets{
@@ -74,6 +82,26 @@ var ParamSets = params.Sets{
 					"Prjn.WtInit.Var":  "0",
 					"Prjn.WtInit.Sym":  "false",
 				}},
+			{Sel: ".PFCToDeep", Desc: "PFC -> Deep consistent wt",
+				Params: params.Params{
+					"Prjn.WtInit.Mean": "0.8",
+					"Prjn.WtInit.Var":  "0",
+					"Prjn.WtInit.Sym":  "false",
+				}},
+			{Sel: ".PFCFmDeep", Desc: "PFC Deep -> PFC fixed",
+				Params: params.Params{
+					"Prjn.Learn.Learn": "false",
+					"Prjn.WtInit.Mean": "0.8",
+					"Prjn.WtInit.Var":  "0",
+					"Prjn.WtInit.Sym":  "false",
+				}},
+			{Sel: ".PFCMntDToOut", Desc: "PFC MntD -> PFC Out fixed",
+				Params: params.Params{
+					"Prjn.Learn.Learn": "false",
+					"Prjn.WtInit.Mean": "0.8",
+					"Prjn.WtInit.Var":  "0",
+					"Prjn.WtInit.Sym":  "false",
+				}},
 			{Sel: ".PFCFixed", Desc: "Input -> PFC",
 				Params: params.Params{
 					"Prjn.Learn.Learn": "false",
@@ -86,28 +114,29 @@ var ParamSets = params.Sets{
 					"Prjn.Learn.Lrate": "0.04",
 					"Prjn.WtInit.Var":  "0.1",
 				}},
-			{Sel: "MatrixLayer", Desc: "defaults also set automatically by layer but included here just to be sure",
+			{Sel: ".MatrixLayer", Desc: "defaults also set automatically by layer but included here just to be sure",
 				Params: params.Params{
-					"Layer.Act.XX1.Gain":       "20",
+					"Layer.Act.XX1.Gain":       "100",
 					"Layer.Inhib.Layer.Gi":     "1.9",
 					"Layer.Inhib.Layer.FB":     "0.5",
 					"Layer.Inhib.Pool.On":      "true",
-					"Layer.Inhib.Pool.Gi":      "1.9",
+					"Layer.Inhib.Pool.Gi":      "2.1", // def 1.9
 					"Layer.Inhib.Pool.FB":      "0",
 					"Layer.Inhib.Self.On":      "true",
-					"Layer.Inhib.Self.Gi":      "1.3",
-					"Layer.Inhib.ActAvg.Init":  "0.2",
+					"Layer.Inhib.Self.Gi":      "0.4", // def 0.3
+					"Layer.Inhib.ActAvg.Init":  "0.05",
 					"Layer.Inhib.ActAvg.Fixed": "true",
 				}},
 			{Sel: "#GPiThal", Desc: "defaults also set automatically by layer but included here just to be sure",
 				Params: params.Params{
 					"Layer.Inhib.Layer.Gi":     "1.8",
-					"Layer.Inhib.Layer.FB":     "0.2",
+					"Layer.Inhib.Layer.FB":     "0.5",
 					"Layer.Inhib.Pool.On":      "false",
-					"Layer.Inhib.ActAvg.Init":  "1",
+					"Layer.Inhib.ActAvg.Init":  ".2",
 					"Layer.Inhib.ActAvg.Fixed": "true",
+					"Layer.Act.Dt.GTau":        "3",
 					"Layer.Gate.NoGo":          "1",
-					"Layer.Gate.Thr":           "0.5", // higher
+					"Layer.Gate.Thr":           "0.2",
 				}},
 			{Sel: "#GPeNoGo", Desc: "GPe is a regular layer -- needs special",
 				Params: params.Params{
@@ -116,6 +145,15 @@ var ParamSets = params.Sets{
 					"Layer.Inhib.Layer.FBTau":  "3", // otherwise a bit jumpy
 					"Layer.Inhib.Pool.On":      "false",
 					"Layer.Inhib.ActAvg.Init":  "1",
+					"Layer.Inhib.ActAvg.Fixed": "true",
+				}},
+			{Sel: ".PFC", Desc: "pfc defaults",
+				Params: params.Params{
+					"Layer.Inhib.Layer.On":     "false",
+					"Layer.Inhib.Pool.On":      "true",
+					"Layer.Inhib.Pool.Gi":      "1.8",
+					"Layer.Inhib.Pool.FB":      "1",
+					"Layer.Inhib.ActAvg.Init":  "0.2",
 					"Layer.Inhib.ActAvg.Fixed": "true",
 				}},
 			{Sel: "#Input", Desc: "Basic params",
@@ -152,7 +190,7 @@ type Sim struct {
 	MaxRuns     int               `desc:"maximum number of model runs to perform"`
 	MaxEpcs     int               `desc:"maximum number of epochs to run per model run"`
 	MaxTrls     int               `desc:"maximum number of training trials per epoch"`
-	TrainEnv    BanditEnv         `desc:"Training environment -- bandit environment"`
+	TrainEnv    SIREnv            `desc:"Training environment -- SIR environment"`
 	Time        leabra.Time       `desc:"leabra timing parameters and state"`
 	ViewOn      bool              `desc:"whether to update the network view while running"`
 	TrainUpdt   leabra.TimeScales `desc:"at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model"`
@@ -226,7 +264,7 @@ func (ss *Sim) ConfigEnv() {
 		ss.MaxRuns = 1
 	}
 	if ss.MaxEpcs == 0 { // allow user override
-		ss.MaxEpcs = 30
+		ss.MaxEpcs = 100
 	}
 	if ss.MaxTrls == 0 { // allow user override
 		ss.MaxTrls = 100
@@ -234,9 +272,7 @@ func (ss *Sim) ConfigEnv() {
 
 	ss.TrainEnv.Nm = "TrainEnv"
 	ss.TrainEnv.Dsc = "training params and state"
-	ss.TrainEnv.SetN(6)
-	ss.TrainEnv.RndOpt = true
-	ss.TrainEnv.P = []float32{1, .8, .6, .4, .2, 0}
+	ss.TrainEnv.SetNStim(4)
 	ss.TrainEnv.RewVal = 1
 	ss.TrainEnv.NoRewVal = -1
 	ss.TrainEnv.Validate()
@@ -247,28 +283,44 @@ func (ss *Sim) ConfigEnv() {
 }
 
 func (ss *Sim) ConfigNet(net *pbwm.Network) {
-	net.InitName(net, "BG")
+	net.InitName(net, "SIR")
 	snc := net.AddClampDaLayer("SNc")
-	inp := net.AddLayer2D("Input", 1, 6, emer.Input)
+	inp := net.AddLayer2D("Input", 1, 7, emer.Input)
+	ctrl := net.AddLayer2D("CtrlInput", 1, 3, emer.Input)
+	out := net.AddLayer2D("Output", 1, 4, emer.Target)
+	hid := net.AddLayer2D("Hidden", 7, 7, emer.Hidden)
 	inp.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "SNc", YAlign: relpos.Front, XAlign: relpos.Left})
+	out.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "Input", YAlign: relpos.Front, Space: 1})
+	ctrl.SetRelPos(relpos.Rel{Rel: relpos.Behind, Other: "Input", XAlign: relpos.Left, Space: 2})
+	hid.SetRelPos(relpos.Rel{Rel: relpos.Behind, Other: "CtrlInput", XAlign: relpos.Left, Space: 2})
 
 	// args: nY, nMaint, nOut, nNeurBgY, nNeurBgX, nNeurPfcY, nNeurPfcX
-	mtxGo, mtxNoGo, gpe, gpi, pfcMnt, pfcMntD, pfcOut, pfcOutD := net.AddPBWM("", 1, 0, 1, 1, 6, 1, 6)
+	mtxGo, mtxNoGo, gpe, gpi, pfcMnt, pfcMntD, pfcOut, pfcOutD := net.AddPBWM("", 2, 2, 2, 1, 3, 1, 7)
 	_ = gpe
 	_ = gpi
-	_ = pfcMnt  // nil
-	_ = pfcMntD // nil
-	_ = pfcOutD
+	_ = pfcMnt
+	_ = pfcMntD
+	_ = pfcOut
 
-	onetoone := prjn.NewOneToOne()
-	pj := net.ConnectLayersPrjn(inp, mtxGo, onetoone, emer.Forward, &pbwm.DaHebbPrjn{})
+	full := prjn.NewFull()
+	fmin := prjn.NewRect()
+	fmin.Size.Set(1, 1)
+	fmin.Scale.Set(1, 1)
+	fmin.Wrap = true
+
+	pj := net.ConnectLayersPrjn(ctrl, mtxGo, fmin, emer.Forward, &pbwm.DaHebbPrjn{})
 	pj.SetClass("MatrixPrjn")
-	pj = net.ConnectLayersPrjn(inp, mtxNoGo, onetoone, emer.Forward, &pbwm.DaHebbPrjn{})
+	pj = net.ConnectLayersPrjn(ctrl, mtxNoGo, fmin, emer.Forward, &pbwm.DaHebbPrjn{})
 	pj.SetClass("MatrixPrjn")
-	pj = net.ConnectLayers(inp, pfcOut, onetoone, emer.Forward)
+	pj = net.ConnectLayers(inp, pfcMnt, fmin, emer.Forward)
 	pj.SetClass("PFCFixed")
 
-	mtxGo.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "SNc", YAlign: relpos.Front, Space: 2})
+	net.BidirConnectLayers(hid, out, full)
+	net.ConnectLayers(pfcOutD, hid, full, emer.Forward)
+	net.ConnectLayers(pfcOutD, out, full, emer.Forward)
+	net.ConnectLayers(inp, out, full, emer.Forward)
+
+	mtxGo.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "SNc", YAlign: relpos.Front, Space: 14})
 
 	snc.SendToAllBut(nil) // send dopamine to all layers..
 
@@ -368,6 +420,9 @@ func (ss *Sim) AlphaCyc(train bool) {
 				}
 			}
 		}
+		if qtr == 2 {
+			ss.ApplyReward()
+		}
 	}
 
 	if train {
@@ -386,7 +441,7 @@ func (ss *Sim) ApplyInputs(en env.Env) {
 	ss.Net.InitExt() // clear any existing inputs -- not strictly necessary if always
 	// going to the same layers, but good practice and cheap anyway
 
-	lays := []string{"Input"}
+	lays := []string{"Input", "Output"}
 	for _, lnm := range lays {
 		ly := ss.Net.LayerByName(lnm).(deep.DeepLayer).AsDeep()
 		pats := en.State(ly.Nm)
@@ -394,9 +449,20 @@ func (ss *Sim) ApplyInputs(en env.Env) {
 			continue
 		}
 		ly.ApplyExt(pats)
+		if lnm == "Input" {
+			ly = ss.Net.LayerByName("CtrlInput").(deep.DeepLayer).AsDeep()
+			ly.ApplyExt(pats)
+		}
 	}
+}
 
-	pats := en.State("Reward")
+// ApplyReward computes reward based on network output and applies it -- call
+// at start of 3rd quarter (plus phase)
+func (ss *Sim) ApplyReward() {
+	out := ss.Net.LayerByName("Output").(deep.DeepLayer).AsDeep()
+	mxi := out.Pools[0].Inhib.Act.MaxIdx
+	ss.TrainEnv.SetReward(mxi)
+	pats := ss.TrainEnv.State("Reward")
 	ly := ss.Net.LayerByName("SNc").(deep.DeepLayer).AsDeep()
 	ly.ApplyExt1DTsr(pats)
 }
@@ -896,10 +962,10 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	width := 1600
 	height := 1200
 
-	gi.SetAppName("bg")
-	gi.SetAppAbout(`is a simplified basal ganglia (BG) network showing how dopamine bursts can reinforce *Go* (direct pathway) firing for actions that lead to reward, and dopamine dips reinforce *NoGo* (indirect pathway) firing for actions that do not lead to positive outcomes, producing Thorndike's classic *Law of Effect* for instrumental conditioning, and also providing a mechanism to learn and select among actions with different reward probabilities over multiple experiences. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch7/bg/README.md">README.md on GitHub</a>.</p>`)
+	gi.SetAppName("sir")
+	gi.SetAppAbout(`illustrates the dynamic gating of information into PFC active maintenance, by the basal ganglia (BG). It uses a simple Store-Ignore-Recall (SIR) task, where the BG system learns via phasic dopamine signals and trial-and-error exploration, discovering what needs to be stored, ignored, and recalled as a function of reinforcement of correct behavior, and learned reinforcement of useful working memory representations. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch10/sir/README.md">README.md on GitHub</a>.</p>`)
 
-	win := gi.NewWindow2D("bg", "Basal Ganglia", width, height, true)
+	win := gi.NewWindow2D("sir", "SIR: PBWM", width, height, true)
 	ss.Win = win
 
 	vp := win.WinViewport2D()
@@ -1048,7 +1114,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	tbar.AddAction(gi.ActOpts{Label: "README", Icon: "file-markdown", Tooltip: "Opens your browser on the README file that contains instructions for how to run this model."}, win.This(),
 		func(recv, send ki.Ki, sig int64, data interface{}) {
-			gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch7/bg/README.md")
+			gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch10/sir/README.md")
 		})
 
 	vp.UpdateEndNoSig(updt)
