@@ -47,7 +47,7 @@ func (ev *BanditEnv) SetN(n int) {
 
 func (ev *BanditEnv) Validate() error {
 	if ev.N <= 0 {
-		return fmt.Errorf("BanditEnv: %v N == 0 -- must set with Init call", ev.Nm)
+		return fmt.Errorf("BanditEnv: %v N == 0 -- must set with SetN call", ev.Nm)
 	}
 	return nil
 }

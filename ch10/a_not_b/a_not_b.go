@@ -52,21 +52,21 @@ func main() {
 // LogPrec is precision for saving float values in logs
 const LogPrec = 4
 
-// Delay is delay case to use
-type Delay int32
+// Delays is delay case to use
+type Delays int32
 
-//go:generate stringer -type=Delay
+//go:generate stringer -type=Delays
 
-var KiT_Delay = kit.Enums.AddEnum(DelayN, false, nil)
+var KiT_Delays = kit.Enums.AddEnum(DelaysN, false, nil)
 
-func (ev Delay) MarshalJSON() ([]byte, error)  { return kit.EnumMarshalJSON(ev) }
-func (ev *Delay) UnmarshalJSON(b []byte) error { return kit.EnumUnmarshalJSON(ev, b) }
+func (ev Delays) MarshalJSON() ([]byte, error)  { return kit.EnumMarshalJSON(ev) }
+func (ev *Delays) UnmarshalJSON(b []byte) error { return kit.EnumUnmarshalJSON(ev, b) }
 
 const (
-	Delay3 Delay = iota
+	Delay3 Delays = iota
 	Delay5
 	Delay1
-	DelayN
+	DelaysN
 )
 
 // ParamSets is the default set of parameters -- Base is always applied, and others can be optionally
@@ -152,7 +152,7 @@ var ParamSets = params.Sets{
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
-	Delay       Delay             `desc:"which delay to use -- pres Init when changing"`
+	Delay       Delays            `desc:"which delay to use -- pres Init when changing"`
 	RecurrentWt float32           `def:"0.4" step:"0.01" desc:"strength of recurrent weight in Hidden layer from each unit back to self"`
 	Net         *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
 	Delay3Pats  *etable.Table     `view:"no-inline" desc:"delay 3 patterns"`
