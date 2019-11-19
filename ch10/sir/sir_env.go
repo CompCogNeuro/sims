@@ -87,7 +87,7 @@ func (ev *SIREnv) State(element string) etensor.Tensor {
 	case "Input":
 		return &ev.Input
 	case "Output":
-		return &ev.Input
+		return &ev.Output
 	case "Reward":
 		return &ev.Reward
 	}

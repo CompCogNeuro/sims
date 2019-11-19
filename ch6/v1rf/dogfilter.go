@@ -41,6 +41,8 @@ func (vi *Vis) Defaults() {
 	vi.ImgSize = image.Point{24, 24}
 	vi.Geom.SetSize(vi.ImgSize.Add(vi.Geom.Border.Mul(2)))
 	vi.DoG.ToTensor(&vi.DoGTsr)
+	// vi.ImgTsr.SetMetaData("image", "+")
+	vi.ImgTsr.SetMetaData("grid-fill", "1")
 }
 
 // SetImage sets current image for processing
@@ -61,7 +63,6 @@ func (vi *Vis) SetImage(img image.Image) {
 			vfilter.WrapPad(&vi.ImgTsr, vi.Geom.FiltRt.X)
 		}
 	}
-	// vi.ImgTsr.SetMetaData("image", "+")
 }
 
 // LGNDoG runs DoG filtering on input image

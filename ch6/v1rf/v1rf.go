@@ -571,6 +571,7 @@ func (ss *Sim) V1RFs() {
 
 func (ss *Sim) ConfigWts(dt *etensor.Float32) {
 	dt.SetShape([]int{14, 14, 12, 12}, nil, nil)
+	dt.SetMetaData("grid-fill", "1")
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
