@@ -197,7 +197,7 @@ func (ss *Sim) ConfigEnv() {
 func (ss *Sim) ConfigNet(net *pbwm.Network) {
 	net.InitName(net, "RLCond")
 
-	rew, rp, ri, td := net.AddTDLayers("", 4)
+	rew, rp, ri, td := net.AddTDLayers("", relpos.RightOf, 4)
 	_ = rew
 	_ = ri
 	inp := net.AddLayer2D("Input", 3, 20, emer.Input)

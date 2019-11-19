@@ -55,6 +55,8 @@ func (vi *Vis) Defaults() {
 	vi.V1sKWTA.Defaults()
 	vi.ImgSize = image.Point{40, 40}
 	vi.V1sGabor.ToTensor(&vi.V1sGaborTsr)
+	// vi.ImgTsr.SetMetaData("image", "+")
+	vi.ImgTsr.SetMetaData("grid-fill", "1")
 }
 
 // SetImage sets current image for processing
@@ -66,7 +68,6 @@ func (vi *Vis) SetImage(img image.Image) {
 	}
 	vfilter.RGBToGrey(vi.Img, &vi.ImgTsr, vi.V1sGeom.FiltRt.X, false) // pad for filt, bot zero
 	vfilter.WrapPad(&vi.ImgTsr, vi.V1sGeom.FiltRt.X)
-	// vi.ImgTsr.SetMetaData("image", "+")
 }
 
 // V1Simple runs V1Simple Gabor filtering on input image
