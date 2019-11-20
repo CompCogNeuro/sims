@@ -73,10 +73,8 @@ var ParamSets = params.Sets{
 					"Prjn.Learn.Momentum.On": "false",
 					"Prjn.Learn.WtBal.On":    "false",
 				}},
-			{Sel: "Layer", Desc: "faster average",
-				Params: params.Params{
-					"Layer.Act.Dt.AvgTau": "200",
-				}},
+			{Sel: "Layer", Desc: "no special params",
+				Params: params.Params{}},
 			{Sel: ".BgFixed", Desc: "BG Matrix -> GP wiring",
 				Params: params.Params{
 					"Prjn.Learn.Learn": "false",
@@ -152,13 +150,13 @@ var ParamSets = params.Sets{
 					"Layer.Gate.NoGo":          "1",
 					"Layer.Gate.Thr":           "0.2",
 				}},
-			{Sel: "#GPeNoGo", Desc: "GPe is a regular layer -- needs special",
+			{Sel: "#GPeNoGo", Desc: "GPe is a regular layer -- needs special params",
 				Params: params.Params{
-					"Layer.Inhib.Layer.Gi":     "1.8",
+					"Layer.Inhib.Layer.Gi":     "2.2",
 					"Layer.Inhib.Layer.FB":     "0.5",
 					"Layer.Inhib.Layer.FBTau":  "3", // otherwise a bit jumpy
 					"Layer.Inhib.Pool.On":      "false",
-					"Layer.Inhib.ActAvg.Init":  "1",
+					"Layer.Inhib.ActAvg.Init":  ".2",
 					"Layer.Inhib.ActAvg.Fixed": "true",
 				}},
 			{Sel: ".PFC", Desc: "pfc defaults",
@@ -172,8 +170,20 @@ var ParamSets = params.Sets{
 				}},
 			{Sel: "#Input", Desc: "Basic params",
 				Params: params.Params{
-					"Layer.Inhib.ActAvg.Init":  "0.2",
+					"Layer.Inhib.ActAvg.Init":  "0.25",
 					"Layer.Inhib.ActAvg.Fixed": "true",
+				}},
+			{Sel: "#Output", Desc: "Basic params",
+				Params: params.Params{
+					"Layer.Inhib.Layer.Gi":     "2",
+					"Layer.Inhib.Layer.FB":     "0.5",
+					"Layer.Inhib.ActAvg.Init":  "0.25",
+					"Layer.Inhib.ActAvg.Fixed": "true",
+				}},
+			{Sel: "#Hidden", Desc: "Basic params",
+				Params: params.Params{
+					"Layer.Inhib.Layer.Gi": "2",
+					"Layer.Inhib.Layer.FB": "0.5",
 				}},
 			{Sel: "#SNc", Desc: "allow negative",
 				Params: params.Params{
