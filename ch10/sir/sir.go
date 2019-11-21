@@ -48,20 +48,6 @@ func main() {
 // LogPrec is precision for saving float values in logs
 const LogPrec = 4
 
-// PBWM todo:
-// * fix type matching for diff packages
-// * do simple RW da unit
-// * do trace matrix con
-// * do bitwise enums finally??
-
-// * patch -- not *essential*
-// * TAN -- not *essential*
-
-// no benefit / only cost:
-// * del_inhib -- delta inhibition -- MUCH faster learning without!
-// * net_gain -- why do we need this?  maybe not -- not for this model anyway
-// * slow_wts -- also not important for this model!
-
 // ParamSets is the default set of parameters -- Base is always applied, and others can be optionally
 // selected to apply on top of that
 var ParamSets = params.Sets{
@@ -75,6 +61,10 @@ var ParamSets = params.Sets{
 				}},
 			{Sel: "Layer", Desc: "no special params",
 				Params: params.Params{}},
+			{Sel: ".Back", Desc: "top-down back-projections MUST have lower relative weight scale, otherwise network hallucinates",
+				Params: params.Params{
+					"Prjn.WtScale.Rel": "0.2",
+				}},
 			{Sel: ".BgFixed", Desc: "BG Matrix -> GP wiring",
 				Params: params.Params{
 					"Prjn.Learn.Learn": "false",
@@ -276,7 +266,7 @@ func (ss *Sim) New() {
 	ss.Params = ParamSets
 	ss.RndSeed = 1
 	ss.ViewOn = true
-	ss.TrainUpdt = leabra.AlphaCycle
+	ss.TrainUpdt = leabra.AlphaCycle //leabra.AlphaCycle
 	ss.TestUpdt = leabra.AlphaCycle
 	ss.TstRecLays = []string{"MatrixGo", "MatrixNoGo"}
 	ss.Defaults()
