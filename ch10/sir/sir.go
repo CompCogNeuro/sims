@@ -35,6 +35,7 @@ import (
 	"github.com/goki/gi/gi"
 	"github.com/goki/gi/gimain"
 	"github.com/goki/gi/giv"
+	"github.com/goki/gi/mat32"
 	"github.com/goki/ki/ki"
 	"github.com/goki/ki/kit"
 )
@@ -293,7 +294,7 @@ func (ss *Sim) New() {
 	ss.ViewOn = true
 	ss.TrainUpdt = leabra.AlphaCycle //leabra.AlphaCycle
 	ss.TestUpdt = leabra.AlphaCycle
-	ss.TstRecLays = []string{"MatrixGo", "MatrixNoGo"}
+	ss.TstRecLays = []string{"Input", "Output", "GPiThal", "PFCmntD", "PFCoutD"}
 	ss.Defaults()
 }
 
@@ -977,7 +978,7 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 	for _, lnm := range ss.TstRecLays {
 		tsr := ss.ValsTsr(lnm)
 		ly := ss.Net.LayerByName(lnm).(deep.DeepLayer).AsDeep()
-		ly.UnitValsTensor(tsr, "ActAvg")
+		ly.UnitValsTensor(tsr, "ActM")
 		dt.SetCellTensor(lnm, row, tsr)
 	}
 
@@ -1164,6 +1165,25 @@ func (ss *Sim) ConfigRunPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D 
 ////////////////////////////////////////////////////////////////////////////////////////////
 // 		Gui
 
+func (ss *Sim) ConfigNetView(nv *netview.NetView) {
+	nv.ViewDefaults()
+
+	labs := []string{"    S I R A B C D ", "  S I R A B C D   S I R A B C D ", "  S I R A B C D  S I R A B C D",
+		"S I R A B C D  S I R A B C D ", "S I R A B C D  S I R A B C D", "   A B C D ", "    S I R "}
+	nv.ConfigLabels(labs)
+
+	lays := []string{"Input", "PFCmnt", "PFCmntD", "PFCout", "PFCoutD", "Output", "CtrlInput"}
+
+	for li, lnm := range lays {
+		ly := nv.LayerByName(lnm)
+		lbl := nv.LabelByName(labs[li])
+		lbl.Pose = ly.Pose
+		lbl.Pose.Pos.Y += .08
+		lbl.Pose.Pos.Z += .02
+		lbl.Pose.Scale.SetMul(mat32.Vec3{1, 0.3, 0.5})
+	}
+}
+
 // ConfigGui configures the GoGi gui interface for this simulation,
 func (ss *Sim) ConfigGui() *gi.Window {
 	width := 1600
@@ -1197,6 +1217,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	nv.Var = "Act"
 	nv.SetNet(ss.Net)
 	ss.NetView = nv
+	ss.ConfigNetView(nv)
 
 	plt := tv.AddNewTab(eplot.KiT_Plot2D, "TrnEpcPlot").(*eplot.Plot2D)
 	ss.TrnEpcPlot = ss.ConfigTrnEpcPlot(plt, ss.TrnEpcLog)
