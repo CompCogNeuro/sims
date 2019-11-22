@@ -10,6 +10,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math"
 	"math/rand"
 	"os"
 	"strconv"
@@ -55,6 +56,7 @@ var ParamSets = params.Sets{
 		"Network": &params.Sheet{
 			{Sel: "Prjn", Desc: "no extra learning factors",
 				Params: params.Params{
+					"Prjn.Learn.Lrate":       "0.02", // slower overall is key
 					"Prjn.Learn.Norm.On":     "false",
 					"Prjn.Learn.Momentum.On": "false",
 					"Prjn.Learn.WtBal.On":    "false",
@@ -74,8 +76,15 @@ var ParamSets = params.Sets{
 				}},
 			{Sel: "RWPrjn", Desc: "Reward prediction -- into PVi",
 				Params: params.Params{
-					"Prjn.Learn.Lrate": "0.1",
+					"Prjn.Learn.Lrate": "0.02",
 					"Prjn.WtInit.Mean": "0",
+					"Prjn.WtInit.Var":  "0",
+					"Prjn.WtInit.Sym":  "false",
+				}},
+			{Sel: "#RWPredToSNc", Desc: "Fixed strong",
+				Params: params.Params{
+					"Prjn.Learn.Learn": "false",
+					"Prjn.WtInit.Mean": "1",
 					"Prjn.WtInit.Var":  "0",
 					"Prjn.WtInit.Sym":  "false",
 				}},
@@ -103,6 +112,10 @@ var ParamSets = params.Sets{
 					"Prjn.WtInit.Mean": "0.8",
 					"Prjn.WtInit.Var":  "0",
 					"Prjn.WtInit.Sym":  "false",
+				}},
+			{Sel: ".FmPFCOutD", Desc: "PFC OutD needs to be strong b/c avg act says weak",
+				Params: params.Params{
+					"Prjn.WtScale.Abs": "4",
 				}},
 			{Sel: ".PFCFixed", Desc: "Input -> PFC",
 				Params: params.Params{
@@ -170,6 +183,10 @@ var ParamSets = params.Sets{
 					"Layer.Inhib.ActAvg.Init":  "0.25",
 					"Layer.Inhib.ActAvg.Fixed": "true",
 				}},
+			{Sel: "#InputToOutput", Desc: "weaker",
+				Params: params.Params{
+					"Prjn.WtScale.Rel": "0.5",
+				}},
 			{Sel: "#Hidden", Desc: "Basic params",
 				Params: params.Params{
 					"Layer.Inhib.Layer.Gi": "2",
@@ -196,7 +213,6 @@ type Sim struct {
 	TrnEpcLog   *etable.Table     `view:"no-inline" desc:"training epoch-level log data"`
 	TstEpcLog   *etable.Table     `view:"no-inline" desc:"testing epoch-level log data"`
 	TstTrlLog   *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
-	MtxInputWts etensor.Tensor    `view:"no-inline" desc:"weights from input to hidden layer"`
 	RunLog      *etable.Table     `view:"no-inline" desc:"summary log of each run"`
 	RunStats    *etable.Table     `view:"no-inline" desc:"aggregate stats on all runs"`
 	SimMat      *simat.SimMat     `view:"no-inline" desc:"similarity matrix"`
@@ -206,16 +222,23 @@ type Sim struct {
 	MaxTrls     int               `desc:"maximum number of training trials per epoch"`
 	NZeroStop   int               `desc:"if a positive number, training will stop after this many epochs with zero SSE"`
 	TrainEnv    SIREnv            `desc:"Training environment -- SIR environment"`
+	TestEnv     SIREnv            `desc:"Testing nvironment -- SIR environment"`
 	Time        leabra.Time       `desc:"leabra timing parameters and state"`
 	ViewOn      bool              `desc:"whether to update the network view while running"`
 	TrainUpdt   leabra.TimeScales `desc:"at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model"`
 	TestUpdt    leabra.TimeScales `desc:"at what time scale to update the display during testing?  Anything longer than Epoch updates at Epoch in this model"`
 	TstRecLays  []string          `desc:"names of layers to record activations etc of during testing"`
 
+	TrlDA      float64 `inactive:"+" desc:"dopamine level on this trial"`
+	TrlAbsDA   float64 `inactive:"+" desc:"absolute value of dopamine on this trial"`
+	TrlRewPred float64 `inactive:"+" desc:"reward prediction level on this trial"`
 	TrlErr     float64 `inactive:"+" desc:"1 if trial was error, 0 if correct -- based on SSE = 0 (subject to .5 unit-wise tolerance)"`
 	TrlSSE     float64 `inactive:"+" desc:"current trial's sum squared error"`
 	TrlAvgSSE  float64 `inactive:"+" desc:"current trial's average sum squared error"`
 	TrlCosDiff float64 `inactive:"+" desc:"current trial's cosine difference"`
+	EpcDA      float64 `inactive:"+" desc:"last epoch's average dopamine"`
+	EpcAbsDA   float64 `inactive:"+" desc:"last epoch's avg abs dopamine"`
+	EpcRewPred float64 `inactive:"+" desc:"last epoch's avg rew pred dopamine"`
 	EpcSSE     float64 `inactive:"+" desc:"last epoch's total sum squared error"`
 	EpcAvgSSE  float64 `inactive:"+" desc:"last epoch's average sum squared error (average over trials, and over units within layer)"`
 	EpcPctErr  float64 `inactive:"+" desc:"last epoch's average TrlErr"`
@@ -225,6 +248,9 @@ type Sim struct {
 	NZero      int     `inactive:"+" desc:"number of epochs in a row with zero SSE"`
 
 	// internal state - view:"-"
+	SumDA       float64                     `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
+	SumAbsDA    float64                     `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
+	SumRewPred  float64                     `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
 	SumErr      float64                     `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
 	SumSSE      float64                     `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
 	SumAvgSSE   float64                     `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
@@ -259,7 +285,6 @@ func (ss *Sim) New() {
 	ss.TrnEpcLog = &etable.Table{}
 	ss.TstEpcLog = &etable.Table{}
 	ss.TstTrlLog = &etable.Table{}
-	ss.MtxInputWts = &etensor.Float32{}
 	ss.RunLog = &etable.Table{}
 	ss.RunStats = &etable.Table{}
 	ss.SimMat = &simat.SimMat{}
@@ -292,7 +317,7 @@ func (ss *Sim) Config() {
 
 func (ss *Sim) ConfigEnv() {
 	if ss.MaxRuns == 0 { // allow user override
-		ss.MaxRuns = 1
+		ss.MaxRuns = 10
 	}
 	if ss.MaxEpcs == 0 { // allow user override
 		ss.MaxEpcs = 100
@@ -311,7 +336,17 @@ func (ss *Sim) ConfigEnv() {
 	ss.TrainEnv.Run.Max = ss.MaxRuns // note: we are not setting epoch max -- do that manually
 	ss.TrainEnv.Trial.Max = ss.MaxTrls
 
+	ss.TestEnv.Nm = "TestEnv"
+	ss.TestEnv.Dsc = "testing params and state"
+	ss.TestEnv.SetNStim(4)
+	ss.TestEnv.RewVal = 1
+	ss.TestEnv.NoRewVal = 0
+	ss.TestEnv.Validate()
+	ss.TestEnv.Run.Max = ss.MaxRuns // note: we are not setting epoch max -- do that manually
+	ss.TestEnv.Trial.Max = 20       // good amount for testing
+
 	ss.TrainEnv.Init(0)
+	ss.TestEnv.Init(0)
 }
 
 func (ss *Sim) ConfigNet(net *pbwm.Network) {
@@ -355,9 +390,12 @@ func (ss *Sim) ConfigNet(net *pbwm.Network) {
 	pj = net.ConnectLayers(inp, pfcMnt, fmin, emer.Forward)
 	pj.SetClass("PFCFixed")
 
+	net.ConnectLayers(inp, hid, full, emer.Forward)
 	net.BidirConnectLayers(hid, out, full)
-	net.ConnectLayers(pfcOutD, hid, full, emer.Forward)
-	net.ConnectLayers(pfcOutD, out, full, emer.Forward)
+	pj = net.ConnectLayers(pfcOutD, hid, full, emer.Forward)
+	pj.SetClass("FmPFCOutD")
+	pj = net.ConnectLayers(pfcOutD, out, full, emer.Forward)
+	pj.SetClass("FmPFCOutD")
 	net.ConnectLayers(inp, out, full, emer.Forward)
 
 	snc.SendToAllBut(nil) // send dopamine to all layers..
@@ -395,7 +433,11 @@ func (ss *Sim) NewRndSeed() {
 // use tabs to achieve a reasonable formatting overall
 // and add a few tabs at the end to allow for expansion..
 func (ss *Sim) Counters(train bool) string {
-	return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TrainEnv.Trial.Cur, ss.Time.Cycle, ss.TrainEnv.String())
+	if train {
+		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TrainEnv.Trial.Cur, ss.Time.Cycle, ss.TrainEnv.String())
+	} else {
+		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TestEnv.Trial.Cur, ss.Time.Cycle, ss.TestEnv.String())
+	}
 }
 
 func (ss *Sim) UpdateView(train bool) {
@@ -459,7 +501,7 @@ func (ss *Sim) AlphaCyc(train bool) {
 			}
 		}
 		if qtr == 2 {
-			ss.ApplyReward()
+			ss.ApplyReward(train)
 		}
 	}
 
@@ -496,14 +538,20 @@ func (ss *Sim) ApplyInputs(en env.Env) {
 
 // ApplyReward computes reward based on network output and applies it -- call
 // at start of 3rd quarter (plus phase)
-func (ss *Sim) ApplyReward() {
-	if ss.TrainEnv.Act != Recall { // only reward on recall trials!
+func (ss *Sim) ApplyReward(train bool) {
+	var en *SIREnv
+	if train {
+		en = &ss.TrainEnv
+	} else {
+		en = &ss.TestEnv
+	}
+	if en.Act != Recall { // only reward on recall trials!
 		return
 	}
 	out := ss.Net.LayerByName("Output").(deep.DeepLayer).AsDeep()
 	mxi := out.Pools[0].Inhib.Act.MaxIdx
-	ss.TrainEnv.SetReward(mxi)
-	pats := ss.TrainEnv.State("Reward")
+	en.SetReward(mxi)
+	pats := en.State("Reward")
 	ly := ss.Net.LayerByName("Rew").(deep.DeepLayer).AsDeep()
 	ly.ApplyExt1DTsr(pats)
 }
@@ -568,6 +616,9 @@ func (ss *Sim) NewRun() {
 // cumulative epoch stats -- called at start of new run
 func (ss *Sim) InitStats() {
 	// accumulators
+	ss.SumDA = 0
+	ss.SumAbsDA = 0
+	ss.SumRewPred = 0
 	ss.SumSSE = 0
 	ss.SumAvgSSE = 0
 	ss.SumCosDiff = 0
@@ -575,9 +626,15 @@ func (ss *Sim) InitStats() {
 	ss.FirstZero = -1
 	ss.NZero = 0
 	// clear rest just to make Sim look initialized
+	ss.TrlDA = 0
+	ss.TrlAbsDA = 0
+	ss.TrlRewPred = 0
 	ss.TrlErr = 0
 	ss.TrlSSE = 0
 	ss.TrlAvgSSE = 0
+	ss.EpcDA = 0
+	ss.EpcAbsDA = 0
+	ss.EpcRewPred = 0
 	ss.EpcSSE = 0
 	ss.EpcAvgSSE = 0
 	ss.EpcPctErr = 0
@@ -591,6 +648,11 @@ func (ss *Sim) InitStats() {
 // You can also aggregate directly from log data, as is done for testing stats
 func (ss *Sim) TrialStats(accum bool) (sse, avgsse, cosdiff float64) {
 	out := ss.Net.LayerByName("Output").(leabra.LeabraLayer).AsLeabra()
+	snc := ss.Net.LayerByName("SNc").(leabra.LeabraLayer).AsLeabra()
+	rp := ss.Net.LayerByName("RWPred").(leabra.LeabraLayer).AsLeabra()
+	ss.TrlDA = float64(snc.Neurons[0].Act)
+	ss.TrlAbsDA = math.Abs(ss.TrlDA)
+	ss.TrlRewPred = float64(rp.Neurons[0].Act)
 	ss.TrlCosDiff = float64(out.CosDiff.Cos)
 	ss.TrlSSE, ss.TrlAvgSSE = out.MSE(0.5) // 0.5 = per-unit tolerance -- right side of .5
 	if ss.TrlSSE > 0 {
@@ -599,6 +661,9 @@ func (ss *Sim) TrialStats(accum bool) (sse, avgsse, cosdiff float64) {
 		ss.TrlErr = 0
 	}
 	if accum {
+		ss.SumDA += ss.TrlDA
+		ss.SumAbsDA += ss.TrlAbsDA
+		ss.SumRewPred += ss.TrlRewPred
 		ss.SumErr += ss.TrlErr
 		ss.SumSSE += ss.TrlSSE
 		ss.SumAvgSSE += ss.TrlAvgSSE
@@ -675,10 +740,10 @@ func (ss *Sim) SaveWeights(filename gi.FileName) {
 
 // TestTrial runs one trial of testing -- always sequentially presented inputs
 func (ss *Sim) TestTrial(returnOnChg bool) {
-	ss.TrainEnv.Step()
+	ss.TestEnv.Step()
 
 	// Query counters FIRST
-	_, _, chg := ss.TrainEnv.Counter(env.Epoch)
+	_, _, chg := ss.TestEnv.Counter(env.Epoch)
 	if chg {
 		if ss.ViewOn && ss.TestUpdt > leabra.AlphaCycle {
 			ss.UpdateView(false)
@@ -688,7 +753,7 @@ func (ss *Sim) TestTrial(returnOnChg bool) {
 			return
 		}
 	}
-	ss.ApplyInputs(&ss.TrainEnv)
+	ss.ApplyInputs(&ss.TestEnv)
 	ss.AlphaCyc(false)   // !train
 	ss.TrialStats(false) // !accumulate
 	ss.LogTstTrl(ss.TstTrlLog)
@@ -696,10 +761,10 @@ func (ss *Sim) TestTrial(returnOnChg bool) {
 
 // TestAll runs through the full set of testing items
 func (ss *Sim) TestAll() {
-	ss.TrainEnv.Init(ss.TrainEnv.Run.Cur)
+	ss.TestEnv.Init(ss.TestEnv.Run.Cur)
 	for {
 		ss.TestTrial(true) // return on chg, don't present
-		_, _, chg := ss.TrainEnv.Counter(env.Epoch)
+		_, _, chg := ss.TestEnv.Counter(env.Epoch)
 		if chg || ss.StopNow {
 			break
 		}
@@ -784,6 +849,12 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 	epc := ss.TrainEnv.Epoch.Prv         // this is triggered by increment so use previous value
 	nt := float64(ss.TrainEnv.Trial.Max) // number of trials in view
 
+	ss.EpcDA = ss.SumDA / nt
+	ss.SumDA = 0
+	ss.EpcAbsDA = ss.SumAbsDA / nt
+	ss.SumAbsDA = 0
+	ss.EpcRewPred = ss.SumRewPred / nt
+	ss.SumRewPred = 0
 	ss.EpcSSE = ss.SumSSE / nt
 	ss.SumSSE = 0
 	ss.EpcAvgSSE = ss.SumAvgSSE / nt
@@ -802,11 +873,6 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 		ss.NZero = 0
 	}
 
-	ss.MtxInput(ss.MtxInputWts)
-	if ss.WtsGrid != nil {
-		ss.WtsGrid.UpdateSig()
-	}
-
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
 	dt.SetCellFloat("SSE", row, ss.EpcSSE)
@@ -814,7 +880,9 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 	dt.SetCellFloat("PctErr", row, ss.EpcPctErr)
 	dt.SetCellFloat("PctCor", row, ss.EpcPctCor)
 	dt.SetCellFloat("CosDiff", row, ss.EpcCosDiff)
-	dt.SetCellTensor("MtxInputWts", row, ss.MtxInputWts)
+	dt.SetCellFloat("DA", row, ss.EpcDA)
+	dt.SetCellFloat("AbsDA", row, ss.EpcAbsDA)
+	dt.SetCellFloat("RewPred", row, ss.EpcRewPred)
 
 	// note: essential to use Go version of update when called from another goroutine
 	ss.TrnEpcPlot.GoUpdate()
@@ -840,10 +908,11 @@ func (ss *Sim) ConfigTrnEpcLog(dt *etable.Table) {
 		{"PctErr", etensor.FLOAT64, nil, nil},
 		{"PctCor", etensor.FLOAT64, nil, nil},
 		{"CosDiff", etensor.FLOAT64, nil, nil},
-		{"MtxInputWts", etensor.FLOAT32, []int{6, 1, 1, 6}, nil},
+		{"DA", etensor.FLOAT64, nil, nil},
+		{"AbsDA", etensor.FLOAT64, nil, nil},
+		{"RewPred", etensor.FLOAT64, nil, nil},
 	}
 	dt.SetFromSchema(sch, 0)
-	ss.ConfigMtxInput(ss.MtxInputWts)
 }
 
 func (ss *Sim) ConfigTrnEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
@@ -858,31 +927,11 @@ func (ss *Sim) ConfigTrnEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetColParams("PctErr", true, true, 0, true, 1)
 	plt.SetColParams("PctCor", false, true, 0, true, 1)
 	plt.SetColParams("CosDiff", false, true, 0, true, 1)
-	plt.SetColParams("MtxInputWts", false, true, 0, true, 1)
+	plt.SetColParams("DA", false, true, -1, true, 1)
+	plt.SetColParams("AbsDA", true, true, 0, true, 1)
+	plt.SetColParams("RewPred", true, true, 0, true, 1)
 
 	return plt
-}
-
-func (ss *Sim) MtxInput(dt etensor.Tensor) {
-	col := dt.(*etensor.Float32)
-	vals := col.Values
-	inp := ss.Net.LayerByName("Input").(deep.DeepLayer).AsDeep()
-	isz := inp.Shape().Len()
-	hid := ss.Net.LayerByName("MatrixGo").(deep.DeepLayer).AsDeep()
-	ysz := hid.Shape().Dim(2)
-	xsz := hid.Shape().Dim(3)
-	for y := 0; y < ysz; y++ {
-		for x := 0; x < xsz; x++ {
-			ui := (y*xsz + x)
-			ust := ui * isz
-			vls := vals[ust : ust+isz]
-			inp.SendPrjnVals(&vls, "Wt", hid, ui)
-		}
-	}
-}
-
-func (ss *Sim) ConfigMtxInput(dt etensor.Tensor) {
-	dt.SetShape([]int{12, 2, 2, 14}, nil, nil)
 }
 
 //////////////////////////////////////////////
@@ -904,19 +953,26 @@ func (ss *Sim) ValsTsr(name string) *etensor.Float32 {
 // LogTstTrl adds data from current trial to the TstTrlLog table.
 // log always contains number of testing items
 func (ss *Sim) LogTstTrl(dt *etable.Table) {
-	epc := ss.TrainEnv.Epoch.Prv // this is triggered by increment so use previous value
+	epc := ss.TestEnv.Epoch.Prv // this is triggered by increment so use previous value
 
-	trl := ss.TrainEnv.Trial.Cur
+	trl := ss.TestEnv.Trial.Cur
 	row := trl
 
 	if dt.Rows <= row {
 		dt.SetNumRows(row + 1)
 	}
 
-	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
+	dt.SetCellFloat("Run", row, float64(ss.TestEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
 	dt.SetCellFloat("Trial", row, float64(trl))
-	dt.SetCellString("TrialName", row, ss.TrainEnv.String())
+	dt.SetCellString("TrialName", row, ss.TestEnv.String())
+	dt.SetCellFloat("Err", row, ss.TrlErr)
+	dt.SetCellFloat("SSE", row, ss.TrlSSE)
+	dt.SetCellFloat("AvgSSE", row, ss.TrlAvgSSE)
+	dt.SetCellFloat("CosDiff", row, ss.TrlCosDiff)
+	dt.SetCellFloat("DA", row, ss.TrlDA)
+	dt.SetCellFloat("AbsDA", row, ss.TrlAbsDA)
+	dt.SetCellFloat("RewPred", row, ss.TrlRewPred)
 
 	for _, lnm := range ss.TstRecLays {
 		tsr := ss.ValsTsr(lnm)
@@ -935,12 +991,19 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 	dt.SetMetaData("read-only", "true")
 	dt.SetMetaData("precision", strconv.Itoa(LogPrec))
 
-	nt := 0
+	nt := ss.TestEnv.Trial.Max
 	sch := etable.Schema{
 		{"Run", etensor.INT64, nil, nil},
 		{"Epoch", etensor.INT64, nil, nil},
 		{"Trial", etensor.INT64, nil, nil},
 		{"TrialName", etensor.STRING, nil, nil},
+		{"Err", etensor.FLOAT64, nil, nil},
+		{"SSE", etensor.FLOAT64, nil, nil},
+		{"AvgSSE", etensor.FLOAT64, nil, nil},
+		{"CosDiff", etensor.FLOAT64, nil, nil},
+		{"DA", etensor.FLOAT64, nil, nil},
+		{"AbsDA", etensor.FLOAT64, nil, nil},
+		{"RewPred", etensor.FLOAT64, nil, nil},
 	}
 	for _, lnm := range ss.TstRecLays {
 		ly := ss.Net.LayerByName(lnm).(deep.DeepLayer).AsDeep()
@@ -958,6 +1021,13 @@ func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetColParams("Epoch", false, true, 0, false, 0)
 	plt.SetColParams("Trial", false, true, 0, false, 0)
 	plt.SetColParams("TrialName", false, true, 0, false, 0)
+	plt.SetColParams("Err", true, true, 0, true, 1) // default plot
+	plt.SetColParams("SSE", false, true, 0, false, 0)
+	plt.SetColParams("AvgSSE", false, true, 0, false, 0)
+	plt.SetColParams("CosDiff", false, true, 0, true, 1)
+	plt.SetColParams("DA", true, true, -1, true, 1)
+	plt.SetColParams("AbsDA", false, true, 0, true, 1)
+	plt.SetColParams("RewPred", true, true, 0, true, 1)
 
 	for _, lnm := range ss.TstRecLays {
 		plt.SetColParams(lnm, false, true, 0, true, 1)
@@ -974,11 +1044,11 @@ func (ss *Sim) LogTstEpc(dt *etable.Table) {
 
 	// trl := ss.TstTrlLog
 	// tix := etable.NewIdxView(trl)
-	epc := ss.TrainEnv.Epoch.Prv // ?
+	epc := ss.TestEnv.Epoch.Prv // ?
 
 	// note: this shows how to use agg methods to compute summary data from another
 	// data table, instead of incrementing on the Sim
-	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
+	dt.SetCellFloat("Run", row, float64(ss.TestEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
 
 	// note: essential to use Go version of update when called from another goroutine
@@ -1130,11 +1200,6 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	plt := tv.AddNewTab(eplot.KiT_Plot2D, "TrnEpcPlot").(*eplot.Plot2D)
 	ss.TrnEpcPlot = ss.ConfigTrnEpcPlot(plt, ss.TrnEpcLog)
-
-	tg := tv.AddNewTab(etview.KiT_TensorGrid, "Weights").(*etview.TensorGrid)
-	tg.SetStretchMax()
-	ss.WtsGrid = tg
-	tg.SetTensor(ss.MtxInputWts)
 
 	plt = tv.AddNewTab(eplot.KiT_Plot2D, "TstTrlPlot").(*eplot.Plot2D)
 	ss.TstTrlPlot = ss.ConfigTstTrlPlot(plt, ss.TstTrlLog)

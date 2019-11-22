@@ -106,7 +106,7 @@ var ParamSets = params.Sets{
 					"Layer.Inhib.Pool.On":      "false",
 					"Layer.Inhib.ActAvg.Init":  "1",
 					"Layer.Inhib.ActAvg.Fixed": "true",
-					"Layer.Gate.NoGo":          "1",
+					"Layer.Gate.NoGo":          "0.4", // weaker
 					"Layer.Gate.Thr":           "0.5", // higher
 				}},
 			{Sel: "#GPeNoGo", Desc: "GPe is a regular layer -- needs special",
