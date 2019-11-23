@@ -2,7 +2,7 @@ Back to [All Sims](https://github.com/CompCogNeuro/sims) (also for general info 
 
 # Introduction
 
-This simulation illustrates the dynamic gating of information into PFC active maintenance, by the basal ganglia (BG). It uses a simple Store-Ignore-Recall (SIR) task, where the BG system learns via phasic dopamine signals and trial-and-error exploration, discovering what needs to be stored, ignored, and recalled as a function of reinforcement of correct behavior, and learned reinforcement of useful working memory representations.
+This simulation illustrates the dynamic gating of information into PFC active maintenance, by the basal ganglia (BG). It uses a simple Store-Ignore-Recall (SIR) task, where the BG system learns via phasic dopamine signals and trial-and-error exploration, discovering what needs to be stored, ignored, and recalled as a function of reinforcement of correct behavior, and learned reinforcement of useful working memory representations.  The model is the current incarnation the our original PBWM framework [O'Reilly & Frank, 2006](#references).
 
 The SIR task requires the network to Recall (when the R unit is active) the letter (A-D) that was present when a Store (S) input was active earlier. Ignore (I) trials also have a letter input, but, as you might guess, these are to be ignored. Trials are randomly generated, and there can be a random number of Ignore trials between a Store and Recall trial, so the model must learn to maintain the stored information in robust working memory representations in the PFC, until the next Recall trial, with variable numbers of intervening and unpredictable distractors between task-relevant events.
 
@@ -18,7 +18,7 @@ As discussed in the Executive Chapter, electrophysiological recordings of PFC ne
 
 In summary, correct performance of the task in this model requires BG gating of *Store* information into one of the PFCmnt stripes, and then *not* gating any further *Ignore* information into that same stripe, and finally appropriate gating of the corresponding PFCout stripe on the *Recall* trial. This sequence of gating actions must be learned strictly through trial-and-error exploration, shaped by a simple *Rescorla-Wagner* (RW) style dopamine-based reinforcement learning system located on the left-bottom area of the model (see Chapter 7 for details). The key point is that this system can learn the predicted reward value of cortical states and use errors in predictions to trigger dopamine bursts and dips that train striatal gating policies.
 
-To review the functions of the other layers in the PBWM framework:
+To review the functions of the other layers in the PBWM framework (see [deep](https://github.com/emer/leabra/blob/master/deep) and [pbwm](https://github.com/emer/leabra/blob/master/pbwm) repositories for more complete info):
 
 *  **Matrix**: this is the dynamic gating system representing the matrix units within the dorsal striatum of the basal ganglia. The bottom layer contains the "Go" (direct pathway) units, while top layer contains "NoGo" (indirect pathway). As in the earlier BG model, the Go units, expressing more D1 receptors, increase their weights from dopamine bursts, and decrease weights from dopamine dips, and vice-versa for the NoGo units with more D2 receptors. As is more consistent with the BG biology than earlier versions of this model, most of the competition to select the final gating action happens in the GPe and GPi (with the hyperdirect pathway to the subthalamic nucleus also playing a critical role, but not included in this more abstracted model), with only a relatively weak level of competition within the Matrix layers. Note that we have combined the maintenance and output gating stripes all in the same Matrix layer -- this allows these stripes to all compete with each other here, and more importantly in the subsequent GPi and GPe stripes -- this competitive interaction is critical for allowing the system to learn to properly coordinate maintenance when it is appropriate to update/store new information for maintenance vs. when it is important to select from currently stored representations via output gating.
 	
@@ -75,4 +75,17 @@ Now we will explore how the Matrix gating is driven in terms of learned synaptic
 Note that for this simple task, the number of items that needs to be maintained at any one time is just one, which is why the network still gates Ignore trials (it just learns not to output gate them). If you're feeling curious you can use the Wizard in the software to change the number of PBWM stripes to 1, and there you should see that the model can still learn this task but is now pressured to do so by ignoring I trials at the level of input gating. However, by taking away the parallel learning abilities of the model, it can take longer to learn.
 
 If you want to experience the full power of the PBWM learning framework, you can check out the `sir52_v50` model, which takes the SIR task to the next level with two independent streams of maintained information. Here, the network has to store and maintain multiple items and selectively recall each of them depending on other cues, which is very demanding task that networks without selective gating capabilities cannot achieve. This version more strongly stresses the selective maintenance gating aspect of the model (and indeed this problem motivated the need for a BG in the first place).
+
+# References
+
+Bosch, M., & Hayashi, Y. (2012). Structural plasticity of dendritic spines. Current Opinion in Neurobiology, 22(3), 383–388. https://doi.org/10.1016/j.conb.2011.09.002
+
+O'Reilly, R.C. & Frank, M.J. (2006), Making Working Memory Work: A Computational Model of Learning in the Frontal Cortex and Basal Ganglia. Neural Computation, 18, 283-328.
+
+Redondo, R. L., & Morris, R. G. M. (2011). Making memories last: The synaptic tagging and capture hypothesis. Nature Reviews Neuroscience, 12(1), 17–30. https://doi.org/10.1038/nrn2963
+
+Rudy, J. W. (2015). Variation in the persistence of memory: An interplay between actin dynamics and AMPA receptors. Brain Research, 1621, 29–37. https://doi.org/10.1016/j.brainres.2014.12.009
+
+Sommer, M. A., & Wurtz, R. H. (2000). Composition and topographic organization of signals sent from the frontal eye field to the superior colliculus. Journal of Neurophysiology, 83(4), 1979–2001.
+
 
