@@ -1,7 +1,7 @@
 # Makefile for CCN sims projects
 
 # important: update these for each app
-ASSETS=train_pats.tsv semantics.tsv
+ASSETS=train_pats.tsv semantics.tsv close_orthos.tsv close_sems.tsv
 
 # default package install 
 PKGDIR=$(HOME)/ccnsimpkg

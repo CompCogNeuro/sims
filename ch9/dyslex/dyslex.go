@@ -14,7 +14,6 @@ import (
 	"math/rand"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/emer/emergent/emer"
@@ -22,6 +21,7 @@ import (
 	"github.com/emer/emergent/netview"
 	"github.com/emer/emergent/params"
 	"github.com/emer/emergent/prjn"
+	"github.com/emer/emergent/relpos"
 	"github.com/emer/etable/agg"
 	"github.com/emer/etable/eplot"
 	"github.com/emer/etable/etable"
@@ -33,6 +33,7 @@ import (
 	"github.com/goki/gi/gi"
 	"github.com/goki/gi/gimain"
 	"github.com/goki/gi/giv"
+	"github.com/goki/gi/mat32"
 	"github.com/goki/ki/ki"
 	"github.com/goki/ki/kit"
 )
@@ -84,20 +85,38 @@ var ParamSets = params.Sets{
 					"Prjn.Learn.WtBal.On":    "false",
 					"Prjn.Learn.Lrate":       "0.04",
 				}},
-			{Sel: "Layer", Desc: "less inhib for smaller in / out layers",
+			{Sel: "Layer", Desc: "FB 0.5 apparently required",
 				Params: params.Params{
-					"Layer.Inhib.Layer.Gi":    "1.5",
-					"Layer.Inhib.ActAvg.Init": "0.25",
-					"Layer.Act.Gbar.L":        "0.1",
-					"Layer.Act.Init.Decay":    "1",
+					"Layer.Inhib.Layer.Gi":    "2.1",
+					"Layer.Inhib.Layer.FB":    "0.5",
+					"Layer.Inhib.ActAvg.Init": "0.2",
 				}},
-			{Sel: "#Hidden", Desc: "slightly less inhib",
+			{Sel: "#Orthography", Desc: "higher inhib",
 				Params: params.Params{
-					"Layer.Inhib.Layer.Gi": "1.6",
+					"Layer.Inhib.Layer.Gi":    "2.4",
+					"Layer.Inhib.Layer.FB":    "0.5",
+					"Layer.Inhib.ActAvg.Init": "0.08",
 				}},
-			{Sel: ".Back", Desc: "top-down back-projections MUST have lower relative weight scale, otherwise network hallucinates",
+			{Sel: "#Semantics", Desc: "higher inhib",
 				Params: params.Params{
-					"Prjn.WtScale.Rel": "0.1",
+					"Layer.Inhib.Layer.Gi": "2.2",
+					"Layer.Inhib.Layer.FB": "0.5",
+				}},
+			{Sel: "#Phonology", Desc: "pool-only inhib",
+				Params: params.Params{
+					"Layer.Inhib.Layer.On":    "false",
+					"Layer.Inhib.Pool.On":     "true",
+					"Layer.Inhib.Pool.Gi":     "2.8",
+					"Layer.Inhib.Pool.FB":     "0.5",
+					"Layer.Inhib.ActAvg.Init": "0.07",
+				}},
+			{Sel: ".Back", Desc: "there is no back / forward direction here..",
+				Params: params.Params{
+					"Prjn.WtScale.Rel": "1",
+				}},
+			{Sel: ".Lateral", Desc: "self cons are weaker",
+				Params: params.Params{
+					"Prjn.WtScale.Rel": "0.3",
 				}},
 		},
 	}},
@@ -115,6 +134,8 @@ type Sim struct {
 	Net          *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
 	TrainPats    *etable.Table     `view:"no-inline" desc:"training patterns"`
 	Semantics    *etable.Table     `view:"no-inline" desc:"properties of semantic features "`
+	CloseOrthos  *etable.Table     `view:"no-inline" desc:"list of items that are close in orthography (for visual error scoring)"`
+	CloseSems    *etable.Table     `view:"no-inline" desc:"list of items that are close in semantics (for semantic error scoring)"`
 	TrnEpcLog    *etable.Table     `view:"no-inline" desc:"training epoch-level log data"`
 	TstEpcLog    *etable.Table     `view:"no-inline" desc:"testing epoch-level log data"`
 	TstTrlLog    *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
@@ -134,26 +155,27 @@ type Sim struct {
 	LayStatNms   []string          `desc:"names of layers to collect more detailed stats on (avg act, etc)"`
 
 	// statistics: note use float64 as that is best for etable.Table
-	TrlErr     float64 `inactive:"+" desc:"1 if trial was error, 0 if correct -- based on *closest pattern* stat, not SSE"`
-	TrlClosest string  `inactive:"+" desc:"name of closest pattern"`
-	TrlCorrel  float64 `inactive:"+" desc:"current trial's closest pattern correlation"`
-	TrlIsA     float64 `inactive:"+" desc:"1 if current output was from an A pattern, 0 if B"`
-	TrlIsB     float64 `inactive:"+" desc:"1 if current output was from a B pattern, 0 if A"`
-	TrlSSE     float64 `inactive:"+" desc:"current trial's sum squared error"`
-	TrlAvgSSE  float64 `inactive:"+" desc:"current trial's average sum squared error"`
-	TrlCosDiff float64 `inactive:"+" desc:"current trial's cosine difference"`
-	EpcSSE     float64 `inactive:"+" desc:"last epoch's total sum squared error"`
-	EpcAvgSSE  float64 `inactive:"+" desc:"last epoch's average sum squared error (average over trials, and over units within layer)"`
-	EpcPctErr  float64 `inactive:"+" desc:"last epoch's average TrlErr"`
-	EpcPctCor  float64 `inactive:"+" desc:"1 - last epoch's average TrlErr"`
-	EpcCorrel  float64 `inactive:"+" desc:"last epoch's average TrlCorrel"`
-	EpcCosDiff float64 `inactive:"+" desc:"last epoch's average cosine difference for output layer (a normalized error measure, maximum of 1 when the minus phase exactly matches the plus)"`
-	FirstZero  int     `inactive:"+" desc:"epoch at when SSE first went to zero"`
-	NZero      int     `inactive:"+" desc:"number of epochs in a row with zero SSE"`
+	TrlErr       float64 `inactive:"+" desc:"1 if trial was error, 0 if correct -- based on *closest pattern* stat, not SSE"`
+	TrlPhon      string  `inactive:"+" desc:"name of closest phonology pattern"`
+	TrlPhonSSE   float64 `inactive:"+" desc:"SSE for closest phonology pattern -- > 3 = blend"`
+	TrlBlendErr  float64 `inactive:"+" desc:"blend error"`
+	TrlVisErr    float64 `inactive:"+" desc:"visual error -- close to similar other"`
+	TrlSemErr    float64 `inactive:"+" desc:"semantic error -- close to similar other"`
+	TrlVisSemErr float64 `inactive:"+" desc:"visual + semantic error -- close to similar other"`
+	TrlOtherErr  float64 `inactive:"+" desc:"some other error"`
+	TrlSSE       float64 `inactive:"+" desc:"current trial's sum squared error"`
+	TrlAvgSSE    float64 `inactive:"+" desc:"current trial's average sum squared error"`
+	TrlCosDiff   float64 `inactive:"+" desc:"current trial's cosine difference"`
+	EpcSSE       float64 `inactive:"+" desc:"last epoch's total sum squared error"`
+	EpcAvgSSE    float64 `inactive:"+" desc:"last epoch's average sum squared error (average over trials, and over units within layer)"`
+	EpcPctErr    float64 `inactive:"+" desc:"last epoch's average TrlErr"`
+	EpcPctCor    float64 `inactive:"+" desc:"1 - last epoch's average TrlErr"`
+	EpcCosDiff   float64 `inactive:"+" desc:"last epoch's average cosine difference for output layer (a normalized error measure, maximum of 1 when the minus phase exactly matches the plus)"`
+	FirstZero    int     `inactive:"+" desc:"epoch at when SSE first went to zero"`
+	NZero        int     `inactive:"+" desc:"number of epochs in a row with zero SSE"`
 
 	// internal state - view:"-"
 	SumErr      float64                     `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
-	SumCorrel   float64                     `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
 	SumSSE      float64                     `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
 	SumAvgSSE   float64                     `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
 	SumCosDiff  float64                     `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
@@ -186,6 +208,8 @@ func (ss *Sim) New() {
 	ss.Net = &leabra.Network{}
 	ss.TrainPats = &etable.Table{}
 	ss.Semantics = &etable.Table{}
+	ss.CloseOrthos = &etable.Table{}
+	ss.CloseSems = &etable.Table{}
 	ss.TrnEpcLog = &etable.Table{}
 	ss.TstEpcLog = &etable.Table{}
 	ss.TstTrlLog = &etable.Table{}
@@ -197,7 +221,7 @@ func (ss *Sim) New() {
 	ss.TrainUpdt = leabra.Quarter
 	ss.TestUpdt = leabra.Cycle
 	ss.TestInterval = 10
-	ss.LayStatNms = []string{"Hidden"}
+	ss.LayStatNms = []string{"OShidden"}
 }
 
 func (ss *Sim) Defaults() {
@@ -225,7 +249,7 @@ func (ss *Sim) ConfigEnv() {
 		ss.MaxRuns = 1
 	}
 	if ss.MaxEpcs == 0 { // allow user override
-		ss.MaxEpcs = 100
+		ss.MaxEpcs = 250
 		ss.NZeroStop = -1
 	}
 
@@ -246,14 +270,32 @@ func (ss *Sim) ConfigEnv() {
 }
 
 func (ss *Sim) ConfigNet(net *leabra.Network) {
-	net.InitName(net, "WtPrime")
-	inp := net.AddLayer2D("Input", 5, 5, emer.Input)
-	hid := net.AddLayer2D("Hidden", 6, 6, emer.Hidden)
-	out := net.AddLayer2D("Output", 5, 5, emer.Target)
+	net.InitName(net, "Dyslex")
+	ort := net.AddLayer2D("Orthography", 6, 8, emer.Input)
+	oph := net.AddLayer2D("OPhidden", 7, 7, emer.Hidden)
+	phn := net.AddLayer4D("Phonology", 1, 7, 7, 2, emer.Target)
+	osh := net.AddLayer2D("OShidden", 10, 7, emer.Hidden)
+	sph := net.AddLayer2D("SPhidden", 10, 7, emer.Hidden)
+	sem := net.AddLayer2D("Semantics", 10, 12, emer.Target)
 
 	full := prjn.NewFull()
-	net.ConnectLayers(inp, hid, full, emer.Forward)
-	net.BidirConnectLayers(hid, out, full)
+	net.BidirConnectLayers(ort, osh, full)
+	net.BidirConnectLayers(osh, sem, full)
+	net.BidirConnectLayers(sem, sph, full)
+	net.BidirConnectLayers(sph, phn, full)
+	net.BidirConnectLayers(ort, oph, full)
+	net.BidirConnectLayers(oph, phn, full)
+
+	// lateral cons
+	net.LateralConnectLayer(ort, full)
+	net.LateralConnectLayer(sem, full)
+	net.LateralConnectLayer(phn, full)
+
+	oph.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "Orthography", YAlign: relpos.Front, Space: 1})
+	phn.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "OPhidden", YAlign: relpos.Front, Space: 1})
+	osh.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Orthography", YAlign: relpos.Front, XAlign: relpos.Left, XOffset: 4})
+	sph.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Phonology", YAlign: relpos.Front, XAlign: relpos.Left, XOffset: 2})
+	sem.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "OShidden", YAlign: relpos.Front, XAlign: relpos.Left, XOffset: 4})
 
 	net.Defaults()
 	ss.SetParams("Network", false) // only set Network params
@@ -374,7 +416,7 @@ func (ss *Sim) ApplyInputs(en env.Env) {
 	ss.Net.InitExt() // clear any existing inputs -- not strictly necessary if always
 	// going to the same layers, but good practice and cheap anyway
 
-	lays := []string{"Input", "Output"}
+	lays := []string{"Orthography", "Semantics", "Phonology"}
 	for _, lnm := range lays {
 		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		pats := en.State(ly.Nm)
@@ -384,9 +426,27 @@ func (ss *Sim) ApplyInputs(en env.Env) {
 	}
 }
 
+// SetInputLayer determines which layer is the input -- others are targets
+// 0 = Ortho, 1 = Sem, 2 = Phon
+func (ss *Sim) SetInputLayer(layno int) {
+	lays := []string{"Orthography", "Semantics", "Phonology"}
+	for i, lnm := range lays {
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
+		if i == layno {
+			ly.SetType(emer.Input)
+		} else {
+			ly.SetType(emer.Target)
+		}
+	}
+}
+
+// SetRndInputLayer sets one of 3 visible layers as input at random
+func (ss *Sim) SetRndInputLayer() {
+	ss.SetInputLayer(rand.Intn(3))
+}
+
 // TrainTrial runs one trial of training using TrainEnv
 func (ss *Sim) TrainTrial() {
-
 	if ss.NeedsNewRun {
 		ss.NewRun()
 	}
@@ -398,6 +458,7 @@ func (ss *Sim) TrainTrial() {
 	epc, _, chg := ss.TrainEnv.Counter(env.Epoch)
 	if chg {
 		ss.LogTrnEpc(ss.TrnEpcLog)
+		ss.LrateSched(epc)
 		if ss.ViewOn && ss.TrainUpdt > leabra.AlphaCycle {
 			ss.UpdateView(true)
 		}
@@ -418,7 +479,11 @@ func (ss *Sim) TrainTrial() {
 	}
 
 	// note: type must be in place before apply inputs
-	ss.Net.LayerByName("Output").SetType(emer.Target)
+	if ss.TrainEnv.Epoch.Cur < ss.MaxEpcs-10 {
+		ss.SetRndInputLayer()
+	} else {
+		ss.SetInputLayer(0) // final training on Ortho reading
+	}
 	ss.ApplyInputs(&ss.TrainEnv)
 	ss.AlphaCyc(true)   // train
 	ss.TrialStats(true) // accumulate
@@ -437,6 +502,7 @@ func (ss *Sim) NewRun() {
 	ss.TestEnv.Init(run)
 	ss.Time.Reset()
 	ss.Net.InitWts()
+	ss.Net.LrateMult(1) // restore initial learning rate value
 	ss.InitStats()
 	ss.TrnEpcLog.SetNumRows(0)
 	ss.TstEpcLog.SetNumRows(0)
@@ -448,7 +514,6 @@ func (ss *Sim) NewRun() {
 func (ss *Sim) InitStats() {
 	// accumulators
 	ss.SumErr = 0
-	ss.SumCorrel = 0
 	ss.SumSSE = 0
 	ss.SumAvgSSE = 0
 	ss.SumCosDiff = 0
@@ -456,11 +521,15 @@ func (ss *Sim) InitStats() {
 	ss.NZero = 0
 	// clear rest just to make Sim look initialized
 	ss.TrlErr = 0
-	ss.TrlCorrel = 0
-	ss.TrlIsA = 0
-	ss.TrlIsB = 0
+	ss.TrlPhonSSE = 0
+	ss.TrlBlendErr = 0
+	ss.TrlVisErr = 0
+	ss.TrlSemErr = 0
+	ss.TrlVisSemErr = 0
+	ss.TrlOtherErr = 0
 	ss.TrlSSE = 0
 	ss.TrlAvgSSE = 0
+	ss.TrlCosDiff = 0
 	ss.EpcSSE = 0
 	ss.EpcAvgSSE = 0
 	ss.EpcPctErr = 0
@@ -473,35 +542,33 @@ func (ss *Sim) InitStats() {
 // different time-scales over which stats could be accumulated etc.
 // You can also aggregate directly from log data, as is done for testing stats
 func (ss *Sim) TrialStats(accum bool) (sse, avgsse, cosdiff float64) {
-	out := ss.Net.LayerByName("Output").(leabra.LeabraLayer).AsLeabra()
-	ss.TrlCosDiff = float64(out.CosDiff.Cos)
-	ss.TrlSSE, ss.TrlAvgSSE = out.MSE(0.5) // 0.5 = per-unit tolerance -- right side of .5
-
-	_, cor, cnm := ss.ClosestStat(ss.Net, "Output", "ActM", ss.TrainPats, "Output", "Name")
-	ss.TrlClosest = cnm
-	ss.TrlCorrel = float64(cor)
-	tnm := ""
-	if accum { // really train
-		tnm = ss.TrainEnv.TrialName
-	} else {
-		tnm = ss.TestEnv.TrialName
+	ss.TrlCosDiff = 0
+	ss.TrlSSE, ss.TrlAvgSSE = 0, 0
+	ntrg := 0
+	for _, lyi := range ss.Net.Layers {
+		ly := lyi.(leabra.LeabraLayer).AsLeabra()
+		if ly.Typ != emer.Target {
+			continue
+		}
+		ss.TrlCosDiff += float64(ly.CosDiff.Cos)
+		sse, avgsse := ly.MSE(0.5) // 0.5 = per-unit tolerance -- right side of .5
+		ss.TrlSSE += sse
+		ss.TrlAvgSSE += avgsse
+		ntrg++
 	}
-	cnmsp := strings.Split(cnm, "_")
-	tnmsp := strings.Split(tnm, "_")
-	if cnmsp[0] == tnmsp[0] {
+	if ntrg > 0 {
+		ss.TrlCosDiff /= float64(ntrg)
+		ss.TrlSSE /= float64(ntrg)
+		ss.TrlAvgSSE /= float64(ntrg)
+	}
+
+	if ss.TrlSSE == 0 {
 		ss.TrlErr = 0
 	} else {
 		ss.TrlErr = 1
 	}
-	if cnmsp[1] == "a" {
-		ss.TrlIsA = 1
-	} else {
-		ss.TrlIsA = 0
-	}
-	ss.TrlIsB = 1 - ss.TrlIsA
 	if accum {
 		ss.SumErr += ss.TrlErr
-		ss.SumCorrel += ss.TrlCorrel
 		ss.SumSSE += ss.TrlSSE
 		ss.SumAvgSSE += ss.TrlAvgSSE
 		ss.SumCosDiff += ss.TrlCosDiff
@@ -509,23 +576,34 @@ func (ss *Sim) TrialStats(accum bool) (sse, avgsse, cosdiff float64) {
 	return
 }
 
+// DyslexStats computes dyslexia pronunciation, semantics stats
+func (ss *Sim) DyslexStats(net emer.Network) {
+	_, sse, cnm := ss.ClosestStat(net, "Phonology", "ActM", ss.TrainPats, "Phonology", "Name")
+	ss.TrlPhon = cnm
+	ss.TrlPhonSSE = float64(sse)
+	if sse > 3 { // 3 is the threshold for blend errors
+		ss.TrlBlendErr = 1
+	} else {
+		ss.TrlBlendErr = 0
+		// close pats
+	}
+}
+
 // ClosestStat finds the closest pattern in given column of given table to
 // given layer activation pattern using given variable.  Returns the row number,
-// correlation value, and value of a column named namecol for that row if non-empty.
+// sse value, and value of a column named namecol for that row if non-empty.
 // Column must be etensor.Float32
 func (ss *Sim) ClosestStat(net emer.Network, lnm, varnm string, dt *etable.Table, colnm, namecol string) (int, float32, string) {
 	vt := ss.ValsTsr(lnm)
 	ly := net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 	ly.UnitValsTensor(vt, varnm)
 	col := dt.ColByName(colnm)
-	// note: requires Increasing metric so using Inv
-	row, cor := metric.ClosestRow32(vt, col.(*etensor.Float32), metric.InvCorrelation32)
-	cor = 1 - cor // convert back to correl
+	row, sse := metric.ClosestRow32(vt, col.(*etensor.Float32), metric.SumSquaresBinTol32)
 	nm := ""
 	if namecol != "" {
 		nm = dt.CellString(namecol, row)
 	}
-	return row, cor, nm
+	return row, sse, nm
 }
 
 // TrainEpoch runs training trials for remainder of this epoch
@@ -553,6 +631,15 @@ func (ss *Sim) TrainRun() {
 		}
 	}
 	ss.Stopped()
+}
+
+// LrateSched implements the learning rate schedule
+func (ss *Sim) LrateSched(epc int) {
+	switch epc {
+	case 100:
+		ss.Net.LrateMult(1) // not using -- not necc.
+		// fmt.Printf("dropped lrate 0.5 at epoch: %d\n", epc)
+	}
 }
 
 // Train runs the full training from this point onward
@@ -612,7 +699,7 @@ func (ss *Sim) TestTrial(returnOnChg bool) {
 	}
 
 	// note: type must be in place before apply inputs
-	// ss.Net.LayerByName("Output").SetType(emer.Compare)
+	ss.SetInputLayer(0) // final training on Ortho reading
 	ss.ApplyInputs(&ss.TestEnv)
 	ss.AlphaCyc(false)   // !train
 	ss.TrialStats(false) // !accumulate
@@ -724,10 +811,12 @@ func (ss *Sim) OpenPatAsset(dt *etable.Table, fnm, name, desc string) error {
 func (ss *Sim) OpenPats() {
 	// patgen.ReshapeCppFile(ss.TrainPats, "TrainEnv.dat", "train_pats.tsv")    // one-time reshape
 	// patgen.ReshapeCppFile(ss.Semantics, "FeatureNames.dat", "semantics.tsv") // one-time reshape
-	// patgen.ReshapeCppFile(ss.TrainB, "TwoOut_TrainB.dat", "twout_b.tsv")       // one-time reshape
+	// patgen.ReshapeCppFile(ss.CloseOrthos, "OrthoClosePats.dat", "close_orthos.tsv") // one-time reshape
+	// patgen.ReshapeCppFile(ss.CloseSems, "SemClosePats.dat", "close_sems.tsv")       // one-time reshape
 	ss.OpenPatAsset(ss.TrainPats, "train_pats.tsv", "TrainPats", "Training patterns")
 	ss.OpenPatAsset(ss.Semantics, "semantics.tsv", "Semantics", "Semantics features and properties")
-	// ss.OpenPatAsset(ss.TrainB, "twout_b.tsv", "TrainB", "B Training patterns")
+	ss.OpenPatAsset(ss.CloseOrthos, "close_orthos.tsv", "CloseOrthos", "Close Orthography items")
+	ss.OpenPatAsset(ss.CloseSems, "close_sems.tsv", "CloseSems", "Close Semantic items")
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -765,8 +854,6 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 	ss.EpcPctErr = float64(ss.SumErr) / nt
 	ss.SumErr = 0
 	ss.EpcPctCor = 1 - ss.EpcPctErr
-	ss.EpcCorrel = ss.SumCorrel / nt
-	ss.SumCorrel = 0
 	ss.EpcCosDiff = ss.SumCosDiff / nt
 	ss.SumCosDiff = 0
 	if ss.FirstZero < 0 && ss.EpcPctErr == 0 {
@@ -784,7 +871,6 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 	dt.SetCellFloat("AvgSSE", row, ss.EpcAvgSSE)
 	dt.SetCellFloat("PctErr", row, ss.EpcPctErr)
 	dt.SetCellFloat("PctCor", row, ss.EpcPctCor)
-	dt.SetCellFloat("Correl", row, ss.EpcCorrel)
 	dt.SetCellFloat("CosDiff", row, ss.EpcCosDiff)
 
 	for _, lnm := range ss.LayStatNms {
@@ -815,7 +901,6 @@ func (ss *Sim) ConfigTrnEpcLog(dt *etable.Table) {
 		{"AvgSSE", etensor.FLOAT64, nil, nil},
 		{"PctErr", etensor.FLOAT64, nil, nil},
 		{"PctCor", etensor.FLOAT64, nil, nil},
-		{"Correl", etensor.FLOAT64, nil, nil},
 		{"CosDiff", etensor.FLOAT64, nil, nil},
 	}
 	for _, lnm := range ss.LayStatNms {
@@ -832,10 +917,9 @@ func (ss *Sim) ConfigTrnEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetColParams("Run", false, true, 0, false, 0)
 	plt.SetColParams("Epoch", false, true, 0, false, 0)
 	plt.SetColParams("SSE", false, true, 0, false, 0)
-	plt.SetColParams("AvgSSE", false, true, 0, false, 0)
+	plt.SetColParams("AvgSSE", true, true, 0, false, 1)
 	plt.SetColParams("PctErr", true, true, 0, true, 1) // default plot
 	plt.SetColParams("PctCor", false, true, 0, true, 1)
-	plt.SetColParams("Correl", true, true, 0, true, 1) // def
 	plt.SetColParams("CosDiff", false, true, 0, true, 1)
 
 	for _, lnm := range ss.LayStatNms {
@@ -851,8 +935,6 @@ func (ss *Sim) ConfigTrnEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 // log always contains number of testing items
 func (ss *Sim) LogTstTrl(dt *etable.Table) {
 	epc := ss.TrainEnv.Epoch.Prv // this is triggered by increment so use previous value
-	inp := ss.Net.LayerByName("Input").(leabra.LeabraLayer).AsLeabra()
-	out := ss.Net.LayerByName("Output").(leabra.LeabraLayer).AsLeabra()
 
 	trl := ss.TestEnv.Trial.Cur
 	row := trl
@@ -865,11 +947,14 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 	dt.SetCellFloat("Epoch", row, float64(epc))
 	dt.SetCellFloat("Trial", row, float64(trl))
 	dt.SetCellString("TrialName", row, ss.TestEnv.TrialName)
-	dt.SetCellString("Closest", row, ss.TrlClosest)
-	dt.SetCellFloat("IsA", row, ss.TrlIsA)
-	dt.SetCellFloat("IsB", row, ss.TrlIsB)
+	dt.SetCellString("Phon", row, ss.TrlPhon)
+	dt.SetCellFloat("PhonSSE", row, ss.TrlPhonSSE)
+	dt.SetCellFloat("Blend", row, ss.TrlBlendErr)
+	dt.SetCellFloat("Vis", row, ss.TrlVisErr)
+	dt.SetCellFloat("Sem", row, ss.TrlSemErr)
+	dt.SetCellFloat("VisSem", row, ss.TrlVisSemErr)
+	dt.SetCellFloat("Other", row, ss.TrlOtherErr)
 	dt.SetCellFloat("Err", row, ss.TrlErr)
-	dt.SetCellFloat("Correl", row, ss.TrlCorrel)
 	dt.SetCellFloat("SSE", row, ss.TrlSSE)
 	dt.SetCellFloat("AvgSSE", row, ss.TrlAvgSSE)
 	dt.SetCellFloat("CosDiff", row, ss.TrlCosDiff)
@@ -878,24 +963,11 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		dt.SetCellFloat(ly.Nm+" ActM.Avg", row, float64(ly.Pools[0].ActM.Avg))
 	}
-
-	ivt := ss.ValsTsr("Input")
-	ovt := ss.ValsTsr("Output")
-	inp.UnitValsTensor(ivt, "Act")
-	dt.SetCellTensor("InAct", row, ivt)
-	out.UnitValsTensor(ovt, "ActM")
-	dt.SetCellTensor("OutActM", row, ovt)
-	out.UnitValsTensor(ovt, "Targ")
-	dt.SetCellTensor("OutTarg", row, ovt)
-
 	// note: essential to use Go version of update when called from another goroutine
 	ss.TstTrlPlot.GoUpdate()
 }
 
 func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
-	inp := ss.Net.LayerByName("Input").(leabra.LeabraLayer).AsLeabra()
-	out := ss.Net.LayerByName("Output").(leabra.LeabraLayer).AsLeabra()
-
 	dt.SetMetaData("name", "TstTrlLog")
 	dt.SetMetaData("desc", "Record of testing per input pattern")
 	dt.SetMetaData("read-only", "true")
@@ -907,11 +979,14 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 		{"Epoch", etensor.INT64, nil, nil},
 		{"Trial", etensor.INT64, nil, nil},
 		{"TrialName", etensor.STRING, nil, nil},
-		{"Closest", etensor.STRING, nil, nil},
-		{"IsA", etensor.FLOAT64, nil, nil},
-		{"IsB", etensor.FLOAT64, nil, nil},
+		{"Phon", etensor.STRING, nil, nil},
+		{"PhonSSE", etensor.FLOAT64, nil, nil},
+		{"Blend", etensor.FLOAT64, nil, nil},
+		{"Vis", etensor.FLOAT64, nil, nil},
+		{"Sem", etensor.FLOAT64, nil, nil},
+		{"VisSem", etensor.FLOAT64, nil, nil},
+		{"Other", etensor.FLOAT64, nil, nil},
 		{"Err", etensor.FLOAT64, nil, nil},
-		{"Correl", etensor.FLOAT64, nil, nil},
 		{"SSE", etensor.FLOAT64, nil, nil},
 		{"AvgSSE", etensor.FLOAT64, nil, nil},
 		{"CosDiff", etensor.FLOAT64, nil, nil},
@@ -919,11 +994,6 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 	for _, lnm := range ss.LayStatNms {
 		sch = append(sch, etable.Column{lnm + " ActM.Avg", etensor.FLOAT64, nil, nil})
 	}
-	sch = append(sch, etable.Schema{
-		{"InAct", etensor.FLOAT64, inp.Shp.Shp, nil},
-		{"OutActM", etensor.FLOAT64, out.Shp.Shp, nil},
-		{"OutTarg", etensor.FLOAT64, out.Shp.Shp, nil},
-	}...)
 	dt.SetFromSchema(sch, nt)
 }
 
@@ -936,11 +1006,14 @@ func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetColParams("Epoch", false, true, 0, false, 0)
 	plt.SetColParams("Trial", false, true, 0, false, 0)
 	plt.SetColParams("TrialName", false, true, 0, false, 0)
-	plt.SetColParams("Closest", true, true, 0, false, 0)
-	plt.SetColParams("IsA", true, true, 0, true, 1)
-	plt.SetColParams("IsB", false, true, 0, true, 1)
+	plt.SetColParams("Phon", true, true, 0, false, 0)
+	plt.SetColParams("PhonSSE", false, true, 0, true, 1)
+	plt.SetColParams("Blend", true, true, 0, true, 1)
+	plt.SetColParams("Vis", true, true, 0, true, 1)
+	plt.SetColParams("Sem", true, true, 0, true, 1)
+	plt.SetColParams("VisSem", true, true, 0, true, 1)
+	plt.SetColParams("Other", true, true, 0, true, 1)
 	plt.SetColParams("Err", false, true, 0, true, 1)
-	plt.SetColParams("Correl", false, true, 0, true, 1)
 	plt.SetColParams("SSE", false, true, 0, false, 0)
 	plt.SetColParams("AvgSSE", false, true, 0, false, 0)
 	plt.SetColParams("CosDiff", false, true, 0, true, 1)
@@ -948,10 +1021,6 @@ func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	for _, lnm := range ss.LayStatNms {
 		plt.SetColParams(lnm+" ActM.Avg", false, true, 0, true, .5)
 	}
-
-	plt.SetColParams("InAct", false, true, 0, true, 1)
-	plt.SetColParams("OutActM", false, true, 0, true, 1)
-	plt.SetColParams("OutTarg", false, true, 0, true, 1)
 	return plt
 }
 
@@ -966,17 +1035,23 @@ func (ss *Sim) LogTstEpc(dt *etable.Table) {
 	tix := etable.NewIdxView(trl)
 	epc := ss.TrainEnv.Epoch.Prv // ?
 
+	// todo: record concrete / abstract
+	// todo: use split to get stats per each
+
 	// note: this shows how to use agg methods to compute summary data from another
 	// data table, instead of incrementing on the Sim
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
+	dt.SetCellFloat("PhonSSE", row, agg.Mean(tix, "PhonSSE")[0])
+	dt.SetCellFloat("Blend", row, agg.Mean(tix, "Blend")[0])
+	dt.SetCellFloat("Vis", row, agg.Mean(tix, "Vis")[0])
+	dt.SetCellFloat("Sem", row, agg.Mean(tix, "Sem")[0])
+	dt.SetCellFloat("VisSem", row, agg.Mean(tix, "VisSem")[0])
+	dt.SetCellFloat("Other", row, agg.Mean(tix, "Other")[0])
 	dt.SetCellFloat("SSE", row, agg.Sum(tix, "SSE")[0])
 	dt.SetCellFloat("AvgSSE", row, agg.Mean(tix, "AvgSSE")[0])
 	dt.SetCellFloat("PctErr", row, agg.Mean(tix, "Err")[0])
 	dt.SetCellFloat("PctCor", row, 1-agg.Mean(tix, "Err")[0])
-	dt.SetCellFloat("IsA", row, agg.Mean(tix, "IsA")[0])
-	dt.SetCellFloat("IsB", row, agg.Mean(tix, "IsB")[0])
-	dt.SetCellFloat("Correl", row, agg.Mean(tix, "Correl")[0])
 	dt.SetCellFloat("CosDiff", row, agg.Mean(tix, "CosDiff")[0])
 
 	// note: essential to use Go version of update when called from another goroutine
@@ -992,13 +1067,16 @@ func (ss *Sim) ConfigTstEpcLog(dt *etable.Table) {
 	dt.SetFromSchema(etable.Schema{
 		{"Run", etensor.INT64, nil, nil},
 		{"Epoch", etensor.INT64, nil, nil},
+		{"PhonSSE", etensor.FLOAT64, nil, nil},
+		{"Blend", etensor.FLOAT64, nil, nil},
+		{"Vis", etensor.FLOAT64, nil, nil},
+		{"Sem", etensor.FLOAT64, nil, nil},
+		{"VisSem", etensor.FLOAT64, nil, nil},
+		{"Other", etensor.FLOAT64, nil, nil},
 		{"SSE", etensor.FLOAT64, nil, nil},
 		{"AvgSSE", etensor.FLOAT64, nil, nil},
 		{"PctErr", etensor.FLOAT64, nil, nil},
 		{"PctCor", etensor.FLOAT64, nil, nil},
-		{"IsA", etensor.FLOAT64, nil, nil},
-		{"IsB", etensor.FLOAT64, nil, nil},
-		{"Correl", etensor.FLOAT64, nil, nil},
 		{"CosDiff", etensor.FLOAT64, nil, nil},
 	}, 0)
 }
@@ -1010,13 +1088,16 @@ func (ss *Sim) ConfigTstEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Run", false, true, 0, false, 0)
 	plt.SetColParams("Epoch", false, true, 0, false, 0)
+	plt.SetColParams("PhonSSE", false, true, 0, true, 1)
+	plt.SetColParams("Blend", true, true, 0, true, 1)
+	plt.SetColParams("Vis", true, true, 0, true, 1)
+	plt.SetColParams("Sem", true, true, 0, true, 1)
+	plt.SetColParams("VisSem", true, true, 0, true, 1)
+	plt.SetColParams("Other", true, true, 0, true, 1)
 	plt.SetColParams("SSE", false, true, 0, false, 0)
 	plt.SetColParams("AvgSSE", false, true, 0, false, 0)
 	plt.SetColParams("PctErr", false, true, 0, true, 1)
 	plt.SetColParams("PctCor", false, true, 0, true, 1)
-	plt.SetColParams("IsA", true, true, 0, true, 1)
-	plt.SetColParams("IsB", true, true, 0, true, 1)
-	plt.SetColParams("Correl", false, true, 0, true, 1)
 	plt.SetColParams("CosDiff", false, true, 0, true, 1)
 	return plt
 }
@@ -1104,8 +1185,8 @@ func (ss *Sim) ConfigRunPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D 
 
 func (ss *Sim) ConfigNetView(nv *netview.NetView) {
 	nv.ViewDefaults()
-	// nv.Scene().Camera.Pose.Pos.Set(0, 1.25, 3.0)
-	// nv.Scene().Camera.LookAt(mat32.Vec3{0, 0, 0}, mat32.Vec3{0, 1, 0})
+	nv.Scene().Camera.Pose.Pos.Set(0, 1.05, 2.75)
+	nv.Scene().Camera.LookAt(mat32.Vec3{0, 0, 0}, mat32.Vec3{0, 1, 0})
 }
 
 // ConfigGui configures the GoGi gui interface for this simulation,

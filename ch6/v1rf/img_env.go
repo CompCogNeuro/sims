@@ -67,9 +67,9 @@ func (ev *ImgEnv) State(element string) etensor.Tensor {
 	case "LGN":
 		return &ev.Vis.OutTsr
 	case "LGNon":
-		return ev.Vis.OutTsr.SubSpace(2, []int{0})
+		return ev.Vis.OutTsr.SubSpace([]int{0})
 	case "LGNoff":
-		return ev.Vis.OutTsr.SubSpace(2, []int{1})
+		return ev.Vis.OutTsr.SubSpace([]int{1})
 	}
 	return nil
 }

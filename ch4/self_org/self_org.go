@@ -428,10 +428,9 @@ func (ss *Sim) UniquePatStat(dt *etable.Table) float64 {
 	ss.SimMat.TableCol(ix, "Hidden", "TrialName", false, metric.SumSquares64)
 	dm := ss.SimMat.Mat
 	nrow := dm.Dim(0)
-	nd := dm.NumDims()
 	uniq := 0
 	for row := 0; row < nrow; row++ {
-		tsr := dm.SubSpace(nd-1, []int{row}).(*etensor.Float64)
+		tsr := dm.SubSpace([]int{row}).(*etensor.Float64)
 		nzero := 0
 		for _, vl := range tsr.Values {
 			if vl == 0 {
