@@ -256,7 +256,7 @@ func (ss *Sim) ConfigEnv() {
 }
 
 func (ss *Sim) ConfigNet(net *leabra.Network) {
-	net.InitName(net, "WtPrime")
+	net.InitName(net, "Priming")
 	inp := net.AddLayer2D("Input", 5, 5, emer.Input)
 	hid := net.AddLayer2D("Hidden", 6, 6, emer.Hidden)
 	out := net.AddLayer2D("Output", 5, 5, emer.Target)
