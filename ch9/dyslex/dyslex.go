@@ -62,13 +62,13 @@ const (
 	NoLesion LesionTypes = iota
 	SemanticsFull
 	DirectFull
-	OSHid
-	SPHid
-	OPHid
-	OSHidDirectFull
-	SPHIdDirectFull
-	OPHidSemanticsFull
-	AllPartial
+	OShidden // partial
+	SPhidden
+	OPhidden
+	OShidDirectFull
+	SPhidDirectFull
+	OPhidSemanticsFull
+	AllPartial // do all above partial with partials .1..1
 
 	LesionTypesN
 )
@@ -130,7 +130,8 @@ var ParamSets = params.Sets{
 type Sim struct {
 	Lrate        float32           `def:"0.04" desc:"learning rate -- .04 is default 'cortical' learning rate -- try lower levels to see how low you can go and still get priming"`
 	Decay        float32           `def:"1" desc:"proportion of activation decay between trials"`
-	Lesion       LesionTypes       `inactive:"+" desc:"environment type -- use Env button (SetEnv) to set"`
+	Lesion       LesionTypes       `inactive:"+" desc:"type of lesion -- use Lesion button to lesion"`
+	LesionProp   float32           `inactive:"+" desc:"proportion of neurons lesioned -- use Lesion button to lesion"`
 	Net          *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
 	TrainPats    *etable.Table     `view:"no-inline" desc:"training patterns"`
 	Semantics    *etable.Table     `view:"no-inline" desc:"properties of semantic features "`
@@ -139,6 +140,7 @@ type Sim struct {
 	TrnEpcLog    *etable.Table     `view:"no-inline" desc:"training epoch-level log data"`
 	TstEpcLog    *etable.Table     `view:"no-inline" desc:"testing epoch-level log data"`
 	TstTrlLog    *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
+	TstStats     *etable.Table     `view:"no-inline" desc:"aggregate testing stats"`
 	RunLog       *etable.Table     `view:"no-inline" desc:"summary log of each run"`
 	RunStats     *etable.Table     `view:"no-inline" desc:"aggregate stats on all runs"`
 	Params       params.Sets       `view:"no-inline" desc:"full collection of param sets"`
@@ -155,14 +157,16 @@ type Sim struct {
 	LayStatNms   []string          `desc:"names of layers to collect more detailed stats on (avg act, etc)"`
 
 	// statistics: note use float64 as that is best for etable.Table
-	TrlErr       float64 `inactive:"+" desc:"1 if trial was error, 0 if correct -- based on *closest pattern* stat, not SSE"`
+	TrlName      string  `inactive:"+" desc:"name of current input pattern"`
 	TrlPhon      string  `inactive:"+" desc:"name of closest phonology pattern"`
 	TrlPhonSSE   float64 `inactive:"+" desc:"SSE for closest phonology pattern -- > 3 = blend"`
-	TrlBlendErr  float64 `inactive:"+" desc:"blend error"`
+	TrlConAbs    float64 `inactive:"+" desc:"0 = concrete, 1 = abstract"`
 	TrlVisErr    float64 `inactive:"+" desc:"visual error -- close to similar other"`
 	TrlSemErr    float64 `inactive:"+" desc:"semantic error -- close to similar other"`
 	TrlVisSemErr float64 `inactive:"+" desc:"visual + semantic error -- close to similar other"`
+	TrlBlendErr  float64 `inactive:"+" desc:"blend error"`
 	TrlOtherErr  float64 `inactive:"+" desc:"some other error"`
+	TrlErr       float64 `inactive:"+" desc:"1 if trial was error, 0 if correct -- based on *closest pattern* stat, not SSE"`
 	TrlSSE       float64 `inactive:"+" desc:"current trial's sum squared error"`
 	TrlAvgSSE    float64 `inactive:"+" desc:"current trial's average sum squared error"`
 	TrlCosDiff   float64 `inactive:"+" desc:"current trial's cosine difference"`
@@ -192,7 +196,7 @@ type Sim struct {
 	IsRunning   bool                        `view:"-" desc:"true if sim is running"`
 	StopNow     bool                        `view:"-" desc:"flag to stop running"`
 	NeedsNewRun bool                        `view:"-" desc:"flag to initialize NewRun if last one finished"`
-	RndSeed     int64                       `view:"-" desc:"the current random seed"`
+	RndSeed     int64                       `inactive:"+" desc:"the current random seed"`
 }
 
 // this registers this Sim Type and gives it properties that e.g.,
@@ -216,7 +220,7 @@ func (ss *Sim) New() {
 	ss.RunLog = &etable.Table{}
 	ss.RunStats = &etable.Table{}
 	ss.Params = ParamSets
-	ss.RndSeed = 1
+	ss.RndSeed = 100 // default 1 was particularly bad for direct full lesions..
 	ss.ViewOn = true
 	ss.TrainUpdt = leabra.Quarter
 	ss.TestUpdt = leabra.Cycle
@@ -305,6 +309,61 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 		return
 	}
 	net.InitWts()
+}
+
+// LesionNet does lesion of network with given proportion of neurons damaged
+// 0 < prop < 1.
+func (ss *Sim) LesionNet(les LesionTypes, prop float32) {
+	net := ss.Net
+	lesStep := float32(0.1)
+	if les == AllPartial {
+		for ls := OShidden; ls < AllPartial; ls++ {
+			for prp := lesStep; prp < 1; prp += lesStep {
+				ss.UnLesionNet(net)
+				ss.LesionNetImpl(net, ls, prp)
+			}
+		}
+	} else {
+		ss.UnLesionNet(net)
+		ss.LesionNetImpl(net, les, prop)
+	}
+}
+
+func (ss *Sim) UnLesionNet(net *leabra.Network) {
+	net.LayersSetOff(false)
+	net.UnLesionNeurons()
+	net.InitActs()
+}
+
+func (ss *Sim) LesionNetImpl(net *leabra.Network, les LesionTypes, prop float32) {
+	ss.Lesion = les
+	ss.LesionProp = prop
+	switch les {
+	case NoLesion:
+	case SemanticsFull:
+		net.LayerByName("OShidden").SetOff(true)
+		net.LayerByName("Semantics").SetOff(true)
+		net.LayerByName("SPhidden").SetOff(true)
+	case DirectFull:
+		net.LayerByName("OPhidden").SetOff(true)
+	case OShidden:
+		net.LayerByName("OShidden").(leabra.LeabraLayer).AsLeabra().LesionNeurons(prop)
+	case SPhidden:
+		net.LayerByName("SPhidden").(leabra.LeabraLayer).AsLeabra().LesionNeurons(prop)
+	case OPhidden:
+		net.LayerByName("OPhidden").(leabra.LeabraLayer).AsLeabra().LesionNeurons(prop)
+	case OShidDirectFull:
+		net.LayerByName("OPhidden").SetOff(true)
+		net.LayerByName("OShidden").(leabra.LeabraLayer).AsLeabra().LesionNeurons(prop)
+	case SPhidDirectFull:
+		net.LayerByName("OPhidden").SetOff(true)
+		net.LayerByName("SPhidden").(leabra.LeabraLayer).AsLeabra().LesionNeurons(prop)
+	case OPhidSemanticsFull:
+		net.LayerByName("OShidden").SetOff(true)
+		net.LayerByName("Semantics").SetOff(true)
+		net.LayerByName("SPhidden").SetOff(true)
+		net.LayerByName("OPhidden").(leabra.LeabraLayer).AsLeabra().LesionNeurons(prop)
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -485,8 +544,8 @@ func (ss *Sim) TrainTrial() {
 		ss.SetInputLayer(0) // final training on Ortho reading
 	}
 	ss.ApplyInputs(&ss.TrainEnv)
-	ss.AlphaCyc(true)   // train
-	ss.TrialStats(true) // accumulate
+	ss.AlphaCyc(true)                          // train
+	ss.TrialStats(true, ss.TrainEnv.TrialName) // accumulate
 }
 
 // RunEnd is called at the end of a run -- save weights, record final log, etc here
@@ -520,13 +579,13 @@ func (ss *Sim) InitStats() {
 	ss.FirstZero = -1
 	ss.NZero = 0
 	// clear rest just to make Sim look initialized
-	ss.TrlErr = 0
 	ss.TrlPhonSSE = 0
-	ss.TrlBlendErr = 0
 	ss.TrlVisErr = 0
 	ss.TrlSemErr = 0
 	ss.TrlVisSemErr = 0
+	ss.TrlBlendErr = 0
 	ss.TrlOtherErr = 0
+	ss.TrlErr = 0
 	ss.TrlSSE = 0
 	ss.TrlAvgSSE = 0
 	ss.TrlCosDiff = 0
@@ -541,7 +600,7 @@ func (ss *Sim) InitStats() {
 // core algorithm side remains as simple as possible, and doesn't need to worry about
 // different time-scales over which stats could be accumulated etc.
 // You can also aggregate directly from log data, as is done for testing stats
-func (ss *Sim) TrialStats(accum bool) (sse, avgsse, cosdiff float64) {
+func (ss *Sim) TrialStats(accum bool, trlnm string) (sse, avgsse, cosdiff float64) {
 	ss.TrlCosDiff = 0
 	ss.TrlSSE, ss.TrlAvgSSE = 0, 0
 	ntrg := 0
@@ -573,6 +632,18 @@ func (ss *Sim) TrialStats(accum bool) (sse, avgsse, cosdiff float64) {
 		ss.SumAvgSSE += ss.TrlAvgSSE
 		ss.SumCosDiff += ss.TrlCosDiff
 	}
+
+	ss.TrlName = trlnm
+	pidx := ss.TrainPats.RowsByString("Name", trlnm, false, false)[0]
+	if pidx < 20 {
+		ss.TrlConAbs = 0
+	} else {
+		ss.TrlConAbs = 1
+	}
+	if !accum { // test
+		ss.DyslexStats(ss.Net)
+	}
+
 	return
 }
 
@@ -585,7 +656,20 @@ func (ss *Sim) DyslexStats(net emer.Network) {
 		ss.TrlBlendErr = 1
 	} else {
 		ss.TrlBlendErr = 0
-		// close pats
+		ss.TrlVisErr = 0
+		ss.TrlSemErr = 0
+		ss.TrlVisSemErr = 0
+		ss.TrlOtherErr = 0
+		if ss.TrlName != ss.TrlPhon {
+			ss.TrlVisErr = ss.ClosePat(ss.TrlName, ss.TrlPhon, ss.CloseOrthos)
+			ss.TrlSemErr = ss.ClosePat(ss.TrlName, ss.TrlPhon, ss.CloseSems)
+			if ss.TrlVisErr > 0 && ss.TrlSemErr > 0 {
+				ss.TrlVisSemErr = 1
+			}
+			if ss.TrlVisErr == 0 && ss.TrlSemErr == 0 {
+				ss.TrlOtherErr = 1
+			}
+		}
 	}
 }
 
@@ -604,6 +688,12 @@ func (ss *Sim) ClosestStat(net emer.Network, lnm, varnm string, dt *etable.Table
 		nm = dt.CellString(namecol, row)
 	}
 	return row, sse, nm
+}
+
+// ClosePat looks up phon pattern name in given table of close names -- if found returns 1, else 0
+func (ss *Sim) ClosePat(trlnm, phon string, clsdt *etable.Table) float64 {
+	rws := clsdt.RowsByString(trlnm, phon, false, false)
+	return float64(len(rws))
 }
 
 // TrainEpoch runs training trials for remainder of this epoch
@@ -679,6 +769,16 @@ func (ss *Sim) SaveWeights(filename gi.FileName) {
 	ss.Net.SaveWtsJSON(filename)
 }
 
+// OpenTrainedWts opens trained weights
+func (ss *Sim) OpenTrainedWts() {
+	ab, err := Asset("trained.wts") // embedded in executable
+	if err != nil {
+		log.Println(err)
+	}
+	ss.Net.ReadWtsJSON(bytes.NewBuffer(ab))
+	// ss.Net.OpenWtsJSON("trained.wts")
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////
 // Testing
 
@@ -701,8 +801,8 @@ func (ss *Sim) TestTrial(returnOnChg bool) {
 	// note: type must be in place before apply inputs
 	ss.SetInputLayer(0) // final training on Ortho reading
 	ss.ApplyInputs(&ss.TestEnv)
-	ss.AlphaCyc(false)   // !train
-	ss.TrialStats(false) // !accumulate
+	ss.AlphaCyc(false)                         // !train
+	ss.TrialStats(false, ss.TestEnv.TrialName) // !accumulate
 	ss.LogTstTrl(ss.TstTrlLog)
 }
 
@@ -714,8 +814,8 @@ func (ss *Sim) TestItem(idx int) {
 	// note: type must be in place before apply inputs
 	// ss.Net.LayerByName("Output").SetType(emer.Compare)
 	ss.ApplyInputs(&ss.TestEnv)
-	ss.AlphaCyc(false)   // !train
-	ss.TrialStats(false) // !accumulate
+	ss.AlphaCyc(false)                         // !train
+	ss.TrialStats(false, ss.TestEnv.TrialName) // !accumulate
 	ss.TestEnv.Trial.Cur = cur
 }
 
@@ -946,13 +1046,14 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
 	dt.SetCellFloat("Trial", row, float64(trl))
-	dt.SetCellString("TrialName", row, ss.TestEnv.TrialName)
+	dt.SetCellString("TrialName", row, ss.TrlName)
 	dt.SetCellString("Phon", row, ss.TrlPhon)
 	dt.SetCellFloat("PhonSSE", row, ss.TrlPhonSSE)
-	dt.SetCellFloat("Blend", row, ss.TrlBlendErr)
+	dt.SetCellFloat("ConAbs", row, ss.TrlConAbs)
 	dt.SetCellFloat("Vis", row, ss.TrlVisErr)
 	dt.SetCellFloat("Sem", row, ss.TrlSemErr)
 	dt.SetCellFloat("VisSem", row, ss.TrlVisSemErr)
+	dt.SetCellFloat("Blend", row, ss.TrlBlendErr)
 	dt.SetCellFloat("Other", row, ss.TrlOtherErr)
 	dt.SetCellFloat("Err", row, ss.TrlErr)
 	dt.SetCellFloat("SSE", row, ss.TrlSSE)
@@ -981,10 +1082,11 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 		{"TrialName", etensor.STRING, nil, nil},
 		{"Phon", etensor.STRING, nil, nil},
 		{"PhonSSE", etensor.FLOAT64, nil, nil},
-		{"Blend", etensor.FLOAT64, nil, nil},
+		{"ConAbs", etensor.FLOAT64, nil, nil},
 		{"Vis", etensor.FLOAT64, nil, nil},
 		{"Sem", etensor.FLOAT64, nil, nil},
 		{"VisSem", etensor.FLOAT64, nil, nil},
+		{"Blend", etensor.FLOAT64, nil, nil},
 		{"Other", etensor.FLOAT64, nil, nil},
 		{"Err", etensor.FLOAT64, nil, nil},
 		{"SSE", etensor.FLOAT64, nil, nil},
@@ -1006,12 +1108,13 @@ func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetColParams("Epoch", false, true, 0, false, 0)
 	plt.SetColParams("Trial", false, true, 0, false, 0)
 	plt.SetColParams("TrialName", false, true, 0, false, 0)
-	plt.SetColParams("Phon", true, true, 0, false, 0)
+	plt.SetColParams("Phon", false, true, 0, false, 0)
 	plt.SetColParams("PhonSSE", false, true, 0, true, 1)
-	plt.SetColParams("Blend", true, true, 0, true, 1)
+	plt.SetColParams("ConAbs", false, true, 0, true, 1)
 	plt.SetColParams("Vis", true, true, 0, true, 1)
 	plt.SetColParams("Sem", true, true, 0, true, 1)
 	plt.SetColParams("VisSem", true, true, 0, true, 1)
+	plt.SetColParams("Blend", true, true, 0, true, 1)
 	plt.SetColParams("Other", true, true, 0, true, 1)
 	plt.SetColParams("Err", false, true, 0, true, 1)
 	plt.SetColParams("SSE", false, true, 0, false, 0)
@@ -1035,24 +1138,25 @@ func (ss *Sim) LogTstEpc(dt *etable.Table) {
 	tix := etable.NewIdxView(trl)
 	epc := ss.TrainEnv.Epoch.Prv // ?
 
-	// todo: record concrete / abstract
-	// todo: use split to get stats per each
+	cols := []string{"Vis", "Sem", "VisSem", "Blend", "Other"}
 
-	// note: this shows how to use agg methods to compute summary data from another
-	// data table, instead of incrementing on the Sim
+	spl := split.GroupBy(tix, []string{"ConAbs"})
+
+	for _, cl := range cols {
+		split.Agg(spl, cl, agg.AggSum)
+	}
+	tst := spl.AggsToTable(true)
+	ss.TstStats = tst
+
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
-	dt.SetCellFloat("PhonSSE", row, agg.Mean(tix, "PhonSSE")[0])
-	dt.SetCellFloat("Blend", row, agg.Mean(tix, "Blend")[0])
-	dt.SetCellFloat("Vis", row, agg.Mean(tix, "Vis")[0])
-	dt.SetCellFloat("Sem", row, agg.Mean(tix, "Sem")[0])
-	dt.SetCellFloat("VisSem", row, agg.Mean(tix, "VisSem")[0])
-	dt.SetCellFloat("Other", row, agg.Mean(tix, "Other")[0])
-	dt.SetCellFloat("SSE", row, agg.Sum(tix, "SSE")[0])
-	dt.SetCellFloat("AvgSSE", row, agg.Mean(tix, "AvgSSE")[0])
-	dt.SetCellFloat("PctErr", row, agg.Mean(tix, "Err")[0])
-	dt.SetCellFloat("PctCor", row, 1-agg.Mean(tix, "Err")[0])
-	dt.SetCellFloat("CosDiff", row, agg.Mean(tix, "CosDiff")[0])
+	dt.SetCellString("Lesion", row, ss.Lesion.String())
+	dt.SetCellFloat("LesionProp", row, float64(ss.LesionProp))
+
+	for _, cl := range cols {
+		dt.SetCellFloat("Con"+cl, row, tst.CellFloat(cl, 0))
+		dt.SetCellFloat("Abs"+cl, row, tst.CellFloat(cl, 1))
+	}
 
 	// note: essential to use Go version of update when called from another goroutine
 	ss.TstEpcPlot.GoUpdate()
@@ -1064,21 +1168,19 @@ func (ss *Sim) ConfigTstEpcLog(dt *etable.Table) {
 	dt.SetMetaData("read-only", "true")
 	dt.SetMetaData("precision", strconv.Itoa(LogPrec))
 
-	dt.SetFromSchema(etable.Schema{
+	sch := etable.Schema{
 		{"Run", etensor.INT64, nil, nil},
 		{"Epoch", etensor.INT64, nil, nil},
-		{"PhonSSE", etensor.FLOAT64, nil, nil},
-		{"Blend", etensor.FLOAT64, nil, nil},
-		{"Vis", etensor.FLOAT64, nil, nil},
-		{"Sem", etensor.FLOAT64, nil, nil},
-		{"VisSem", etensor.FLOAT64, nil, nil},
-		{"Other", etensor.FLOAT64, nil, nil},
-		{"SSE", etensor.FLOAT64, nil, nil},
-		{"AvgSSE", etensor.FLOAT64, nil, nil},
-		{"PctErr", etensor.FLOAT64, nil, nil},
-		{"PctCor", etensor.FLOAT64, nil, nil},
-		{"CosDiff", etensor.FLOAT64, nil, nil},
-	}, 0)
+		{"Lesion", etensor.STRING, nil, nil},
+		{"LesionProp", etensor.FLOAT64, nil, nil},
+	}
+	cols := []string{"Vis", "Sem", "VisSem", "Blend", "Other"}
+	for _, ty := range []string{"Con", "Abs"} {
+		for _, cl := range cols {
+			sch = append(sch, etable.Column{ty + cl, etensor.FLOAT64, nil, nil})
+		}
+	}
+	dt.SetFromSchema(sch, 0)
 }
 
 func (ss *Sim) ConfigTstEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
@@ -1088,17 +1190,15 @@ func (ss *Sim) ConfigTstEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Run", false, true, 0, false, 0)
 	plt.SetColParams("Epoch", false, true, 0, false, 0)
-	plt.SetColParams("PhonSSE", false, true, 0, true, 1)
-	plt.SetColParams("Blend", true, true, 0, true, 1)
-	plt.SetColParams("Vis", true, true, 0, true, 1)
-	plt.SetColParams("Sem", true, true, 0, true, 1)
-	plt.SetColParams("VisSem", true, true, 0, true, 1)
-	plt.SetColParams("Other", true, true, 0, true, 1)
-	plt.SetColParams("SSE", false, true, 0, false, 0)
-	plt.SetColParams("AvgSSE", false, true, 0, false, 0)
-	plt.SetColParams("PctErr", false, true, 0, true, 1)
-	plt.SetColParams("PctCor", false, true, 0, true, 1)
-	plt.SetColParams("CosDiff", false, true, 0, true, 1)
+	plt.SetColParams("Lesion", false, true, 0, true, 1)
+	plt.SetColParams("LesionProp", false, true, 0, true, 1)
+
+	cols := []string{"Vis", "Sem", "VisSem", "Blend", "Other"}
+	for _, ty := range []string{"Con", "Abs"} {
+		for _, cl := range cols {
+			plt.SetColParams(ty+cl, true, true, 0, true, 10)
+		}
+	}
 	return plt
 }
 
@@ -1344,9 +1444,16 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	tbar.AddSeparator("log")
 
-	tbar.AddAction(gi.ActOpts{Label: "Env", Icon: "gear", Tooltip: "select training input patterns: AB or AC."}, win.This(),
+	tbar.AddAction(gi.ActOpts{Label: "Open Trained Wts", Icon: "update", Tooltip: "open weights trained for 250 epochs with default params", UpdateFunc: func(act *gi.Action) {
+		act.SetActiveStateUpdt(!ss.IsRunning)
+	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+		ss.OpenTrainedWts()
+		vp.SetNeedsFullRender()
+	})
+
+	tbar.AddAction(gi.ActOpts{Label: "Lesion", Icon: "cut", Tooltip: "Lesion network"}, win.This(),
 		func(recv, send ki.Ki, sig int64, data interface{}) {
-			giv.CallMethod(ss, "SetEnv", vp)
+			giv.CallMethod(ss, "LesionNet", vp)
 			vp.SetNeedsFullRender()
 		})
 
@@ -1361,6 +1468,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	tbar.AddAction(gi.ActOpts{Label: "New Seed", Icon: "new", Tooltip: "Generate a new initial random seed to get different results.  By default, Init re-establishes the same initial seed every time."}, win.This(),
 		func(recv, send ki.Ki, sig int64, data interface{}) {
 			ss.NewRndSeed()
+			vp.SetNeedsFullRender()
 		})
 
 	tbar.AddAction(gi.ActOpts{Label: "README", Icon: "file-markdown", Tooltip: "Opens your browser on the README file that contains instructions for how to run this model."}, win.This(),
@@ -1452,11 +1560,12 @@ var SimProps = ki.Props{
 				}},
 			},
 		}},
-		{"SetEnv", ki.Props{
-			"desc": "Select environment type (i.e., configure TrainEnv or TestEnv to use given patterns)",
-			"icon": "gear",
+		{"LesionNet", ki.Props{
+			"desc": "Lesion the network using given type of lesion, and given proportion of neurons (0 < Proportion < 1)",
+			"icon": "cut",
 			"Args": ki.PropSlice{
-				{"Env Type", ki.Props{}},
+				{"Lesion Type", ki.Props{}},
+				{"Proportion", ki.Props{}},
 			},
 		}},
 	},
