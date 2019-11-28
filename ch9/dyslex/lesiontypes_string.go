@@ -16,19 +16,19 @@ func _() {
 	_ = x[NoLesion-0]
 	_ = x[SemanticsFull-1]
 	_ = x[DirectFull-2]
-	_ = x[OSHid-3]
-	_ = x[SPHid-4]
-	_ = x[OPHid-5]
-	_ = x[OSHidDirectFull-6]
-	_ = x[SPHIdDirectFull-7]
-	_ = x[OPHidSemanticsFull-8]
+	_ = x[OShidden-3]
+	_ = x[SPhidden-4]
+	_ = x[OPhidden-5]
+	_ = x[OShidDirectFull-6]
+	_ = x[SPhidDirectFull-7]
+	_ = x[OPhidSemanticsFull-8]
 	_ = x[AllPartial-9]
 	_ = x[LesionTypesN-10]
 }
 
-const _LesionTypes_name = "NoLesionSemanticsFullDirectFullOSHidSPHidOPHidOSHidDirectFullSPHIdDirectFullOPHidSemanticsFullAllPartialLesionTypesN"
+const _LesionTypes_name = "NoLesionSemanticsFullDirectFullOShiddenSPhiddenOPhiddenOShidDirectFullSPhidDirectFullOPhidSemanticsFullAllPartialLesionTypesN"
 
-var _LesionTypes_index = [...]uint8{0, 8, 21, 31, 36, 41, 46, 61, 76, 94, 104, 116}
+var _LesionTypes_index = [...]uint8{0, 8, 21, 31, 39, 47, 55, 70, 85, 103, 113, 125}
 
 func (i LesionTypes) String() string {
 	if i < 0 || i >= LesionTypes(len(_LesionTypes_index)-1) {
