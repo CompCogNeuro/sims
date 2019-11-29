@@ -114,3 +114,7 @@ Interestingly, as the level of damage increases, the model makes increasingly mo
 
 This case of partial direct pathway damage with a completely lesioned semantic pathway produces mostly visual and "other" errors.
 
+# References
+
+Plaut, D. C., & Shallice, T. (1993). Deep dyslexia: A case study of connectionist neuropsychology. Cognitive Neuropsychology, 10(5), 377–500.
+
