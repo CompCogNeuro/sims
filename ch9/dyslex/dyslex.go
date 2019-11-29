@@ -14,6 +14,7 @@ import (
 	"math/rand"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/emer/emergent/emer"
@@ -23,11 +24,13 @@ import (
 	"github.com/emer/emergent/prjn"
 	"github.com/emer/emergent/relpos"
 	"github.com/emer/etable/agg"
+	"github.com/emer/etable/clust"
 	"github.com/emer/etable/eplot"
 	"github.com/emer/etable/etable"
 	"github.com/emer/etable/etensor"
 	_ "github.com/emer/etable/etview" // include to get gui views
 	"github.com/emer/etable/metric"
+	"github.com/emer/etable/simat"
 	"github.com/emer/etable/split"
 	"github.com/emer/leabra/leabra"
 	"github.com/goki/gi/gi"
@@ -87,9 +90,10 @@ var ParamSets = params.Sets{
 				}},
 			{Sel: "Layer", Desc: "FB 0.5 apparently required",
 				Params: params.Params{
-					"Layer.Inhib.Layer.Gi":    "2.1",
-					"Layer.Inhib.Layer.FB":    "0.5",
-					"Layer.Inhib.ActAvg.Init": "0.2",
+					"Layer.Inhib.Layer.Gi":     "2.1",
+					"Layer.Inhib.Layer.FB":     "0.5",
+					"Layer.Inhib.ActAvg.Init":  "0.2",
+					"Layer.Inhib.ActAvg.Fixed": "true", // using fixed = fully reliable testing
 				}},
 			{Sel: "#Orthography", Desc: "higher inhib",
 				Params: params.Params{
@@ -99,8 +103,9 @@ var ParamSets = params.Sets{
 				}},
 			{Sel: "#Semantics", Desc: "higher inhib",
 				Params: params.Params{
-					"Layer.Inhib.Layer.Gi": "2.2",
-					"Layer.Inhib.Layer.FB": "0.5",
+					"Layer.Inhib.Layer.Gi":    "2.2",
+					"Layer.Inhib.Layer.FB":    "0.5",
+					"Layer.Inhib.ActAvg.Init": "0.2",
 				}},
 			{Sel: "#Phonology", Desc: "pool-only inhib",
 				Params: params.Params{
@@ -128,8 +133,6 @@ var ParamSets = params.Sets{
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
-	Lrate        float32           `def:"0.04" desc:"learning rate -- .04 is default 'cortical' learning rate -- try lower levels to see how low you can go and still get priming"`
-	Decay        float32           `def:"1" desc:"proportion of activation decay between trials"`
 	Lesion       LesionTypes       `inactive:"+" desc:"type of lesion -- use Lesion button to lesion"`
 	LesionProp   float32           `inactive:"+" desc:"proportion of neurons lesioned -- use Lesion button to lesion"`
 	Net          *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
@@ -143,6 +146,7 @@ type Sim struct {
 	TstStats     *etable.Table     `view:"no-inline" desc:"aggregate testing stats"`
 	RunLog       *etable.Table     `view:"no-inline" desc:"summary log of each run"`
 	RunStats     *etable.Table     `view:"no-inline" desc:"aggregate stats on all runs"`
+	SemClustPlot *eplot.Plot2D     `view:"no-inline" desc:"semantics cluster plot"`
 	Params       params.Sets       `view:"no-inline" desc:"full collection of param sets"`
 	MaxRuns      int               `desc:"maximum number of model runs to perform"`
 	MaxEpcs      int               `desc:"maximum number of epochs to run per model run"`
@@ -220,7 +224,7 @@ func (ss *Sim) New() {
 	ss.RunLog = &etable.Table{}
 	ss.RunStats = &etable.Table{}
 	ss.Params = ParamSets
-	ss.RndSeed = 100 // default 1 was particularly bad for direct full lesions..
+	ss.RndSeed = 10 // default 1 was particularly bad for direct full lesions..
 	ss.ViewOn = true
 	ss.TrainUpdt = leabra.Quarter
 	ss.TestUpdt = leabra.Cycle
@@ -230,8 +234,7 @@ func (ss *Sim) New() {
 
 func (ss *Sim) Defaults() {
 	ss.Lesion = NoLesion
-	ss.Lrate = 0.04
-	ss.Decay = 1
+	ss.LesionProp = 0
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -321,6 +324,7 @@ func (ss *Sim) LesionNet(les LesionTypes, prop float32) {
 			for prp := lesStep; prp < 1; prp += lesStep {
 				ss.UnLesionNet(net)
 				ss.LesionNetImpl(net, ls, prp)
+				ss.TestAll()
 			}
 		}
 	} else {
@@ -486,15 +490,24 @@ func (ss *Sim) ApplyInputs(en env.Env) {
 }
 
 // SetInputLayer determines which layer is the input -- others are targets
-// 0 = Ortho, 1 = Sem, 2 = Phon
+// 0 = Ortho, 1 = Sem, 2 = Phon, 3 = Ortho + compare for others
 func (ss *Sim) SetInputLayer(layno int) {
 	lays := []string{"Orthography", "Semantics", "Phonology"}
+	test := false
+	if layno > 2 {
+		layno = 0
+		test = true
+	}
 	for i, lnm := range lays {
 		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		if i == layno {
 			ly.SetType(emer.Input)
 		} else {
-			ly.SetType(emer.Target)
+			if test {
+				ly.SetType(emer.Compare)
+			} else {
+				ly.SetType(emer.Target)
+			}
 		}
 	}
 }
@@ -799,7 +812,7 @@ func (ss *Sim) TestTrial(returnOnChg bool) {
 	}
 
 	// note: type must be in place before apply inputs
-	ss.SetInputLayer(0) // final training on Ortho reading
+	ss.SetInputLayer(3) // 3 is testing with compare on other layers, ortho input
 	ss.ApplyInputs(&ss.TestEnv)
 	ss.AlphaCyc(false)                         // !train
 	ss.TrialStats(false, ss.TestEnv.TrialName) // !accumulate
@@ -851,11 +864,6 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 		// this is important for catching typos and ensuring that all sheets can be used
 		ss.Params.ValidateSheets([]string{"Network", "Sim"})
 	}
-	spo := ss.Params.SetByName("Base").SheetByName("Network").SelByName("Prjn")
-	spo.Params.SetParamByName("Prjn.Learn.Lrate", fmt.Sprintf("%g", ss.Lrate))
-
-	spo = ss.Params.SetByName("Base").SheetByName("Network").SelByName("Layer")
-	spo.Params.SetParamByName("Layer.Act.Init.Decay", fmt.Sprintf("%g", ss.Decay))
 
 	err := ss.SetParamsSet("Base", sheet, setMsg)
 	return err
@@ -1280,6 +1288,39 @@ func (ss *Sim) ConfigRunPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D 
 	return plt
 }
 
+// ClustPlots does all cluster plots
+func (ss *Sim) ClustPlots() {
+	if ss.SemClustPlot == nil {
+		ss.SemClustPlot = &eplot.Plot2D{}
+	}
+	// get rid of _phon in names
+	tpcp := ss.TrainPats.Clone()
+	nm := tpcp.ColByName("Name")
+	for r := 0; r < tpcp.Rows; r++ {
+		n := nm.StringVal1D(r)
+		n = strings.Split(n, "_")[0]
+		nm.SetString1D(r, n)
+	}
+	ss.ClustPlot(ss.SemClustPlot, etable.NewIdxView(tpcp), "Semantics")
+}
+
+// ClustPlot does one cluster plot on given table column
+func (ss *Sim) ClustPlot(plt *eplot.Plot2D, ix *etable.IdxView, colNm string) {
+	nm, _ := ix.Table.MetaData["name"]
+	smat := &simat.SimMat{}
+	smat.TableCol(ix, colNm, "Name", false, metric.InvCosine64)
+	pt := &etable.Table{}
+	clust.Plot(pt, clust.Glom(smat, clust.ContrastDist), smat)
+	plt.InitName(plt, colNm)
+	plt.Params.Title = "Cluster Plot of: " + nm + " " + colNm
+	plt.Params.XAxisCol = "X"
+	plt.SetTable(pt)
+	// order of params: on, fixMin, min, fixMax, max
+	plt.SetColParams("X", false, true, 0, false, 0)
+	plt.SetColParams("Y", true, true, 0, false, 0)
+	plt.SetColParams("Label", true, false, 0, false, 0)
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////
 // 		Gui
 
@@ -1461,6 +1502,14 @@ func (ss *Sim) ConfigGui() *gi.Window {
 		func(recv, send ki.Ki, sig int64, data interface{}) {
 			ss.RunLog.SetNumRows(0)
 			ss.RunPlot.Update()
+		})
+
+	tbar.AddSeparator("anal")
+
+	tbar.AddAction(gi.ActOpts{Label: "Cluster Plot", Icon: "file-image", Tooltip: "run cluster plot on input patterns."}, win.This(),
+		func(recv, send ki.Ki, sig int64, data interface{}) {
+			ss.ClustPlots()
+			vp.SetNeedsFullRender()
 		})
 
 	tbar.AddSeparator("misc")
