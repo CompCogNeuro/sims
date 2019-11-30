@@ -888,9 +888,9 @@ func (ss *Sim) OpenPatAsset(dt *etable.Table, fnm, name, desc string) error {
 }
 
 func (ss *Sim) OpenPats() {
-	// patgen.ReshapeCppFile(ss.Pats, "family_trees.dat", "family_trees.dat") // one-time reshape
-	ss.OpenPatAsset(ss.Pats, "family_trees.dat", "Family Trees", "Family Trees Training patterns")
-	// err := dt.OpenCSV("family_trees.dat", etable.Tab)
+	// patgen.ReshapeCppFile(ss.Pats, "family_trees.dat", "family_trees.tsv") // one-time reshape
+	ss.OpenPatAsset(ss.Pats, "family_trees.tsv", "Family Trees", "Family Trees Training patterns")
+	// err := ss.Pats.OpenCSV("family_trees.tsv", etable.Tab)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////

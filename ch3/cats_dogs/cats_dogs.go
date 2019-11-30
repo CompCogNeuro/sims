@@ -453,9 +453,9 @@ func (ss *Sim) OpenPatAsset(dt *etable.Table, fnm, name, desc string) error {
 }
 
 func (ss *Sim) OpenPats() {
-	// patgen.ReshapeCppFile(ss.Pats, "StdInputData.dat", "cats_dogs_pats.dat") // one-time reshape
-	ss.OpenPatAsset(ss.Pats, "cats_dogs_pats.dat", "CatAndDogPats", "Testing patterns")
-	// dt.OpenCSV("cats_dogs_pats.dat", etable.Tab)
+	// patgen.ReshapeCppFile(ss.Pats, "StdInputData.dat", "cats_dogs_pats.tsv") // one-time reshape
+	ss.OpenPatAsset(ss.Pats, "cats_dogs_pats.tsv", "CatAndDogPats", "Testing patterns")
+	// dt.OpenCSV("cats_dogs_pats.tsv", etable.Tab)
 }
 
 //////////////////////////////////////////////

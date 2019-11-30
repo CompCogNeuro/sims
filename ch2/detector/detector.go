@@ -394,9 +394,9 @@ func (ss *Sim) OpenPatAsset(dt *etable.Table, fnm, name, desc string) error {
 }
 
 func (ss *Sim) OpenPats() {
-	// patgen.ReshapeCppFile(ss.Pats, "digits.dat", "digits.dat") // one-time reshape
-	ss.OpenPatAsset(ss.Pats, "digits.dat", "DigitPats", "Testing Digit patterns")
-	// dt.OpenCSV("digits.dat", etable.Tab)
+	// patgen.ReshapeCppFile(ss.Pats, "digits.dat", "digits.tsv") // one-time reshape
+	ss.OpenPatAsset(ss.Pats, "digits.tsv", "DigitPats", "Testing Digit patterns")
+	// dt.OpenCSV("digits.tsv", etable.Tab)
 }
 
 //////////////////////////////////////////////

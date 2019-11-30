@@ -1,7 +1,7 @@
 # Makefile for CCN sims projects
 
 # important: update these for each app
-ASSETS=faces.dat partial_faces.dat faces.wts
+ASSETS=faces.tsv partial_faces.tsv faces.wts
 
 # default package install 
 PKGDIR=$(HOME)/ccnsimpkg

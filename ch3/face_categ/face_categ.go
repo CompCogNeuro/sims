@@ -468,12 +468,12 @@ func (ss *Sim) OpenPatAsset(dt *etable.Table, fnm, name, desc string) error {
 }
 
 func (ss *Sim) OpenPats() {
-	// patgen.ReshapeCppFile(ss.Pats, "faces.dat", "faces.dat")     // one-time reshape
-	// patgen.ReshapeCppFile(ss.PartPats, "partial_faces.dat", "partial_faces.dat") // one-time reshape
-	ss.OpenPatAsset(ss.Pats, "faces.dat", "FacePats", "Testing Face patterns: full faces")
-	// err := dt.OpenCSV("digits.dat", etable.Tab)
-	ss.OpenPatAsset(ss.PartPats, "partial_faces.dat", "PartFacePats", "Testing Face patterns: partial faces")
-	// err := dt.OpenCSV("digits.dat", etable.Tab)
+	// patgen.ReshapeCppFile(ss.Pats, "faces.dat", "faces.tsv")     // one-time reshape
+	// patgen.ReshapeCppFile(ss.PartPats, "partial_faces.tsv", "partial_faces.tsv") // one-time reshape
+	ss.OpenPatAsset(ss.Pats, "faces.tsv", "FacePats", "Testing Face patterns: full faces")
+	// err := ss.Pats.OpenCSV("faces.tsv", etable.Tab)
+	ss.OpenPatAsset(ss.PartPats, "partial_faces.tsv", "PartFacePats", "Testing Face patterns: partial faces")
+	// err := ss.PartPats.OpenCSV("partial_faces.tsv", etable.Tab)
 }
 
 //////////////////////////////////////////////

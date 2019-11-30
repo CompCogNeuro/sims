@@ -639,12 +639,12 @@ func (ss *Sim) OpenPatAsset(dt *etable.Table, fnm, name, desc string) error {
 }
 
 func (ss *Sim) OpenPats() {
-	// patgen.ReshapeCppFile(ss.Lines2, "lines_5x5x2.dat", "lines_5x5x2.dat") // one-time reshape
-	// patgen.ReshapeCppFile(ss.Lines1, "lines_5x5x1.dat", "lines_5x5x1.dat") // one-time reshape
-	ss.OpenPatAsset(ss.Lines2, "lines_5x5x2.dat", "Lines2", "Lines2 Training patterns")
-	// err := dt.OpenCSV("lines_5x5x2.dat", etable.Tab)
-	ss.OpenPatAsset(ss.Lines1, "lines_5x5x1.dat", "Lines1", "Lines1 Testing patterns")
-	// err = dt.OpenCSV("lines_5x5x1.dat", etable.Tab)
+	// patgen.ReshapeCppFile(ss.Lines2, "lines_5x5x2.dat", "lines_5x5x2.tsv") // one-time reshape
+	// patgen.ReshapeCppFile(ss.Lines1, "lines_5x5x1.dat", "lines_5x5x1.tsv") // one-time reshape
+	ss.OpenPatAsset(ss.Lines2, "lines_5x5x2.tsv", "Lines2", "Lines2 Training patterns")
+	// err := ss.Lines2.OpenCSV("lines_5x5x2.tsv", etable.Tab)
+	ss.OpenPatAsset(ss.Lines1, "lines_5x5x1.tsv", "Lines1", "Lines1 Testing patterns")
+	// err = ss.Lines1.OpenCSV("lines_5x5x1.tsv", etable.Tab)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
