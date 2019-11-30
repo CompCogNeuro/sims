@@ -1,7 +1,7 @@
 # Makefile for CCN sims projects
 
 # important: update these for each app
-ASSETS=easy.dat hard.dat impossible.dat
+ASSETS=easy.tsv hard.tsv impossible.tsv
 
 # default package install 
 PKGDIR=$(HOME)/ccnsimpkg

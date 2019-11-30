@@ -705,15 +705,15 @@ func (ss *Sim) OpenPatAsset(dt *etable.Table, fnm, name, desc string) error {
 }
 
 func (ss *Sim) OpenPats() {
-	// patgen.ReshapeCppFile(ss.Easy, "easy.dat", "easy.dat")                   // one-time reshape
-	// patgen.ReshapeCppFile(ss.Hard, "hard.dat", "hard.dat")                   // one-time reshape
-	// patgen.ReshapeCppFile(ss.Impossible, "impossible.dat", "impossible.dat") // one-time reshape
-	ss.OpenPatAsset(ss.Easy, "easy.dat", "Easy", "Easy Training patterns")
-	// err := dt.OpenCSV("easy.dat", etable.Tab)
-	ss.OpenPatAsset(ss.Hard, "hard.dat", "Hard", "Hard Training patterns")
-	// err = dt.OpenCSV("hard.dat", etable.Tab)
-	ss.OpenPatAsset(ss.Impossible, "impossible.dat", "Impossible", "Impossible Training patterns")
-	// err = dt.OpenCSV("impossible.dat", etable.Tab)
+	// patgen.ReshapeCppFile(ss.Easy, "easy.dat", "easy.tsv")                   // one-time reshape
+	// patgen.ReshapeCppFile(ss.Hard, "hard.dat", "hard.tsv")                   // one-time reshape
+	// patgen.ReshapeCppFile(ss.Impossible, "impossible.dat", "impossible.tsv") // one-time reshape
+	ss.OpenPatAsset(ss.Easy, "easy.tsv", "Easy", "Easy Training patterns")
+	// err := ss.Easy.OpenCSV("easy.tsv", etable.Tab)
+	ss.OpenPatAsset(ss.Hard, "hard.tsv", "Hard", "Hard Training patterns")
+	// err = ss.Hard.OpenCSV("hard.tsv", etable.Tab)
+	ss.OpenPatAsset(ss.Impossible, "impossible.tsv", "Impossible", "Impossible Training patterns")
+	// err = ss.Impossible.OpenCSV("impossible.tsv", etable.Tab)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////

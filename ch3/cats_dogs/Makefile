@@ -1,7 +1,7 @@
 # Makefile for CCN sims projects
 
 # important: update these for each app
-ASSETS=cats_dogs_pats.dat cats_dogs.wts
+ASSETS=cats_dogs_pats.tsv cats_dogs.wts
 
 # default package install 
 PKGDIR=$(HOME)/ccnsimpkg

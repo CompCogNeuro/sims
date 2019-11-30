@@ -1,0 +1,68 @@
+Back to [All Sims](https://github.com/CompCogNeuro/sims) (also for general info and executable downloads)
+
+# Introduction
+
+This simulation explores the way that regularities and exceptions are learned in the mapping between spelling (orthography) and sound (phonology), in the context of a "direct pathway" mapping between these two forms of word representations.
+
+This is a large network, and it takes at least 10 mins or longer to train, so we start by loading pre-trained weights.
+
+# Reading Words
+
+First, we will see that the network can read words that are presented to it, using a standard list of probe words developed by Taraban & McClelland, 1987.
+
+The first word the network reads is "best," presented at the left-most edge of the input. You can read this word from the Ortho-graphy input layer from the individual letters within each of the 4 activated 3x9 slots. Each of these slots corresponds to one location and contains 26 units corresponding to one of the 26 letters of the alphabet (with one extra unused unit), as you should see from the labels (these labels appear when you do LoadWeights, so if you don't see them, you probably forgot to do that). To familiarize yourself with the layout of the input patterns, verify that "best" is in fact the pattern presented. 
+
+The display at the top of the network decodes the Phon-ological output, by matching each phonological slot output pattern with the patterns for each of the consonants and vowels. A capital X indicates that the pattern does not exactly match any of the correct outputs. If you run the test prior to doing LoadWeights, it will be all X's. You should see that the ph_out says "bbbestt" which is the correct repeated-consonant response for this word. If you want, you can look at the patterns in the view and compare those with the outputs to see exactly how this information is encoded in the network. 
+
+Also shown in the display at the top of the network is a code for the type of word (which depends on the different testing sets) -- for this Probe test set, the codes are:
+
+* HRC -- High freq regular consistent (e.g., best)
+* HRI -- High freq regular inconsistent (e.g., bone, c.f., done)
+* HAM -- High freq ambiguous (e.g., brown, c.f., blown)
+* HEX -- High freq exception (e.g., both, c.f., cloth
+* LRC -- Low freq regular consistent (e.g., beam)
+* LRI -- Low freq regular inconsistent (e.g., brood, c.f., blood)
+* LAM -- Low freq ambiguous (e.g., blown, c.f., brown)
+* LEX -- Low freq exception (e.g., bowl, c.f., growl)
+
+Let's continue to observe the network's reading performance, observing specifically the translation invariance property.
+
+You should notice that the "best" input appears in successively more rightward positions in the input. Despite these differences in input location, the network produces the correct output. This spatial invariance coding, like the one we explored in the [Perception Chapter](/CCNBook/Perception "wikilink"), requires the network to both maintain some information about the local ordering of the letters (so it pronounces "best" instead of "steb," for example), but also treat the entire pattern the same regardless of where it appears. We will see in a moment that this network developed the same general solution to this problem as the object recognition network, using a combination of locally spatially invariant and yet conjunctive encoding.
+
+You can continue to observe the network's performance, and speed up the process by controlling the rate at which the network display is updated.
+
+Although you may observe an occasional error (especially as the items get lower in frequency and more irregular), the network should pronounce most words correctly -- no small feat itself given that there are nearly 3,000 words presented in as many as 4 different locations each! 
+
+# Network Connectivity and Learning
+
+Now, let's explore the connectivity and weights of the trained network.
+
+Notice that the left-most units receive from the left-most 3 letter slots, where each letter slot is a 3x9 group of units. As you progress to the right in the Ortho_Code groups, the units receive from overlapping groups of 3 letter slots.
+
+As you click on these Ortho_Code units, pay attention to the patterns of weights. You should notice that there are often cases where the unit has strong weights from the same input letter(s) across two or three of the slots, whereas other units encode sequences of different letters across the slots. This is just like the V2 units in the object recognition model in the [Perception Chapter](/CCNBook/Perception "wikilink"), which encode the same feature(s) regardless of location (spatial invariance), and also small combinations of different features (increasing featural complexity).
+
+This invariant coding is just the kind of thing that the Plaut, McClelland, Seidenberg, and Patterson (1996) (hereafter PMSP) hand-tuned input representations were designed to accomplish, as discussed in the main chapter, and we can see that this network learned them on its own.
+
+The hidden layer units have more complex receptive fields that can encompass all of the orthography input slots, just like the IT units in the object recognition model. You should see the same patterns of spatial invariance and increased featural complexity. These units are in a position to encode the regularities of English pronunciation, and also the context sensitivity of these regularities. The conjunctions of input letters represented in the network play a similar role as the wickelfeatures of the Seidenberg & McClelland, 1989 (SM89) model and the hand-tuned conjunctive units in the PMSP model.
+
+There are several important lessons from looking at the weights. First, the network seems to learn the right kinds of representations to allow for good generalization. These representations are similar to those of the V4 layer of the object recognition model in that they combine spatial invariance with conjunctive feature encoding. Second, although we are able to obtain insight by looking at some of the representations, not all are so easily interpretable. Further, once the network's complex activation dynamics are figured into the picture, it is even more difficult to figure out what is happening in the processing of any given input. As we know from the nature of the mapping problem itself, lots of subtle countervailing forces must be balanced out to determine how to pronounce a given word. Finally, the fact that we can easily interpret some units' weights is due to the use of Hebbian learning, which causes the weights to reflect the probabilities of unit co-occurrence.
+
+# Nonword Pronunciation
+
+We next test the network's ability to *generalize* by pronouncing nonwords that exploit the regularities in the spelling to sound mapping. A number of nonword sets exist in the literature -- we use three sets that PMSP used to test their model. The first set of nonwords is comprised of two lists, the first derived from regular words, the second from exception words (Glushko, 1979). The second set was constructed to determine if nonwords that are homophones for actual words are pronounced better than those which are not, so the set is also comprised of two lists, a control list and a homophone list (McCann & Besner, 1987). The third set of nonwords were derived from the regular and exception probe word lists that we used to test the network earlier (Taraban & McClelland, 1987).
+
+You should see that network correctly pronounced the nonword "beed" by producing bbbEddd as the output.
+
+The total percentages for both our model, PMSP (where reported) and the comparable human data are shown in Table 1 in the [Language Chapter](/CCNBook/Language "wikilink"). Clearly, the present model is performing at roughly the same level as both humans and the PMSP model. Thus, we can conclude that the network is capable of extracting the often complex and subtle underlying regularities and subregularities present in the mapping of spelling to sound in English monosyllables, and applying these to nonwords in a way that matches what people tend to
+do.
+
+If you press Run and let the network go through a whole nonword list, you can get a detailed listing of the network's performance in the , and a succinct listing of just the errors in . We tried to determine for each error why the network might have produced the output it did. In many cases, this output reflected a valid pronunciation present in the training set, but it just didn't happen to be the pronunciation that the list-makers chose. This was particularly true for the Glushko (1979) exception list (for the network and for people). Also, the McCann & Besner (1987) lists contain two words that have a "j" in the coda, which never occurs in the training set. These words were excluded by PMSP, and we discount them here too. Nevertheless, the network did sometimes get these words correct, though not on the specific testing trial reported here.
+
+One final aspect of the model that bears on empirical data is its ability to simulate naming latencies as a function of different word features. The features of interest are word frequency and consistency (as enumerated in the Probe codes listed above). The empirical data shows that, as one might expect, higher frequency and more consistent words are named faster than lower frequency and inconsistent words. However, frequency interacts with consistency, such that the frequency effect decreases with increasing consistency (e.g., highly consistent words are pronounced at pretty much the same speed regardless of their frequency, whereas inconsistent words depend more on their frequency). The PMSP model shows the appropriate naming latency effects (and see that paper for more discussion of the empirical literature).
+
+We assessed the extent to which our model also showed these naming latency effects by recording the average settling time for the words in different frequency and consistency groups for the Probe inputs (shown above). The results are shown in graph if you Run the full Probe test set. The model exhibits some of the appropriate main effects of regularity (e.g., HRC and LRC are both the fastest compared to all other condition, and the exception words, HEX and LEX, are the slowest), and also exhibits the critical interaction, whereby the most consistent words do not exhibit a frequency effect (HRC and LRC are statistically equivalent), and the low frequency exception words (LEX) are slower than the high frequency ones (HEX), but not by very much. Also, some of the other conditions are not entirely sensible. Overall, the frequency effects are very small in this model, likely because of the log compression on frequencies -- it takes much longer to train without this, but clearly the raw frequencies are more realistic.
+
+# References
+
+
+

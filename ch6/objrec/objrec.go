@@ -196,6 +196,9 @@ func (ss *Sim) New() {
 	ss.RunStats = &etable.Table{}
 	ss.Params = ParamSets
 	ss.V1V4Prjn = prjn.NewPoolTile()
+	ss.V1V4Prjn.Size.Set(4, 4)
+	ss.V1V4Prjn.Skip.Set(2, 2)
+	ss.V1V4Prjn.Start.Set(-1, -1)
 	ss.V1V4Prjn.TopoRange.Min = 0.8 // note: none of these make a very big diff
 	// but using a symmetric scale range .8 - 1.2 seems like it might be good -- otherwise
 	// weights are systematicaly smaller.
