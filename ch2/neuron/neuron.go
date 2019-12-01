@@ -407,15 +407,15 @@ func (ss *Sim) ConfigTstCycPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.Params.XAxisCol = "Cycle"
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
-	plt.SetColParams("Cycle", false, true, 0, false, 0)
-	plt.SetColParams("Ge", true, true, 0, true, 1)
-	plt.SetColParams("Inet", true, true, -.2, true, 1)
-	plt.SetColParams("Vm", true, true, 0, true, 1)
-	plt.SetColParams("Act", true, true, 0, true, 1)
-	plt.SetColParams("Spike", true, true, 0, true, 1)
-	plt.SetColParams("Gk", true, true, 0, true, 1)
-	plt.SetColParams("ISI", false, true, -2, false, 1)
-	plt.SetColParams("AvgISI", false, true, 0, false, 1)
+	plt.SetColParams("Cycle", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("Ge", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
+	plt.SetColParams("Inet", eplot.On, eplot.FixMin, -.2, eplot.FixMax, 1)
+	plt.SetColParams("Vm", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
+	plt.SetColParams("Act", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
+	plt.SetColParams("Spike", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
+	plt.SetColParams("Gk", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
+	plt.SetColParams("ISI", eplot.Off, eplot.FixMin, -2, eplot.FloatMax, 1)
+	plt.SetColParams("AvgISI", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 1)
 	return plt
 }
 
@@ -452,9 +452,9 @@ func (ss *Sim) ConfigSpikeVsRatePlot(plt *eplot.Plot2D, dt *etable.Table) *eplot
 	plt.Params.XAxisCol = "GBarE"
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
-	plt.SetColParams("GBarE", false, true, 0, true, 1)
-	plt.SetColParams("Spike", true, true, 0, true, 1)
-	plt.SetColParams("Rate", true, true, 0, true, 1)
+	plt.SetColParams("GBarE", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
+	plt.SetColParams("Spike", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
+	plt.SetColParams("Rate", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
 	return plt
 }
 
@@ -580,7 +580,7 @@ See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch2/neuron/README.
 		}
 		inQuitPrompt = true
 		gi.PromptDialog(vp, gi.DlgOpts{Title: "Really Quit?",
-			Prompt: "Are you <i>sure</i> you want to quit and lose any unsaved params, weights, logs, etc?"}, true, true,
+			Prompt: "Are you <i>sure</i> you want to quit and lose any unsaved params, weights, logs, etc?"}, gi.AddOk, gi.AddCancel,
 			win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 				if sig == int64(gi.DialogAccepted) {
 					gi.Quit()
@@ -601,7 +601,7 @@ See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch2/neuron/README.
 		}
 		inClosePrompt = true
 		gi.PromptDialog(vp, gi.DlgOpts{Title: "Really Close Window?",
-			Prompt: "Are you <i>sure</i> you want to close the window?  This will Quit the App as well, losing all unsaved params, weights, logs, etc"}, true, true,
+			Prompt: "Are you <i>sure</i> you want to close the window?  This will Quit the App as well, losing all unsaved params, weights, logs, etc"}, gi.AddOk, gi.AddCancel,
 			win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 				if sig == int64(gi.DialogAccepted) {
 					gi.Quit()
