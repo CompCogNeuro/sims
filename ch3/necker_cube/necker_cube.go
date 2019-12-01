@@ -428,15 +428,15 @@ func (ss *Sim) ConfigTstCycPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.Params.XAxisCol = "Cycle"
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
-	plt.SetColParams("Cycle", false, true, 0, false, 0)
-	plt.SetColParams("TrialName", false, true, 0, false, 0)
-	plt.SetColParams("Harmony", true, true, 0, true, .25)
-	plt.SetColParams("GknaFast", false, true, 0, true, .25)
-	plt.SetColParams("GknaMed", false, true, 0, true, .25)
-	plt.SetColParams("GknaSlow", false, true, 0, true, .25)
+	plt.SetColParams("Cycle", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("TrialName", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("Harmony", eplot.On, eplot.FixMin, 0, eplot.FixMax, 0.25)
+	plt.SetColParams("GknaFast", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 0.25)
+	plt.SetColParams("GknaMed", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 0.25)
+	plt.SetColParams("GknaSlow", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 0.25)
 
 	for _, lnm := range ss.TstRecLays {
-		plt.SetColParams(lnm, false, true, 0, true, 1)
+		plt.SetColParams(lnm, eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
 	}
 	return plt
 }
@@ -551,7 +551,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 		}
 		inQuitPrompt = true
 		gi.PromptDialog(vp, gi.DlgOpts{Title: "Really Quit?",
-			Prompt: "Are you <i>sure</i> you want to quit and lose any unsaved params, weights, logs, etc?"}, true, true,
+			Prompt: "Are you <i>sure</i> you want to quit and lose any unsaved params, weights, logs, etc?"}, gi.AddOk, gi.AddCancel,
 			win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 				if sig == int64(gi.DialogAccepted) {
 					gi.Quit()
@@ -572,7 +572,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 		}
 		inClosePrompt = true
 		gi.PromptDialog(vp, gi.DlgOpts{Title: "Really Close Window?",
-			Prompt: "Are you <i>sure</i> you want to close the window?  This will Quit the App as well, losing all unsaved params, weights, logs, etc"}, true, true,
+			Prompt: "Are you <i>sure</i> you want to close the window?  This will Quit the App as well, losing all unsaved params, weights, logs, etc"}, gi.AddOk, gi.AddCancel,
 			win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 				if sig == int64(gi.DialogAccepted) {
 					gi.Quit()

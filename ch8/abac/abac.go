@@ -657,9 +657,9 @@ func (ss *Sim) ConfigPCAPlot(plt *eplot.Plot2D, dt *etable.Table) {
 	plt.Params.Lines = false
 	plt.Params.Points = true
 	// order of params: on, fixMin, min, fixMax, max
-	plt.SetColParams("TrialName", true, true, 0, false, 0)
-	plt.SetColParams("Prjn0", false, true, 0, false, 0)
-	plt.SetColParams("Prjn1", true, true, 0, false, 0)
+	plt.SetColParams("TrialName", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("Prjn0", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("Prjn1", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0)
 }
 
 // ClustPlot does one cluster plot on given table column
@@ -674,9 +674,9 @@ func (ss *Sim) ClustPlot(plt *eplot.Plot2D, ix *etable.IdxView, colNm string) {
 	plt.Params.XAxisCol = "X"
 	plt.SetTable(pt)
 	// order of params: on, fixMin, min, fixMax, max
-	plt.SetColParams("X", false, true, 0, false, 0)
-	plt.SetColParams("Y", true, true, 0, false, 0)
-	plt.SetColParams("Label", true, false, 0, false, 0)
+	plt.SetColParams("X", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("Y", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("Label", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0)
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -851,13 +851,13 @@ func (ss *Sim) ConfigTrnEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.Params.XAxisCol = "Epoch"
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
-	plt.SetColParams("Run", false, true, 0, false, 0)
-	plt.SetColParams("Epoch", false, true, 0, false, 0)
-	plt.SetColParams("SSE", false, true, 0, false, 0) // default plot
-	plt.SetColParams("AvgSSE", false, true, 0, false, 0)
-	plt.SetColParams("PctErr", true, true, 0, true, 1)
-	plt.SetColParams("PctCor", false, true, 0, true, 1)
-	plt.SetColParams("CosDiff", false, true, 0, true, 1)
+	plt.SetColParams("Run", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("Epoch", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("SSE", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("AvgSSE", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("PctErr", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
+	plt.SetColParams("PctCor", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
+	plt.SetColParams("CosDiff", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
 
 	return plt
 }
@@ -930,18 +930,18 @@ func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.Params.XAxisCol = "Trial"
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
-	plt.SetColParams("Run", false, true, 0, false, 0)
-	plt.SetColParams("Epoch", false, true, 0, false, 0)
-	plt.SetColParams("TestNm", false, true, 0, false, 0)
-	plt.SetColParams("Trial", false, true, 0, false, 0)
-	plt.SetColParams("TrialName", false, true, 0, false, 0)
-	plt.SetColParams("Err", false, true, 0, false, 0)
-	plt.SetColParams("SSE", true, true, 0, false, 0) // default plot
-	plt.SetColParams("AvgSSE", false, true, 0, false, 0)
-	plt.SetColParams("CosDiff", false, true, 0, true, 1)
+	plt.SetColParams("Run", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("Epoch", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("TestNm", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("Trial", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("TrialName", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("Err", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("SSE", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0) // default plot
+	plt.SetColParams("AvgSSE", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("CosDiff", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
 
 	for _, lnm := range ss.TstRecLays {
-		plt.SetColParams(lnm, false, true, 0, true, 1)
+		plt.SetColParams(lnm, eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
 	}
 	return plt
 }
@@ -972,7 +972,7 @@ func (ss *Sim) LogTstEpc(dt *etable.Table) {
 	for _, ts := range ss.TstStatNms {
 		split.Agg(spl, ts, agg.AggMean)
 	}
-	ss.TstStats = spl.AggsToTable(true) // no stat name
+	ss.TstStats = spl.AggsToTable(etable.ColNameOnly)
 
 	for ri := 0; ri < ss.TstStats.Rows; ri++ {
 		tst := ss.TstStats.CellString("TestNm", ri)
@@ -1013,16 +1013,16 @@ func (ss *Sim) ConfigTstEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.Params.XAxisCol = "Epoch"
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
-	plt.SetColParams("Run", false, true, 0, false, 0)
-	plt.SetColParams("Epoch", false, true, 0, false, 0)
-	plt.SetColParams("SSE", false, true, 0, false, 0) // default plot
-	plt.SetColParams("AvgSSE", false, true, 0, false, 0)
-	plt.SetColParams("PctErr", false, true, 0, true, 1)
-	plt.SetColParams("PctCor", false, true, 0, true, 1)
-	plt.SetColParams("CosDiff", false, true, 0, true, 1)
+	plt.SetColParams("Run", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("Epoch", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("SSE", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0) // default plot
+	plt.SetColParams("AvgSSE", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("PctErr", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
+	plt.SetColParams("PctCor", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
+	plt.SetColParams("CosDiff", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
 	for _, tn := range ss.TstNms {
 		for _, ts := range ss.TstStatNms {
-			plt.SetColParams(tn+" "+ts, true, true, 0, true, 1) // default plot
+			plt.SetColParams(tn+" "+ts, eplot.On, eplot.FixMin, 0, eplot.FixMax, 1) // default plot
 		}
 	}
 	return plt
@@ -1081,7 +1081,7 @@ func (ss *Sim) LogRun(dt *etable.Table) {
 		split.Desc(spl, nm)
 	}
 	split.Desc(spl, "FirstZero")
-	ss.RunStats = spl.AggsToTable(false)
+	ss.RunStats = spl.AggsToTable(etable.AddAggName)
 
 	// note: essential to use Go version of update when called from another goroutine
 	ss.RunPlot.GoUpdate()
@@ -1122,16 +1122,16 @@ func (ss *Sim) ConfigRunPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D 
 	plt.Params.XAxisCol = "Run"
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
-	plt.SetColParams("Run", false, true, 0, false, 0)
-	plt.SetColParams("FirstZero", false, true, 0, false, 0)
-	plt.SetColParams("SSE", false, true, 0, false, 0)
-	plt.SetColParams("AvgSSE", false, true, 0, false, 0)
-	plt.SetColParams("PctErr", false, true, 0, true, 1)
-	plt.SetColParams("PctCor", false, true, 0, true, 1)
-	plt.SetColParams("CosDiff", false, true, 0, true, 1)
+	plt.SetColParams("Run", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("FirstZero", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("SSE", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("AvgSSE", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("PctErr", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
+	plt.SetColParams("PctCor", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
+	plt.SetColParams("CosDiff", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
 	for _, tn := range ss.TstNms {
 		for _, ts := range ss.TstStatNms {
-			plt.SetColParams(tn+" "+ts, true, true, 0, true, 1) // default plot
+			plt.SetColParams(tn+" "+ts, eplot.On, eplot.FixMin, 0, eplot.FixMax, 1) // default plot
 		}
 	}
 	return plt
@@ -1353,7 +1353,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 		}
 		inQuitPrompt = true
 		gi.PromptDialog(vp, gi.DlgOpts{Title: "Really Quit?",
-			Prompt: "Are you <i>sure</i> you want to quit and lose any unsaved params, weights, logs, etc?"}, true, true,
+			Prompt: "Are you <i>sure</i> you want to quit and lose any unsaved params, weights, logs, etc?"}, gi.AddOk, gi.AddCancel,
 			win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 				if sig == int64(gi.DialogAccepted) {
 					gi.Quit()
@@ -1374,7 +1374,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 		}
 		inClosePrompt = true
 		gi.PromptDialog(vp, gi.DlgOpts{Title: "Really Close Window?",
-			Prompt: "Are you <i>sure</i> you want to close the window?  This will Quit the App as well, losing all unsaved params, weights, logs, etc"}, true, true,
+			Prompt: "Are you <i>sure</i> you want to close the window?  This will Quit the App as well, losing all unsaved params, weights, logs, etc"}, gi.AddOk, gi.AddCancel,
 			win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 				if sig == int64(gi.DialogAccepted) {
 					gi.Quit()
