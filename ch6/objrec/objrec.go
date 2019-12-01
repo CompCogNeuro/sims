@@ -12,6 +12,7 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"log"
 	"math/rand"
@@ -43,11 +44,22 @@ import (
 	"github.com/goki/ki/kit"
 )
 
-// this is the stub main for gogi that calls our actual mainrun function, at end of file
 func main() {
-	gimain.Main(func() {
-		mainrun()
-	})
+	TheSim.New()
+	TheSim.Config()
+	if len(os.Args) > 1 {
+		TheSim.CmdArgs() // simple assumption is that any args = no gui -- could add explicit arg if you want
+	} else {
+		gimain.Main(func() { // this starts gui -- requires valid OpenGL display connection (e.g., X11)
+			guirun()
+		})
+	}
+}
+
+func guirun() {
+	TheSim.Init()
+	win := TheSim.ConfigGui()
+	win.StartEventLoop()
 }
 
 // LogPrec is precision for saving float values in logs
@@ -126,6 +138,8 @@ type Sim struct {
 	RunLog        *etable.Table     `view:"no-inline" desc:"summary log of each run"`
 	RunStats      *etable.Table     `view:"no-inline" desc:"aggregate stats on all runs"`
 	Params        params.Sets       `view:"no-inline" desc:"full collection of param sets"`
+	ParamSet      string            `desc:"which set of *additional* parameters to use -- always applies Base and optionaly this next if set"`
+	Tag           string            `desc:"extra tag string to add to any file names output from sim (e.g., weights files, log files, params for run)"`
 	V1V4Prjn      *prjn.PoolTile    `view:"projection from V1 to V4 which is tiled 4x4 skip 2 with topo scale values"`
 	MaxRuns       int               `desc:"maximum number of model runs to perform"`
 	MaxEpcs       int               `desc:"maximum number of epochs to run per model run"`
@@ -143,39 +157,44 @@ type Sim struct {
 	ActRFNms      []string          `desc:"names of layers to compute activation rfields on"`
 
 	// statistics: note use float64 as that is best for etable.Table
-	TrlErr     float64 `inactive:"+" desc:"1 if trial was error, 0 if correct -- based on SSE = 0 (subject to .5 unit-wise tolerance)"`
-	TrlSSE     float64 `inactive:"+" desc:"current trial's sum squared error"`
-	TrlAvgSSE  float64 `inactive:"+" desc:"current trial's average sum squared error"`
-	TrlCosDiff float64 `inactive:"+" desc:"current trial's cosine difference"`
-	EpcSSE     float64 `inactive:"+" desc:"last epoch's total sum squared error"`
-	EpcAvgSSE  float64 `inactive:"+" desc:"last epoch's average sum squared error (average over trials, and over units within layer)"`
-	EpcPctErr  float64 `inactive:"+" desc:"last epoch's average TrlErr"`
-	EpcPctCor  float64 `inactive:"+" desc:"1 - last epoch's average TrlErr"`
-	EpcCosDiff float64 `inactive:"+" desc:"last epoch's average cosine difference for output layer (a normalized error measure, maximum of 1 when the minus phase exactly matches the plus)"`
-	FirstZero  int     `inactive:"+" desc:"epoch at when SSE first went to zero"`
-	NZero      int     `inactive:"+" desc:"number of epochs in a row with zero SSE"`
+	TrlErr        float64 `inactive:"+" desc:"1 if trial was error, 0 if correct -- based on SSE = 0 (subject to .5 unit-wise tolerance)"`
+	TrlSSE        float64 `inactive:"+" desc:"current trial's sum squared error"`
+	TrlAvgSSE     float64 `inactive:"+" desc:"current trial's average sum squared error"`
+	TrlCosDiff    float64 `inactive:"+" desc:"current trial's cosine difference"`
+	EpcSSE        float64 `inactive:"+" desc:"last epoch's total sum squared error"`
+	EpcAvgSSE     float64 `inactive:"+" desc:"last epoch's average sum squared error (average over trials, and over units within layer)"`
+	EpcPctErr     float64 `inactive:"+" desc:"last epoch's average TrlErr"`
+	EpcPctCor     float64 `inactive:"+" desc:"1 - last epoch's average TrlErr"`
+	EpcCosDiff    float64 `inactive:"+" desc:"last epoch's average cosine difference for output layer (a normalized error measure, maximum of 1 when the minus phase exactly matches the plus)"`
+	EpcPerTrlMSec float64 `inactive:"+" desc:"how long did the epoch take per trial in wall-clock milliseconds"`
+	FirstZero     int     `inactive:"+" desc:"epoch at when SSE first went to zero"`
+	NZero         int     `inactive:"+" desc:"number of epochs in a row with zero SSE"`
 
 	// internal state - view:"-"
-	SumErr      float64                       `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
-	SumSSE      float64                       `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
-	SumAvgSSE   float64                       `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
-	SumCosDiff  float64                       `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
-	Win         *gi.Window                    `view:"-" desc:"main GUI window"`
-	NetView     *netview.NetView              `view:"-" desc:"the network viewer"`
-	ToolBar     *gi.ToolBar                   `view:"-" desc:"the master toolbar"`
-	CurImgGrid  *etview.TensorGrid            `view:"-" desc:"the current image grid view"`
-	ActRFGrids  map[string]*etview.TensorGrid `view:"-" desc:"the act rf grid views"`
-	TrnEpcPlot  *eplot.Plot2D                 `view:"-" desc:"the training epoch plot"`
-	TstEpcPlot  *eplot.Plot2D                 `view:"-" desc:"the testing epoch plot"`
-	TstTrlPlot  *eplot.Plot2D                 `view:"-" desc:"the test-trial plot"`
-	RunPlot     *eplot.Plot2D                 `view:"-" desc:"the run plot"`
-	TrnEpcFile  *os.File                      `view:"-" desc:"log file"`
-	RunFile     *os.File                      `view:"-" desc:"log file"`
-	ValsTsrs    map[string]*etensor.Float32   `view:"-" desc:"for holding layer values"`
-	IsRunning   bool                          `view:"-" desc:"true if sim is running"`
-	StopNow     bool                          `view:"-" desc:"flag to stop running"`
-	NeedsNewRun bool                          `view:"-" desc:"flag to initialize NewRun if last one finished"`
-	RndSeed     int64                         `view:"-" desc:"the current random seed"`
+	SumErr       float64                       `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
+	SumSSE       float64                       `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
+	SumAvgSSE    float64                       `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
+	SumCosDiff   float64                       `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
+	Win          *gi.Window                    `view:"-" desc:"main GUI window"`
+	NetView      *netview.NetView              `view:"-" desc:"the network viewer"`
+	ToolBar      *gi.ToolBar                   `view:"-" desc:"the master toolbar"`
+	CurImgGrid   *etview.TensorGrid            `view:"-" desc:"the current image grid view"`
+	ActRFGrids   map[string]*etview.TensorGrid `view:"-" desc:"the act rf grid views"`
+	TrnEpcPlot   *eplot.Plot2D                 `view:"-" desc:"the training epoch plot"`
+	TstEpcPlot   *eplot.Plot2D                 `view:"-" desc:"the testing epoch plot"`
+	TstTrlPlot   *eplot.Plot2D                 `view:"-" desc:"the test-trial plot"`
+	RunPlot      *eplot.Plot2D                 `view:"-" desc:"the run plot"`
+	TrnEpcFile   *os.File                      `view:"-" desc:"log file"`
+	RunFile      *os.File                      `view:"-" desc:"log file"`
+	ValsTsrs     map[string]*etensor.Float32   `view:"-" desc:"for holding layer values"`
+	SaveWts      bool                          `view:"-" desc:"for command-line run only, auto-save final weights after each run"`
+	NoGui        bool                          `view:"-" desc:"if true, runing in no GUI mode"`
+	LogSetParams bool                          `view:"-" desc:"if true, print message for all params that are set"`
+	IsRunning    bool                          `view:"-" desc:"true if sim is running"`
+	StopNow      bool                          `view:"-" desc:"flag to stop running"`
+	NeedsNewRun  bool                          `view:"-" desc:"flag to initialize NewRun if last one finished"`
+	RndSeed      int64                         `view:"-" desc:"the current random seed"`
+	LastEpcTime  time.Time                     `view:"-" desc:"timer for last epoch"`
 }
 
 // this registers this Sim Type and gives it properties that e.g.,
@@ -291,8 +310,9 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 	itOut.SetClass("NovLearn")
 	outIT.SetClass("NovLearn")
 
-	v4.SetThread(1)
-	it.SetThread(2)
+	// about the same on mac with and without threading
+	// v4.SetThread(1)
+	// it.SetThread(2)
 
 	net.Defaults()
 	ss.SetParams("Network", false) // only set Network params
@@ -485,6 +505,11 @@ func (ss *Sim) TrainTrial() {
 // RunEnd is called at the end of a run -- save weights, record final log, etc here
 func (ss *Sim) RunEnd() {
 	ss.LogRun(ss.RunLog)
+	if ss.SaveWts {
+		fnm := ss.WeightsFileName()
+		fmt.Printf("Saving Weights to: %v\n", fnm)
+		ss.Net.SaveWtsJSON(gi.FileName(fnm))
+	}
 }
 
 // NewRun intializes a new run of the model, using the TrainEnv.Run counter
@@ -603,9 +628,9 @@ func (ss *Sim) Stopped() {
 	}
 }
 
-// SaveWts saves the network weights -- when called with giv.CallMethod
+// SaveWeights saves the network weights -- when called with giv.CallMethod
 // it will auto-prompt for filename
-func (ss *Sim) SaveWts(filename gi.FileName) {
+func (ss *Sim) SaveWeights(filename gi.FileName) {
 	ss.Net.SaveWtsJSON(filename)
 }
 
@@ -759,6 +784,14 @@ func (ss *Sim) ViewActRFs() {
 /////////////////////////////////////////////////////////////////////////
 //   Params setting
 
+// ParamsName returns name of current set of parameters
+func (ss *Sim) ParamsName() string {
+	if ss.ParamSet == "" {
+		return "Base"
+	}
+	return ss.ParamSet
+}
+
 // SetParams sets the params for "Base" and then current ParamSet.
 // If sheet is empty, then it applies all avail sheets (e.g., Network, Sim)
 // otherwise just the named sheet
@@ -815,6 +848,32 @@ func (ss *Sim) ValsTsr(name string) *etensor.Float32 {
 	return tsr
 }
 
+// RunName returns a name for this run that combines Tag and Params -- add this to
+// any file names that are saved.
+func (ss *Sim) RunName() string {
+	if ss.Tag != "" {
+		return ss.Tag + "_" + ss.ParamsName()
+	} else {
+		return ss.ParamsName()
+	}
+}
+
+// RunEpochName returns a string with the run and epoch numbers with leading zeros, suitable
+// for using in weights file names.  Uses 3, 5 digits for each.
+func (ss *Sim) RunEpochName(run, epc int) string {
+	return fmt.Sprintf("%03d_%05d", run, epc)
+}
+
+// WeightsFileName returns default current weights file name
+func (ss *Sim) WeightsFileName() string {
+	return ss.Net.Nm + "_" + ss.RunName() + "_" + ss.RunEpochName(ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur) + ".wts.gz"
+}
+
+// LogFileName returns default log file name
+func (ss *Sim) LogFileName(lognm string) string {
+	return ss.Net.Nm + "_" + ss.RunName() + "_" + lognm + ".csv"
+}
+
 //////////////////////////////////////////////
 //  TrnEpcLog
 
@@ -845,6 +904,14 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 		ss.NZero = 0
 	}
 
+	if ss.LastEpcTime.IsZero() {
+		ss.EpcPerTrlMSec = 0
+	} else {
+		iv := time.Now().Sub(ss.LastEpcTime)
+		ss.EpcPerTrlMSec = float64(iv) / (nt * float64(time.Millisecond))
+	}
+	ss.LastEpcTime = time.Now()
+
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
 	dt.SetCellFloat("SSE", row, ss.EpcSSE)
@@ -852,6 +919,7 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 	dt.SetCellFloat("PctErr", row, ss.EpcPctErr)
 	dt.SetCellFloat("PctCor", row, ss.EpcPctCor)
 	dt.SetCellFloat("CosDiff", row, ss.EpcCosDiff)
+	dt.SetCellFloat("PerTrlMSec", row, ss.EpcPerTrlMSec)
 
 	for _, lnm := range ss.LayStatNms {
 		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
@@ -882,6 +950,7 @@ func (ss *Sim) ConfigTrnEpcLog(dt *etable.Table) {
 		{"PctErr", etensor.FLOAT64, nil, nil},
 		{"PctCor", etensor.FLOAT64, nil, nil},
 		{"CosDiff", etensor.FLOAT64, nil, nil},
+		{"PerTrlMSec", etensor.FLOAT64, nil, nil},
 	}
 	for _, lnm := range ss.LayStatNms {
 		sch = append(sch, etable.Column{lnm + " ActAvg", etensor.FLOAT64, nil, nil})
@@ -901,6 +970,7 @@ func (ss *Sim) ConfigTrnEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetColParams("PctErr", true, true, 0, true, 1) // default plot
 	plt.SetColParams("PctCor", false, true, 0, true, 1)
 	plt.SetColParams("CosDiff", false, true, 0, true, 1)
+	plt.SetColParams("PerTrlMSec", false, true, 0, false, 0)
 
 	for _, lnm := range ss.LayStatNms {
 		plt.SetColParams(lnm+" ActAvg", false, true, 0, true, .5)
@@ -1409,11 +1479,53 @@ var SimProps = ki.Props{
 	},
 }
 
-func mainrun() {
-	TheSim.New()
-	TheSim.Config()
+func (ss *Sim) CmdArgs() {
+	ss.NoGui = true
+	var nogui bool
+	var saveEpcLog bool
+	var saveRunLog bool
+	flag.StringVar(&ss.ParamSet, "params", "", "ParamSet name to use -- must be valid name as listed in compiled-in params or loaded params")
+	flag.StringVar(&ss.Tag, "tag", "", "extra tag to add to file names saved from this run")
+	flag.IntVar(&ss.MaxRuns, "runs", 1, "number of runs to do (note that MaxEpcs is in paramset)")
+	flag.BoolVar(&ss.LogSetParams, "setparams", false, "if true, print a record of each parameter that is set")
+	flag.BoolVar(&ss.SaveWts, "wts", false, "if true, save final weights after each run")
+	flag.BoolVar(&saveEpcLog, "epclog", true, "if true, save train epoch log to file")
+	flag.BoolVar(&saveRunLog, "runlog", true, "if true, save run epoch log to file")
+	flag.BoolVar(&nogui, "nogui", true, "if not passing any other args and want to run nogui, use nogui")
+	flag.Parse()
+	ss.Init()
 
-	TheSim.Init()
-	win := TheSim.ConfigGui()
-	win.StartEventLoop()
+	if ss.ParamSet != "" {
+		fmt.Printf("Using ParamSet: %s\n", ss.ParamSet)
+	}
+
+	if saveEpcLog {
+		var err error
+		fnm := ss.LogFileName("epc")
+		ss.TrnEpcFile, err = os.Create(fnm)
+		if err != nil {
+			log.Println(err)
+			ss.TrnEpcFile = nil
+		} else {
+			fmt.Printf("Saving epoch log to: %v\n", fnm)
+			defer ss.TrnEpcFile.Close()
+		}
+	}
+	if saveRunLog {
+		var err error
+		fnm := ss.LogFileName("run")
+		ss.RunFile, err = os.Create(fnm)
+		if err != nil {
+			log.Println(err)
+			ss.RunFile = nil
+		} else {
+			fmt.Printf("Saving run log to: %v\n", fnm)
+			defer ss.RunFile.Close()
+		}
+	}
+	if ss.SaveWts {
+		fmt.Printf("Saving final weights per run\n")
+	}
+	fmt.Printf("Running %d Runs\n", ss.MaxRuns)
+	ss.Train()
 }
