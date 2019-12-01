@@ -289,9 +289,10 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 	hid.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "OrthoCode", YAlign: relpos.Front, XAlign: relpos.Middle})
 	phn.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Hidden", YAlign: relpos.Front, XAlign: relpos.Middle})
 
+	// sig faster on blanca with no thread, slightly slower on mac
 	ocd.SetThread(1)
-	hid.SetThread(2)
-	// phn.SetThread(3)
+	hid.SetThread(2) // all on 1,2 threads is also slower
+	// 	phn.SetThread(3) // slower with 4 on mac
 
 	net.Defaults()
 	ss.SetParams("Network", false) // only set Network params
