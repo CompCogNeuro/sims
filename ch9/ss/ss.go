@@ -9,12 +9,12 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"log"
 	"math/rand"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/emer/emergent/emer"
@@ -24,13 +24,11 @@ import (
 	"github.com/emer/emergent/prjn"
 	"github.com/emer/emergent/relpos"
 	"github.com/emer/etable/agg"
-	"github.com/emer/etable/clust"
 	"github.com/emer/etable/eplot"
 	"github.com/emer/etable/etable"
 	"github.com/emer/etable/etensor"
 	_ "github.com/emer/etable/etview" // include to get gui views
 	"github.com/emer/etable/metric"
-	"github.com/emer/etable/simat"
 	"github.com/emer/etable/split"
 	"github.com/emer/leabra/leabra"
 	"github.com/goki/gi/gi"
@@ -41,11 +39,22 @@ import (
 	"github.com/goki/ki/kit"
 )
 
-// this is the stub main for gogi that calls our actual mainrun function, at end of file
 func main() {
-	gimain.Main(func() {
-		mainrun()
-	})
+	TheSim.New()
+	TheSim.Config()
+	if len(os.Args) > 1 {
+		TheSim.CmdArgs() // simple assumption is that any args = no gui -- could add explicit arg if you want
+	} else {
+		gimain.Main(func() { // this starts gui -- requires valid OpenGL display connection (e.g., X11)
+			guirun()
+		})
+	}
+}
+
+func guirun() {
+	TheSim.Init()
+	win := TheSim.ConfigGui()
+	win.StartEventLoop()
 }
 
 // LogPrec is precision for saving float values in logs
@@ -56,47 +65,47 @@ const LogPrec = 4
 var ParamSets = params.Sets{
 	{Name: "Base", Desc: "these are the best params", Sheets: params.Sheets{
 		"Network": &params.Sheet{
-			{Sel: "Prjn", Desc: "no extra learning factors",
+			{Sel: "Prjn", Desc: "all extra learning factors",
 				Params: params.Params{
-					"Prjn.Learn.Norm.On":     "false",
-					"Prjn.Learn.Momentum.On": "false",
-					"Prjn.Learn.WtBal.On":    "false",
+					"Prjn.Learn.Norm.On":     "true",
+					"Prjn.Learn.Momentum.On": "true",
+					"Prjn.Learn.WtBal.On":    "true",
 					"Prjn.Learn.Lrate":       "0.04",
 				}},
 			{Sel: "Layer", Desc: "FB 0.5 apparently required",
 				Params: params.Params{
-					"Layer.Inhib.Layer.Gi":     "2.1",
-					"Layer.Inhib.Layer.FB":     "0.5",
-					"Layer.Inhib.ActAvg.Init":  "0.2",
-					"Layer.Inhib.ActAvg.Fixed": "true", // using fixed = fully reliable testing
+					"Layer.Act.XX1.Gain":       "250", // this is only model where high gain really helps
+					"Layer.Act.Dt.GTau":        "3",   // slower is better here
+					"Layer.Inhib.Layer.Gi":     "1.8",
+					"Layer.Inhib.ActAvg.Init":  "0.1",
+					"Layer.Inhib.ActAvg.Fixed": "false", // NOT: using fixed = fully reliable testing
 				}},
-			{Sel: "#Orthography", Desc: "higher inhib",
+			{Sel: "#Ortho", Desc: "pool inhib",
 				Params: params.Params{
-					"Layer.Inhib.Layer.Gi":    "2.4",
-					"Layer.Inhib.Layer.FB":    "0.5",
-					"Layer.Inhib.ActAvg.Init": "0.08",
+					"Layer.Inhib.Pool.On":     "true",
+					"Layer.Inhib.Pool.Gi":     "1.8",
+					"Layer.Inhib.ActAvg.Init": "0.022",
 				}},
-			{Sel: "#Semantics", Desc: "higher inhib",
+			{Sel: "#OrthoCode", Desc: "pool inhib",
 				Params: params.Params{
-					"Layer.Inhib.Layer.Gi":    "2.2",
-					"Layer.Inhib.Layer.FB":    "0.5",
-					"Layer.Inhib.ActAvg.Init": "0.2",
+					"Layer.Inhib.Pool.On":     "true",
+					"Layer.Inhib.Pool.Gi":     "1.8",
+					"Layer.Inhib.ActAvg.Init": "0.07",
 				}},
-			{Sel: "#Phonology", Desc: "pool-only inhib",
+			{Sel: "#Phon", Desc: "pool-only inhib",
 				Params: params.Params{
 					"Layer.Inhib.Layer.On":    "false",
 					"Layer.Inhib.Pool.On":     "true",
-					"Layer.Inhib.Pool.Gi":     "2.8",
-					"Layer.Inhib.Pool.FB":     "0.5",
-					"Layer.Inhib.ActAvg.Init": "0.07",
+					"Layer.Inhib.Pool.Gi":     "1.8",
+					"Layer.Inhib.ActAvg.Init": "0.14",
 				}},
-			{Sel: ".Back", Desc: "there is no back / forward direction here..",
+			{Sel: ".Back", Desc: "weaker top down as usual",
 				Params: params.Params{
-					"Prjn.WtScale.Rel": "1",
+					"Prjn.WtScale.Rel": ".1",
 				}},
-			{Sel: ".Lateral", Desc: "self cons are weaker",
+			{Sel: "#HiddenToOrthoCode", Desc: "stronger from hidden",
 				Params: params.Params{
-					"Prjn.WtScale.Rel": "0.3",
+					"Prjn.WtScale.Rel": ".2",
 				}},
 		},
 	}},
@@ -122,8 +131,9 @@ type Sim struct {
 	TstStats      *etable.Table     `view:"no-inline" desc:"aggregate testing stats"`
 	RunLog        *etable.Table     `view:"no-inline" desc:"summary log of each run"`
 	RunStats      *etable.Table     `view:"no-inline" desc:"aggregate stats on all runs"`
-	SemClustPlot  *eplot.Plot2D     `view:"no-inline" desc:"semantics cluster plot"`
 	Params        params.Sets       `view:"no-inline" desc:"full collection of param sets"`
+	ParamSet      string            `desc:"which set of *additional* parameters to use -- always applies Base and optionaly this next if set"`
+	Tag           string            `desc:"extra tag string to add to any file names output from sim (e.g., weights files, log files, params for run)"`
 	MaxRuns       int               `desc:"maximum number of model runs to perform"`
 	MaxEpcs       int               `desc:"maximum number of epochs to run per model run"`
 	NZeroStop     int               `desc:"if a positive number, training will stop after this many epochs with zero SSE"`
@@ -153,24 +163,27 @@ type Sim struct {
 	NZero      int     `inactive:"+" desc:"number of epochs in a row with zero SSE"`
 
 	// internal state - view:"-"
-	SumErr      float64                     `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
-	SumSSE      float64                     `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
-	SumAvgSSE   float64                     `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
-	SumCosDiff  float64                     `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
-	Win         *gi.Window                  `view:"-" desc:"main GUI window"`
-	NetView     *netview.NetView            `view:"-" desc:"the network viewer"`
-	ToolBar     *gi.ToolBar                 `view:"-" desc:"the master toolbar"`
-	TrnEpcPlot  *eplot.Plot2D               `view:"-" desc:"the training epoch plot"`
-	TstEpcPlot  *eplot.Plot2D               `view:"-" desc:"the testing epoch plot"`
-	TstTrlPlot  *eplot.Plot2D               `view:"-" desc:"the test-trial plot"`
-	RunPlot     *eplot.Plot2D               `view:"-" desc:"the run plot"`
-	TrnEpcFile  *os.File                    `view:"-" desc:"log file"`
-	RunFile     *os.File                    `view:"-" desc:"log file"`
-	ValsTsrs    map[string]*etensor.Float32 `view:"-" desc:"for holding layer values"`
-	IsRunning   bool                        `view:"-" desc:"true if sim is running"`
-	StopNow     bool                        `view:"-" desc:"flag to stop running"`
-	NeedsNewRun bool                        `view:"-" desc:"flag to initialize NewRun if last one finished"`
-	RndSeed     int64                       `inactive:"+" desc:"the current random seed"`
+	SumErr       float64                     `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
+	SumSSE       float64                     `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
+	SumAvgSSE    float64                     `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
+	SumCosDiff   float64                     `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
+	Win          *gi.Window                  `view:"-" desc:"main GUI window"`
+	NetView      *netview.NetView            `view:"-" desc:"the network viewer"`
+	ToolBar      *gi.ToolBar                 `view:"-" desc:"the master toolbar"`
+	TrnEpcPlot   *eplot.Plot2D               `view:"-" desc:"the training epoch plot"`
+	TstEpcPlot   *eplot.Plot2D               `view:"-" desc:"the testing epoch plot"`
+	TstTrlPlot   *eplot.Plot2D               `view:"-" desc:"the test-trial plot"`
+	RunPlot      *eplot.Plot2D               `view:"-" desc:"the run plot"`
+	TrnEpcFile   *os.File                    `view:"-" desc:"log file"`
+	RunFile      *os.File                    `view:"-" desc:"log file"`
+	ValsTsrs     map[string]*etensor.Float32 `view:"-" desc:"for holding layer values"`
+	SaveWts      bool                        `view:"-" desc:"for command-line run only, auto-save final weights after each run"`
+	NoGui        bool                        `view:"-" desc:"if true, runing in no GUI mode"`
+	LogSetParams bool                        `view:"-" desc:"if true, print message for all params that are set"`
+	IsRunning    bool                        `view:"-" desc:"true if sim is running"`
+	StopNow      bool                        `view:"-" desc:"flag to stop running"`
+	NeedsNewRun  bool                        `view:"-" desc:"flag to initialize NewRun if last one finished"`
+	RndSeed      int64                       `inactive:"+" desc:"the current random seed"`
 }
 
 // this registers this Sim Type and gives it properties that e.g.,
@@ -201,7 +214,7 @@ func (ss *Sim) New() {
 	ss.ViewOn = true
 	ss.TrainUpdt = leabra.Quarter
 	ss.TestUpdt = leabra.Cycle
-	ss.TestInterval = 10
+	ss.TestInterval = -1
 	ss.LayStatNms = []string{"OrthoCode", "Hidden"}
 }
 
@@ -227,7 +240,7 @@ func (ss *Sim) ConfigEnv() {
 		ss.MaxRuns = 1
 	}
 	if ss.MaxEpcs == 0 { // allow user override
-		ss.MaxEpcs = 800
+		ss.MaxEpcs = 2 // 800
 		ss.NZeroStop = -1
 	}
 
@@ -235,6 +248,7 @@ func (ss *Sim) ConfigEnv() {
 	ss.TrainEnv.Dsc = "training params and state"
 	ss.TrainEnv.Table = etable.NewIdxView(ss.TrainPats)
 	ss.TrainEnv.NSamples = 1
+	ss.TrainEnv.RndSamp = true
 	ss.TrainEnv.Validate()
 	ss.TrainEnv.Run.Max = ss.MaxRuns // note: we are not setting epoch max -- do that manually
 
@@ -268,6 +282,10 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 	ocd.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Ortho", YAlign: relpos.Front, XAlign: relpos.Middle})
 	hid.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "OrthoCode", YAlign: relpos.Front, XAlign: relpos.Middle})
 	phn.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Hidden", YAlign: relpos.Front, XAlign: relpos.Middle})
+
+	ocd.SetThread(1)
+	hid.SetThread(2)
+	phn.SetThread(3)
 
 	net.Defaults()
 	ss.SetParams("Network", false) // only set Network params
@@ -441,6 +459,11 @@ func (ss *Sim) TrainTrial() {
 // RunEnd is called at the end of a run -- save weights, record final log, etc here
 func (ss *Sim) RunEnd() {
 	ss.LogRun(ss.RunLog)
+	if ss.SaveWts {
+		fnm := ss.WeightsFileName()
+		fmt.Printf("Saving Weights to: %v\n", fnm)
+		ss.Net.SaveWtsJSON(gi.FileName(fnm))
+	}
 }
 
 // NewRun intializes a new run of the model, using the TrainEnv.Run counter
@@ -604,10 +627,31 @@ func (ss *Sim) TrainRun() {
 
 // LrateSched implements the learning rate schedule
 func (ss *Sim) LrateSched(epc int) {
+	doLr := false
+	lrm := float32(1)
 	switch epc {
 	case 100:
-		ss.Net.LrateMult(1) // not using -- not necc.
-		// fmt.Printf("dropped lrate 0.5 at epoch: %d\n", epc)
+		doLr = true
+		lrm = 0.5
+	case 200:
+		doLr = true
+		lrm = 0.2
+	case 300:
+		doLr = true
+		lrm = 0.1
+	case 400:
+		doLr = true
+		lrm = 0.05
+	case 500:
+		doLr = true
+		lrm = 0.02
+	case 600:
+		doLr = true
+		lrm = 0.01
+	}
+	if doLr {
+		ss.Net.LrateMult(lrm)
+		fmt.Printf("dropped lrate %g at epoch: %d\n", lrm, epc)
 	}
 }
 
@@ -722,6 +766,14 @@ func (ss *Sim) RunTestAll() {
 /////////////////////////////////////////////////////////////////////////
 //   Params setting
 
+// ParamsName returns name of current set of parameters
+func (ss *Sim) ParamsName() string {
+	if ss.ParamSet == "" {
+		return "Base"
+	}
+	return ss.ParamSet
+}
+
 // SetParams sets the params for "Base" and then current ParamSet.
 // If sheet is empty, then it applies all avail sheets (e.g., Network, Sim)
 // otherwise just the named sheet
@@ -817,6 +869,32 @@ func (ss *Sim) ValsTsr(name string) *etensor.Float32 {
 	return tsr
 }
 
+// RunName returns a name for this run that combines Tag and Params -- add this to
+// any file names that are saved.
+func (ss *Sim) RunName() string {
+	if ss.Tag != "" {
+		return ss.Tag + "_" + ss.ParamsName()
+	} else {
+		return ss.ParamsName()
+	}
+}
+
+// RunEpochName returns a string with the run and epoch numbers with leading zeros, suitable
+// for using in weights file names.  Uses 3, 5 digits for each.
+func (ss *Sim) RunEpochName(run, epc int) string {
+	return fmt.Sprintf("%03d_%05d", run, epc)
+}
+
+// WeightsFileName returns default current weights file name
+func (ss *Sim) WeightsFileName() string {
+	return ss.Net.Nm + "_" + ss.RunName() + "_" + ss.RunEpochName(ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur) + ".wts.gz"
+}
+
+// LogFileName returns default log file name
+func (ss *Sim) LogFileName(lognm string) string {
+	return ss.Net.Nm + "_" + ss.RunName() + "_" + lognm + ".csv"
+}
+
 //////////////////////////////////////////////
 //  TrnEpcLog
 
@@ -826,8 +904,8 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 	row := dt.Rows
 	dt.SetNumRows(row + 1)
 
-	epc := ss.TrainEnv.Epoch.Prv           // this is triggered by increment so use previous value
-	nt := float64(ss.TrainEnv.Table.Len()) // number of trials in view
+	epc := ss.TrainEnv.Epoch.Prv          // this is triggered by increment so use previous value
+	nt := float64(len(ss.TrainEnv.Order)) // number of trials in view
 
 	ss.EpcSSE = ss.SumSSE / nt
 	ss.SumSSE = 0
@@ -1142,39 +1220,6 @@ func (ss *Sim) ConfigRunPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D 
 	return plt
 }
 
-// ClustPlots does all cluster plots
-func (ss *Sim) ClustPlots() {
-	if ss.SemClustPlot == nil {
-		ss.SemClustPlot = &eplot.Plot2D{}
-	}
-	// get rid of _phon in names
-	tpcp := ss.TrainPats.Clone()
-	nm := tpcp.ColByName("Name")
-	for r := 0; r < tpcp.Rows; r++ {
-		n := nm.StringVal1D(r)
-		n = strings.Split(n, "_")[0]
-		nm.SetString1D(r, n)
-	}
-	ss.ClustPlot(ss.SemClustPlot, etable.NewIdxView(tpcp), "Semantics")
-}
-
-// ClustPlot does one cluster plot on given table column
-func (ss *Sim) ClustPlot(plt *eplot.Plot2D, ix *etable.IdxView, colNm string) {
-	nm, _ := ix.Table.MetaData["name"]
-	smat := &simat.SimMat{}
-	smat.TableCol(ix, colNm, "Name", false, metric.InvCosine64)
-	pt := &etable.Table{}
-	clust.Plot(pt, clust.Glom(smat, clust.ContrastDist), smat)
-	plt.InitName(plt, colNm)
-	plt.Params.Title = "Cluster Plot of: " + nm + " " + colNm
-	plt.Params.XAxisCol = "X"
-	plt.SetTable(pt)
-	// order of params: on, fixMin, min, fixMax, max
-	plt.SetColParams("X", false, true, 0, false, 0)
-	plt.SetColParams("Y", true, true, 0, false, 0)
-	plt.SetColParams("Label", true, false, 0, false, 0)
-}
-
 ////////////////////////////////////////////////////////////////////////////////////////////
 // 		Gui
 
@@ -1346,24 +1391,10 @@ func (ss *Sim) ConfigGui() *gi.Window {
 		vp.SetNeedsFullRender()
 	})
 
-	tbar.AddAction(gi.ActOpts{Label: "Lesion", Icon: "cut", Tooltip: "Lesion network"}, win.This(),
-		func(recv, send ki.Ki, sig int64, data interface{}) {
-			giv.CallMethod(ss, "LesionNet", vp)
-			vp.SetNeedsFullRender()
-		})
-
 	tbar.AddAction(gi.ActOpts{Label: "Reset RunLog", Icon: "update", Tooltip: "Reset the accumulated log of all Runs, which are tagged with the ParamSet used"}, win.This(),
 		func(recv, send ki.Ki, sig int64, data interface{}) {
 			ss.RunLog.SetNumRows(0)
 			ss.RunPlot.Update()
-		})
-
-	tbar.AddSeparator("anal")
-
-	tbar.AddAction(gi.ActOpts{Label: "Cluster Plot", Icon: "file-image", Tooltip: "run cluster plot on input patterns."}, win.This(),
-		func(recv, send ki.Ki, sig int64, data interface{}) {
-			ss.ClustPlots()
-			vp.SetNeedsFullRender()
 		})
 
 	tbar.AddSeparator("misc")
@@ -1474,11 +1505,53 @@ var SimProps = ki.Props{
 	},
 }
 
-func mainrun() {
-	TheSim.New()
-	TheSim.Config()
+func (ss *Sim) CmdArgs() {
+	ss.NoGui = true
+	var nogui bool
+	var saveEpcLog bool
+	var saveRunLog bool
+	flag.StringVar(&ss.ParamSet, "params", "", "ParamSet name to use -- must be valid name as listed in compiled-in params or loaded params")
+	flag.StringVar(&ss.Tag, "tag", "", "extra tag to add to file names saved from this run")
+	flag.IntVar(&ss.MaxRuns, "runs", 1, "number of runs to do (note that MaxEpcs is in paramset)")
+	flag.BoolVar(&ss.LogSetParams, "setparams", false, "if true, print a record of each parameter that is set")
+	flag.BoolVar(&ss.SaveWts, "wts", true, "if true, save final weights after each run")
+	flag.BoolVar(&saveEpcLog, "epclog", true, "if true, save train epoch log to file")
+	flag.BoolVar(&saveRunLog, "runlog", true, "if true, save run epoch log to file")
+	flag.BoolVar(&nogui, "nogui", true, "if not passing any other args and want to run nogui, use nogui")
+	flag.Parse()
+	ss.Init()
 
-	TheSim.Init()
-	win := TheSim.ConfigGui()
-	win.StartEventLoop()
+	if ss.ParamSet != "" {
+		fmt.Printf("Using ParamSet: %s\n", ss.ParamSet)
+	}
+
+	if saveEpcLog {
+		var err error
+		fnm := ss.LogFileName("epc")
+		ss.TrnEpcFile, err = os.Create(fnm)
+		if err != nil {
+			log.Println(err)
+			ss.TrnEpcFile = nil
+		} else {
+			fmt.Printf("Saving epoch log to: %v\n", fnm)
+			defer ss.TrnEpcFile.Close()
+		}
+	}
+	if saveRunLog {
+		var err error
+		fnm := ss.LogFileName("run")
+		ss.RunFile, err = os.Create(fnm)
+		if err != nil {
+			log.Println(err)
+			ss.RunFile = nil
+		} else {
+			fmt.Printf("Saving run log to: %v\n", fnm)
+			defer ss.RunFile.Close()
+		}
+	}
+	if ss.SaveWts {
+		fmt.Printf("Saving final weights per run\n")
+	}
+	fmt.Printf("Running %d Runs\n", ss.MaxRuns)
+	ss.Train()
 }
