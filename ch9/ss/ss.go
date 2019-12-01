@@ -240,7 +240,7 @@ func (ss *Sim) ConfigEnv() {
 		ss.MaxRuns = 1
 	}
 	if ss.MaxEpcs == 0 { // allow user override
-		ss.MaxEpcs = 2 // 800
+		ss.MaxEpcs = 800
 		ss.NZeroStop = -1
 	}
 
@@ -549,7 +549,7 @@ func (ss *Sim) TrialStats(accum bool, trlnm string) (sse, avgsse, cosdiff float6
 	return
 }
 
-// DyslexStats computes dyslexia pronunciation, semantics stats
+// Pronounce
 func (ss *Sim) DyslexStats(net emer.Network) {
 	// _, sse, cnm := ss.ClosestStat(net, "Phonology", "ActM", ss.TrainPats, "Phonology", "Name")
 	// ss.TrlPhon = cnm
