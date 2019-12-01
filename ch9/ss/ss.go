@@ -15,6 +15,7 @@ import (
 	"math/rand"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/emer/emergent/emer"
@@ -147,23 +148,26 @@ type Sim struct {
 	LayStatNms    []string          `desc:"names of layers to collect more detailed stats on (avg act, etc)"`
 
 	// statistics: note use float64 as that is best for etable.Table
-	TrlName    string  `inactive:"+" desc:"name of current input pattern"`
-	TrlPhon    string  `inactive:"+" desc:"name of closest phonology pattern"`
-	TrlPhonSSE float64 `inactive:"+" desc:"SSE for closest phonology pattern -- > 3 = blend"`
-	TrlErr     float64 `inactive:"+" desc:"1 if trial was error, 0 if correct -- based on *closest pattern* stat, not SSE"`
-	TrlSSE     float64 `inactive:"+" desc:"current trial's sum squared error"`
-	TrlAvgSSE  float64 `inactive:"+" desc:"current trial's average sum squared error"`
-	TrlCosDiff float64 `inactive:"+" desc:"current trial's cosine difference"`
-	EpcSSE     float64 `inactive:"+" desc:"last epoch's total sum squared error"`
-	EpcAvgSSE  float64 `inactive:"+" desc:"last epoch's average sum squared error (average over trials, and over units within layer)"`
-	EpcPctErr  float64 `inactive:"+" desc:"last epoch's average TrlErr"`
-	EpcPctCor  float64 `inactive:"+" desc:"1 - last epoch's average TrlErr"`
-	EpcCosDiff float64 `inactive:"+" desc:"last epoch's average cosine difference for output layer (a normalized error measure, maximum of 1 when the minus phase exactly matches the plus)"`
-	FirstZero  int     `inactive:"+" desc:"epoch at when SSE first went to zero"`
-	NZero      int     `inactive:"+" desc:"number of epochs in a row with zero SSE"`
+	TrlName       string  `inactive:"+" desc:"name of current input pattern"`
+	TrlPhon       string  `inactive:"+" desc:"pronunciation from phonology pattern"`
+	TrlPhonSSE    float64 `inactive:"+" desc:"SSE for closest phonology pattern -- > 3 = blend"`
+	TrlErr        float64 `inactive:"+" desc:"1 if trial was error, 0 if correct -- based on *closest pattern* stat, not SSE"`
+	TrlNameErr    float64 `inactive:"+" desc:"1 if trial was error according to name match, 0 if correct -- based on phonology decoding, not SSE"`
+	TrlSSE        float64 `inactive:"+" desc:"current trial's sum squared error"`
+	TrlAvgSSE     float64 `inactive:"+" desc:"current trial's average sum squared error"`
+	TrlCosDiff    float64 `inactive:"+" desc:"current trial's cosine difference"`
+	EpcSSE        float64 `inactive:"+" desc:"last epoch's total sum squared error"`
+	EpcAvgSSE     float64 `inactive:"+" desc:"last epoch's average sum squared error (average over trials, and over units within layer)"`
+	EpcPctErr     float64 `inactive:"+" desc:"last epoch's average TrlErr"`
+	EpcPctCor     float64 `inactive:"+" desc:"1 - last epoch's average TrlErr"`
+	EpcPctNameErr float64 `inactive:"+" desc:"last epoch's average TrlNameErr"`
+	EpcCosDiff    float64 `inactive:"+" desc:"last epoch's average cosine difference for output layer (a normalized error measure, maximum of 1 when the minus phase exactly matches the plus)"`
+	FirstZero     int     `inactive:"+" desc:"epoch at when SSE first went to zero"`
+	NZero         int     `inactive:"+" desc:"number of epochs in a row with zero SSE"`
 
 	// internal state - view:"-"
 	SumErr       float64                     `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
+	SumNameErr   float64                     `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
 	SumSSE       float64                     `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
 	SumAvgSSE    float64                     `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
 	SumCosDiff   float64                     `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
@@ -534,68 +538,56 @@ func (ss *Sim) TrialStats(accum bool, trlnm string) (sse, avgsse, cosdiff float6
 	} else {
 		ss.TrlErr = 1
 	}
+
+	ss.TrlName = trlnm
+	ss.TrlPhon, ss.TrlPhonSSE = ss.Pronounce(ss.Net)
+	spnm := strings.Split(trlnm, "_")
+	if ss.TrlPhon == spnm[2] {
+		ss.TrlNameErr = 0
+	} else {
+		ss.TrlNameErr = 1
+	}
+
 	if accum {
 		ss.SumErr += ss.TrlErr
+		ss.SumNameErr += ss.TrlNameErr
 		ss.SumSSE += ss.TrlSSE
 		ss.SumAvgSSE += ss.TrlAvgSSE
 		ss.SumCosDiff += ss.TrlCosDiff
 	}
-
-	ss.TrlName = trlnm
-	// if !accum { // test
-	// 	ss.DyslexStats(ss.Net)
-	// }
-
 	return
 }
 
-// Pronounce
-func (ss *Sim) DyslexStats(net emer.Network) {
-	// _, sse, cnm := ss.ClosestStat(net, "Phonology", "ActM", ss.TrainPats, "Phonology", "Name")
-	// ss.TrlPhon = cnm
-	// ss.TrlPhonSSE = float64(sse)
-	// if sse > 3 { // 3 is the threshold for blend errors
-	// 	ss.TrlBlendErr = 1
-	// } else {
-	// 	ss.TrlBlendErr = 0
-	// 	ss.TrlVisErr = 0
-	// 	ss.TrlSemErr = 0
-	// 	ss.TrlVisSemErr = 0
-	// 	ss.TrlOtherErr = 0
-	// 	if ss.TrlName != ss.TrlPhon {
-	// 		ss.TrlVisErr = ss.ClosePat(ss.TrlName, ss.TrlPhon, ss.CloseOrthos)
-	// 		ss.TrlSemErr = ss.ClosePat(ss.TrlName, ss.TrlPhon, ss.CloseSems)
-	// 		if ss.TrlVisErr > 0 && ss.TrlSemErr > 0 {
-	// 			ss.TrlVisSemErr = 1
-	// 		}
-	// 		if ss.TrlVisErr == 0 && ss.TrlSemErr == 0 {
-	// 			ss.TrlOtherErr = 1
-	// 		}
-	// 	}
-	// }
-}
+// Pronounce returns the pronunciation of the phonological output layer
+func (ss *Sim) Pronounce(net emer.Network) (string, float64) {
+	vt := ss.ValsTsr("Phon")
+	ly := net.LayerByName("Phon").(leabra.LeabraLayer).AsLeabra()
+	ly.UnitValsTensor(vt, "ActM")
 
-// ClosestStat finds the closest pattern in given column of given table to
-// given layer activation pattern using given variable.  Returns the row number,
-// sse value, and value of a column named namecol for that row if non-empty.
-// Column must be etensor.Float32
-func (ss *Sim) ClosestStat(net emer.Network, lnm, varnm string, dt *etable.Table, colnm, namecol string) (int, float32, string) {
-	vt := ss.ValsTsr(lnm)
-	ly := net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
-	ly.UnitValsTensor(vt, varnm)
-	col := dt.ColByName(colnm)
-	row, sse := metric.ClosestRow32(vt, col.(*etensor.Float32), metric.SumSquaresBinTol32)
-	nm := ""
-	if namecol != "" {
-		nm = dt.CellString(namecol, row)
+	ccol := ss.PhonConsPats.ColByName("Phon").(*etensor.Float32)
+	vcol := ss.PhonVowelPats.ColByName("Phon").(*etensor.Float32)
+	sseTol := float32(10.0)
+	totSSE := float32(0.0)
+	ph := ""
+	for pi := 0; pi < 7; pi++ {
+		cvt := vt.SubSpace([]int{0, pi}).(*etensor.Float32)
+		nm := ""
+		sse := float32(0.0)
+		row := 0
+		if pi == 3 { // vowel
+			row, sse = metric.ClosestRow32(cvt, vcol, metric.SumSquaresBinTol32)
+			nm = ss.PhonVowelPats.CellString("Name", row)
+		} else {
+			row, sse = metric.ClosestRow32(cvt, ccol, metric.SumSquaresBinTol32)
+			nm = ss.PhonConsPats.CellString("Name", row)
+		}
+		if sse > sseTol {
+			nm = "X"
+		}
+		ph += nm
+		totSSE += sse
 	}
-	return row, sse, nm
-}
-
-// ClosePat looks up phon pattern name in given table of close names -- if found returns 1, else 0
-func (ss *Sim) ClosePat(trlnm, phon string, clsdt *etable.Table) float64 {
-	rws := clsdt.RowsByString(trlnm, phon, false, false)
-	return float64(len(rws))
+	return ph, float64(totSSE)
 }
 
 // TrainEpoch runs training trials for remainder of this epoch
@@ -913,6 +905,8 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 	ss.SumAvgSSE = 0
 	ss.EpcPctErr = float64(ss.SumErr) / nt
 	ss.SumErr = 0
+	ss.EpcPctNameErr = float64(ss.SumNameErr) / nt
+	ss.SumNameErr = 0
 	ss.EpcPctCor = 1 - ss.EpcPctErr
 	ss.EpcCosDiff = ss.SumCosDiff / nt
 	ss.SumCosDiff = 0
@@ -931,6 +925,7 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 	dt.SetCellFloat("AvgSSE", row, ss.EpcAvgSSE)
 	dt.SetCellFloat("PctErr", row, ss.EpcPctErr)
 	dt.SetCellFloat("PctCor", row, ss.EpcPctCor)
+	dt.SetCellFloat("PctNameErr", row, ss.EpcPctNameErr)
 	dt.SetCellFloat("CosDiff", row, ss.EpcCosDiff)
 
 	for _, lnm := range ss.LayStatNms {
@@ -961,6 +956,7 @@ func (ss *Sim) ConfigTrnEpcLog(dt *etable.Table) {
 		{"AvgSSE", etensor.FLOAT64, nil, nil},
 		{"PctErr", etensor.FLOAT64, nil, nil},
 		{"PctCor", etensor.FLOAT64, nil, nil},
+		{"PctNameErr", etensor.FLOAT64, nil, nil},
 		{"CosDiff", etensor.FLOAT64, nil, nil},
 	}
 	for _, lnm := range ss.LayStatNms {
@@ -977,9 +973,10 @@ func (ss *Sim) ConfigTrnEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetColParams("Run", false, true, 0, false, 0)
 	plt.SetColParams("Epoch", false, true, 0, false, 0)
 	plt.SetColParams("SSE", false, true, 0, false, 0)
-	plt.SetColParams("AvgSSE", true, true, 0, false, 1)
+	plt.SetColParams("AvgSSE", false, true, 0, false, 1)
 	plt.SetColParams("PctErr", true, true, 0, true, 1) // default plot
 	plt.SetColParams("PctCor", false, true, 0, true, 1)
+	plt.SetColParams("PctNameErr", true, true, 0, true, 1) // default plot
 	plt.SetColParams("CosDiff", false, true, 0, true, 1)
 
 	for _, lnm := range ss.LayStatNms {
