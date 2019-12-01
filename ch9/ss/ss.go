@@ -246,7 +246,7 @@ func (ss *Sim) ConfigEnv() {
 		ss.MaxRuns = 1
 	}
 	if ss.MaxEpcs == 0 { // allow user override
-		ss.MaxEpcs = 800
+		ss.MaxEpcs = 400
 		ss.NZeroStop = -1
 	}
 
