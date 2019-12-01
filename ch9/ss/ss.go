@@ -1162,14 +1162,15 @@ func (ss *Sim) LogTstEpc(dt *etable.Table) {
 func (ss *Sim) ConfigTstRTPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
 	plt.Params.Title = "SpellSound Test RT Plot"
 	plt.Params.XAxisCol = "Type"
+	plt.Params.Type = eplot.Bar
 	if dt == nil {
 		return plt
 	}
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Type", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
-	plt.SetColParams("RTCycles:Mean", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0)
-	// todo: need to be able to plot x-axis as row num, and also to set error bars..
+	cp := plt.SetColParams("RTCycles:Mean", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0)
+	cp.ErrCol = "RTCycles:Sem"
 	return plt
 }
 
@@ -1190,7 +1191,8 @@ func (ss *Sim) ConfigTstEpcLog(dt *etable.Table) {
 
 func (ss *Sim) ConfigTstEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
 	plt.Params.Title = "SpellSound Testing Epoch Plot"
-	plt.Params.XAxisCol = "Epoch"
+	plt.Params.XAxisCol = "TestEnv"
+	plt.Params.Type = eplot.Bar
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Run", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
