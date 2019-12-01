@@ -162,6 +162,7 @@ type Sim struct {
 	EpcPctCor     float64 `inactive:"+" desc:"1 - last epoch's average TrlErr"`
 	EpcPctNameErr float64 `inactive:"+" desc:"last epoch's average TrlNameErr"`
 	EpcCosDiff    float64 `inactive:"+" desc:"last epoch's average cosine difference for output layer (a normalized error measure, maximum of 1 when the minus phase exactly matches the plus)"`
+	EpcPerTrlMSec float64 `inactive:"+" desc:"how long did the epoch take per trial in wall-clock milliseconds"`
 	FirstZero     int     `inactive:"+" desc:"epoch at when SSE first went to zero"`
 	NZero         int     `inactive:"+" desc:"number of epochs in a row with zero SSE"`
 
@@ -188,6 +189,7 @@ type Sim struct {
 	StopNow      bool                        `view:"-" desc:"flag to stop running"`
 	NeedsNewRun  bool                        `view:"-" desc:"flag to initialize NewRun if last one finished"`
 	RndSeed      int64                       `inactive:"+" desc:"the current random seed"`
+	LastEpcTime  time.Time                   `view:"-" desc:"timer for last epoch"`
 }
 
 // this registers this Sim Type and gives it properties that e.g.,
@@ -289,7 +291,7 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 
 	ocd.SetThread(1)
 	hid.SetThread(2)
-	phn.SetThread(3)
+	// phn.SetThread(3)
 
 	net.Defaults()
 	ss.SetParams("Network", false) // only set Network params
@@ -919,6 +921,14 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 		ss.NZero = 0
 	}
 
+	if ss.LastEpcTime.IsZero() {
+		ss.EpcPerTrlMSec = 0
+	} else {
+		iv := time.Now().Sub(ss.LastEpcTime)
+		ss.EpcPerTrlMSec = float64(iv) / (nt * float64(time.Millisecond))
+	}
+	ss.LastEpcTime = time.Now()
+
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
 	dt.SetCellFloat("SSE", row, ss.EpcSSE)
@@ -927,6 +937,7 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 	dt.SetCellFloat("PctCor", row, ss.EpcPctCor)
 	dt.SetCellFloat("PctNameErr", row, ss.EpcPctNameErr)
 	dt.SetCellFloat("CosDiff", row, ss.EpcCosDiff)
+	dt.SetCellFloat("PerTrlMSec", row, ss.EpcPerTrlMSec)
 
 	for _, lnm := range ss.LayStatNms {
 		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
@@ -958,6 +969,7 @@ func (ss *Sim) ConfigTrnEpcLog(dt *etable.Table) {
 		{"PctCor", etensor.FLOAT64, nil, nil},
 		{"PctNameErr", etensor.FLOAT64, nil, nil},
 		{"CosDiff", etensor.FLOAT64, nil, nil},
+		{"PerTrlMSec", etensor.FLOAT64, nil, nil},
 	}
 	for _, lnm := range ss.LayStatNms {
 		sch = append(sch, etable.Column{lnm + " ActAvg", etensor.FLOAT64, nil, nil})
@@ -978,6 +990,7 @@ func (ss *Sim) ConfigTrnEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetColParams("PctCor", false, true, 0, true, 1)
 	plt.SetColParams("PctNameErr", true, true, 0, true, 1) // default plot
 	plt.SetColParams("CosDiff", false, true, 0, true, 1)
+	plt.SetColParams("PerTrlMSec", false, true, 0, false, 0)
 
 	for _, lnm := range ss.LayStatNms {
 		plt.SetColParams(lnm+" ActAvg", false, true, 0, true, .5)
