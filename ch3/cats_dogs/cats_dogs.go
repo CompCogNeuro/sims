@@ -220,7 +220,7 @@ func (ss *Sim) Init() {
 // use tabs to achieve a reasonable formatting overall
 // and add a few tabs at the end to allow for expansion..
 func (ss *Sim) Counters() string {
-	return fmt.Sprintf("Trial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TestEnv.Trial.Cur, ss.Time.Cycle, ss.TestEnv.TrialName)
+	return fmt.Sprintf("Trial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TestEnv.Trial.Cur, ss.Time.Cycle, ss.TestEnv.TrialName.Cur)
 }
 
 func (ss *Sim) UpdateView() {
@@ -505,7 +505,7 @@ func (ss *Sim) LogTstCyc(dt *etable.Table, cyc int) {
 
 	harm := ss.Harmony(ss.Net)
 	dt.SetCellFloat("Cycle", row, float64(cyc))
-	dt.SetCellString("TrialName", row, ss.TestEnv.TrialName)
+	dt.SetCellString("TrialName", row, ss.TestEnv.TrialName.Cur)
 	dt.SetCellFloat("Harmony", row, float64(harm))
 
 	for _, lnm := range ss.TstRecLays {
