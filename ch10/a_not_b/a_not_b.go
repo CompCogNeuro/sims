@@ -326,7 +326,7 @@ func (ss *Sim) NewRndSeed() {
 // use tabs to achieve a reasonable formatting overall
 // and add a few tabs at the end to allow for expansion..
 func (ss *Sim) Counters(train bool) string {
-	return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TrainEnv.Trial.Cur, ss.Time.Cycle, ss.TrainEnv.TrialName)
+	return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TrainEnv.Trial.Cur, ss.Time.Cycle, ss.TrainEnv.TrialName.Cur)
 }
 
 func (ss *Sim) UpdateView(train bool) {
@@ -442,7 +442,7 @@ func (ss *Sim) TrainTrial() {
 	}
 
 	rch := ss.Net.LayerByName("Reach").(leabra.LeabraLayer).AsLeabra()
-	if strings.Contains(ss.TrainEnv.TrialName, "choice") {
+	if strings.Contains(ss.TrainEnv.TrialName.Cur, "choice") {
 		rch.SetType(emer.Compare)
 	} else {
 		rch.SetType(emer.Input)
@@ -453,14 +453,14 @@ func (ss *Sim) TrainTrial() {
 		ss.PrvGpName = ss.TrainEnv.GroupName.Cur
 	}
 	train := true
-	if strings.Contains(ss.TrainEnv.TrialName, "delay") {
+	if strings.Contains(ss.TrainEnv.TrialName.Cur, "delay") {
 		train = false // don't learn on delay trials
 	}
 
 	ss.ApplyInputs(&ss.TrainEnv)
 	ss.AlphaCyc(train)
 	ss.TrialStats(true) // accumulate
-	ss.LogTrnTrl(ss.TrnTrlLog, ss.TrainEnv.Trial.Cur, ss.TrainEnv.TrialName)
+	ss.LogTrnTrl(ss.TrnTrlLog, ss.TrainEnv.Trial.Cur, ss.TrainEnv.TrialName.Cur)
 }
 
 // RunEnd is called at the end of a run -- save weights, record final log, etc here

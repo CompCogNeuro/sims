@@ -411,9 +411,9 @@ func (ss *Sim) NewRndSeed() {
 // and add a few tabs at the end to allow for expansion..
 func (ss *Sim) Counters(train bool) string {
 	if train {
-		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TrainEnv.Trial.Cur, ss.Time.Cycle, ss.TrainEnv.TrialName)
+		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TrainEnv.Trial.Cur, ss.Time.Cycle, ss.TrainEnv.TrialName.Cur)
 	} else {
-		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.GenTestEnv.Trial.Cur, ss.Time.Cycle, ss.GenTestEnv.TrialName)
+		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.GenTestEnv.Trial.Cur, ss.Time.Cycle, ss.GenTestEnv.TrialName.Cur)
 	}
 }
 
@@ -696,7 +696,7 @@ func (ss *Sim) GenTestTrial(returnOnChg bool) {
 	ss.ApplyInputs(&ss.GenTestEnv)
 	ss.AlphaCyc(false)   // !train
 	ss.TrialStats(false) // !accumulate
-	ss.LogTstTrl(ss.TstTrlLog, ss.GenTestEnv.Trial.Cur, ss.GenTestEnv.TrialName)
+	ss.LogTstTrl(ss.TstTrlLog, ss.GenTestEnv.Trial.Cur, ss.GenTestEnv.TrialName.Cur)
 }
 
 // GenTestAll runs through the full set of testing items
@@ -740,7 +740,7 @@ func (ss *Sim) AllTestTrial(returnOnChg bool) {
 	ss.ApplyInputs(&ss.AllTestEnv)
 	ss.AlphaCyc(false)   // !train
 	ss.TrialStats(false) // !accumulate
-	ss.LogTstTrl(ss.TstTrlLog, ss.AllTestEnv.Trial.Cur, ss.AllTestEnv.TrialName)
+	ss.LogTstTrl(ss.TstTrlLog, ss.AllTestEnv.Trial.Cur, ss.AllTestEnv.TrialName.Cur)
 }
 
 // AllTestAll runs through the full set of testing items

@@ -492,8 +492,8 @@ func (ss *Sim) Init() {
 // and add a few tabs at the end to allow for expansion..
 func (ss *Sim) Counters() string {
 	nm := ss.TestEnv.GroupName.Cur
-	if ss.TestEnv.TrialName != nm {
-		nm += ": " + ss.TestEnv.TrialName
+	if ss.TestEnv.TrialName.Cur != nm {
+		nm += ": " + ss.TestEnv.TrialName.Cur
 	}
 	return fmt.Sprintf("Trial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TestEnv.Trial.Cur, ss.Time.Cycle, nm)
 }
@@ -635,9 +635,9 @@ func (ss *Sim) TestTrial() {
 		return
 	}
 
-	isCue := (ss.TestEnv.TrialName == "Cue")
+	isCue := (ss.TestEnv.TrialName.Cur == "Cue")
 
-	if ss.TestEnv.PrvTrialName != "Cue" {
+	if ss.TestEnv.TrialName.Prv != "Cue" {
 		ss.Net.InitActs()
 	}
 	ss.ApplyInputs(&ss.TestEnv)

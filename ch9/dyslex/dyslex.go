@@ -395,9 +395,9 @@ func (ss *Sim) NewRndSeed() {
 // and add a few tabs at the end to allow for expansion..
 func (ss *Sim) Counters(train bool) string {
 	if train {
-		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TrainEnv.Trial.Cur, ss.Time.Cycle, ss.TrainEnv.TrialName)
+		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TrainEnv.Trial.Cur, ss.Time.Cycle, ss.TrainEnv.TrialName.Cur)
 	} else {
-		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TestEnv.Trial.Cur, ss.Time.Cycle, ss.TestEnv.TrialName)
+		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TestEnv.Trial.Cur, ss.Time.Cycle, ss.TestEnv.TrialName.Cur)
 	}
 }
 
@@ -557,8 +557,8 @@ func (ss *Sim) TrainTrial() {
 		ss.SetInputLayer(0) // final training on Ortho reading
 	}
 	ss.ApplyInputs(&ss.TrainEnv)
-	ss.AlphaCyc(true)                          // train
-	ss.TrialStats(true, ss.TrainEnv.TrialName) // accumulate
+	ss.AlphaCyc(true)                              // train
+	ss.TrialStats(true, ss.TrainEnv.TrialName.Cur) // accumulate
 }
 
 // RunEnd is called at the end of a run -- save weights, record final log, etc here
@@ -814,8 +814,8 @@ func (ss *Sim) TestTrial(returnOnChg bool) {
 	// note: type must be in place before apply inputs
 	ss.SetInputLayer(3) // 3 is testing with compare on other layers, ortho input
 	ss.ApplyInputs(&ss.TestEnv)
-	ss.AlphaCyc(false)                         // !train
-	ss.TrialStats(false, ss.TestEnv.TrialName) // !accumulate
+	ss.AlphaCyc(false)                             // !train
+	ss.TrialStats(false, ss.TestEnv.TrialName.Cur) // !accumulate
 	ss.LogTstTrl(ss.TstTrlLog)
 }
 
@@ -827,8 +827,8 @@ func (ss *Sim) TestItem(idx int) {
 	// note: type must be in place before apply inputs
 	// ss.Net.LayerByName("Output").SetType(emer.Compare)
 	ss.ApplyInputs(&ss.TestEnv)
-	ss.AlphaCyc(false)                         // !train
-	ss.TrialStats(false, ss.TestEnv.TrialName) // !accumulate
+	ss.AlphaCyc(false)                             // !train
+	ss.TrialStats(false, ss.TestEnv.TrialName.Cur) // !accumulate
 	ss.TestEnv.Trial.Cur = cur
 }
 

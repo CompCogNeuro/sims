@@ -348,9 +348,9 @@ func (ss *Sim) NewRndSeed() {
 // and add a few tabs at the end to allow for expansion..
 func (ss *Sim) Counters(train bool) string {
 	if train {
-		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TrainEnv.Trial.Cur, ss.Time.Cycle, ss.TrainEnv.TrialName)
+		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TrainEnv.Trial.Cur, ss.Time.Cycle, ss.TrainEnv.TrialName.Cur)
 	} else {
-		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TestEnv.Trial.Cur, ss.Time.Cycle, ss.TestEnv.TrialName)
+		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TestEnv.Trial.Cur, ss.Time.Cycle, ss.TestEnv.TrialName.Cur)
 	}
 }
 
@@ -726,7 +726,7 @@ func (ss *Sim) TestTrial(returnOnChg bool) {
 	ss.ApplyInputs(&ss.TestEnv)
 	ss.AlphaCycTest()
 	ss.TrialStats(false) // !accumulate
-	ss.LogTstTrl(ss.TstTrlLog, ss.TestEnv.Trial.Cur, ss.TestEnv.TrialName)
+	ss.LogTstTrl(ss.TstTrlLog, ss.TestEnv.Trial.Cur, ss.TestEnv.TrialName.Cur)
 }
 
 // TestAll runs through the full set of testing items
@@ -778,16 +778,16 @@ func (ss *Sim) SOATestTrial(returnOnChg bool) {
 	out := ss.Net.LayerByName("Output").(leabra.LeabraLayer).AsLeabra()
 	out.SetType(emer.Compare)
 
-	islate := strings.Contains(ss.SOATestEnv.TrialName, "latestim")
+	islate := strings.Contains(ss.SOATestEnv.TrialName.Cur, "latestim")
 	if !islate || ss.SOA == 0 {
 		ss.Net.InitActs()
 	}
 
 	ss.ApplyInputs(&ss.SOATestEnv)
 	ss.AlphaCycTestCyc(ss.SOAMaxCyc)
-	if strings.Contains(ss.SOATestEnv.TrialName, "latestim") {
+	if strings.Contains(ss.SOATestEnv.TrialName.Cur, "latestim") {
 		ss.TrialStats(false) // !accumulate
-		ss.LogSOATrl(ss.SOATrlLog, ss.SOATestEnv.Trial.Cur, ss.SOATestEnv.TrialName)
+		ss.LogSOATrl(ss.SOATrlLog, ss.SOATestEnv.Trial.Cur, ss.SOATestEnv.TrialName.Cur)
 	}
 }
 
