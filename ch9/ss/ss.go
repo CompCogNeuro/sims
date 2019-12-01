@@ -61,6 +61,25 @@ func guirun() {
 // LogPrec is precision for saving float values in logs
 const LogPrec = 4
 
+// EnvType is the type of test environment
+type EnvType int32
+
+//go:generate stringer -type=EnvType
+
+var KiT_EnvType = kit.Enums.AddEnum(EnvTypeN, false, nil)
+
+func (ev EnvType) MarshalJSON() ([]byte, error)  { return kit.EnumMarshalJSON(ev) }
+func (ev *EnvType) UnmarshalJSON(b []byte) error { return kit.EnumUnmarshalJSON(ev, b) }
+
+const (
+	Probe EnvType = iota
+	Besner
+	Glushko
+	Taraban
+
+	EnvTypeN
+)
+
 // ParamSets is the default set of parameters -- Base is always applied, and others can be optionally
 // selected to apply on top of that
 var ParamSets = params.Sets{
@@ -118,6 +137,7 @@ var ParamSets = params.Sets{
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
+	TestingEnv    EnvType           `desc:"the environment to use for testing -- only takes effect for TestAll"`
 	Net           *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
 	TrainPats     *etable.Table     `view:"no-inline" desc:"training patterns"`
 	ProbePats     *etable.Table     `view:"no-inline" desc:"testing patterns based on training data"`
@@ -130,7 +150,7 @@ type Sim struct {
 	TstTrlLog     *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
 	TstEpcLog     *etable.Table     `view:"no-inline" desc:"summary testing results"`
 	TstErrLog     *etable.Table     `view:"no-inline" desc:"testing trials with errors (aggregating over multiple locations)"`
-	TstStats      *etable.Table     `view:"no-inline" desc:"aggregate testing stats"`
+	TstRTStats    *etable.Table     `view:"no-inline" desc:"average RT as a function of type"`
 	RunLog        *etable.Table     `view:"no-inline" desc:"summary log of each run"`
 	RunStats      *etable.Table     `view:"no-inline" desc:"aggregate stats on all runs"`
 	Params        params.Sets       `view:"no-inline" desc:"full collection of param sets"`
@@ -157,6 +177,7 @@ type Sim struct {
 	TrlSSE        float64 `inactive:"+" desc:"current trial's sum squared error"`
 	TrlAvgSSE     float64 `inactive:"+" desc:"current trial's average sum squared error"`
 	TrlCosDiff    float64 `inactive:"+" desc:"current trial's cosine difference"`
+	TrlRTCycles   float64 `inactive:"+" desc:"current trial's number of cycles for phon activity > 0.8"`
 	EpcSSE        float64 `inactive:"+" desc:"last epoch's total sum squared error"`
 	EpcAvgSSE     float64 `inactive:"+" desc:"last epoch's average sum squared error (average over trials, and over units within layer)"`
 	EpcPctErr     float64 `inactive:"+" desc:"last epoch's average TrlErr"`
@@ -179,6 +200,7 @@ type Sim struct {
 	TrnEpcPlot   *eplot.Plot2D               `view:"-" desc:"the training epoch plot"`
 	TstEpcPlot   *eplot.Plot2D               `view:"-" desc:"the testing epoch plot"`
 	TstTrlPlot   *eplot.Plot2D               `view:"-" desc:"the test-trial plot"`
+	TstRTPlot    *eplot.Plot2D               `view:"-" desc:"the test-trial plot"`
 	RunPlot      *eplot.Plot2D               `view:"-" desc:"the run plot"`
 	TrnEpcFile   *os.File                    `view:"-" desc:"log file"`
 	RunFile      *os.File                    `view:"-" desc:"log file"`
@@ -261,11 +283,26 @@ func (ss *Sim) ConfigEnv() {
 
 	ss.TestEnv.Nm = "TestEnv"
 	ss.TestEnv.Dsc = "testing params and state"
+	ss.TestEnv.GroupCol = "Type"
 	ss.TestEnv.Table = etable.NewIdxView(ss.ProbePats)
 	ss.TestEnv.Sequential = true
 	ss.TestEnv.Validate()
 
 	ss.TrainEnv.Init(0)
+	ss.TestEnv.Init(0)
+}
+
+func (ss *Sim) ConfigTestEnv() {
+	switch ss.TestingEnv {
+	case Probe:
+		ss.TestEnv.Table = etable.NewIdxView(ss.ProbePats)
+	case Besner:
+		ss.TestEnv.Table = etable.NewIdxView(ss.BesnerPats)
+	case Glushko:
+		ss.TestEnv.Table = etable.NewIdxView(ss.GlushkoPats)
+	case Taraban:
+		ss.TestEnv.Table = etable.NewIdxView(ss.TarabanPats)
+	}
 	ss.TestEnv.Init(0)
 }
 
@@ -332,7 +369,7 @@ func (ss *Sim) Counters(train bool) string {
 	if train {
 		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TrainEnv.Trial.Cur, ss.Time.Cycle, ss.TrainEnv.TrialName)
 	} else {
-		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TestEnv.Trial.Cur, ss.Time.Cycle, ss.TestEnv.TrialName)
+		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TestEnv.Trial.Cur, ss.Time.Cycle, ss.TestEnv.GroupName.Cur+": "+ss.TestEnv.TrialName)
 	}
 }
 
@@ -367,12 +404,21 @@ func (ss *Sim) AlphaCyc(train bool) {
 		ss.Net.WtFmDWt()
 	}
 
+	phn := ss.Net.LayerByName("Phon").(leabra.LeabraLayer).AsLeabra()
+	rtcyc := -1
+
 	ss.Net.AlphaCycInit()
 	ss.Time.AlphaCycStart()
 	for qtr := 0; qtr < 4; qtr++ {
 		for cyc := 0; cyc < ss.Time.CycPerQtr; cyc++ {
 			ss.Net.Cycle(&ss.Time)
 			ss.Time.CycleInc()
+			if rtcyc < 0 {
+				mxact := phn.Pools[0].Inhib.Act.Max
+				if mxact > 0.5 {
+					rtcyc = ss.Time.Cycle
+				}
+			}
 			if ss.ViewOn {
 				switch viewUpdt {
 				case leabra.Cycle:
@@ -397,6 +443,8 @@ func (ss *Sim) AlphaCyc(train bool) {
 			}
 		}
 	}
+
+	ss.TrlRTCycles = float64(rtcyc)
 
 	if train {
 		ss.Net.DWt()
@@ -517,26 +565,9 @@ func (ss *Sim) InitStats() {
 // different time-scales over which stats could be accumulated etc.
 // You can also aggregate directly from log data, as is done for testing stats
 func (ss *Sim) TrialStats(accum bool, trlnm string) (sse, avgsse, cosdiff float64) {
-	ss.TrlCosDiff = 0
-	ss.TrlSSE, ss.TrlAvgSSE = 0, 0
-	ntrg := 0
-	for _, lyi := range ss.Net.Layers {
-		ly := lyi.(leabra.LeabraLayer).AsLeabra()
-		if ly.Typ != emer.Target {
-			continue
-		}
-		ss.TrlCosDiff += float64(ly.CosDiff.Cos)
-		sse, avgsse := ly.MSE(0.5) // 0.5 = per-unit tolerance -- right side of .5
-		ss.TrlSSE += sse
-		ss.TrlAvgSSE += avgsse
-		ntrg++
-	}
-	if ntrg > 0 {
-		ss.TrlCosDiff /= float64(ntrg)
-		ss.TrlSSE /= float64(ntrg)
-		ss.TrlAvgSSE /= float64(ntrg)
-	}
-
+	out := ss.Net.LayerByName("Phon").(leabra.LeabraLayer).AsLeabra()
+	ss.TrlCosDiff = float64(out.CosDiff.Cos)
+	ss.TrlSSE, ss.TrlAvgSSE = out.MSE(0.5) // 0.5 = per-unit tolerance -- right side of .5
 	if ss.TrlSSE == 0 {
 		ss.TrlErr = 0
 	} else {
@@ -732,7 +763,8 @@ func (ss *Sim) TestItem(idx int) {
 	ss.TestEnv.Trial.Cur = idx
 	ss.TestEnv.SetTrialName()
 	// note: type must be in place before apply inputs
-	// ss.Net.LayerByName("Output").SetType(emer.Compare)
+	phn := ss.Net.LayerByName("Phon").(leabra.LeabraLayer).AsLeabra()
+	phn.SetType(emer.Compare)
 	ss.ApplyInputs(&ss.TestEnv)
 	ss.AlphaCyc(false)                         // !train
 	ss.TrialStats(false, ss.TestEnv.TrialName) // !accumulate
@@ -742,6 +774,8 @@ func (ss *Sim) TestItem(idx int) {
 // TestAll runs through the full set of testing items
 func (ss *Sim) TestAll() {
 	ss.SetParams("Network", false)
+	ss.ConfigTestEnv()
+	ss.TstTrlLog.SetNumRows(0)
 	ss.TestEnv.Init(ss.TrainEnv.Run.Cur)
 	for {
 		ss.TestTrial(true) // return on chg, don't present
@@ -1018,19 +1052,17 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
 	dt.SetCellFloat("Trial", row, float64(trl))
+	dt.SetCellString("Type", row, ss.TestEnv.GroupName.Cur)
 	dt.SetCellString("TrialName", row, ss.TrlName)
 	dt.SetCellString("Phon", row, ss.TrlPhon)
 	dt.SetCellFloat("PhonSSE", row, ss.TrlPhonSSE)
 	dt.SetCellFloat("TrlNameErr", row, ss.TrlNameErr)
+	dt.SetCellFloat("RTCycles", row, ss.TrlRTCycles)
 	dt.SetCellFloat("Err", row, ss.TrlErr)
 	dt.SetCellFloat("SSE", row, ss.TrlSSE)
 	dt.SetCellFloat("AvgSSE", row, ss.TrlAvgSSE)
 	dt.SetCellFloat("CosDiff", row, ss.TrlCosDiff)
 
-	for _, lnm := range ss.LayStatNms {
-		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
-		dt.SetCellFloat(ly.Nm+" ActM.Avg", row, float64(ly.Pools[0].ActM.Avg))
-	}
 	// note: essential to use Go version of update when called from another goroutine
 	ss.TstTrlPlot.GoUpdate()
 }
@@ -1041,24 +1073,23 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 	dt.SetMetaData("read-only", "true")
 	dt.SetMetaData("precision", strconv.Itoa(LogPrec))
 
-	nt := ss.TestEnv.Table.Len() // number in view
+	// nt := ss.TestEnv.Table.Len() // number in view
 	sch := etable.Schema{
 		{"Run", etensor.INT64, nil, nil},
 		{"Epoch", etensor.INT64, nil, nil},
 		{"Trial", etensor.INT64, nil, nil},
+		{"Type", etensor.STRING, nil, nil},
 		{"TrialName", etensor.STRING, nil, nil},
 		{"Phon", etensor.STRING, nil, nil},
 		{"PhonSSE", etensor.FLOAT64, nil, nil},
 		{"TrlNameErr", etensor.FLOAT64, nil, nil},
+		{"RTCycles", etensor.FLOAT64, nil, nil},
 		{"Err", etensor.FLOAT64, nil, nil},
 		{"SSE", etensor.FLOAT64, nil, nil},
 		{"AvgSSE", etensor.FLOAT64, nil, nil},
 		{"CosDiff", etensor.FLOAT64, nil, nil},
 	}
-	for _, lnm := range ss.LayStatNms {
-		sch = append(sch, etable.Column{lnm + " ActM.Avg", etensor.FLOAT64, nil, nil})
-	}
-	dt.SetFromSchema(sch, nt)
+	dt.SetFromSchema(sch, 0)
 }
 
 func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
@@ -1069,18 +1100,17 @@ func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetColParams("Run", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("Epoch", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("Trial", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("Type", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("TrialName", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("Phon", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("PhonSSE", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
 	plt.SetColParams("TrlNameErr", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
+	plt.SetColParams("RTCycles", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("Err", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
 	plt.SetColParams("SSE", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("AvgSSE", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("CosDiff", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
 
-	for _, lnm := range ss.LayStatNms {
-		plt.SetColParams(lnm+" ActM.Avg", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 0.5)
-	}
 	return plt
 }
 
@@ -1096,15 +1126,16 @@ func (ss *Sim) LogTstEpc(dt *etable.Table) {
 	tix := etable.NewIdxView(trl)
 	spl := split.GroupBy(tix, []string{"TrialName"})
 	split.Agg(spl, "TrlNameErr", agg.AggMin)
+	split.Agg(spl, "RTCycles", agg.AggMean)
 	minerr := spl.AggsToTableCopy(etable.ColNameOnly)
 
 	trlerr := minerr.ColByName("TrlNameErr")
-	noerr := etable.NewIdxView(minerr)
-	noerr.Filter(func(et *etable.Table, row int) bool {
-		// filter return value is for what to *keep* (=true), not exclude
-		// here we keep any row with a name that contains the string "in"
-		return trlerr.FloatVal1D(row) == 0
-	})
+	// noerr := etable.NewIdxView(minerr)
+	// noerr.Filter(func(et *etable.Table, row int) bool {
+	// 	// filter return value is for what to *keep* (=true), not exclude
+	// 	// here we keep any row with a name that contains the string "in"
+	// 	return trlerr.FloatVal1D(row) == 0
+	// })
 	allerr := etable.NewIdxView(minerr)
 	allerr.Filter(func(et *etable.Table, row int) bool {
 		// filter return value is for what to *keep* (=true), not exclude
@@ -1113,13 +1144,33 @@ func (ss *Sim) LogTstEpc(dt *etable.Table) {
 	})
 	ss.TstErrLog = allerr.NewTable()
 
+	rtspl := split.GroupBy(tix, []string{"Type"})
+	split.Agg(rtspl, "RTCycles", agg.AggMean)
+	split.Agg(rtspl, "RTCycles", agg.AggSem)
+	ss.TstRTStats = rtspl.AggsToTable(etable.AddAggName)
+	ss.ConfigTstRTPlot(ss.TstRTPlot, ss.TstRTStats)
+
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
-	// todo: set test env
-	dt.SetCellFloat("PctCor", row, float64(ss.TstErrLog.Rows)/float64(minerr.Rows))
+	dt.SetCellString("TestEnv", row, ss.TestingEnv.String())
+	dt.SetCellFloat("PctCor", row, 1-float64(ss.TstErrLog.Rows)/float64(minerr.Rows))
 
 	// note: essential to use Go version of update when called from another goroutine
 	ss.TstEpcPlot.GoUpdate()
+}
+
+func (ss *Sim) ConfigTstRTPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
+	plt.Params.Title = "SpellSound Test RT Plot"
+	plt.Params.XAxisCol = "Type"
+	if dt == nil {
+		return plt
+	}
+	plt.SetTable(dt)
+	// order of params: on, fixMin, min, fixMax, max
+	plt.SetColParams("Type", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("RTCycles:Mean", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0)
+	// todo: need to be able to plot x-axis as row num, and also to set error bars..
+	return plt
 }
 
 func (ss *Sim) ConfigTstEpcLog(dt *etable.Table) {
@@ -1280,6 +1331,9 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	plt = tv.AddNewTab(eplot.KiT_Plot2D, "TstEpcPlot").(*eplot.Plot2D)
 	ss.TstEpcPlot = ss.ConfigTstEpcPlot(plt, ss.TstEpcLog)
+
+	plt = tv.AddNewTab(eplot.KiT_Plot2D, "TstRTPlot").(*eplot.Plot2D)
+	ss.TstRTPlot = ss.ConfigTstRTPlot(plt, nil)
 
 	plt = tv.AddNewTab(eplot.KiT_Plot2D, "RunPlot").(*eplot.Plot2D)
 	ss.RunPlot = ss.ConfigRunPlot(plt, ss.RunLog)
