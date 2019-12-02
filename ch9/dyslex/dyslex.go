@@ -1110,7 +1110,9 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
 	plt.Params.Title = "Dyslex Test Trial Plot"
 	plt.Params.XAxisCol = "Trial"
-	plt.SetTable(dt)
+	plt.Params.Type = eplot.Bar
+	plt.SetTable(dt) // this sets defaults so set params after
+	plt.Params.BarWidth = 2
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Run", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("Epoch", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
@@ -1138,6 +1140,13 @@ func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 //////////////////////////////////////////////
 //  TstEpcLog
 
+func (ss *Sim) LesionStr() string {
+	if ss.Lesion <= DirectFull {
+		return ss.Lesion.String()
+	}
+	return fmt.Sprintf("%s %g", ss.Lesion, ss.LesionProp)
+}
+
 func (ss *Sim) LogTstEpc(dt *etable.Table) {
 	row := dt.Rows
 	dt.SetNumRows(row + 1)
@@ -1158,7 +1167,7 @@ func (ss *Sim) LogTstEpc(dt *etable.Table) {
 
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
-	dt.SetCellString("Lesion", row, ss.Lesion.String())
+	dt.SetCellString("Lesion", row, ss.LesionStr())
 	dt.SetCellFloat("LesionProp", row, float64(ss.LesionProp))
 
 	for _, cl := range cols {
@@ -1193,8 +1202,10 @@ func (ss *Sim) ConfigTstEpcLog(dt *etable.Table) {
 
 func (ss *Sim) ConfigTstEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
 	plt.Params.Title = "Dyslex Testing Epoch Plot"
-	plt.Params.XAxisCol = "Epoch"
-	plt.SetTable(dt)
+	plt.Params.XAxisCol = "Lesion"
+	plt.Params.Type = eplot.Bar
+	plt.SetTable(dt) // this sets defaults so set params after
+	plt.Params.BarWidth = 10
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Run", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("Epoch", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)

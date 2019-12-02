@@ -158,7 +158,6 @@ type Sim struct {
 	Delay3Pats  *etable.Table     `view:"no-inline" desc:"delay 3 patterns"`
 	Delay5Pats  *etable.Table     `view:"no-inline" desc:"delay 5 patterns"`
 	Delay1Pats  *etable.Table     `view:"no-inline" desc:"delay 1 patterns"`
-	TrnEpcLog   *etable.Table     `view:"no-inline" desc:"training epoch-level log data"`
 	TrnTrlLog   *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
 	Params      params.Sets       `view:"no-inline" desc:"full collection of param sets"`
 	MaxRuns     int               `desc:"maximum number of model runs to perform"`
@@ -174,7 +173,6 @@ type Sim struct {
 	Win         *gi.Window                  `view:"-" desc:"main GUI window"`
 	NetView     *netview.NetView            `view:"-" desc:"the network viewer"`
 	ToolBar     *gi.ToolBar                 `view:"-" desc:"the master toolbar"`
-	TrnEpcPlot  *eplot.Plot2D               `view:"-" desc:"the training epoch plot"`
 	TrnTrlTable *etview.TableView           `view:"-" desc:"the train trial table view"`
 	TrnTrlPlot  *eplot.Plot2D               `view:"-" desc:"the train trial plot"`
 	RunPlot     *eplot.Plot2D               `view:"-" desc:"the run plot"`
@@ -201,7 +199,6 @@ func (ss *Sim) New() {
 	ss.Delay3Pats = &etable.Table{}
 	ss.Delay5Pats = &etable.Table{}
 	ss.Delay1Pats = &etable.Table{}
-	ss.TrnEpcLog = &etable.Table{}
 	ss.TrnTrlLog = &etable.Table{}
 	ss.Params = ParamSets
 	ss.RndSeed = 1
@@ -223,7 +220,6 @@ func (ss *Sim) Config() {
 	ss.OpenPats()
 	ss.ConfigEnv()
 	ss.ConfigNet(ss.Net)
-	ss.ConfigTrnEpcLog(ss.TrnEpcLog)
 	ss.ConfigTrnTrlLog(ss.TrnTrlLog)
 }
 
@@ -424,7 +420,6 @@ func (ss *Sim) TrainTrial() {
 	// if epoch counter has changed
 	epc, _, chg := ss.TrainEnv.Counter(env.Epoch)
 	if chg {
-		ss.LogTrnEpc(ss.TrnEpcLog)
 		if ss.ViewOn && ss.TrainUpdt > leabra.AlphaCycle {
 			ss.UpdateView(true)
 		}
@@ -475,7 +470,6 @@ func (ss *Sim) NewRun() {
 	ss.Time.Reset()
 	ss.InitWts(ss.Net)
 	ss.InitStats()
-	ss.TrnEpcLog.SetNumRows(0)
 	ss.TrnTrlLog.SetNumRows(len(ss.TrainEnv.Order))
 	ss.PrvGpName = ""
 	ss.NeedsNewRun = false
@@ -651,54 +645,6 @@ func (ss *Sim) ValsTsr(name string) *etensor.Float32 {
 }
 
 //////////////////////////////////////////////
-//  TrnEpcLog
-
-// LogTrnEpc adds data from current epoch to the TrnEpcLog table.
-// computes epoch averages prior to logging.
-func (ss *Sim) LogTrnEpc(dt *etable.Table) {
-	row := dt.Rows
-	dt.SetNumRows(row + 1)
-
-	epc := ss.TrainEnv.Epoch.Prv // this is triggered by increment so use previous value
-
-	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
-	dt.SetCellFloat("Epoch", row, float64(epc))
-
-	// note: essential to use Go version of update when called from another goroutine
-	ss.TrnEpcPlot.GoUpdate()
-	if ss.TrnEpcFile != nil {
-		if ss.TrainEnv.Run.Cur == 0 && epc == 0 {
-			dt.WriteCSVHeaders(ss.TrnEpcFile, etable.Tab)
-		}
-		dt.WriteCSVRow(ss.TrnEpcFile, row, etable.Tab, true)
-	}
-}
-
-func (ss *Sim) ConfigTrnEpcLog(dt *etable.Table) {
-	dt.SetMetaData("name", "TrnEpcLog")
-	dt.SetMetaData("desc", "Record of performance over epochs of training")
-	dt.SetMetaData("read-only", "true")
-	dt.SetMetaData("precision", strconv.Itoa(LogPrec))
-
-	sch := etable.Schema{
-		{"Run", etensor.INT64, nil, nil},
-		{"Epoch", etensor.INT64, nil, nil},
-	}
-	dt.SetFromSchema(sch, 0)
-}
-
-func (ss *Sim) ConfigTrnEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
-	plt.Params.Title = "A not B Epoch Plot"
-	plt.Params.XAxisCol = "Epoch"
-	plt.SetTable(dt)
-	// order of params: on, fixMin, min, fixMax, max
-	plt.SetColParams("Run", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
-	plt.SetColParams("Epoch", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
-
-	return plt
-}
-
-//////////////////////////////////////////////
 //  TrnTrlLog
 
 // LogTrnTrl adds data from current trial to the TrnTrlLog table.
@@ -754,7 +700,9 @@ func (ss *Sim) ConfigTrnTrlLog(dt *etable.Table) {
 func (ss *Sim) ConfigTrnTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
 	plt.Params.Title = "A not B Train Trial Plot"
 	plt.Params.XAxisCol = "Trial"
-	plt.SetTable(dt)
+	plt.Params.Type = eplot.Bar
+	plt.SetTable(dt) // this sets defaults so set params after
+	plt.Params.BarWidth = 2
 	plt.Params.Points = true
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Trial", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
@@ -821,9 +769,6 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	plt := tv.AddNewTab(eplot.KiT_Plot2D, "TrnTrlPlot").(*eplot.Plot2D)
 	ss.TrnTrlPlot = ss.ConfigTrnTrlPlot(plt, ss.TrnTrlLog)
-
-	plt = tv.AddNewTab(eplot.KiT_Plot2D, "TrnEpcPlot").(*eplot.Plot2D)
-	ss.TrnEpcPlot = ss.ConfigTrnEpcPlot(plt, ss.TrnEpcLog)
 
 	split.SetSplits(.3, .7)
 

@@ -1236,7 +1236,9 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
 	plt.Params.Title = "Hippocampus Test Trial Plot"
 	plt.Params.XAxisCol = "Trial"
-	plt.SetTable(dt)
+	plt.Params.Type = eplot.Bar
+	plt.SetTable(dt) // this sets defaults so set params after
+	plt.Params.BarWidth = 10
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Run", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("Epoch", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
@@ -1347,7 +1349,7 @@ func (ss *Sim) ConfigTstEpcLog(dt *etable.Table) {
 func (ss *Sim) ConfigTstEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
 	plt.Params.Title = "Hippocampus Testing Epoch Plot"
 	plt.Params.XAxisCol = "Epoch"
-	plt.SetTable(dt)
+	plt.SetTable(dt) // this sets defaults so set params after
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Run", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("Epoch", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
