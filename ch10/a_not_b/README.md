@@ -58,7 +58,7 @@ Furthermore, because Hebbian learning is taking place after each trial, those un
 
 You will now see the `A` testing trials, where the network's tendency to reach to the `A` location is assessed. Note that as a result of the Hebbian learning, the hidden and GazeExpect units are even more active here than in the pretrials.
 
-* Now scroll down to make the first B-trial event the first one displayed.
+* Now scroll down to make the first B-trial event the first one displayed.  You can also click on the `TrnTrlPlot` tab to see a plot of the three Reach activations across time, to get a better quantitative sense of the relative activation levels (`Reach_00` is the A unit, `Reach_01` is the B unit).
 
 > **Question 10.4:** Describe what happens to the network's internal representations and output (gaze, reach) responses over the delay and choice trials for the B trials, and how this relates to Piaget's A-not-B data in infants.
 

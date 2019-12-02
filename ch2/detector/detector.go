@@ -471,7 +471,8 @@ func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetColParams("Trial", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("TrialName", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 
-	plt.SetColParams("Input", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
+	cp := plt.SetColParams("Input", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
+	cp.TensorIdx = -1 // plot all
 	plt.SetColParams("Ge", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
 	plt.SetColParams("Act", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
 	return plt
