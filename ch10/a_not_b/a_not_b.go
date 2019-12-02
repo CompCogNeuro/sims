@@ -711,9 +711,11 @@ func (ss *Sim) ConfigTrnTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 
 	for _, lnm := range ss.TstRecLays {
 		if lnm == "Reach" {
-			plt.SetColParams(lnm, eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
+			cp := plt.SetColParams(lnm, eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
+			cp.TensorIdx = -1 // plot all
 		} else {
-			plt.SetColParams(lnm, eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
+			cp := plt.SetColParams(lnm, eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
+			cp.TensorIdx = -1 // plot all
 		}
 	}
 	return plt
