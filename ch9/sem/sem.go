@@ -15,6 +15,7 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"log"
 	"math/rand"
@@ -29,7 +30,8 @@ import (
 	"github.com/emer/emergent/prjn"
 	"github.com/emer/etable/eplot"
 	"github.com/emer/etable/etable"
-	"github.com/emer/etable/etensor" // include to get gui views
+	"github.com/emer/etable/etensor"
+	_ "github.com/emer/etable/etview" // include to get gui views
 	"github.com/emer/leabra/leabra"
 	"github.com/goki/gi/gi"
 	"github.com/goki/gi/gimain"
@@ -39,11 +41,22 @@ import (
 	"github.com/goki/ki/kit"
 )
 
-// this is the stub main for gogi that calls our actual mainrun function, at end of file
 func main() {
-	gimain.Main(func() {
-		mainrun()
-	})
+	TheSim.New()
+	TheSim.Config()
+	if len(os.Args) > 1 {
+		TheSim.CmdArgs() // simple assumption is that any args = no gui -- could add explicit arg if you want
+	} else {
+		gimain.Main(func() { // this starts gui -- requires valid OpenGL display connection (e.g., X11)
+			guirun()
+		})
+	}
+}
+
+func guirun() {
+	TheSim.Init()
+	win := TheSim.ConfigGui()
+	win.StartEventLoop()
 }
 
 // LogPrec is precision for saving float values in logs
@@ -66,18 +79,23 @@ var ParamSets = params.Sets{
 				}},
 			{Sel: "Layer", Desc: "needs some special inhibition and learning params",
 				Params: params.Params{
-					"Layer.Learn.AvgL.Gain":   "1", // this is critical! much lower
-					"Layer.Learn.AvgL.Min":    "0.01",
-					"Layer.Learn.AvgL.Init":   "0.2",
-					"Layer.Inhib.Layer.Gi":    "2",
-					"Layer.Inhib.Layer.FBTau": "3",
-					"Layer.Inhib.ActAvg.Init": "0.2",
-					"Layer.Act.Gbar.L":        "0.1",
-					"Layer.Act.Noise.Dist":    "Gaussian",
-					"Layer.Act.Noise.Var":     "0.02",
-					"Layer.Act.Noise.Type":    "GeNoise",
-					"Layer.Act.Noise.Fixed":   "false",
+					// "Layer.Learn.AvgL.Gain":   "1", // this is critical! much lower
+					// "Layer.Learn.AvgL.Min":    "0.01",
+					// "Layer.Learn.AvgL.Init":   "0.2",
+					"Layer.Act.Gbar.L": "0.1", // todo: .2 in E1
 				}},
+			{Sel: "#Input", Desc: "weak act",
+				Params: params.Params{
+					"Layer.Inhib.ActAvg.Init":  "0.02",
+					"Layer.Inhib.ActAvg.Fixed": "true",
+				}},
+			// {Sel: "#Hidden", Desc: "noise for hidden -- optional",
+			// 	Params: params.Params{
+			// 		"Layer.Act.Noise.Dist":  "Gaussian",
+			// 		"Layer.Act.Noise.Var":   "0.02", // todo: test
+			// 		"Layer.Act.Noise.Type":  "GeNoise",
+			// 		"Layer.Act.Noise.Fixed": "false",
+			// 	}},
 			{Sel: ".Back", Desc: "top-down back-projections MUST have lower relative weight scale, otherwise network hallucinates",
 				Params: params.Params{
 					"Prjn.WtScale.Rel": "0.2",
@@ -87,14 +105,14 @@ var ParamSets = params.Sets{
 					"Prjn.WtInit.Mean": ".5",
 					"Prjn.WtInit.Var":  "0",
 					"Prjn.WtInit.Sym":  "false",
-					"Prjn.WtScale.Rel": "0.2",
+					"Prjn.WtScale.Rel": "0.05",
 				}},
 			{Sel: ".InhibLateral", Desc: "lateral inhibitory connection",
 				Params: params.Params{
 					"Prjn.WtInit.Mean": "0",
 					"Prjn.WtInit.Var":  "0",
 					"Prjn.WtInit.Sym":  "false",
-					"Prjn.WtScale.Abs": "0.2",
+					"Prjn.WtScale.Abs": "0.05",
 				}},
 		},
 	}},
@@ -106,8 +124,8 @@ var ParamSets = params.Sets{
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
-	ExcitLateralScale float32           `def:"0.2" desc:"excitatory lateral (recurrent) WtScale.Rel value"`
-	InhibLateralScale float32           `def:"0.2" desc:"inhibitory lateral (recurrent) WtScale.Abs value"`
+	ExcitLateralScale float32           `def:"0.05" desc:"excitatory lateral (recurrent) WtScale.Rel value"`
+	InhibLateralScale float32           `def:"0.05" desc:"inhibitory lateral (recurrent) WtScale.Abs value"`
 	ExcitLateralLearn bool              `def:"true" desc:"do excitatory lateral (recurrent) connections learn?"`
 	Net               *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
 	Probes            *etable.Table     `view:"no-inline" desc:"probe inputs"`
@@ -117,6 +135,8 @@ type Sim struct {
 	RunLog            *etable.Table     `view:"no-inline" desc:"summary log of each run"`
 	RunStats          *etable.Table     `view:"no-inline" desc:"aggregate stats on all runs"`
 	Params            params.Sets       `view:"no-inline" desc:"full collection of param sets"`
+	ParamSet          string            `desc:"which set of *additional* parameters to use -- always applies Base and optionaly this next if set"`
+	Tag               string            `desc:"extra tag string to add to any file names output from sim (e.g., weights files, log files, params for run)"`
 	MaxRuns           int               `desc:"maximum number of model runs to perform"`
 	MaxEpcs           int               `desc:"maximum number of epochs to run per model run"`
 	NZeroStop         int               `desc:"if a positive number, training will stop after this many epochs with zero SSE"`
@@ -129,20 +149,26 @@ type Sim struct {
 	LayStatNms        []string          `desc:"names of layers to collect more detailed stats on (avg act, etc)"`
 
 	// statistics: note use float64 as that is best for etable.Table
-	Win         *gi.Window                  `view:"-" desc:"main GUI window"`
-	NetView     *netview.NetView            `view:"-" desc:"the network viewer"`
-	ToolBar     *gi.ToolBar                 `view:"-" desc:"the master toolbar"`
-	TrnEpcPlot  *eplot.Plot2D               `view:"-" desc:"the training epoch plot"`
-	TstEpcPlot  *eplot.Plot2D               `view:"-" desc:"the testing epoch plot"`
-	TstTrlPlot  *eplot.Plot2D               `view:"-" desc:"the test-trial plot"`
-	RunPlot     *eplot.Plot2D               `view:"-" desc:"the run plot"`
-	TrnEpcFile  *os.File                    `view:"-" desc:"log file"`
-	RunFile     *os.File                    `view:"-" desc:"log file"`
-	ValsTsrs    map[string]*etensor.Float32 `view:"-" desc:"for holding layer values"`
-	IsRunning   bool                        `view:"-" desc:"true if sim is running"`
-	StopNow     bool                        `view:"-" desc:"flag to stop running"`
-	NeedsNewRun bool                        `view:"-" desc:"flag to initialize NewRun if last one finished"`
-	RndSeed     int64                       `view:"-" desc:"the current random seed"`
+	EpcPerTrlMSec float64 `inactive:"+" desc:"how long did the epoch take per trial in wall-clock milliseconds"`
+
+	Win          *gi.Window                  `view:"-" desc:"main GUI window"`
+	NetView      *netview.NetView            `view:"-" desc:"the network viewer"`
+	ToolBar      *gi.ToolBar                 `view:"-" desc:"the master toolbar"`
+	TrnEpcPlot   *eplot.Plot2D               `view:"-" desc:"the training epoch plot"`
+	TstEpcPlot   *eplot.Plot2D               `view:"-" desc:"the testing epoch plot"`
+	TstTrlPlot   *eplot.Plot2D               `view:"-" desc:"the test-trial plot"`
+	RunPlot      *eplot.Plot2D               `view:"-" desc:"the run plot"`
+	TrnEpcFile   *os.File                    `view:"-" desc:"log file"`
+	RunFile      *os.File                    `view:"-" desc:"log file"`
+	ValsTsrs     map[string]*etensor.Float32 `view:"-" desc:"for holding layer values"`
+	SaveWts      bool                        `view:"-" desc:"for command-line run only, auto-save final weights after each run"`
+	NoGui        bool                        `view:"-" desc:"if true, runing in no GUI mode"`
+	LogSetParams bool                        `view:"-" desc:"if true, print message for all params that are set"`
+	IsRunning    bool                        `view:"-" desc:"true if sim is running"`
+	StopNow      bool                        `view:"-" desc:"flag to stop running"`
+	NeedsNewRun  bool                        `view:"-" desc:"flag to initialize NewRun if last one finished"`
+	RndSeed      int64                       `view:"-" desc:"the current random seed"`
+	LastEpcTime  time.Time                   `view:"-" desc:"timer for last epoch"`
 }
 
 // this registers this Sim Type and gives it properties that e.g.,
@@ -154,8 +180,8 @@ var TheSim Sim
 
 // New creates new blank elements and initializes defaults
 func (ss *Sim) New() {
-	ss.ExcitLateralScale = 0.2
-	ss.InhibLateralScale = 0.2
+	ss.ExcitLateralScale = 0.05
+	ss.InhibLateralScale = 0.05
 	ss.ExcitLateralLearn = true
 	ss.Net = &leabra.Network{}
 	ss.Probes = &etable.Table{}
@@ -191,7 +217,7 @@ func (ss *Sim) ConfigEnv() {
 		ss.MaxRuns = 1
 	}
 	if ss.MaxEpcs == 0 { // allow user override
-		ss.MaxEpcs = 100
+		ss.MaxEpcs = 50
 		ss.NZeroStop = -1
 	}
 
@@ -221,15 +247,15 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 	full := prjn.NewFull()
 	net.ConnectLayers(in, hid, full, emer.Forward)
 
-	// circ := prjn.NewCircle()
-	// circ.Radius = 4
-	// circ.Sigma = .75
+	circ := prjn.NewCircle()
+	circ.Radius = 4
+	circ.Sigma = .75
 
-	// rec := net.ConnectLayers(v1, v1, circ, emer.Lateral)
-	// rec.SetClass("ExciteLateral")
+	rec := net.ConnectLayers(hid, hid, circ, emer.Lateral)
+	rec.SetClass("ExciteLateral")
 
-	// inh := net.ConnectLayers(v1, v1, full, emer.Inhib)
-	// inh.SetClass("InhibLateral")
+	inh := net.ConnectLayers(hid, hid, full, emer.Inhib)
+	inh.SetClass("InhibLateral")
 
 	net.Defaults()
 	ss.SetParams("Network", false) // only set Network params
@@ -243,10 +269,10 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 
 func (ss *Sim) InitWts(net *leabra.Network) {
 	// set scales after building but before InitWts
-	// v1 := net.LayerByName("V1")
-	// v1v1 := v1.RecvPrjns().SendName("V1").(*leabra.Prjn) // first one is excite
-	// pat := v1v1.Pattern().(*prjn.Circle)
-	// v1v1.SetScalesFunc(pat.GaussWts)
+	hid := net.LayerByName("Hidden")
+	hider := hid.RecvPrjns().SendName("Hidden").(*leabra.Prjn) // first one is excite
+	pat := hider.Pattern().(*prjn.Circle)
+	hider.SetScalesFunc(pat.GaussWts)
 	net.InitWts()
 }
 
@@ -311,6 +337,8 @@ func (ss *Sim) AlphaCyc(train bool) {
 		ss.Net.WtFmDWt()
 	}
 
+	ss.SetInputActAvg(ss.Net) // needs to track actual external input
+
 	ss.Net.AlphaCycInit()
 	ss.Time.AlphaCycStart()
 	for qtr := 0; qtr < 4; qtr++ {
@@ -347,6 +375,22 @@ func (ss *Sim) AlphaCyc(train bool) {
 	}
 	if ss.ViewOn && viewUpdt == leabra.AlphaCycle {
 		ss.UpdateView(train)
+	}
+}
+
+// Sets Input layer Inhib.ActAvg.Init from ext input
+func (ss *Sim) SetInputActAvg(net *leabra.Network) {
+	nin := 0
+	inp := net.LayerByName("Input").(leabra.LeabraLayer).AsLeabra()
+	for ni := range inp.Neurons {
+		nrn := &(inp.Neurons[ni])
+		if nrn.Ext > 0 {
+			nin++
+		}
+	}
+	if nin > 0 {
+		avg := float32(nin) / float32(inp.Shp.Len())
+		inp.Inhib.ActAvg.Init = avg
 	}
 }
 
@@ -406,6 +450,11 @@ func (ss *Sim) TrainTrial() {
 // RunEnd is called at the end of a run -- save weights, record final log, etc here
 func (ss *Sim) RunEnd() {
 	ss.LogRun(ss.RunLog)
+	if ss.SaveWts {
+		fnm := ss.WeightsFileName()
+		fmt.Printf("Saving Weights to: %v\n", fnm)
+		ss.Net.SaveWtsJSON(gi.FileName(fnm))
+	}
 }
 
 // NewRun intializes a new run of the model, using the TrainEnv.Run counter
@@ -493,9 +542,9 @@ func (ss *Sim) Stopped() {
 	}
 }
 
-// SaveWts saves the network weights -- when called with giv.CallMethod
+// SaveWeights saves the network weights -- when called with giv.CallMethod
 // it will auto-prompt for filename
-func (ss *Sim) SaveWts(filename gi.FileName) {
+func (ss *Sim) SaveWeights(filename gi.FileName) {
 	ss.Net.SaveWtsJSON(filename)
 }
 
@@ -582,6 +631,14 @@ func (ss *Sim) RunTestAll() {
 /////////////////////////////////////////////////////////////////////////
 //   Params setting
 
+// ParamsName returns name of current set of parameters
+func (ss *Sim) ParamsName() string {
+	if ss.ParamSet == "" {
+		return "Base"
+	}
+	return ss.ParamSet
+}
+
 // SetParams sets the params for "Base" and then current ParamSet.
 // If sheet is empty, then it applies all avail sheets (e.g., Network, Sim)
 // otherwise just the named sheet
@@ -592,14 +649,17 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 		ss.Params.ValidateSheets([]string{"Network", "Sim"})
 	}
 	err := ss.SetParamsSet("Base", sheet, setMsg)
+	if ss.ParamSet != "" && ss.ParamSet != "Base" {
+		err = ss.SetParamsSet(ss.ParamSet, sheet, setMsg)
+	}
 
-	// nt := ss.Net
-	// v1 := nt.LayerByName("V1").(leabra.LeabraLayer).AsLeabra()
-	// elat := v1.RcvPrjns[2].(*leabra.Prjn)
-	// elat.WtScale.Rel = ss.ExcitLateralScale
-	// elat.Learn.Learn = ss.ExcitLateralLearn
-	// ilat := v1.RcvPrjns[3].(*leabra.Prjn)
-	// ilat.WtScale.Abs = ss.InhibLateralScale
+	nt := ss.Net
+	hid := nt.LayerByName("Hidden").(leabra.LeabraLayer).AsLeabra()
+	elat := hid.RcvPrjns[1].(*leabra.Prjn)
+	elat.WtScale.Rel = ss.ExcitLateralScale
+	elat.Learn.Learn = ss.ExcitLateralLearn
+	ilat := hid.RcvPrjns[2].(*leabra.Prjn)
+	ilat.WtScale.Abs = ss.InhibLateralScale
 
 	return err
 }
@@ -673,6 +733,32 @@ func (ss *Sim) ValsTsr(name string) *etensor.Float32 {
 	return tsr
 }
 
+// RunName returns a name for this run that combines Tag and Params -- add this to
+// any file names that are saved.
+func (ss *Sim) RunName() string {
+	if ss.Tag != "" {
+		return ss.Tag + "_" + ss.ParamsName()
+	} else {
+		return ss.ParamsName()
+	}
+}
+
+// RunEpochName returns a string with the run and epoch numbers with leading zeros, suitable
+// for using in weights file names.  Uses 3, 5 digits for each.
+func (ss *Sim) RunEpochName(run, epc int) string {
+	return fmt.Sprintf("%03d_%05d", run, epc)
+}
+
+// WeightsFileName returns default current weights file name
+func (ss *Sim) WeightsFileName() string {
+	return ss.Net.Nm + "_" + ss.RunName() + "_" + ss.RunEpochName(ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur) + ".wts.gz"
+}
+
+// LogFileName returns default log file name
+func (ss *Sim) LogFileName(lognm string) string {
+	return ss.Net.Nm + "_" + ss.RunName() + "_" + lognm + ".csv"
+}
+
 //////////////////////////////////////////////
 //  TrnEpcLog
 
@@ -683,10 +769,19 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 	dt.SetNumRows(row + 1)
 
 	epc := ss.TrainEnv.Epoch.Prv // this is triggered by increment so use previous value
-	// nt := float64(ss.TrainEnv.Trial.Max)
+	nt := float64(ss.TrainEnv.Trial.Max)
+
+	if ss.LastEpcTime.IsZero() {
+		ss.EpcPerTrlMSec = 0
+	} else {
+		iv := time.Now().Sub(ss.LastEpcTime)
+		ss.EpcPerTrlMSec = float64(iv) / (nt * float64(time.Millisecond))
+	}
+	ss.LastEpcTime = time.Now()
 
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
+	dt.SetCellFloat("PerTrlMSec", row, ss.EpcPerTrlMSec)
 
 	for _, lnm := range ss.LayStatNms {
 		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
@@ -712,6 +807,7 @@ func (ss *Sim) ConfigTrnEpcLog(dt *etable.Table) {
 	sch := etable.Schema{
 		{"Run", etensor.INT64, nil, nil},
 		{"Epoch", etensor.INT64, nil, nil},
+		{"PerTrlMSec", etensor.FLOAT64, nil, nil},
 	}
 	for _, lnm := range ss.LayStatNms {
 		sch = append(sch, etable.Column{lnm + " ActAvg", etensor.FLOAT64, nil, nil})
@@ -726,6 +822,7 @@ func (ss *Sim) ConfigTrnEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Run", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("Epoch", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("PerTrlMSec", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 
 	for _, lnm := range ss.LayStatNms {
 		plt.SetColParams(lnm+" ActAvg", eplot.On, eplot.FixMin, 0, eplot.FixMax, .5)
@@ -1160,11 +1257,53 @@ var SimProps = ki.Props{
 	},
 }
 
-func mainrun() {
-	TheSim.New()
-	TheSim.Config()
+func (ss *Sim) CmdArgs() {
+	ss.NoGui = true
+	var nogui bool
+	var saveEpcLog bool
+	var saveRunLog bool
+	flag.StringVar(&ss.ParamSet, "params", "", "ParamSet name to use -- must be valid name as listed in compiled-in params or loaded params")
+	flag.StringVar(&ss.Tag, "tag", "", "extra tag to add to file names saved from this run")
+	flag.IntVar(&ss.MaxRuns, "runs", 1, "number of runs to do (note that MaxEpcs is in paramset)")
+	flag.BoolVar(&ss.LogSetParams, "setparams", false, "if true, print a record of each parameter that is set")
+	flag.BoolVar(&ss.SaveWts, "wts", true, "if true, save final weights after each run")
+	flag.BoolVar(&saveEpcLog, "epclog", true, "if true, save train epoch log to file")
+	flag.BoolVar(&saveRunLog, "runlog", true, "if true, save run epoch log to file")
+	flag.BoolVar(&nogui, "nogui", true, "if not passing any other args and want to run nogui, use nogui")
+	flag.Parse()
+	ss.Init()
 
-	TheSim.Init()
-	win := TheSim.ConfigGui()
-	win.StartEventLoop()
+	if ss.ParamSet != "" {
+		fmt.Printf("Using ParamSet: %s\n", ss.ParamSet)
+	}
+
+	if saveEpcLog {
+		var err error
+		fnm := ss.LogFileName("epc")
+		ss.TrnEpcFile, err = os.Create(fnm)
+		if err != nil {
+			log.Println(err)
+			ss.TrnEpcFile = nil
+		} else {
+			fmt.Printf("Saving epoch log to: %v\n", fnm)
+			defer ss.TrnEpcFile.Close()
+		}
+	}
+	if saveRunLog {
+		var err error
+		fnm := ss.LogFileName("run")
+		ss.RunFile, err = os.Create(fnm)
+		if err != nil {
+			log.Println(err)
+			ss.RunFile = nil
+		} else {
+			fmt.Printf("Saving run log to: %v\n", fnm)
+			defer ss.RunFile.Close()
+		}
+	}
+	if ss.SaveWts {
+		fmt.Printf("Saving final weights per run\n")
+	}
+	fmt.Printf("Running %d Runs\n", ss.MaxRuns)
+	ss.Train()
 }

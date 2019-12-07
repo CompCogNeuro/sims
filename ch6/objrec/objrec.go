@@ -802,6 +802,9 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 		ss.Params.ValidateSheets([]string{"Network", "Sim"})
 	}
 	err := ss.SetParamsSet("Base", sheet, setMsg)
+	if ss.ParamSet != "" && ss.ParamSet != "Base" {
+		err = ss.SetParamsSet(ss.ParamSet, sheet, setMsg)
+	}
 	return err
 }
 
