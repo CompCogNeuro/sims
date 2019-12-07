@@ -21,6 +21,7 @@ import (
 	"math/rand"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/emer/emergent/emer"
@@ -32,11 +33,13 @@ import (
 	"github.com/emer/etable/etable"
 	"github.com/emer/etable/etensor"
 	_ "github.com/emer/etable/etview" // include to get gui views
+	"github.com/emer/etable/metric"
 	"github.com/emer/leabra/leabra"
 	"github.com/goki/gi/gi"
 	"github.com/goki/gi/gimain"
 	"github.com/goki/gi/giv"
 	"github.com/goki/gi/mat32"
+	"github.com/goki/ki/ints"
 	"github.com/goki/ki/ki"
 	"github.com/goki/ki/kit"
 )
@@ -105,14 +108,14 @@ var ParamSets = params.Sets{
 					"Prjn.WtInit.Mean": ".5",
 					"Prjn.WtInit.Var":  "0",
 					"Prjn.WtInit.Sym":  "false",
-					"Prjn.WtScale.Rel": "0.05",
+					"Prjn.WtScale.Rel": "0.01",
 				}},
 			{Sel: ".InhibLateral", Desc: "lateral inhibitory connection",
 				Params: params.Params{
 					"Prjn.WtInit.Mean": "0",
 					"Prjn.WtInit.Var":  "0",
 					"Prjn.WtInit.Sym":  "false",
-					"Prjn.WtScale.Abs": "0.05",
+					"Prjn.WtScale.Abs": "0.01",
 				}},
 		},
 	}},
@@ -124,6 +127,8 @@ var ParamSets = params.Sets{
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
+	Words1            string            `desc:"space-separated words to test the network with"`
+	Words2            string            `desc:"space-separated words to test the network with"`
 	ExcitLateralScale float32           `def:"0.05" desc:"excitatory lateral (recurrent) WtScale.Rel value"`
 	InhibLateralScale float32           `def:"0.05" desc:"inhibitory lateral (recurrent) WtScale.Abs value"`
 	ExcitLateralLearn bool              `def:"true" desc:"do excitatory lateral (recurrent) connections learn?"`
@@ -149,7 +154,9 @@ type Sim struct {
 	LayStatNms        []string          `desc:"names of layers to collect more detailed stats on (avg act, etc)"`
 
 	// statistics: note use float64 as that is best for etable.Table
-	EpcPerTrlMSec float64 `inactive:"+" desc:"how long did the epoch take per trial in wall-clock milliseconds"`
+	TstWords       string  `inactive:"+" desc:"words that were tested (short form)"`
+	TstWordsCorrel float64 `inactive:"+" desc:"correlation between hidden pattern for Words1 vs. Words2"`
+	EpcPerTrlMSec  float64 `view:"-" desc:"how long did the epoch take per trial in wall-clock milliseconds"`
 
 	Win          *gi.Window                  `view:"-" desc:"main GUI window"`
 	NetView      *netview.NetView            `view:"-" desc:"the network viewer"`
@@ -180,9 +187,6 @@ var TheSim Sim
 
 // New creates new blank elements and initializes defaults
 func (ss *Sim) New() {
-	ss.ExcitLateralScale = 0.05
-	ss.InhibLateralScale = 0.05
-	ss.ExcitLateralLearn = true
 	ss.Net = &leabra.Network{}
 	ss.Probes = &etable.Table{}
 	ss.TrnEpcLog = &etable.Table{}
@@ -194,8 +198,17 @@ func (ss *Sim) New() {
 	ss.RndSeed = 1
 	ss.ViewOn = true
 	ss.TrainUpdt = leabra.AlphaCycle
-	ss.TestUpdt = leabra.Cycle
+	ss.TestUpdt = leabra.AlphaCycle
 	ss.LayStatNms = []string{"Hidden"}
+	ss.Defaults()
+}
+
+func (ss *Sim) Defaults() {
+	ss.Words1 = "attention"
+	ss.Words2 = "binding"
+	ss.ExcitLateralScale = 0.05
+	ss.InhibLateralScale = 0.05
+	ss.ExcitLateralLearn = true
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -224,15 +237,16 @@ func (ss *Sim) ConfigEnv() {
 	ss.TrainEnv.Nm = "TrainEnv"
 	ss.TrainEnv.Dsc = "training params and state"
 	ss.TrainEnv.Defaults()
-	ss.TrainEnv.OpenTexts([]string{"cecn_lg_f5.text"})
-	ss.TrainEnv.OpenWords("cecn_lg_f5.words") // could also compute from words
+	ss.TrainEnv.OpenTextsAsset([]string{"cecn_lg_f5.text"})
+	ss.TrainEnv.OpenWordsAsset("cecn_lg_f5.words") // could also compute from words
 	ss.TrainEnv.Validate()
 	ss.TrainEnv.Run.Max = ss.MaxRuns // note: we are not setting epoch max -- do that manually
 
 	ss.TestEnv.Nm = "TestEnv"
-	ss.TestEnv.Dsc = "testing quiz"
-	// ss.TestEnv.Table = etable.NewIdxView(ss.Probes)
+	ss.TestEnv.Dsc = "testing env: for Words1, 2"
 	ss.TestEnv.Sequential = true
+	ss.TestEnv.OpenWordsAsset("cecn_lg_f5.words")
+	ss.TestEnv.SetParas([]string{ss.Words1, ss.Words2})
 	ss.TestEnv.Validate()
 
 	ss.TrainEnv.Init(0)
@@ -548,24 +562,14 @@ func (ss *Sim) SaveWeights(filename gi.FileName) {
 	ss.Net.SaveWtsJSON(filename)
 }
 
-// OpenRec2Wts opens trained weights w/ rec=0.2
-func (ss *Sim) OpenRec2Wts() {
-	ab, err := Asset("v1rf_rec2.wts") // embedded in executable
-	if err != nil {
-		log.Println(err)
-	}
-	ss.Net.ReadWtsJSON(bytes.NewBuffer(ab))
-	// ss.Net.OpenWtsJSON("v1rf_rec2.wts.gz")
-}
-
 // OpenRec05Wts opens trained weights w/ rec=0.05
 func (ss *Sim) OpenRec05Wts() {
-	ab, err := Asset("v1rf_rec05.wts") // embedded in executable
+	ab, err := Asset("trained_rec05.wts") // embedded in executable
 	if err != nil {
 		log.Println(err)
 	}
 	ss.Net.ReadWtsJSON(bytes.NewBuffer(ab))
-	// ss.Net.OpenWtsJSON("v1rf_rec05.wts.gz")
+	// ss.Net.OpenWtsJSON("trained_rec05.wts.gz")
 }
 
 func (ss *Sim) ConfigWts(dt *etensor.Float32) {
@@ -611,6 +615,7 @@ func (ss *Sim) TestItem(idx int) {
 
 // TestAll runs through the full set of testing items
 func (ss *Sim) TestAll() {
+	ss.TestEnv.SetParas([]string{ss.Words1, ss.Words2})
 	ss.TestEnv.Init(ss.TrainEnv.Run.Cur)
 	for {
 		ss.TestTrial(true) // return on chg, don't present
@@ -848,11 +853,13 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
 	dt.SetCellFloat("Trial", row, float64(trl))
-	// dt.SetCellString("TrialName", row, ss.TestEnv.TrialName.Cur)
+	dt.SetCellString("TrialName", row, ss.TestEnv.String())
 
 	for _, lnm := range ss.LayStatNms {
 		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
-		dt.SetCellFloat(ly.Nm+" ActM.Avg", row, float64(ly.Pools[0].ActM.Avg))
+		vt := ss.ValsTsr(lnm)
+		ly.UnitValsTensor(vt, "ActM")
+		dt.SetCellTensor(lnm, row, vt)
 	}
 
 	// note: essential to use Go version of update when called from another goroutine
@@ -873,7 +880,8 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 		{"TrialName", etensor.STRING, nil, nil},
 	}
 	for _, lnm := range ss.LayStatNms {
-		sch = append(sch, etable.Column{lnm + " ActM.Avg", etensor.FLOAT64, nil, nil})
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
+		sch = append(sch, etable.Column{lnm, etensor.FLOAT64, ly.Shp.Shp, nil})
 	}
 	dt.SetFromSchema(sch, 0)
 }
@@ -889,7 +897,7 @@ func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetColParams("TrialName", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 
 	for _, lnm := range ss.LayStatNms {
-		plt.SetColParams(lnm+" ActM.Avg", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 0.5)
+		plt.SetColParams(lnm, eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
 	}
 	return plt
 }
@@ -897,18 +905,46 @@ func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 //////////////////////////////////////////////
 //  TstEpcLog
 
+func (ss *Sim) WordsShort(wr string) string {
+	wf := strings.Fields(wr)
+	mx := ints.MinInt(len(wf), 2)
+	ws := ""
+	for i := 0; i < mx; i++ {
+		w := wf[i]
+		if len(w) > 4 {
+			w = w[:4]
+		}
+		ws += w
+		if i < mx-1 {
+			ws += "-"
+		}
+	}
+	return ws
+}
+
+func (ss *Sim) WordsLabel() string {
+	return ss.WordsShort(ss.Words1) + " v " + ss.WordsShort(ss.Words2)
+}
+
 func (ss *Sim) LogTstEpc(dt *etable.Table) {
 	row := dt.Rows
 	dt.SetNumRows(row + 1)
 
-	// trl := ss.TstTrlLog
-	// tix := etable.NewIdxView(trl)
+	trl := ss.TstTrlLog
 	epc := ss.TrainEnv.Epoch.Prv // ?
+
+	wr1 := trl.CellTensor("Hidden", 0).(*etensor.Float64)
+	wr2 := trl.CellTensor("Hidden", 1).(*etensor.Float64)
+
+	ss.TstWords = ss.WordsLabel()
+	ss.TstWordsCorrel = metric.Correlation64(wr1.Values, wr2.Values)
 
 	// note: this shows how to use agg methods to compute summary data from another
 	// data table, instead of incrementing on the Sim
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
+	dt.SetCellString("Words", row, ss.TstWords)
+	dt.SetCellFloat("TstWordsCorrel", row, ss.TstWordsCorrel)
 
 	// note: essential to use Go version of update when called from another goroutine
 	ss.TstEpcPlot.GoUpdate()
@@ -923,16 +959,22 @@ func (ss *Sim) ConfigTstEpcLog(dt *etable.Table) {
 	dt.SetFromSchema(etable.Schema{
 		{"Run", etensor.INT64, nil, nil},
 		{"Epoch", etensor.INT64, nil, nil},
+		{"Words", etensor.STRING, nil, nil},
+		{"TstWordsCorrel", etensor.FLOAT64, nil, nil},
 	}, 0)
 }
 
 func (ss *Sim) ConfigTstEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
 	plt.Params.Title = "Semantics Testing Epoch Plot"
-	plt.Params.XAxisCol = "Epoch"
+	plt.Params.XAxisCol = "Words"
+	plt.Params.Type = eplot.Bar
 	plt.SetTable(dt)
+	plt.Params.XAxisRot = 45
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Run", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("Epoch", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("Words", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("TstWordsCorrel", eplot.On, eplot.FixMin, -.1, eplot.FloatMax, 1)
 	return plt
 }
 
@@ -1115,13 +1157,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	tbar.AddSeparator("spec")
 
-	tbar.AddAction(gi.ActOpts{Label: "Open Rec=.2 Wts", Icon: "updt", Tooltip: "Open weights trained with excitatory lateral (recurrent) con scale = .2.", UpdateFunc: func(act *gi.Action) {
-		act.SetActiveStateUpdt(!ss.IsRunning)
-	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
-		ss.OpenRec2Wts()
-	})
-
-	tbar.AddAction(gi.ActOpts{Label: "Open Rec=.05 Wts", Icon: "updt", Tooltip: "Open weights trained with excitatory lateral (recurrent) con scale = .05.", UpdateFunc: func(act *gi.Action) {
+	tbar.AddAction(gi.ActOpts{Label: "Open Weights", Icon: "updt", Tooltip: "Open weights trained with excitatory lateral (recurrent) con scale = .05.", UpdateFunc: func(act *gi.Action) {
 		act.SetActiveStateUpdt(!ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		ss.OpenRec05Wts()

@@ -1,7 +1,7 @@
 # Makefile for CCN sims projects
 
 # important: update these for each app
-ASSETS=cecn_lg_f5.text cecn_lg_f5.words
+ASSETS=cecn_lg_f5.text cecn_lg_f5.words trained_rec05.wts
 
 # default package install 
 PKGDIR=$(HOME)/ccnsimpkg

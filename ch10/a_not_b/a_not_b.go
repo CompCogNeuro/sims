@@ -699,15 +699,15 @@ func (ss *Sim) ConfigTrnTrlLog(dt *etable.Table) {
 
 func (ss *Sim) ConfigTrnTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
 	plt.Params.Title = "A not B Train Trial Plot"
-	plt.Params.XAxisCol = "Trial"
+	plt.Params.XAxisCol = "TrialName"
 	plt.Params.Type = eplot.Bar
 	plt.SetTable(dt) // this sets defaults so set params after
 	plt.Params.BarWidth = 2
-	plt.Params.Points = true
+	plt.Params.XAxisRot = 90
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Trial", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("Group", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
-	plt.SetColParams("TrialName", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("TrialName", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 
 	for _, lnm := range ss.TstRecLays {
 		if lnm == "Reach" {

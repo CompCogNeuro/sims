@@ -6,6 +6,8 @@ package main
 
 import (
 	"bufio"
+	"bytes"
+	"io"
 	"log"
 	"math/rand"
 	"os"
@@ -77,15 +79,20 @@ func (ev *SemEnv) Init(run int) {
 	ev.Epoch.Init()
 	ev.Trial.Init()
 	ev.Run.Cur = run
+	ev.InitOrder()
+
+	nw := len(ev.Words)
+	ev.CurParaState.SetShape([]int{1, nw}, nil, []string{"1", "Words"})
+}
+
+// InitOrder initializes the order based on current Paras, resets Trial.Cur = -1 too
+func (ev *SemEnv) InitOrder() {
 	np := len(ev.Paras)
 	ev.Order = rand.Perm(np) // always start with new one so random order is identical
 	// and always maintain Order so random number usage is same regardless, and if
 	// user switches between Sequential and random at any point, it all works..
 	ev.Trial.Max = np
 	ev.Trial.Cur = -1 // init state -- key so that first Step() = 0
-
-	nw := len(ev.Words)
-	ev.CurParaState.SetShape([]int{1, nw}, nil, []string{"1", "Words"})
 }
 
 // OpenTexts opens multiple text files -- use this as main API
@@ -106,6 +113,11 @@ func (ev *SemEnv) OpenText(fname string) {
 		log.Println(err)
 		return
 	}
+	ev.ScanText(fp)
+}
+
+// ScanText scans given text file from reader, adding to Paras
+func (ev *SemEnv) ScanText(fp io.Reader) {
 	scan := bufio.NewScanner(fp) // line at a time
 	cur := []string{}
 	for scan.Scan() {
@@ -124,6 +136,36 @@ func (ev *SemEnv) OpenText(fname string) {
 	}
 }
 
+// OpenTextsAsset opens multiple text files from bindata Asset.
+// use this as main API even if only opening one text
+func (ev *SemEnv) OpenTextsAsset(txts []string) {
+	ev.TextFiles = txts
+	ev.Paras = make([][]string, 0, 2000)
+	for _, tf := range ev.TextFiles {
+		ev.OpenTextAsset(tf)
+	}
+}
+
+// OpenTextAsset opens one text file from bindata.Asset
+func (ev *SemEnv) OpenTextAsset(fname string) {
+	fp, err := Asset(fname)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	ev.ScanText(bytes.NewBuffer(fp))
+}
+
+// SetParas sets the paragraphs from list of space-separated word strings -- each string is a paragraph
+// calls InitOrder after to reset
+func (ev *SemEnv) SetParas(paras []string) {
+	ev.Paras = make([][]string, len(paras))
+	for i, ps := range paras {
+		ev.Paras[i] = strings.Fields(ps)
+	}
+	ev.InitOrder()
+}
+
 func (ev *SemEnv) OpenWords(fname string) {
 	fp, err := os.Open(fname)
 	defer fp.Close()
@@ -131,6 +173,20 @@ func (ev *SemEnv) OpenWords(fname string) {
 		log.Println(err)
 		return
 	}
+	ev.ScanWords(fp)
+}
+
+// OpenWordsAsset opens one words file from bindata.Asset
+func (ev *SemEnv) OpenWordsAsset(fname string) {
+	fp, err := Asset(fname)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	ev.ScanWords(bytes.NewBuffer(fp))
+}
+
+func (ev *SemEnv) ScanWords(fp io.Reader) {
 	ev.Words = make([]string, 0, 3000)
 	scan := bufio.NewScanner(fp) // line at a time
 	for scan.Scan() {

@@ -1235,10 +1235,11 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 
 func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
 	plt.Params.Title = "Hippocampus Test Trial Plot"
-	plt.Params.XAxisCol = "Trial"
+	plt.Params.XAxisCol = "TrialName"
 	plt.Params.Type = eplot.Bar
 	plt.SetTable(dt) // this sets defaults so set params after
-	plt.Params.BarWidth = 10
+	plt.Params.BarWidth = 5
+	plt.Params.XAxisRot = 45
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Run", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("Epoch", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
@@ -1587,7 +1588,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	plt = tv.AddNewTab(eplot.KiT_Plot2D, "RunPlot").(*eplot.Plot2D)
 	ss.RunPlot = ss.ConfigRunPlot(plt, ss.RunLog)
 
-	split.SetSplits(.3, .7)
+	split.SetSplits(.2, .8)
 
 	tbar.AddAction(gi.ActOpts{Label: "Init", Icon: "update", Tooltip: "Initialize everything including network weights, and start over.  Also applies current params.", UpdateFunc: func(act *gi.Action) {
 		act.SetActiveStateUpdt(!ss.IsRunning)

@@ -1054,7 +1054,7 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
 	dt.SetCellFloat("Trial", row, float64(trl))
-	dt.SetCellString("TrialName", row, ss.TrlName)
+	dt.SetCellString("TrialName", row, strings.Split(ss.TrlName, "_")[0])
 	dt.SetCellString("Phon", row, ss.TrlPhon)
 	dt.SetCellFloat("PhonSSE", row, ss.TrlPhonSSE)
 	dt.SetCellFloat("ConAbs", row, ss.TrlConAbs)
@@ -1109,10 +1109,11 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 
 func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
 	plt.Params.Title = "Dyslex Test Trial Plot"
-	plt.Params.XAxisCol = "Trial"
+	plt.Params.XAxisCol = "TrialName"
 	plt.Params.Type = eplot.Bar
 	plt.SetTable(dt) // this sets defaults so set params after
 	plt.Params.BarWidth = 2
+	plt.Params.XAxisRot = 45
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Run", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("Epoch", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
