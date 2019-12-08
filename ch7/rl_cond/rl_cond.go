@@ -604,7 +604,7 @@ func (ss *Sim) RewPredInput(dt etensor.Tensor) {
 			ui := (y*xsz + x)
 			ust := ui * isz
 			vls := vals[ust : ust+isz]
-			inp.SendPrjnVals(&vls, "Wt", hid, ui)
+			inp.SendPrjnVals(&vls, "Wt", hid, ui, "")
 		}
 	}
 }

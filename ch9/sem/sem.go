@@ -822,7 +822,7 @@ func (ss *Sim) WtWords() []string {
 	ly := ss.Net.LayerByName(ss.NetView.Data.PrjnLay)
 	slay := ss.Net.LayerByName("Input")
 	var pvals []float32
-	slay.SendPrjnVals(&pvals, "Wt", ly, ss.NetView.Data.PrjnUnIdx)
+	slay.SendPrjnVals(&pvals, "Wt", ly, ss.NetView.Data.PrjnUnIdx, "")
 	ww := make([]string, 0, 1000)
 	for i, wrd := range ss.TrainEnv.Words {
 		wv := pvals[i]
