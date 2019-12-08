@@ -87,9 +87,9 @@ You should see that the similarity goes back up to .47. Thus, this is potentiall
 Based on your knowledge of the textbook, which of the options following each "question" provides the best match to the meaning?
 
 0. neural activation function
-    A. spiking rate code membrane potential point
-    B. interactive bidirectional feedforward
-    C. language generalization nonwords
+    - A. spiking rate code membrane potential point
+    - B. interactive bidirectional feedforward
+    - C. language generalization nonwords
 1. transformation
     - A emphasizing distinctions collapsing differences
     - B error driven hebbian task model based
@@ -133,4 +133,7 @@ We can present this same quiz to the network, and determine how well it does rel
 
 You should observe that the network does pretty well, but not perfectly, with a `TstQuizPctCor` of .8 = 80 percent correct.  The network does a very good job of rejecting the obviously unrelated answer C, but it does not always match our sense of A being better than B. In question 6, the B phrase was often mentioned in the context of the question phrase, but as a *contrast* to it, not a similarity. Because the network does not have the syntactic knowledge to pick up on this kind distinction, it considers them to be closely related because they appear together. This probably reflects at least some of what goes on in humans -- we have a strong association between "black" and "white" even though they are opposites. However, we can also use syntactic information to further refine our semantic representations -- a skill that is lacking in this network, which is taken up in the final simulation in this chapter.
 
+# References
+
+Landauer, T. K., & Dumais, S. T. (1997). A Solution to Plato’s Problem: The Latent Semantic Analysis Theory Of Acquisition, Induction, and Representation of Knowledge. Psychological Review, 104, 211–240.
 
