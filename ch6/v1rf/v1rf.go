@@ -557,8 +557,8 @@ func (ss *Sim) V1RFs() {
 			onvls := onVals[ust : ust+isz]
 			offvls := offVals[ust : ust+isz]
 			netvls := netVals[ust : ust+isz]
-			on.SendPrjnVals(&onvls, "Wt", v1, ui)
-			off.SendPrjnVals(&offvls, "Wt", v1, ui)
+			on.SendPrjnVals(&onvls, "Wt", v1, ui, "")
+			off.SendPrjnVals(&offvls, "Wt", v1, ui, "")
 			for ui := 0; ui < isz; ui++ {
 				netvls[ui] = 1.5 * (onvls[ui] - offvls[ui])
 			}
