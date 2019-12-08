@@ -31,6 +31,7 @@ type SemEnv struct {
 	WordMap      map[string]int  `desc:"map of words onto index in Words list"`
 	CurParaState etensor.Float32 `desc:"current para activation state"`
 	Paras        [][]string      `desc:"paragraphs"`
+	ParaLabels   []string        `desc:"special labels for each paragraph (provided in first word of para)"`
 	Run          env.Ctr         `view:"inline" desc:"current run of model as provided during Init"`
 	Epoch        env.Ctr         `view:"inline" desc:"number of times through Seq.Max number of sequences"`
 	Trial        env.Ctr         `view:"inline" desc:"trial is the step counter within epoch -- this is the index into Paras"`
@@ -120,19 +121,28 @@ func (ev *SemEnv) OpenText(fname string) {
 func (ev *SemEnv) ScanText(fp io.Reader) {
 	scan := bufio.NewScanner(fp) // line at a time
 	cur := []string{}
+	lbl := ""
 	for scan.Scan() {
 		b := scan.Bytes()
 		bs := string(b)
 		sp := strings.Fields(bs)
 		if len(sp) == 0 {
 			ev.Paras = append(ev.Paras, cur)
+			ev.ParaLabels = append(ev.ParaLabels, lbl)
 			cur = []string{}
+			lbl = ""
 		} else {
+			coli := strings.Index(sp[0], ":")
+			if coli > 0 {
+				lbl = sp[0][:coli]
+				sp = sp[1:]
+			}
 			cur = append(cur, sp...)
 		}
 	}
 	if len(cur) > 0 {
 		ev.Paras = append(ev.Paras, cur)
+		ev.ParaLabels = append(ev.ParaLabels, lbl)
 	}
 }
 
@@ -141,6 +151,7 @@ func (ev *SemEnv) ScanText(fp io.Reader) {
 func (ev *SemEnv) OpenTextsAsset(txts []string) {
 	ev.TextFiles = txts
 	ev.Paras = make([][]string, 0, 2000)
+	ev.ParaLabels = make([]string, 0, 2000)
 	for _, tf := range ev.TextFiles {
 		ev.OpenTextAsset(tf)
 	}
@@ -160,8 +171,19 @@ func (ev *SemEnv) OpenTextAsset(fname string) {
 // calls InitOrder after to reset
 func (ev *SemEnv) SetParas(paras []string) {
 	ev.Paras = make([][]string, len(paras))
+	ev.ParaLabels = make([]string, len(paras))
 	for i, ps := range paras {
-		ev.Paras[i] = strings.Fields(ps)
+		lbl := ""
+		sp := strings.Fields(ps)
+		if len(sp) > 0 {
+			coli := strings.Index(sp[0], ":")
+			if coli > 0 {
+				lbl = sp[0][:coli]
+				sp = sp[1:]
+			}
+		}
+		ev.Paras[i] = sp
+		ev.ParaLabels[i] = lbl
 	}
 	ev.InitOrder()
 }
