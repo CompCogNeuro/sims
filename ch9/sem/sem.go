@@ -129,8 +129,8 @@ type Sim struct {
 	ExcitLateralScale float32           `def:"0.05" desc:"excitatory lateral (recurrent) WtScale.Rel value"`
 	InhibLateralScale float32           `def:"0.05" desc:"inhibitory lateral (recurrent) WtScale.Abs value"`
 	ExcitLateralLearn bool              `def:"true" desc:"do excitatory lateral (recurrent) connections learn?"`
+	WtWordsThr        float32           `def:"0.75" desc:"threshold for weight strength for including in WtWords"`
 	Net               *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
-	Probes            *etable.Table     `view:"no-inline" desc:"probe inputs"`
 	TrnEpcLog         *etable.Table     `view:"no-inline" desc:"training epoch-level log data"`
 	TstEpcLog         *etable.Table     `view:"no-inline" desc:"testing epoch-level log data"`
 	TstQuizLog        *etable.Table     `view:"no-inline" desc:"testing quiz epoch-level log data"`
@@ -190,7 +190,6 @@ var TheSim Sim
 // New creates new blank elements and initializes defaults
 func (ss *Sim) New() {
 	ss.Net = &leabra.Network{}
-	ss.Probes = &etable.Table{}
 	ss.TrnEpcLog = &etable.Table{}
 	ss.TstEpcLog = &etable.Table{}
 	ss.TstQuizLog = &etable.Table{}
@@ -212,6 +211,7 @@ func (ss *Sim) Defaults() {
 	ss.ExcitLateralScale = 0.05
 	ss.InhibLateralScale = 0.05
 	ss.ExcitLateralLearn = true
+	ss.WtWordsThr = 0.75
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -219,7 +219,6 @@ func (ss *Sim) Defaults() {
 
 // Config configures all the elements using the standard functions
 func (ss *Sim) Config() {
-	ss.OpenPats()
 	ss.ConfigEnv()
 	ss.ConfigNet(ss.Net)
 	ss.ConfigTrnEpcLog(ss.TrnEpcLog)
@@ -621,7 +620,13 @@ func (ss *Sim) TestTrial(returnOnChg bool) {
 
 // TestAll runs through the full set of testing items
 func (ss *Sim) TestAll() {
-	ss.TestEnv.SetParas([]string{ss.Words1, ss.Words2})
+	err := ss.TestEnv.SetParas([]string{ss.Words1, ss.Words2})
+	if err != nil {
+		gi.PromptDialog(nil, gi.DlgOpts{Title: "Words errors",
+			Prompt: err.Error()}, gi.AddOk, gi.NoCancel,
+			nil, nil)
+		return
+	}
 	ss.TestEnv.Init(ss.TrainEnv.Run.Cur)
 	for {
 		ss.TestTrial(true) // return on chg, don't present
@@ -767,12 +772,6 @@ func (ss *Sim) OpenPatAsset(dt *etable.Table, fnm, name, desc string) error {
 	return err
 }
 
-func (ss *Sim) OpenPats() {
-	// patgen.ReshapeCppFile(ss.Probes, "ProbeInputData.dat", "probes.csv") // one-time reshape
-	// ss.OpenPatAsset(ss.Probes, "probes.tsv", "Probes", "Probe inputs for testing")
-	// err := dt.OpenCSV("probes.tsv", etable.Tab)
-}
-
 ////////////////////////////////////////////////////////////////////////////////////////////
 // 		Logging
 
@@ -813,6 +812,25 @@ func (ss *Sim) WeightsFileName() string {
 // LogFileName returns default log file name
 func (ss *Sim) LogFileName(lognm string) string {
 	return ss.Net.Nm + "_" + ss.RunName() + "_" + lognm + ".csv"
+}
+
+func (ss *Sim) WtWords() []string {
+	if ss.NetView.Data.PrjnLay != "Hidden" {
+		log.Println("WtWords: must select unit in Hidden layer in NetView")
+		return nil
+	}
+	ly := ss.Net.LayerByName(ss.NetView.Data.PrjnLay)
+	slay := ss.Net.LayerByName("Input")
+	var pvals []float32
+	slay.SendPrjnVals(&pvals, "Wt", ly, ss.NetView.Data.PrjnUnIdx)
+	ww := make([]string, 0, 1000)
+	for i, wrd := range ss.TrainEnv.Words {
+		wv := pvals[i]
+		if wv > ss.WtWordsThr {
+			ww = append(ww, wrd)
+		}
+	}
+	return ww
 }
 
 //////////////////////////////////////////////
@@ -1029,7 +1047,7 @@ func (ss *Sim) ConfigTstEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetColParams("Run", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("Epoch", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("Words", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
-	plt.SetColParams("TstWordsCorrel", eplot.On, eplot.FixMin, -.1, eplot.FloatMax, 1)
+	plt.SetColParams("TstWordsCorrel", eplot.On, eplot.FixMin, -.1, eplot.FixMax, 0.75)
 	return plt
 }
 
@@ -1311,6 +1329,12 @@ func (ss *Sim) ConfigGui() *gi.Window {
 		ss.OpenRec05Wts()
 	})
 
+	tbar.AddAction(gi.ActOpts{Label: "Wt Words", Icon: "search", Tooltip: "get words for currently-selected hidden-layer unit in netview.", UpdateFunc: func(act *gi.Action) {
+		act.SetActiveStateUpdt(!ss.IsRunning)
+	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+		giv.CallMethod(ss, "WtWords", vp)
+	})
+
 	tbar.AddSeparator("test")
 
 	tbar.AddAction(gi.ActOpts{Label: "Test Trial", Icon: "step-fwd", Tooltip: "Runs the next testing trial.", UpdateFunc: func(act *gi.Action) {
@@ -1439,7 +1463,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 // These props register Save methods so they can be used
 var SimProps = ki.Props{
 	"CallMethods": ki.PropSlice{
-		{"SaveWts", ki.Props{
+		{"SaveWeights", ki.Props{
 			"desc": "save network weights to file",
 			"icon": "file-save",
 			"Args": ki.PropSlice{
@@ -1447,6 +1471,12 @@ var SimProps = ki.Props{
 					"ext": ".wts,.wts.gz",
 				}},
 			},
+		}},
+		{"WtWords", ki.Props{
+			"desc":        "returns list of words associated with strong weights of currently selected Hidden unit",
+			"icon":        "search",
+			"show-return": true,
+			"Args":        ki.PropSlice{},
 		}},
 	},
 }

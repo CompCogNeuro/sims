@@ -7,6 +7,8 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"errors"
+	"fmt"
 	"io"
 	"log"
 	"math/rand"
@@ -167,11 +169,29 @@ func (ev *SemEnv) OpenTextAsset(fname string) {
 	ev.ScanText(bytes.NewBuffer(fp))
 }
 
-// SetParas sets the paragraphs from list of space-separated word strings -- each string is a paragraph
-// calls InitOrder after to reset
-func (ev *SemEnv) SetParas(paras []string) {
+// CheckWords checks that the words in the slice (one word per index) are in the list.
+// Returns error for any missing words.
+func (ev *SemEnv) CheckWords(wrds []string) error {
+	missing := ""
+	for _, wrd := range wrds {
+		_, ok := ev.WordMap[wrd]
+		if !ok {
+			missing += wrd + " "
+		}
+	}
+	if missing != "" {
+		return fmt.Errorf("CheckWords: these words were not found: %v", missing)
+	}
+	return nil
+}
+
+// SetParas sets the paragraphs from list of space-separated word strings -- each string is a paragraph.
+// calls InitOrder after to reset.
+// returns error for any missing words (from CheckWords)
+func (ev *SemEnv) SetParas(paras []string) error {
 	ev.Paras = make([][]string, len(paras))
 	ev.ParaLabels = make([]string, len(paras))
+	var err error
 	for i, ps := range paras {
 		lbl := ""
 		sp := strings.Fields(ps)
@@ -184,8 +204,17 @@ func (ev *SemEnv) SetParas(paras []string) {
 		}
 		ev.Paras[i] = sp
 		ev.ParaLabels[i] = lbl
+		er := ev.CheckWords(sp)
+		if er != nil {
+			if err != nil {
+				err = errors.New(err.Error() + " " + er.Error())
+			} else {
+				err = er
+			}
+		}
 	}
 	ev.InitOrder()
+	return err
 }
 
 func (ev *SemEnv) OpenWords(fname string) {
