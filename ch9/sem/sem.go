@@ -82,10 +82,7 @@ var ParamSets = params.Sets{
 				}},
 			{Sel: "Layer", Desc: "needs some special inhibition and learning params",
 				Params: params.Params{
-					// "Layer.Learn.AvgL.Gain":   "1", // this is critical! much lower
-					// "Layer.Learn.AvgL.Min":    "0.01",
-					// "Layer.Learn.AvgL.Init":   "0.2",
-					"Layer.Act.Gbar.L": "0.1", // todo: .2 in E1
+					"Layer.Act.Gbar.L": "0.1", // note: .2 in E1 but fine as .1
 				}},
 			{Sel: "#Input", Desc: "weak act",
 				Params: params.Params{
@@ -136,6 +133,7 @@ type Sim struct {
 	Probes            *etable.Table     `view:"no-inline" desc:"probe inputs"`
 	TrnEpcLog         *etable.Table     `view:"no-inline" desc:"training epoch-level log data"`
 	TstEpcLog         *etable.Table     `view:"no-inline" desc:"testing epoch-level log data"`
+	TstQuizLog        *etable.Table     `view:"no-inline" desc:"testing quiz epoch-level log data"`
 	TstTrlLog         *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
 	RunLog            *etable.Table     `view:"no-inline" desc:"summary log of each run"`
 	RunStats          *etable.Table     `view:"no-inline" desc:"aggregate stats on all runs"`
@@ -145,8 +143,9 @@ type Sim struct {
 	MaxRuns           int               `desc:"maximum number of model runs to perform"`
 	MaxEpcs           int               `desc:"maximum number of epochs to run per model run"`
 	NZeroStop         int               `desc:"if a positive number, training will stop after this many epochs with zero SSE"`
-	TrainEnv          SemEnv            `desc:"Training environment -- visual images"`
+	TrainEnv          SemEnv            `desc:"Training environment -- training paragraphs"`
 	TestEnv           SemEnv            `desc:"Testing environment -- manages iterating over testing"`
+	QuizEnv           SemEnv            `desc:"Quiz environment -- manages iterating over testing"`
 	Time              leabra.Time       `desc:"leabra timing parameters and state"`
 	ViewOn            bool              `desc:"whether to update the network view while running"`
 	TrainUpdt         leabra.TimeScales `desc:"at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model"`
@@ -156,6 +155,7 @@ type Sim struct {
 	// statistics: note use float64 as that is best for etable.Table
 	TstWords       string  `inactive:"+" desc:"words that were tested (short form)"`
 	TstWordsCorrel float64 `inactive:"+" desc:"correlation between hidden pattern for Words1 vs. Words2"`
+	TstQuizPctCor  float64 `inactive:"+" desc:"proportion correct for the quiz"`
 	EpcPerTrlMSec  float64 `view:"-" desc:"how long did the epoch take per trial in wall-clock milliseconds"`
 
 	Win          *gi.Window                  `view:"-" desc:"main GUI window"`
@@ -163,6 +163,7 @@ type Sim struct {
 	ToolBar      *gi.ToolBar                 `view:"-" desc:"the master toolbar"`
 	TrnEpcPlot   *eplot.Plot2D               `view:"-" desc:"the training epoch plot"`
 	TstEpcPlot   *eplot.Plot2D               `view:"-" desc:"the testing epoch plot"`
+	TstQuizPlot  *eplot.Plot2D               `view:"-" desc:"the testing quiz epoch plot"`
 	TstTrlPlot   *eplot.Plot2D               `view:"-" desc:"the test-trial plot"`
 	RunPlot      *eplot.Plot2D               `view:"-" desc:"the run plot"`
 	TrnEpcFile   *os.File                    `view:"-" desc:"log file"`
@@ -172,6 +173,7 @@ type Sim struct {
 	NoGui        bool                        `view:"-" desc:"if true, runing in no GUI mode"`
 	LogSetParams bool                        `view:"-" desc:"if true, print message for all params that are set"`
 	IsRunning    bool                        `view:"-" desc:"true if sim is running"`
+	InQuiz       bool                        `view:"-" desc:"true if in quiz"`
 	StopNow      bool                        `view:"-" desc:"flag to stop running"`
 	NeedsNewRun  bool                        `view:"-" desc:"flag to initialize NewRun if last one finished"`
 	RndSeed      int64                       `view:"-" desc:"the current random seed"`
@@ -191,6 +193,7 @@ func (ss *Sim) New() {
 	ss.Probes = &etable.Table{}
 	ss.TrnEpcLog = &etable.Table{}
 	ss.TstEpcLog = &etable.Table{}
+	ss.TstQuizLog = &etable.Table{}
 	ss.TstTrlLog = &etable.Table{}
 	ss.RunLog = &etable.Table{}
 	ss.RunStats = &etable.Table{}
@@ -221,6 +224,7 @@ func (ss *Sim) Config() {
 	ss.ConfigNet(ss.Net)
 	ss.ConfigTrnEpcLog(ss.TrnEpcLog)
 	ss.ConfigTstEpcLog(ss.TstEpcLog)
+	ss.ConfigTstQuizLog(ss.TstQuizLog)
 	ss.ConfigTstTrlLog(ss.TstTrlLog)
 	ss.ConfigRunLog(ss.RunLog)
 }
@@ -249,8 +253,16 @@ func (ss *Sim) ConfigEnv() {
 	ss.TestEnv.SetParas([]string{ss.Words1, ss.Words2})
 	ss.TestEnv.Validate()
 
+	ss.QuizEnv.Nm = "QuizEnv"
+	ss.QuizEnv.Dsc = "quiz environment"
+	ss.QuizEnv.Sequential = true
+	ss.QuizEnv.OpenWordsAsset("cecn_lg_f5.words")
+	ss.QuizEnv.OpenTextsAsset([]string{"quiz.text"})
+	ss.QuizEnv.Validate()
+
 	ss.TrainEnv.Init(0)
 	ss.TestEnv.Init(0)
+	ss.QuizEnv.Init(0)
 }
 
 func (ss *Sim) ConfigNet(net *leabra.Network) {
@@ -315,6 +327,8 @@ func (ss *Sim) NewRndSeed() {
 func (ss *Sim) Counters(train bool) string {
 	if train {
 		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TrainEnv.Trial.Cur, ss.Time.Cycle, ss.TrainEnv.String())
+	} else if ss.InQuiz {
+		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.QuizEnv.Trial.Cur, ss.Time.Cycle, ss.QuizEnv.String())
 	} else {
 		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TestEnv.Trial.Cur, ss.Time.Cycle, ss.TestEnv.String())
 	}
@@ -477,11 +491,13 @@ func (ss *Sim) NewRun() {
 	run := ss.TrainEnv.Run.Cur
 	ss.TrainEnv.Init(run)
 	ss.TestEnv.Init(run)
+	ss.QuizEnv.Init(run)
 	ss.Time.Reset()
 	ss.InitWts(ss.Net)
 	ss.InitStats()
 	ss.TrnEpcLog.SetNumRows(0)
 	ss.TstEpcLog.SetNumRows(0)
+	ss.TstQuizLog.SetNumRows(0)
 	ss.NeedsNewRun = false
 }
 
@@ -582,6 +598,7 @@ func (ss *Sim) ConfigWts(dt *etensor.Float32) {
 
 // TestTrial runs one trial of testing -- always sequentially presented inputs
 func (ss *Sim) TestTrial(returnOnChg bool) {
+	ss.InQuiz = false
 	ss.TestEnv.Step()
 
 	// Query counters FIRST
@@ -599,18 +616,7 @@ func (ss *Sim) TestTrial(returnOnChg bool) {
 	ss.ApplyInputs(&ss.TestEnv)
 	ss.AlphaCyc(false)   // !train
 	ss.TrialStats(false) // !accumulate
-	ss.LogTstTrl(ss.TstTrlLog)
-}
-
-// TestItem tests given item which is at given index in test item list
-func (ss *Sim) TestItem(idx int) {
-	cur := ss.TestEnv.Trial.Cur
-	ss.TestEnv.Trial.Cur = idx
-	// ss.TestEnv.SetTrialName()
-	ss.ApplyInputs(&ss.TestEnv)
-	ss.AlphaCyc(false)   // !train
-	ss.TrialStats(false) // !accumulate
-	ss.TestEnv.Trial.Cur = cur
+	ss.LogTstTrl(ss.TstTrlLog, false)
 }
 
 // TestAll runs through the full set of testing items
@@ -630,6 +636,51 @@ func (ss *Sim) TestAll() {
 func (ss *Sim) RunTestAll() {
 	ss.StopNow = false
 	ss.TestAll()
+	ss.Stopped()
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+// Quizing
+
+// QuizTrial runs one trial of testing -- always sequentially presented inputs
+func (ss *Sim) QuizTrial(returnOnChg bool) {
+	ss.InQuiz = true
+	ss.QuizEnv.Step()
+
+	// Query counters FIRST
+	_, _, chg := ss.QuizEnv.Counter(env.Epoch)
+	if chg {
+		if ss.ViewOn && ss.TestUpdt > leabra.AlphaCycle {
+			ss.UpdateView(false)
+		}
+		ss.LogTstQuiz(ss.TstQuizLog)
+		if returnOnChg {
+			return
+		}
+	}
+
+	ss.ApplyInputs(&ss.QuizEnv)
+	ss.AlphaCyc(false)   // !train
+	ss.TrialStats(false) // !accumulate
+	ss.LogTstTrl(ss.TstTrlLog, true)
+}
+
+// QuizAll runs through the full set of testing items
+func (ss *Sim) QuizAll() {
+	ss.QuizEnv.Init(ss.TrainEnv.Run.Cur)
+	for {
+		ss.QuizTrial(true) // return on chg, don't present
+		_, _, chg := ss.QuizEnv.Counter(env.Epoch)
+		if chg || ss.StopNow {
+			break
+		}
+	}
+}
+
+// RunQuizAll runs through the full set of testing items, has stop running = false at end -- for gui
+func (ss *Sim) RunQuizAll() {
+	ss.StopNow = false
+	ss.QuizAll()
 	ss.Stopped()
 }
 
@@ -840,10 +891,15 @@ func (ss *Sim) ConfigTrnEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 
 // LogTstTrl adds data from current trial to the TstTrlLog table.
 // log always contains number of testing items
-func (ss *Sim) LogTstTrl(dt *etable.Table) {
+func (ss *Sim) LogTstTrl(dt *etable.Table, quiz bool) {
 	epc := ss.TrainEnv.Epoch.Prv // this is triggered by increment so use previous value
 
 	trl := ss.TestEnv.Trial.Cur
+	trlnm := ss.TestEnv.String()
+	if quiz {
+		trl = ss.QuizEnv.Trial.Cur
+		trlnm = ss.QuizEnv.String()
+	}
 	row := trl
 
 	if dt.Rows <= row {
@@ -853,7 +909,7 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
 	dt.SetCellFloat("Trial", row, float64(trl))
-	dt.SetCellString("TrialName", row, ss.TestEnv.String())
+	dt.SetCellString("TrialName", row, trlnm)
 
 	for _, lnm := range ss.LayStatNms {
 		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
@@ -872,7 +928,6 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 	dt.SetMetaData("read-only", "true")
 	dt.SetMetaData("precision", strconv.Itoa(LogPrec))
 
-	// nt := ss.TestEnv.Table.Len() // number in view
 	sch := etable.Schema{
 		{"Run", etensor.INT64, nil, nil},
 		{"Epoch", etensor.INT64, nil, nil},
@@ -975,6 +1030,96 @@ func (ss *Sim) ConfigTstEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetColParams("Epoch", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("Words", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("TstWordsCorrel", eplot.On, eplot.FixMin, -.1, eplot.FloatMax, 1)
+	return plt
+}
+
+//////////////////////////////////////////////
+//  TstQuizLog
+
+func (ss *Sim) LogTstQuiz(dt *etable.Table) {
+	trl := ss.TstTrlLog
+	epc := ss.TrainEnv.Epoch.Prv // ?
+
+	nper := 4 // number of paras per quiz question: Q, A, B, C
+	nt := trl.Rows
+	nq := nt / nper
+	pctcor := 0.0
+	srow := dt.Rows
+	dt.SetNumRows(srow + nq + 1)
+	for qi := 0; qi < nq; qi++ {
+		ri := nper * qi
+		qv := trl.CellTensor("Hidden", ri).(*etensor.Float64)
+		mxai := 0
+		mxcor := 0.0
+		row := srow + qi
+		for ai := 0; ai < nper-1; ai++ {
+			av := trl.CellTensor("Hidden", ri+ai+1).(*etensor.Float64)
+			cor := metric.Correlation64(qv.Values, av.Values)
+			if cor > mxcor {
+				mxai = ai
+				mxcor = cor
+			}
+			dt.SetCellTensorFloat1D("Correls", row, ai, cor)
+		}
+		ans := []string{"A", "B", "C"}[mxai]
+		err := 1.0
+		if mxai == 0 { // A
+			pctcor += 1
+			err = 0
+		}
+		// note: this shows how to use agg methods to compute summary data from another
+		// data table, instead of incrementing on the Sim
+		dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
+		dt.SetCellFloat("Epoch", row, float64(epc))
+		dt.SetCellFloat("QNo", row, float64(qi))
+		dt.SetCellString("Resp", row, ans)
+		dt.SetCellFloat("Err", row, err)
+	}
+	pctcor /= float64(nq)
+	row := dt.Rows - 1
+	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
+	dt.SetCellFloat("Epoch", row, float64(epc))
+	dt.SetCellFloat("QNo", row, -1)
+	dt.SetCellString("Resp", row, "Total")
+	dt.SetCellFloat("Err", row, pctcor)
+
+	ss.TstQuizPctCor = pctcor
+
+	// note: essential to use Go version of update when called from another goroutine
+	ss.TstQuizPlot.GoUpdate()
+}
+
+func (ss *Sim) ConfigTstQuizLog(dt *etable.Table) {
+	dt.SetMetaData("name", "TstQuizLog")
+	dt.SetMetaData("desc", "Summary stats for testing trials")
+	dt.SetMetaData("read-only", "true")
+	dt.SetMetaData("precision", strconv.Itoa(LogPrec))
+
+	dt.SetFromSchema(etable.Schema{
+		{"Run", etensor.INT64, nil, nil},
+		{"Epoch", etensor.INT64, nil, nil},
+		{"QNo", etensor.INT64, nil, nil},
+		{"Resp", etensor.STRING, nil, nil},
+		{"Err", etensor.FLOAT64, nil, nil},
+		{"Correls", etensor.FLOAT64, []int{3}, nil},
+	}, 0)
+}
+
+func (ss *Sim) ConfigTstQuizPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
+	plt.Params.Title = "Semantics Testing Quiz Plot"
+	plt.Params.XAxisCol = "QNo"
+	plt.Params.Type = eplot.Bar
+	plt.SetTable(dt)
+	plt.Params.BarWidth = 10
+	// plt.Params.XAxisRot = 45
+	// order of params: on, fixMin, min, fixMax, max
+	plt.SetColParams("Run", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("Epoch", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("QNo", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("Resp", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("Err", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
+	pl := plt.SetColParams("Correls", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
+	pl.TensorIdx = -1
 	return plt
 }
 
@@ -1094,6 +1239,9 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	plt = tv.AddNewTab(eplot.KiT_Plot2D, "TstEpcPlot").(*eplot.Plot2D)
 	ss.TstEpcPlot = ss.ConfigTstEpcPlot(plt, ss.TstEpcLog)
 
+	plt = tv.AddNewTab(eplot.KiT_Plot2D, "TstQuizPlot").(*eplot.Plot2D)
+	ss.TstQuizPlot = ss.ConfigTstQuizPlot(plt, ss.TstQuizLog)
+
 	plt = tv.AddNewTab(eplot.KiT_Plot2D, "RunPlot").(*eplot.Plot2D)
 	ss.RunPlot = ss.ConfigRunPlot(plt, ss.RunLog)
 
@@ -1183,6 +1331,16 @@ func (ss *Sim) ConfigGui() *gi.Window {
 			ss.IsRunning = true
 			tbar.UpdateActions()
 			go ss.RunTestAll()
+		}
+	})
+
+	tbar.AddAction(gi.ActOpts{Label: "Quiz All", Icon: "fast-fwd", Tooltip: "all of the quiz testing trials.", UpdateFunc: func(act *gi.Action) {
+		act.SetActiveStateUpdt(!ss.IsRunning)
+	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+		if !ss.IsRunning {
+			ss.IsRunning = true
+			tbar.UpdateActions()
+			go ss.RunQuizAll()
 		}
 	})
 
