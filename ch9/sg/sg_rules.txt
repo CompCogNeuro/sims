@@ -1,0 +1,190 @@
+// These are the esg (emergent stochastic / sentence generator) rules
+// See emer/emergent/esg for details on syntax etc.
+
+Sentence {
+	Ate
+//	Drank
+//	Stirred
+//	Spread
+//	Kissed
+//	Gave
+//	Hit
+//	ThrewTossed
+//	ThrewHosted
+//	DroveTrans
+//	DroveMotiv
+//	ShedV
+//	RoseV
+}
+
+// note: not possible to do passive within these rules as the :P clause depends on :A
+// do that as a post-processing step -- this is generating "internal" event rep
+
+Ate {
+	=Action
+	Std:A Ate:V Ate:P Ate:M
+}
+
+Ate:V {
+	%80 'ate'
+	%20 'consumed'
+}
+
+// Std agent used for most actions
+Std:A {
+	Busdriver:A =Agent
+	Teacher:A   =Agent
+	PitcherPers:A =Agent
+	Schoolgirl:A =Agent
+}
+
+// Note: following are re-used across Agent and CoAgent so no state there
+
+Busdriver:A {
+	%70 'busdriver'
+	%20 'adult'
+	%10 'someone'
+}
+
+Teacher:A {
+	%70 'teacher'
+	%20 'adult'
+	%10 'someone'
+}
+
+PitcherPers:A {
+	%70 'pitcherpers'
+	%20 'child'
+	%10 'someone'
+}
+
+Schoolgirl:A {
+	%70 'schoolgirl'
+	%20 'child'
+	%10 'someone'
+}
+
+Ate:P ? {
+	Busdriver:A {
+		%70 Steak:P
+		%10 Soup:P
+		%10 IceCream:P
+		%10 Crackers:P
+	}
+	Teacher:A {
+		%70 Soup:P
+		%10 Steak:P
+		%10 IceCream:P
+		%10 Crackers:P
+	}
+	PitcherPers:A {
+		%25 Soup:P
+		%25 Steak:P
+		%25 IceCream:P
+		%25 Crackers:P
+	}
+	Schoolgirl:A {
+		%25 Soup:P
+		%25 Steak:P
+		%25 IceCream:P
+		%25 Crackers:P
+	}
+}
+
+Steak:P {
+	=Patient
+	%70 'steak'
+	%20 'food'
+	%10 'something'
+}
+
+Soup:P {
+	=Patient
+	%70 'soup'
+	%20 'food'
+	%10 'something'
+}
+
+IceCream:P {
+	=Patient
+	%70 'icecream'
+	%20 'food'
+	%10 'something'
+}
+
+Crackers:P {
+	=Patient
+	%70 'crackers'
+	%20 'food'
+	%10 'something'
+}
+
+Ate:M {
+	Ate:Pi
+	Ate:AoPc
+	Ate:L
+	Ate:R
+}
+
+Ate:Pi ? {
+	=Mod=Instrument
+	Steak:P {
+		=Instrument=Knife
+		%70 'with' 'knife'
+		%20 'with' 'utensil'
+		%10 'with' 'something'
+	}
+	Soup:P || IceCream:P {
+		=Instrument=Spoon
+		%70 'with' 'spoon'
+		%20 'with' 'utensil'
+		%10 'with' 'something'
+	}
+	Crackers:P {
+		=Instrument=Finger
+		%80 'with' 'finger'
+		%20 'with' 'something'
+	}
+}
+
+Ate:AoPc ? {
+	Steak:P || IceCream:P { Ate:Ao }
+	Soup:P  || Crackers:P { Ate:Pc }
+}
+
+Ate:Ao ? {
+	=Mod=CoAgent
+	Busdriver:A { 'with' Teacher:A =CoAgent=Teacher }
+	Teacher:A { 'with' Busdriver:A =CoAgent=Busdriver }
+	Schoolgirl:A { 'with' PitcherPers:A =CoAgent=PitcherPers }
+	PitcherPers:A { 'with' Schoolgirl:A =CoAgent=Schoolgirl }
+}
+
+Ate:Pc ? {
+	=Mod=CoPatient
+	Soup:P {
+		=CoPatient=Crackers
+		%80 'with' 'crackers'
+		%20 'with' 'something'
+	}
+	Crackers:P {
+		=CoPatient=Jelly
+		%80 'with' 'jelly'
+		%20 'with' 'something'
+	}
+}
+
+Ate:L ? {
+	=Mod=Location
+	Steak:P || Soup:P || Crackers:P {	'in' 'kitchen' =Location=Kitchen }
+	IceCream:P {	'in' 'park' =Location=Park }
+}
+
+Ate:R ? {
+	=Mod=Adverb
+	(Busdriver:A || PitcherPers:A) && (Steak:P || Soup:P || Crackers:P) { 'with' 'gusto' =Adverb=Gusto }
+	(Teacher:A || Schoolgirl:A) && (Steak:P || Soup:P || Crackers:P) { 'with' 'daintiness' =Adverb=Daintiness }
+	IceCream:P {	'with' 'pleasure' =Adverb=Pleasure }
+}
+
+
