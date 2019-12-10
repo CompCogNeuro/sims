@@ -85,7 +85,7 @@ func (ev *SemEnv) Init(run int) {
 	ev.InitOrder()
 
 	nw := len(ev.Words)
-	ev.CurParaState.SetShape([]int{1, nw}, nil, []string{"1", "Words"})
+	ev.CurParaState.SetShape([]int{nw}, nil, []string{"Words"})
 }
 
 // InitOrder initializes the order based on current Paras, resets Trial.Cur = -1 too
