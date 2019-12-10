@@ -72,7 +72,7 @@ func (ev *SentGenEnv) State(element string) etensor.Tensor {
 	case "Role":
 		return &ev.RoleState
 	case "Filler":
-		return &ev.Filler
+		return &ev.FillerState
 	}
 	return nil
 }
@@ -96,14 +96,18 @@ func (ev *SentGenEnv) Init(run int) {
 	ev.Trial.Init()
 	ev.Run.Cur = run
 	ev.Trial.Cur = -1 // init state -- key so that first Step() = 0
+
+	ev.SentState.SetShape([]int{len(ev.Words)}, nil, []string{"Words"})
+	ev.RoleState.SetShape([]int{len(ev.Roles)}, nil, []string{"Roles"})
+	ev.FillerState.SetShape([]int{len(ev.Fillers)}, nil, []string{"Fillers"})
 }
 
 // NextSent generates the next sentence and all the queries for it
 func (ev *SentGenEnv) NextSent() {
 	ev.CurSent = ev.Rules.Gen()
-	ev.Rules.TrimStteQualifiers()
+	ev.Rules.TrimStateQualifiers()
 	ev.SentIdx.Set(-1)
-	ev.SentSeqActive() // todo: passive
+	ev.SentSeqActiveDet() // todo: passive
 }
 
 // TransWord gets the translated word
@@ -129,7 +133,7 @@ func (ev *SentGenEnv) SentSeqActiveProb() {
 	for si, sq := range seq {
 		ev.AddInput(si, sq)
 		for ri := 0; ri < si; ri++ {
-			if erand.BoolProb(ev.PQueryPrior) {
+			if erand.BoolProb(float64(ev.PQueryPrior), -1) {
 				ev.AddInput(si, seq[ri])
 			}
 		}
@@ -168,8 +172,22 @@ func (ev *SentGenEnv) SentSeqActiveDet() {
 	}
 }
 
-// NextStep generates the next inputs
-func (ev *SentGenEnv) NextStep() {
+// RenderState renders the current state
+func (ev *SentGenEnv) RenderState() {
+	cur := ev.SentInputs[ev.SentIdx.Cur]
+	widx := ev.WordMap[cur[0]]
+	ev.SentState.SetZeros()
+	ev.SentState.SetFloat1D(widx, 1)
+	ridx := ev.RoleMap[cur[1]]
+	ev.RoleState.SetZeros()
+	ev.RoleState.SetFloat1D(ridx, 1)
+	fidx := ev.FillerMap[cur[2]]
+	ev.FillerState.SetZeros()
+	ev.FillerState.SetFloat1D(fidx, 1)
+}
+
+// NextState generates the next inputs
+func (ev *SentGenEnv) NextState() {
 	if ev.SentIdx.Cur < 0 {
 		ev.NextSent()
 	}
@@ -177,14 +195,14 @@ func (ev *SentGenEnv) NextStep() {
 	if ev.SentIdx.Cur >= len(ev.CurSent) {
 		ev.NextSent()
 	}
-	// render state at current sent idx
+	ev.RenderState()
 }
 
 func (ev *SentGenEnv) Step() bool {
 	ev.Epoch.Same() // good idea to just reset all non-inner-most counters at start
 	ev.NextState()
 	ev.Trial.Incr()
-	if ev.AState.Prv == 0 {
+	if ev.SentIdx.Cur == 0 {
 		if ev.Seq.Incr() {
 			ev.Epoch.Incr()
 		}
