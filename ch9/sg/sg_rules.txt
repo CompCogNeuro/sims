@@ -68,25 +68,25 @@ Ate:P ? {
 	Busdriver:A {
 		%70 Steak:P
 		%10 Soup:P
-		%10 IceCream:P
+		%10 Icecream:P
 		%10 Crackers:P
 	}
 	Teacher:A {
 		%70 Soup:P
 		%10 Steak:P
-		%10 IceCream:P
+		%10 Icecream:P
 		%10 Crackers:P
 	}
 	PitcherPers:A {
 		%25 Soup:P
 		%25 Steak:P
-		%25 IceCream:P
+		%25 Icecream:P
 		%25 Crackers:P
 	}
 	Schoolgirl:A {
 		%25 Soup:P
 		%25 Steak:P
-		%25 IceCream:P
+		%25 Icecream:P
 		%25 Crackers:P
 	}
 }
@@ -105,7 +105,7 @@ Soup:P {
 	%10 'something'
 }
 
-IceCream:P {
+Icecream:P {
 	=Patient
 	%70 'icecream'
 	%20 'food'
@@ -134,7 +134,7 @@ Ate:Pi ? {
 		%20 'with' 'utensil'
 		%10 'with' 'something'
 	}
-	Soup:P || IceCream:P {
+	Soup:P || Icecream:P {
 		=Instrument=Spoon
 		%70 'with' 'spoon'
 		%20 'with' 'utensil'
@@ -148,7 +148,7 @@ Ate:Pi ? {
 }
 
 Ate:AoPc ? {
-	Steak:P || IceCream:P { Ate:Ao }
+	Steak:P || Icecream:P { Ate:Ao }
 	Soup:P  || Crackers:P { Ate:Pc }
 }
 
@@ -177,14 +177,14 @@ Ate:Pc ? {
 Ate:L ? {
 	=Mod=Location
 	Steak:P || Soup:P || Crackers:P {	'in' 'kitchen' =Location=Kitchen }
-	IceCream:P {	'in' 'park' =Location=Park }
+	Icecream:P {	'in' 'park' =Location=Park }
 }
 
 Ate:R ? {
 	=Mod=Adverb
 	(Busdriver:A || PitcherPers:A) && (Steak:P || Soup:P || Crackers:P) { 'with' 'gusto' =Adverb=Gusto }
 	(Teacher:A || Schoolgirl:A) && (Steak:P || Soup:P || Crackers:P) { 'with' 'daintiness' =Adverb=Daintiness }
-	IceCream:P {	'with' 'pleasure' =Adverb=Pleasure }
+	Icecream:P {	'with' 'pleasure' =Adverb=Pleasure }
 }
 
 
