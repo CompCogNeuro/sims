@@ -5,7 +5,9 @@
 package main
 
 import (
+	"fmt"
 	"math/rand"
+	"strings"
 
 	"github.com/emer/emergent/env"
 	"github.com/emer/emergent/erand"
@@ -40,6 +42,7 @@ type SentGenEnv struct {
 	Run         env.Ctr           `view:"inline" desc:"current run of model as provided during Init"`
 	Epoch       env.Ctr           `view:"inline" desc:"number of times through Seq.Max number of sequences"`
 	Seq         env.Ctr           `view:"inline" desc:"sequence counter within epoch"`
+	Tick        env.Ctr           `view:"inline" desc:"tick counter within sequence"`
 	Trial       env.Ctr           `view:"inline" desc:"trial is the step counter within sequence - how many steps taken within current sequence -- it resets to 0 at start of each sequence"`
 }
 
@@ -53,7 +56,7 @@ func (ev *SentGenEnv) Validate() error {
 }
 
 func (ev *SentGenEnv) Counters() []env.TimeScales {
-	return []env.TimeScales{env.Run, env.Epoch, env.Sequence, env.Trial}
+	return []env.TimeScales{env.Run, env.Epoch, env.Sequence, env.Tick, env.Trial}
 }
 
 func (ev *SentGenEnv) States() env.Elements {
@@ -83,6 +86,10 @@ func (ev *SentGenEnv) Actions() env.Elements {
 
 // String returns the current state as a string
 func (ev *SentGenEnv) String() string {
+	if ev.SentIdx.Cur >= 0 && ev.SentIdx.Cur < len(ev.SentInputs) {
+		cur := ev.SentInputs[ev.SentIdx.Cur]
+		return fmt.Sprintf("%s %s=%s", cur[0], cur[1], cur[2])
+	}
 	return ""
 }
 
@@ -93,36 +100,85 @@ func (ev *SentGenEnv) Init(run int) {
 	ev.Run.Init()
 	ev.Epoch.Init()
 	ev.Seq.Init()
+	ev.Tick.Init()
 	ev.Trial.Init()
 	ev.Run.Cur = run
 	ev.Trial.Cur = -1 // init state -- key so that first Step() = 0
+	ev.SentIdx.Set(-1)
+
+	ev.WordMapFmWords()
+	ev.RoleMapFmRoles()
+	ev.FillerMapFmFillers()
 
 	ev.SentState.SetShape([]int{len(ev.Words)}, nil, []string{"Words"})
 	ev.RoleState.SetShape([]int{len(ev.Roles)}, nil, []string{"Roles"})
 	ev.FillerState.SetShape([]int{len(ev.Fillers)}, nil, []string{"Fillers"})
 }
 
+func (ev *SentGenEnv) WordMapFmWords() {
+	ev.WordMap = make(map[string]int, len(ev.Words))
+	for i, wrd := range ev.Words {
+		ev.WordMap[wrd] = i
+	}
+}
+
+func (ev *SentGenEnv) RoleMapFmRoles() {
+	ev.RoleMap = make(map[string]int, len(ev.Roles))
+	for i, wrd := range ev.Roles {
+		ev.RoleMap[wrd] = i
+	}
+}
+
+func (ev *SentGenEnv) FillerMapFmFillers() {
+	ev.FillerMap = make(map[string]int, len(ev.Fillers))
+	for i, wrd := range ev.Fillers {
+		ev.FillerMap[wrd] = i
+	}
+}
+
 // NextSent generates the next sentence and all the queries for it
 func (ev *SentGenEnv) NextSent() {
 	ev.CurSent = ev.Rules.Gen()
 	ev.Rules.TrimStateQualifiers()
-	ev.SentIdx.Set(-1)
+	ev.SentIdx.Set(0)
 	ev.SentSeqActiveDet() // todo: passive
 }
 
 // TransWord gets the translated word
 func (ev *SentGenEnv) TransWord(word string) string {
+	word = strings.ToLower(word)
 	if tr, has := ev.WordTrans[word]; has {
 		return tr
 	}
 	return word
 }
 
+// CheckWords reports errors if words not found, if not empty
+func (ev *SentGenEnv) CheckWords(wrd, role, fill string) []error {
+	var errs []error
+	if _, ok := ev.WordMap[wrd]; !ok {
+		errs = append(errs, fmt.Errorf("word not found in WordMap: %s", wrd))
+	}
+	if _, ok := ev.RoleMap[role]; !ok {
+		errs = append(errs, fmt.Errorf("word not found in RoleMap: %s\n", role))
+	}
+	if _, ok := ev.FillerMap[fill]; !ok {
+		errs = append(errs, fmt.Errorf("word not found in FillerMap: %s\n", fill))
+	}
+	if errs != nil {
+		for _, err := range errs {
+			fmt.Println(err)
+		}
+	}
+	return errs
+}
+
 // AddInput adds a new input with given sentence index word and role query
 func (ev *SentGenEnv) AddInput(sidx int, role string) {
 	wrd := ev.TransWord(ev.CurSent[sidx])
-	fil := ev.Rules.States[role]
-	ev.SentInputs = append(ev.SentInputs, []string{wrd, role, fil})
+	fill := ev.Rules.States[role]
+	ev.CheckWords(wrd, role, fill)
+	ev.SentInputs = append(ev.SentInputs, []string{wrd, role, fill})
 }
 
 // SentSeqActiveProb generates active-form sequence of inputs, probabilistic prior queries
@@ -190,9 +246,10 @@ func (ev *SentGenEnv) RenderState() {
 func (ev *SentGenEnv) NextState() {
 	if ev.SentIdx.Cur < 0 {
 		ev.NextSent()
+	} else {
+		ev.SentIdx.Incr()
 	}
-	ev.SentIdx.Set(ev.SentIdx.Cur + 1)
-	if ev.SentIdx.Cur >= len(ev.CurSent) {
+	if ev.SentIdx.Cur >= len(ev.SentInputs) {
 		ev.NextSent()
 	}
 	ev.RenderState()
@@ -202,7 +259,9 @@ func (ev *SentGenEnv) Step() bool {
 	ev.Epoch.Same() // good idea to just reset all non-inner-most counters at start
 	ev.NextState()
 	ev.Trial.Incr()
+	ev.Tick.Incr()
 	if ev.SentIdx.Cur == 0 {
+		ev.Tick.Init()
 		if ev.Seq.Incr() {
 			ev.Epoch.Incr()
 		}
@@ -222,6 +281,8 @@ func (ev *SentGenEnv) Counter(scale env.TimeScales) (cur, prv int, chg bool) {
 		return ev.Epoch.Query()
 	case env.Sequence:
 		return ev.Seq.Query()
+	case env.Tick:
+		return ev.Tick.Query()
 	case env.Trial:
 		return ev.Trial.Query()
 	}
