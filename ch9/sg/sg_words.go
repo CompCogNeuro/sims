@@ -56,7 +56,6 @@ var SGWords = []string{
 	"spoon",
 	"knife",
 	"finger",
-	"place",
 	"kitchen",
 	"livingroom",
 	"park",
@@ -84,7 +83,6 @@ var SGRoles = []string{
 	"Location",
 	"Adverb",
 	"Recipient",
-	"None",
 }
 
 var SGFillers = []string{
@@ -95,7 +93,7 @@ var SGFillers = []string{
 	"Spread",
 	"Kissed",
 	"Gave",
-	"hit",
+	"Hit",
 	"ThrewTossed",
 	"ThrewHosted",
 	"DroveTrans",
@@ -139,4 +137,23 @@ var SGFillers = []string{
 	"Gusto",
 	"Pleasure",
 	"Daintiness",
+}
+
+var SGAmbigVerbs = []string{
+	"consumed",
+	"threw",
+	"drove",
+}
+
+var SGAmbigNouns = []string{
+	"someone",
+	"adult",
+	"child",
+	"dog",
+	"pitcher",
+	"something",
+	"food",
+	"utensil",
+	"bat",
+	"ball",
 }
