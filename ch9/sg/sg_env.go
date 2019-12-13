@@ -20,30 +20,36 @@ import (
 // chosen at random during generation -- these items can be
 // more rules terminal tokens.
 type SentGenEnv struct {
-	Nm          string            `desc:"name of this environment"`
-	Dsc         string            `desc:"description of this environment"`
-	Rules       esg.Rules         `desc:"core sent-gen rules -- loaded from a grammar / rules file -- Gen() here generates one sentence"`
-	PPassive    float32           `desc:"probability of generating passive sentence forms"`
-	PQueryPrior float32           `desc:"probability of querying prior role-filler info before end of sentence"`
-	WordTrans   map[string]string `desc:"translate unambiguous words into ambiguous words"`
-	Words       []string          `desc:"list of words used for activating state units according to index"`
-	WordMap     map[string]int    `desc:"map of words onto index in Words list"`
-	Roles       []string          `desc:"list of roles used for activating state units according to index"`
-	RoleMap     map[string]int    `desc:"map of roles onto index in Roles list"`
-	Fillers     []string          `desc:"list of filler concepts used for activating state units according to index"`
-	FillerMap   map[string]int    `desc:"map of roles onto index in Words list"`
-	CurSentOrig []string          `desc:"original current sentence as generated from Rules"`
-	CurSent     []string          `desc:"current sentence, potentially transformed to passive form"`
-	SentInputs  [][]string        `desc:"generated sequence of sentence inputs including role-filler queries"`
-	SentIdx     env.CurPrvInt     `desc:"current index within sentence inputs"`
-	SentState   etensor.Float32   `desc:"current sentence activation state"`
-	RoleState   etensor.Float32   `desc:"current role query activation state"`
-	FillerState etensor.Float32   `desc:"current filler query activation state"`
-	Run         env.Ctr           `view:"inline" desc:"current run of model as provided during Init"`
-	Epoch       env.Ctr           `view:"inline" desc:"number of times through Seq.Max number of sequences"`
-	Seq         env.Ctr           `view:"inline" desc:"sequence counter within epoch"`
-	Tick        env.Ctr           `view:"inline" desc:"tick counter within sequence"`
-	Trial       env.Ctr           `view:"inline" desc:"trial is the step counter within sequence - how many steps taken within current sequence -- it resets to 0 at start of each sequence"`
+	Nm            string            `desc:"name of this environment"`
+	Dsc           string            `desc:"description of this environment"`
+	Rules         esg.Rules         `desc:"core sent-gen rules -- loaded from a grammar / rules file -- Gen() here generates one sentence"`
+	PPassive      float32           `desc:"probability of generating passive sentence forms"`
+	PQueryPrior   float32           `desc:"probability of querying prior role-filler info before end of sentence"`
+	WordTrans     map[string]string `desc:"translate unambiguous words into ambiguous words"`
+	Words         []string          `desc:"list of words used for activating state units according to index"`
+	WordMap       map[string]int    `desc:"map of words onto index in Words list"`
+	Roles         []string          `desc:"list of roles used for activating state units according to index"`
+	RoleMap       map[string]int    `desc:"map of roles onto index in Roles list"`
+	Fillers       []string          `desc:"list of filler concepts used for activating state units according to index"`
+	FillerMap     map[string]int    `desc:"map of roles onto index in Words list"`
+	AmbigVerbs    []string          `desc:"ambiguous verbs"`
+	AmbigNouns    []string          `desc:"ambiguous nouns"`
+	AmbigVerbsMap map[string]int    `desc:"map of ambiguous verbs"`
+	AmbigNounsMap map[string]int    `desc:"map of ambiguous nouns"`
+	CurSentOrig   []string          `desc:"original current sentence as generated from Rules"`
+	CurSent       []string          `desc:"current sentence, potentially transformed to passive form"`
+	NAmbigNouns   int               `desc:"number of ambiguous nouns"`
+	NAmbigVerbs   int               `desc:"number of ambiguous verbs (0 or 1)"`
+	SentInputs    [][]string        `desc:"generated sequence of sentence inputs including role-filler queries"`
+	SentIdx       env.CurPrvInt     `desc:"current index within sentence inputs"`
+	SentState     etensor.Float32   `desc:"current sentence activation state"`
+	RoleState     etensor.Float32   `desc:"current role query activation state"`
+	FillerState   etensor.Float32   `desc:"current filler query activation state"`
+	Run           env.Ctr           `view:"inline" desc:"current run of model as provided during Init"`
+	Epoch         env.Ctr           `view:"inline" desc:"number of times through Seq.Max number of sequences"`
+	Seq           env.Ctr           `view:"inline" desc:"sequence counter within epoch"`
+	Tick          env.Ctr           `view:"inline" desc:"tick counter within sequence"`
+	Trial         env.Ctr           `view:"inline" desc:"trial is the step counter within sequence - how many steps taken within current sequence -- it resets to 0 at start of each sequence"`
 }
 
 func (ev *SentGenEnv) Name() string { return ev.Nm }
@@ -84,15 +90,6 @@ func (ev *SentGenEnv) Actions() env.Elements {
 	return nil
 }
 
-// String returns the current state as a string
-func (ev *SentGenEnv) String() string {
-	if ev.SentIdx.Cur >= 0 && ev.SentIdx.Cur < len(ev.SentInputs) {
-		cur := ev.SentInputs[ev.SentIdx.Cur]
-		return fmt.Sprintf("%s %s=%s", cur[0], cur[1], cur[2])
-	}
-	return ""
-}
-
 func (ev *SentGenEnv) Init(run int) {
 	ev.Run.Scale = env.Run
 	ev.Epoch.Scale = env.Epoch
@@ -106,40 +103,59 @@ func (ev *SentGenEnv) Init(run int) {
 	ev.Trial.Cur = -1 // init state -- key so that first Step() = 0
 	ev.SentIdx.Set(-1)
 
-	ev.WordMapFmWords()
-	ev.RoleMapFmRoles()
-	ev.FillerMapFmFillers()
+	ev.MapsFmWords()
 
 	ev.SentState.SetShape([]int{len(ev.Words)}, nil, []string{"Words"})
 	ev.RoleState.SetShape([]int{len(ev.Roles)}, nil, []string{"Roles"})
 	ev.FillerState.SetShape([]int{len(ev.Fillers)}, nil, []string{"Fillers"})
 }
 
-func (ev *SentGenEnv) WordMapFmWords() {
+func (ev *SentGenEnv) MapsFmWords() {
 	ev.WordMap = make(map[string]int, len(ev.Words))
 	for i, wrd := range ev.Words {
 		ev.WordMap[wrd] = i
 	}
-}
-
-func (ev *SentGenEnv) RoleMapFmRoles() {
 	ev.RoleMap = make(map[string]int, len(ev.Roles))
 	for i, wrd := range ev.Roles {
 		ev.RoleMap[wrd] = i
 	}
-}
-
-func (ev *SentGenEnv) FillerMapFmFillers() {
 	ev.FillerMap = make(map[string]int, len(ev.Fillers))
 	for i, wrd := range ev.Fillers {
 		ev.FillerMap[wrd] = i
 	}
+	ev.AmbigVerbsMap = make(map[string]int, len(ev.AmbigVerbs))
+	for i, wrd := range ev.AmbigVerbs {
+		ev.AmbigVerbsMap[wrd] = i
+	}
+	ev.AmbigNounsMap = make(map[string]int, len(ev.AmbigNouns))
+	for i, wrd := range ev.AmbigNouns {
+		ev.AmbigNounsMap[wrd] = i
+	}
+}
+
+// CurInputs returns current inputs triple from SentInputs
+func (ev *SentGenEnv) CurInputs() []string {
+	if ev.SentIdx.Cur >= 0 && ev.SentIdx.Cur < len(ev.SentInputs) {
+		return ev.SentInputs[ev.SentIdx.Cur]
+	}
+	return nil
+}
+
+// String returns the current state as a string
+func (ev *SentGenEnv) String() string {
+	cur := ev.CurInputs()
+	if cur != nil {
+		return fmt.Sprintf("%s %s=%s", cur[0], cur[1], cur[2])
+	}
+	return ""
 }
 
 // NextSent generates the next sentence and all the queries for it
 func (ev *SentGenEnv) NextSent() {
 	ev.CurSent = ev.Rules.Gen()
+	// fmt.Printf("%v\n", ev.CurSent)
 	ev.Rules.TrimStateQualifiers()
+	ev.SentStats()
 	ev.SentIdx.Set(0)
 	ev.SentSeqActiveDet() // todo: passive
 }
@@ -153,17 +169,32 @@ func (ev *SentGenEnv) TransWord(word string) string {
 	return word
 }
 
+// SentStats computes stats on sentence (ambig words)
+func (ev *SentGenEnv) SentStats() {
+	ev.NAmbigNouns = 0
+	ev.NAmbigVerbs = 0
+	for _, wrd := range ev.CurSent {
+		wrd = ev.TransWord(wrd)
+		if _, has := ev.AmbigVerbsMap[wrd]; has {
+			ev.NAmbigVerbs++
+		}
+		if _, has := ev.AmbigNounsMap[wrd]; has {
+			ev.NAmbigNouns++
+		}
+	}
+}
+
 // CheckWords reports errors if words not found, if not empty
 func (ev *SentGenEnv) CheckWords(wrd, role, fill string) []error {
 	var errs []error
 	if _, ok := ev.WordMap[wrd]; !ok {
-		errs = append(errs, fmt.Errorf("word not found in WordMap: %s", wrd))
+		errs = append(errs, fmt.Errorf("word not found in WordMap: %s, sent: %v", wrd, ev.CurSent))
 	}
 	if _, ok := ev.RoleMap[role]; !ok {
-		errs = append(errs, fmt.Errorf("word not found in RoleMap: %s\n", role))
+		errs = append(errs, fmt.Errorf("word not found in RoleMap: %s, sent: %v", role, ev.CurSent))
 	}
 	if _, ok := ev.FillerMap[fill]; !ok {
-		errs = append(errs, fmt.Errorf("word not found in FillerMap: %s\n", fill))
+		errs = append(errs, fmt.Errorf("word not found in FillerMap: %s, sent: %v", fill, ev.CurSent))
 	}
 	if errs != nil {
 		for _, err := range errs {
@@ -230,15 +261,18 @@ func (ev *SentGenEnv) SentSeqActiveDet() {
 
 // RenderState renders the current state
 func (ev *SentGenEnv) RenderState() {
-	cur := ev.SentInputs[ev.SentIdx.Cur]
-	widx := ev.WordMap[cur[0]]
 	ev.SentState.SetZeros()
+	ev.RoleState.SetZeros()
+	ev.FillerState.SetZeros()
+	cur := ev.CurInputs()
+	if cur == nil {
+		return
+	}
+	widx := ev.WordMap[cur[0]]
 	ev.SentState.SetFloat1D(widx, 1)
 	ridx := ev.RoleMap[cur[1]]
-	ev.RoleState.SetZeros()
 	ev.RoleState.SetFloat1D(ridx, 1)
 	fidx := ev.FillerMap[cur[2]]
-	ev.FillerState.SetZeros()
 	ev.FillerState.SetFloat1D(fidx, 1)
 }
 
