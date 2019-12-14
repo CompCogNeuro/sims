@@ -9,12 +9,12 @@ Sentence {
 	Kissed
 	Gave
 	Hit
-//	ThrewTossed
-//	ThrewHosted
-//	DroveTrans
-//	DroveMotiv
-//	ShedV
-//	RoseV
+	ThrewTossed
+	ThrewHosted
+	DroveTrans
+	DroveMotiv
+	ShedV
+	RoseV
 }
 
 // note: not possible to do passive within these rules as the :P clause depends on :A
@@ -691,7 +691,7 @@ ShedV:L {
 
 RoseV {
 	=Action
-	Std:A 'rosev' RoseV:M
+	Std:A 'rosev' RoseV:M =Patient=None
 }
 
 RoseV:M {

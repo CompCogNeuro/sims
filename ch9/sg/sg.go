@@ -77,17 +77,33 @@ var ParamSets = params.Sets{
 					// "Layer.Learn.AvgL.Gain": "1.5", // key to lower relative to 2.5
 					"Layer.Act.Gbar.L": "0.1", // lower leak = better
 				}},
-			{Sel: "#Filler", Desc: "higher inhib",
+			{Sel: "#Filler", Desc: "higher inhib, 3.2 > 3.0 > 2.8 -- key for ambig!",
 				Params: params.Params{
-					"Layer.Inhib.Layer.Gi": "3",
+					"Layer.Inhib.Layer.Gi": "3.6",
 				}},
-			{Sel: "#InputP", Desc: "higher inhib",
+			{Sel: "#InputP", Desc: "higher inhib -- 2.4 == 2.2 > 2.6",
 				Params: params.Params{
 					"Layer.Inhib.Layer.Gi": "2.4",
 				}},
-			{Sel: ".Back", Desc: "top-down back-projections MUST have lower relative weight scale, otherwise network hallucinates",
+			{Sel: ".Back", Desc: "weaker back -- .2 > .3, .1",
 				Params: params.Params{
 					"Prjn.WtScale.Rel": "0.2",
+				}},
+			{Sel: ".FmInput", Desc: "from localist inputs -- 1 == .3",
+				Params: params.Params{
+					"Prjn.WtScale.Rel": "1",
+				}},
+			{Sel: ".InputPToSuper", Desc: "teaching signal from input pulvinar, to super -- .05 > .2",
+				Params: params.Params{
+					"Prjn.WtScale.Rel": "0.05", // .05 > .2
+				}},
+			{Sel: ".InputPToDeep", Desc: "critical to make this small so deep context dominates -- .05",
+				Params: params.Params{
+					"Prjn.WtScale.Rel": "0.05",
+				}},
+			{Sel: ".CtxtFmInput", Desc: "making this weaker than 1 causes encodeD to freeze, 1 == 1.5 > lower",
+				Params: params.Params{
+					"Prjn.WtScale.Rel": "1.0",
 				}},
 			{Sel: ".BurstTRC", Desc: "standard weight is .3 here for larger distributed reps. no learn",
 				Params: params.Params{
@@ -98,14 +114,6 @@ var ParamSets = params.Sets{
 			{Sel: ".BurstCtxt", Desc: "no weight balance on deep context prjns -- makes a diff!",
 				Params: params.Params{
 					"Prjn.Learn.WtBal.On": "false",
-				}},
-			{Sel: "#InputPToEncodeD", Desc: "critical to make this small so deep context dominates",
-				Params: params.Params{
-					"Prjn.WtScale.Rel": "0.05",
-				}},
-			{Sel: "#InputPToGestaltD", Desc: "critical to make this small so deep context dominates",
-				Params: params.Params{
-					"Prjn.WtScale.Rel": "0.05",
 				}},
 		},
 	}},
@@ -301,13 +309,13 @@ func (ss *Sim) ConfigEnv() {
 }
 
 func (ss *Sim) ConfigNet(net *deep.Network) {
-	net.InitName(net, "Sentence Gestalt")
+	net.InitName(net, "SentGestalt")
 	in, inp := net.AddInputPulv2D("Input", 10, 5)
 	role := net.AddLayer2D("Role", 9, 1, emer.Input)
 	fill := net.AddLayer2D("Filler", 11, 5, emer.Target)
 	enc, encd, _ := net.AddSuperDeep2D("Encode", 10, 10, deep.NoPulv, deep.NoAttnPrjn)
 	dec := net.AddLayer2D("Decode", 10, 10, emer.Hidden)
-	gest, gestd, _ := net.AddSuperDeep2D("Gestalt", 10, 10, deep.NoPulv, deep.NoAttnPrjn)
+	gest, gestd, _ := net.AddSuperDeep2D("Gestalt", 10, 10, deep.NoPulv, deep.NoAttnPrjn) // 16x16 not better
 
 	inp.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "Input", YAlign: relpos.Front, Space: 2})
 	role.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "InputP", YAlign: relpos.Front, Space: 2})
@@ -320,30 +328,39 @@ func (ss *Sim) ConfigNet(net *deep.Network) {
 
 	full := prjn.NewFull()
 
-	net.ConnectLayers(in, enc, full, emer.Forward)
+	pj := net.ConnectLayers(in, enc, full, emer.Forward)
+	pj.SetClass("FmInput")
 	net.ConnectLayers(encd, inp, full, emer.Forward)
-	net.ConnectLayers(inp, encd, full, emer.Back)
-	net.ConnectLayers(inp, enc, full, emer.Back)
+	pj = net.ConnectLayers(inp, encd, full, emer.Back)
+	pj.SetClass("InputPToDeep")
+	pj = net.ConnectLayers(inp, enc, full, emer.Back)
+	pj.SetClass("InputPToSuper")
 	net.ConnectLayers(gestd, encd, full, emer.Forward)
 
 	net.BidirConnectLayers(enc, gest, full)
 	net.ConnectLayers(gestd, inp, full, emer.Forward)
-	net.ConnectLayers(inp, gestd, full, emer.Back)
-	net.ConnectLayers(inp, gest, full, emer.Back)
+	pj = net.ConnectLayers(inp, gestd, full, emer.Back) // these are critical!
+	pj.SetClass("InputPToDeep")
+	pj = net.ConnectLayers(inp, gest, full, emer.Back)
+	pj.SetClass("InputPToSuper")
 
 	net.BidirConnectLayers(gest, dec, full)
 	net.BidirConnectLayers(gestd, dec, full)
+
+	// net.BidirConnectLayers(enc, dec, full) // not beneficial
 
 	net.BidirConnectLayers(dec, role, full)
 	net.BidirConnectLayers(dec, fill, full)
 
 	// add extra deep context
 	net.ConnectLayers(encd, encd, full, deep.BurstCtxt)
-	net.ConnectLayers(in, encd, full, deep.BurstCtxt)
+	pj = net.ConnectLayers(in, encd, full, deep.BurstCtxt)
+	pj.SetClass("CtxtFmInput")
 
 	// add extra deep context
 	net.ConnectLayers(gestd, gestd, full, deep.BurstCtxt)
-	net.ConnectLayers(in, gestd, full, deep.BurstCtxt) // todo: maybe better with -- need full corpus
+	pj = net.ConnectLayers(in, gestd, full, deep.BurstCtxt) // yes better
+	pj.SetClass("CtxtFmInput")
 
 	net.Defaults()
 	ss.SetParams("Network", ss.LogSetParams) // only set Network params
@@ -643,9 +660,15 @@ func (ss *Sim) TrainRun() {
 // LrateSched implements the learning rate schedule
 func (ss *Sim) LrateSched(epc int) {
 	switch epc {
-	case 300:
+	case 200:
 		ss.Net.LrateMult(0.5)
 		fmt.Printf("dropped lrate 0.5 at epoch: %d\n", epc)
+	case 300:
+		ss.Net.LrateMult(0.2)
+		fmt.Printf("dropped lrate 0.2 at epoch: %d\n", epc)
+	case 400:
+		ss.Net.LrateMult(0.1)
+		fmt.Printf("dropped lrate 0.1 at epoch: %d\n", epc)
 	}
 }
 
@@ -1303,6 +1326,7 @@ func (ss *Sim) ConfigTstCycPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 
 // LogRun adds data from current run to the RunLog table.
 func (ss *Sim) LogRun(dt *etable.Table) {
+	return
 	run := ss.TrainEnv.Run.Cur // this is NOT triggered by increment yet -- use Cur
 	row := dt.Rows
 	dt.SetNumRows(row + 1)
@@ -1643,9 +1667,9 @@ func (ss *Sim) CmdArgs() {
 	var saveRunLog bool
 	flag.StringVar(&ss.ParamSet, "params", "", "ParamSet name to use -- must be valid name as listed in compiled-in params or loaded params")
 	flag.StringVar(&ss.Tag, "tag", "", "extra tag to add to file names saved from this run")
-	flag.IntVar(&ss.MaxRuns, "runs", 10, "number of runs to do (note that MaxEpcs is in paramset)")
+	flag.IntVar(&ss.MaxRuns, "runs", 1, "number of runs to do (note that MaxEpcs is in paramset)")
 	flag.BoolVar(&ss.LogSetParams, "setparams", false, "if true, print a record of each parameter that is set")
-	flag.BoolVar(&ss.SaveWts, "wts", false, "if true, save final weights after each run")
+	flag.BoolVar(&ss.SaveWts, "wts", true, "if true, save final weights after each run")
 	flag.BoolVar(&saveEpcLog, "epclog", true, "if true, save train epoch log to file")
 	flag.BoolVar(&saveRunLog, "runlog", true, "if true, save run epoch log to file")
 	flag.BoolVar(&nogui, "nogui", true, "if not passing any other args and want to run nogui, use nogui")
