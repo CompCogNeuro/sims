@@ -77,9 +77,9 @@ var ParamSets = params.Sets{
 					// "Layer.Learn.AvgL.Gain": "1.5", // key to lower relative to 2.5
 					"Layer.Act.Gbar.L": "0.1", // lower leak = better
 				}},
-			{Sel: "#Filler", Desc: "higher inhib, 3.2 > 3.0 > 2.8 -- key for ambig!",
+			{Sel: "#Filler", Desc: "higher inhib, 3.6 > 3.4 > 3.2 > 3.0 > 2.8 -- key for ambig!",
 				Params: params.Params{
-					"Layer.Inhib.Layer.Gi": "3.6",
+					"Layer.Inhib.Layer.Gi": "3.8",
 				}},
 			{Sel: "#InputP", Desc: "higher inhib -- 2.4 == 2.2 > 2.6",
 				Params: params.Params{
