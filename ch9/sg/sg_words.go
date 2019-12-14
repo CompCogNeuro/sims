@@ -137,6 +137,10 @@ var SGFillers = []string{
 	"Gusto",
 	"Pleasure",
 	"Daintiness",
+	"None",
+	"Ex1", // adding extras so it has 55 units to match layer size
+	"Ex2",
+	"Ex3",
 }
 
 var SGAmbigVerbs = []string{
@@ -150,10 +154,14 @@ var SGAmbigNouns = []string{
 	"adult",
 	"child",
 	"dog",
-	"pitcher",
 	"something",
 	"food",
 	"utensil",
+}
+
+// these are somewhat ambiguous but in syntax and context not really
+var SGSemiAmbigNouns = []string{
+	"pitcher",
 	"bat",
 	"ball",
 }
