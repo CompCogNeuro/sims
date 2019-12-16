@@ -91,8 +91,13 @@ var ParamSets = params.Sets{
 				}},
 			{Sel: ".BurstCtxt", Desc: "no weight balance on deep context prjns -- makes a diff!",
 				Params: params.Params{
-					"Prjn.Learn.WtBal.On": "false",
-					"Prjn.WtScale.Rel":    "0.5",
+					"Prjn.Learn.WtBal.On": "true",
+					"Prjn.WtScale.Rel":    "1",
+				}},
+			{Sel: ".SelfCtxt", Desc: "no weight balance on deep context prjns -- makes a diff!",
+				Params: params.Params{
+					"Prjn.Learn.WtBal.On": "true",
+					"Prjn.WtScale.Rel":    "1",
 				}},
 			{Sel: ".FmInput", Desc: "from localist inputs -- 1 == .3",
 				Params: params.Params{
@@ -120,45 +125,39 @@ var ParamSets = params.Sets{
 	}},
 }
 
-// InputNames are names of input letters
-var InputNames = []string{"B", "T", "S", "X", "V", "P", "E"}
-
-// InputNameMap has indexes of InputNames
-var InputNameMap map[string]int
-
 // Sim encapsulates the entire simulation model, and we define all the
 // functionality as methods on this struct.  This structure keeps all relevant
 // state information organized and available without having to pass everything around
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
-	Net              *deep.Network     `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
-	TrnEpcLog        *etable.Table     `view:"no-inline" desc:"training epoch-level log data"`
-	TstEpcLog        *etable.Table     `view:"no-inline" desc:"testing epoch-level log data"`
-	TrnTrlLog        *etable.Table     `view:"no-inline" desc:"training trial-level log data"`
-	TstTrlLog        *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
-	TstErrLog        *etable.Table     `view:"no-inline" desc:"log of all test trials where errors were made"`
-	TrnTrlAmbStats   *etable.Table     `view:"no-inline" desc:"aggregate trl stats for last epc"`
-	TrnTrlRoleStats  *etable.Table     `view:"no-inline" desc:"aggregate trl stats for last epc"`
-	TrnTrlQuestStats *etable.Table     `view:"no-inline" desc:"aggregate trl stats for last epc"`
-	TstErrStats      *etable.Table     `view:"no-inline" desc:"stats on test trials where errors were made"`
-	TstCycLog        *etable.Table     `view:"no-inline" desc:"testing cycle-level log data"`
-	RunLog           *etable.Table     `view:"no-inline" desc:"summary log of each run"`
-	RunStats         *etable.Table     `view:"no-inline" desc:"aggregate stats on all runs"`
-	Params           params.Sets       `view:"no-inline" desc:"full collection of param sets"`
-	ParamSet         string            `desc:"which set of *additional* parameters to use -- always applies Base and optionaly this next if set"`
-	Tag              string            `desc:"extra tag string to add to any file names output from sim (e.g., weights files, log files, params for run)"`
-	MaxRuns          int               `desc:"maximum number of model runs to perform"`
-	MaxEpcs          int               `desc:"maximum number of epochs to run per model run"`
-	NZeroStop        int               `desc:"if a positive number, training will stop after this many epochs with zero SSE"`
-	TrainEnv         SentGenEnv        `desc:"Training environment -- contains everything about iterating over input / output patterns over training"`
-	TestEnv          SentGenEnv        `desc:"Testing environment -- manages iterating over testing"`
-	Time             leabra.Time       `desc:"leabra timing parameters and state"`
-	ViewOn           bool              `desc:"whether to update the network view while running"`
-	TrainUpdt        leabra.TimeScales `desc:"at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model"`
-	TestUpdt         leabra.TimeScales `desc:"at what time scale to update the display during testing?  Anything longer than Epoch updates at Epoch in this model"`
-	TestInterval     int               `desc:"how often to run through all the test patterns, in terms of training epochs -- can use 0 or -1 for no testing"`
-	LayStatNms       []string          `desc:"names of layers to collect more detailed stats on (avg act, etc)"`
+	Net             *deep.Network     `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
+	TrnEpcLog       *etable.Table     `view:"no-inline" desc:"training epoch-level log data"`
+	TstEpcLog       *etable.Table     `view:"no-inline" desc:"testing epoch-level log data"`
+	TrnTrlLog       *etable.Table     `view:"no-inline" desc:"training trial-level log data"`
+	TstTrlLog       *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
+	TstErrLog       *etable.Table     `view:"no-inline" desc:"log of all test trials where errors were made"`
+	TrnTrlAmbStats  *etable.Table     `view:"no-inline" desc:"aggregate trl stats for last epc"`
+	TrnTrlRoleStats *etable.Table     `view:"no-inline" desc:"aggregate trl stats for last epc"`
+	TrnTrlQTypStats *etable.Table     `view:"no-inline" desc:"aggregate trl stats for last epc"`
+	TstErrStats     *etable.Table     `view:"no-inline" desc:"stats on test trials where errors were made"`
+	TstCycLog       *etable.Table     `view:"no-inline" desc:"testing cycle-level log data"`
+	RunLog          *etable.Table     `view:"no-inline" desc:"summary log of each run"`
+	RunStats        *etable.Table     `view:"no-inline" desc:"aggregate stats on all runs"`
+	Params          params.Sets       `view:"no-inline" desc:"full collection of param sets"`
+	ParamSet        string            `desc:"which set of *additional* parameters to use -- always applies Base and optionaly this next if set"`
+	Tag             string            `desc:"extra tag string to add to any file names output from sim (e.g., weights files, log files, params for run)"`
+	MaxRuns         int               `desc:"maximum number of model runs to perform"`
+	MaxEpcs         int               `desc:"maximum number of epochs to run per model run"`
+	NZeroStop       int               `desc:"if a positive number, training will stop after this many epochs with zero SSE"`
+	TrainEnv        SentGenEnv        `desc:"Training environment -- contains everything about iterating over input / output patterns over training"`
+	TestEnv         SentGenEnv        `desc:"Testing environment -- manages iterating over testing"`
+	Time            leabra.Time       `desc:"leabra timing parameters and state"`
+	ViewOn          bool              `desc:"whether to update the network view while running"`
+	TrainUpdt       leabra.TimeScales `desc:"at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model"`
+	TestUpdt        leabra.TimeScales `desc:"at what time scale to update the display during testing?  Anything longer than Epoch updates at Epoch in this model"`
+	TestInterval    int               `desc:"how often to run through all the test patterns, in terms of training epochs -- can use 0 or -1 for no testing"`
+	LayStatNms      []string          `desc:"names of layers to collect more detailed stats on (avg act, etc)"`
 
 	// statistics: note use float64 as that is best for etable.Table
 	TrlErr     [2]float64 `inactive:"+" desc:"1 if trial was error, 0 if correct -- based on SSE = 0 (subject to .5 unit-wise tolerance)"`
@@ -223,13 +222,7 @@ func (ss *Sim) New() {
 	ss.TrainUpdt = leabra.AlphaCycle
 	ss.TestUpdt = leabra.Cycle
 	ss.TestInterval = 5000
-	ss.LayStatNms = []string{"InputP", "Role", "Filler"}
-	if InputNameMap == nil {
-		InputNameMap = make(map[string]int, len(InputNames))
-		for i, nm := range InputNames {
-			InputNameMap[nm] = i
-		}
-	}
+	ss.LayStatNms = []string{"Encode", "EncodeD", "Gestalt", "GestaltD", "Decode"}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -330,12 +323,14 @@ func (ss *Sim) ConfigNet(net *deep.Network) {
 	net.BidirConnectLayers(dec, fill, full)
 
 	// add extra deep context
-	net.ConnectLayers(encd, encd, full, deep.BurstCtxt)
+	pj = net.ConnectLayers(encd, encd, full, deep.BurstCtxt)
+	pj.SetClass("SelfCtxt")
 	pj = net.ConnectLayers(in, encd, full, deep.BurstCtxt)
 	pj.SetClass("CtxtFmInput")
 
 	// add extra deep context
-	net.ConnectLayers(gestd, gestd, full, deep.BurstCtxt)
+	pj = net.ConnectLayers(gestd, gestd, full, deep.BurstCtxt)
+	pj.SetClass("SelfCtxt")
 	pj = net.ConnectLayers(in, gestd, full, deep.BurstCtxt) // yes better
 	pj.SetClass("CtxtFmInput")
 
@@ -856,6 +851,7 @@ func (ss *Sim) LogTrnTrl(dt *etable.Table) {
 	dt.SetCellString("Input", row, cur[0])
 	dt.SetCellString("Role", row, cur[1])
 	dt.SetCellString("Filler", row, cur[2])
+	dt.SetCellString("QType", row, cur[3])
 	dt.SetCellFloat("AmbigVerb", row, float64(ss.TrainEnv.NAmbigVerbs))
 	dt.SetCellFloat("AmbigNouns", row, math.Min(float64(ss.TrainEnv.NAmbigNouns), 1))
 	for li, lnm := range lys {
@@ -888,6 +884,7 @@ func (ss *Sim) ConfigTrnTrlLog(dt *etable.Table) {
 		{"Input", etensor.STRING, nil, nil},
 		{"Role", etensor.STRING, nil, nil},
 		{"Filler", etensor.STRING, nil, nil},
+		{"QType", etensor.STRING, nil, nil},
 		{"AmbigVerb", etensor.FLOAT64, nil, nil},
 		{"AmbigNouns", etensor.FLOAT64, nil, nil},
 	}
@@ -917,6 +914,7 @@ func (ss *Sim) ConfigTrnTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetColParams("Input", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("Role", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("Filler", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("QType", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("AmbigVerb", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
 	plt.SetColParams("AmbigNouns", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
 
@@ -931,6 +929,28 @@ func (ss *Sim) ConfigTrnTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 
 //////////////////////////////////////////////
 //  TrnEpcLog
+
+// HogDead computes the proportion of units in given layer name with ActAvg over hog thr
+// and under dead threshold
+func (ss *Sim) HogDead(lnm string) (hog, dead float64) {
+	lvt := ss.ValsTsr(lnm)
+	ly := ss.Net.LayerByName(lnm).(deep.DeepLayer).AsDeep()
+	ly.UnitValsTensor(lvt, "ActAvg")
+	n := float64(lvt.Len())
+	if n == 0 {
+		return
+	}
+	for _, val := range lvt.Values {
+		if val > 0.3 {
+			hog += 1
+		} else if val < 0.01 {
+			dead += 1
+		}
+	}
+	hog /= n
+	dead /= n
+	return
+}
 
 // LogTrnEpc adds data from current epoch to the TrnEpcLog table.
 // computes epoch averages prior to logging.
@@ -965,62 +985,59 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 
 	trlog := ss.TrnTrlLog
 	tix := etable.NewIdxView(trlog)
-	tix.Filter(func(et *etable.Table, row int) bool { // ignore question for ambiguity effects
-		return et.CellString("Input", row) != "question"
-	})
-
 	ambspl := split.GroupBy(tix, []string{"AmbigNouns"})
+	qtspl := split.GroupBy(tix, []string{"QType"})
 
-	// no ambig and no final question
-	noambtix := etable.NewIdxView(trlog)
-	noambtix.Filter(func(et *etable.Table, row int) bool {
-		return (et.CellFloat("AmbigNouns", row) == 0 && et.CellString("Input", row) != "question")
-	})
-
-	rolespl := split.GroupBy(noambtix, []string{"Role"})
+	// // no ambig and no final question
+	// noambtix := etable.NewIdxView(trlog)
+	// noambtix.Filter(func(et *etable.Table, row int) bool {
+	// 	return et.CellFloat("AmbigNouns", row) == 0
+	// })
+	// rolespl := split.GroupBy(noambtix, []string{"Role"})
 
 	cols := []string{"Err", "SSE", "CosDiff"}
 	for _, lnm := range lys {
 		for _, cl := range cols {
 			split.Agg(ambspl, lnm+cl, agg.AggMean)
-			split.Agg(rolespl, lnm+cl, agg.AggMean)
+			split.Agg(qtspl, lnm+cl, agg.AggMean)
+			// split.Agg(rolespl, lnm+cl, agg.AggMean)
 		}
 	}
 	ambst := ambspl.AggsToTable(etable.ColNameOnly)
 	ss.TrnTrlAmbStats = ambst
-	rolest := rolespl.AggsToTable(etable.ColNameOnly)
-	ss.TrnTrlRoleStats = rolest
+	// rolest := rolespl.AggsToTable(etable.ColNameOnly)
+	// ss.TrnTrlRoleStats = rolest
 
-	for _, cl := range cols {
-		dt.SetCellFloat("UnAmbFill"+cl, row, ambst.CellFloat("Fill"+cl, 0))
-		dt.SetCellFloat("AmbFill"+cl, row, ambst.CellFloat("Fill"+cl, 1))
-	}
-	for _, lnm := range lys {
-		for ri, rl := range SGRoles {
-			for _, cl := range cols {
-				dt.SetCellFloat(rl+lnm+cl, row, rolest.CellFloat(lnm+cl, ri))
-			}
+	if ambst != nil && ambst.Rows == 2 {
+		for _, cl := range cols {
+			dt.SetCellFloat("UnAmbFill"+cl, row, ambst.CellFloat("Fill"+cl, 0))
+			dt.SetCellFloat("AmbFill"+cl, row, ambst.CellFloat("Fill"+cl, 1))
 		}
 	}
 
-	questtix := etable.NewIdxView(trlog)
-	questtix.Filter(func(et *etable.Table, row int) bool {
-		return et.CellString("Input", row) == "question"
-	})
-	questspl := split.GroupBy(tix, []string{"AmbigNouns"})
-	for _, cl := range cols {
-		split.Agg(questspl, "Fill"+cl, agg.AggMean)
+	qtst := qtspl.AggsToTable(etable.ColNameOnly)
+	ss.TrnTrlQTypStats = qtst
+	if qtst != nil && qtst.Rows == 2 {
+		for _, cl := range cols {
+			dt.SetCellFloat("CurQFill"+cl, row, qtst.CellFloat("Fill"+cl, 0))
+			dt.SetCellFloat("RevQFill"+cl, row, qtst.CellFloat("Fill"+cl, 1))
+		}
 	}
-	questst := questspl.AggsToTable(etable.ColNameOnly)
-	ss.TrnTrlQuestStats = questst
-	for _, cl := range cols {
-		dt.SetCellFloat("UnAmbQuestFill"+cl, row, questst.CellFloat("Fill"+cl, 0))
-		dt.SetCellFloat("AmbQuestFill"+cl, row, questst.CellFloat("Fill"+cl, 1))
-	}
+
+	// for _, lnm := range lys {
+	// 	for ri, rl := range SGRoles {
+	// 		for _, cl := range cols {
+	// 			dt.SetCellFloat(rl+lnm+cl, row, rolest.CellFloat(lnm+cl, ri))
+	// 		}
+	// 	}
+	// }
 
 	for _, lnm := range ss.LayStatNms {
 		ly := ss.Net.LayerByName(lnm).(deep.DeepLayer).AsDeep()
 		dt.SetCellFloat(ly.Nm+" ActAvg", row, float64(ly.Pools[0].ActAvg.ActPAvgEff))
+		hog, dead := ss.HogDead(lnm)
+		dt.SetCellFloat(ly.Nm+" Hog", row, hog)
+		dt.SetCellFloat(ly.Nm+" Dead", row, dead)
 	}
 
 	// note: essential to use Go version of update when called from another goroutine
@@ -1057,20 +1074,22 @@ func (ss *Sim) ConfigTrnEpcLog(dt *etable.Table) {
 	for _, cl := range cols {
 		sch = append(sch, etable.Column{"UnAmbFill" + cl, etensor.FLOAT64, nil, nil})
 		sch = append(sch, etable.Column{"AmbFill" + cl, etensor.FLOAT64, nil, nil})
-		sch = append(sch, etable.Column{"UnAmbQuestFill" + cl, etensor.FLOAT64, nil, nil})
-		sch = append(sch, etable.Column{"AmbQuestFill" + cl, etensor.FLOAT64, nil, nil})
+		sch = append(sch, etable.Column{"CurQFill" + cl, etensor.FLOAT64, nil, nil})
+		sch = append(sch, etable.Column{"RevQFill" + cl, etensor.FLOAT64, nil, nil})
 	}
 
-	for _, lnm := range lys {
-		for _, rl := range SGRoles {
-			for _, cl := range cols {
-				sch = append(sch, etable.Column{rl + lnm + cl, etensor.FLOAT64, nil, nil})
-			}
-		}
-	}
+	// for _, lnm := range lys {
+	// 	for _, rl := range SGRoles {
+	// 		for _, cl := range cols {
+	// 			sch = append(sch, etable.Column{rl + lnm + cl, etensor.FLOAT64, nil, nil})
+	// 		}
+	// 	}
+	// }
 
 	for _, lnm := range ss.LayStatNms {
 		sch = append(sch, etable.Column{lnm + " ActAvg", etensor.FLOAT64, nil, nil})
+		sch = append(sch, etable.Column{lnm + " Hog", etensor.FLOAT64, nil, nil})
+		sch = append(sch, etable.Column{lnm + " Dead", etensor.FLOAT64, nil, nil})
 	}
 	dt.SetFromSchema(sch, 0)
 }
@@ -1086,31 +1105,33 @@ func (ss *Sim) ConfigTrnEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetColParams("Run", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("Epoch", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	for _, lnm := range lys {
-		plt.SetColParams(lnm+"SSE", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0)
+		plt.SetColParams(lnm+"SSE", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 		plt.SetColParams(lnm+"AvgSSE", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
-		plt.SetColParams(lnm+"PctErr", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)  // default plot
-		plt.SetColParams(lnm+"PctCor", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1) // default plot
-		plt.SetColParams(lnm+"CosDiff", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
+		plt.SetColParams(lnm+"PctErr", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1) // default plot
+		plt.SetColParams(lnm+"PctCor", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
+		plt.SetColParams(lnm+"CosDiff", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
 	}
 
 	cols := []string{"Err", "SSE", "CosDiff"}
 	for _, cl := range cols {
 		plt.SetColParams("UnAmbFill"+cl, eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
 		plt.SetColParams("AmbFill"+cl, eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
-		plt.SetColParams("UnAmbQuestFill"+cl, eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
-		plt.SetColParams("AmbQuestFill"+cl, eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
+		plt.SetColParams("CurQFill"+cl, (cl == "Err"), eplot.FixMin, 0, eplot.FixMax, 1)
+		plt.SetColParams("RevQFill"+cl, (cl == "Err"), eplot.FixMin, 0, eplot.FixMax, 1)
 	}
 
-	for _, lnm := range lys {
-		for _, rl := range SGRoles {
-			for _, cl := range cols {
-				plt.SetColParams(rl+lnm+cl, eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
-			}
-		}
-	}
+	// for _, lnm := range lys {
+	// 	for _, rl := range SGRoles {
+	// 		for _, cl := range cols {
+	// 			plt.SetColParams(rl+lnm+cl, eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
+	// 		}
+	// 	}
+	// }
 
 	for _, lnm := range ss.LayStatNms {
-		plt.SetColParams(lnm+" ActAvg", false, true, 0, true, .5)
+		plt.SetColParams(lnm+" ActAvg", eplot.Off, eplot.FixMin, 0, eplot.FixMax, .5)
+		plt.SetColParams(lnm+" Hog", eplot.Off, eplot.FixMin, 0, eplot.FixMax, .5)
+		plt.SetColParams(lnm+" Dead", eplot.Off, eplot.FixMin, 0, eplot.FixMax, .5)
 	}
 	return plt
 }
@@ -1136,13 +1157,6 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 	dt.SetCellFloat("Trial", row, float64(trl))
 	dt.SetCellString("TrialName", row, ss.TestEnv.String())
 
-	for _, lnm := range ss.LayStatNms {
-		ly := ss.Net.LayerByName(lnm).(deep.DeepLayer).AsDeep()
-		lvt := ss.ValsTsr(lnm)
-		ly.UnitValsTensor(lvt, "ActM")
-		dt.SetCellTensor(lnm, row, lvt)
-	}
-
 	// note: essential to use Go version of update when called from another goroutine
 	ss.TstTrlPlot.GoUpdate()
 }
@@ -1165,10 +1179,6 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 		{"AvgSSE", etensor.FLOAT64, nil, nil},
 		{"CosDiff", etensor.FLOAT64, nil, nil},
 	}
-	for _, lnm := range ss.LayStatNms {
-		ly := ss.Net.LayerByName(lnm).(deep.DeepLayer).AsDeep()
-		sch = append(sch, etable.Column{lnm, etensor.FLOAT64, ly.Shp.Shp, nil})
-	}
 	dt.SetFromSchema(sch, nt)
 }
 
@@ -1187,9 +1197,6 @@ func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetColParams("AvgSSE", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("CosDiff", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
 
-	for _, lnm := range ss.LayStatNms {
-		plt.SetColParams(lnm, false, true, 0, true, .5)
-	}
 	return plt
 }
 
