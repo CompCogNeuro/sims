@@ -77,9 +77,9 @@ var ParamSets = params.Sets{
 					// "Layer.Learn.AvgL.Gain": "1.5", // key to lower relative to 2.5
 					"Layer.Act.Gbar.L": "0.1", // lower leak = better
 				}},
-			{Sel: "#Filler", Desc: "higher inhib, 3.6 > 3.4 > 3.2 > 3.0 > 2.8 -- key for ambig!",
+			{Sel: "#Filler", Desc: "higher inhib, 3.6 > 3.8 > 3.4 > 3.2 > 3.0 > 2.8 -- key for ambig!",
 				Params: params.Params{
-					"Layer.Inhib.Layer.Gi": "3.8",
+					"Layer.Inhib.Layer.Gi": "3.6",
 				}},
 			{Sel: "#InputP", Desc: "higher inhib -- 2.4 == 2.2 > 2.6",
 				Params: params.Params{
@@ -88,6 +88,11 @@ var ParamSets = params.Sets{
 			{Sel: ".Back", Desc: "weaker back -- .2 > .3, .1",
 				Params: params.Params{
 					"Prjn.WtScale.Rel": "0.2",
+				}},
+			{Sel: ".BurstCtxt", Desc: "no weight balance on deep context prjns -- makes a diff!",
+				Params: params.Params{
+					"Prjn.Learn.WtBal.On": "false",
+					"Prjn.WtScale.Rel":    "0.5",
 				}},
 			{Sel: ".FmInput", Desc: "from localist inputs -- 1 == .3",
 				Params: params.Params{
@@ -111,35 +116,6 @@ var ParamSets = params.Sets{
 					"Prjn.WtInit.Var":  "0",
 					"Prjn.Learn.Learn": "false",
 				}},
-			{Sel: ".BurstCtxt", Desc: "no weight balance on deep context prjns -- makes a diff!",
-				Params: params.Params{
-					"Prjn.Learn.WtBal.On": "false",
-				}},
-		},
-	}},
-	{Name: "DefaultInhib", Desc: "output uses default inhib instead of lower", Sheets: params.Sheets{
-		"Network": &params.Sheet{
-			{Sel: "#Output", Desc: "go back to default",
-				Params: params.Params{
-					"Layer.Inhib.Layer.Gi": "1.8",
-				}},
-		},
-	}},
-	{Name: "NoMomentum", Desc: "no momentum or normalization", Sheets: params.Sheets{
-		"Network": &params.Sheet{
-			{Sel: "Prjn", Desc: "no norm or momentum",
-				Params: params.Params{
-					"Prjn.Learn.Norm.On":     "false",
-					"Prjn.Learn.Momentum.On": "false",
-				}},
-		},
-	}},
-	{Name: "WtBalOn", Desc: "try with weight bal on", Sheets: params.Sheets{
-		"Network": &params.Sheet{
-			{Sel: "Prjn", Desc: "weight bal on",
-				Params: params.Params{
-					"Prjn.Learn.WtBal.On": "true",
-				}},
 		},
 	}},
 }
@@ -156,32 +132,33 @@ var InputNameMap map[string]int
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
-	Net             *deep.Network     `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
-	TrnEpcLog       *etable.Table     `view:"no-inline" desc:"training epoch-level log data"`
-	TstEpcLog       *etable.Table     `view:"no-inline" desc:"testing epoch-level log data"`
-	TrnTrlLog       *etable.Table     `view:"no-inline" desc:"training trial-level log data"`
-	TstTrlLog       *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
-	TstErrLog       *etable.Table     `view:"no-inline" desc:"log of all test trials where errors were made"`
-	TrnTrlAmbStats  *etable.Table     `view:"no-inline" desc:"aggregate trl stats for last epc"`
-	TrnTrlRoleStats *etable.Table     `view:"no-inline" desc:"aggregate trl stats for last epc"`
-	TstErrStats     *etable.Table     `view:"no-inline" desc:"stats on test trials where errors were made"`
-	TstCycLog       *etable.Table     `view:"no-inline" desc:"testing cycle-level log data"`
-	RunLog          *etable.Table     `view:"no-inline" desc:"summary log of each run"`
-	RunStats        *etable.Table     `view:"no-inline" desc:"aggregate stats on all runs"`
-	Params          params.Sets       `view:"no-inline" desc:"full collection of param sets"`
-	ParamSet        string            `desc:"which set of *additional* parameters to use -- always applies Base and optionaly this next if set"`
-	Tag             string            `desc:"extra tag string to add to any file names output from sim (e.g., weights files, log files, params for run)"`
-	MaxRuns         int               `desc:"maximum number of model runs to perform"`
-	MaxEpcs         int               `desc:"maximum number of epochs to run per model run"`
-	NZeroStop       int               `desc:"if a positive number, training will stop after this many epochs with zero SSE"`
-	TrainEnv        SentGenEnv        `desc:"Training environment -- contains everything about iterating over input / output patterns over training"`
-	TestEnv         SentGenEnv        `desc:"Testing environment -- manages iterating over testing"`
-	Time            leabra.Time       `desc:"leabra timing parameters and state"`
-	ViewOn          bool              `desc:"whether to update the network view while running"`
-	TrainUpdt       leabra.TimeScales `desc:"at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model"`
-	TestUpdt        leabra.TimeScales `desc:"at what time scale to update the display during testing?  Anything longer than Epoch updates at Epoch in this model"`
-	TestInterval    int               `desc:"how often to run through all the test patterns, in terms of training epochs -- can use 0 or -1 for no testing"`
-	LayStatNms      []string          `desc:"names of layers to collect more detailed stats on (avg act, etc)"`
+	Net              *deep.Network     `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
+	TrnEpcLog        *etable.Table     `view:"no-inline" desc:"training epoch-level log data"`
+	TstEpcLog        *etable.Table     `view:"no-inline" desc:"testing epoch-level log data"`
+	TrnTrlLog        *etable.Table     `view:"no-inline" desc:"training trial-level log data"`
+	TstTrlLog        *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
+	TstErrLog        *etable.Table     `view:"no-inline" desc:"log of all test trials where errors were made"`
+	TrnTrlAmbStats   *etable.Table     `view:"no-inline" desc:"aggregate trl stats for last epc"`
+	TrnTrlRoleStats  *etable.Table     `view:"no-inline" desc:"aggregate trl stats for last epc"`
+	TrnTrlQuestStats *etable.Table     `view:"no-inline" desc:"aggregate trl stats for last epc"`
+	TstErrStats      *etable.Table     `view:"no-inline" desc:"stats on test trials where errors were made"`
+	TstCycLog        *etable.Table     `view:"no-inline" desc:"testing cycle-level log data"`
+	RunLog           *etable.Table     `view:"no-inline" desc:"summary log of each run"`
+	RunStats         *etable.Table     `view:"no-inline" desc:"aggregate stats on all runs"`
+	Params           params.Sets       `view:"no-inline" desc:"full collection of param sets"`
+	ParamSet         string            `desc:"which set of *additional* parameters to use -- always applies Base and optionaly this next if set"`
+	Tag              string            `desc:"extra tag string to add to any file names output from sim (e.g., weights files, log files, params for run)"`
+	MaxRuns          int               `desc:"maximum number of model runs to perform"`
+	MaxEpcs          int               `desc:"maximum number of epochs to run per model run"`
+	NZeroStop        int               `desc:"if a positive number, training will stop after this many epochs with zero SSE"`
+	TrainEnv         SentGenEnv        `desc:"Training environment -- contains everything about iterating over input / output patterns over training"`
+	TestEnv          SentGenEnv        `desc:"Testing environment -- manages iterating over testing"`
+	Time             leabra.Time       `desc:"leabra timing parameters and state"`
+	ViewOn           bool              `desc:"whether to update the network view while running"`
+	TrainUpdt        leabra.TimeScales `desc:"at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model"`
+	TestUpdt         leabra.TimeScales `desc:"at what time scale to update the display during testing?  Anything longer than Epoch updates at Epoch in this model"`
+	TestInterval     int               `desc:"how often to run through all the test patterns, in terms of training epochs -- can use 0 or -1 for no testing"`
+	LayStatNms       []string          `desc:"names of layers to collect more detailed stats on (avg act, etc)"`
 
 	// statistics: note use float64 as that is best for etable.Table
 	TrlErr     [2]float64 `inactive:"+" desc:"1 if trial was error, 0 if correct -- based on SSE = 0 (subject to .5 unit-wise tolerance)"`
@@ -841,7 +818,7 @@ func (ss *Sim) RunEpochName(run, epc int) string {
 
 // WeightsFileName returns default current weights file name
 func (ss *Sim) WeightsFileName() string {
-	return ss.Net.Nm + "_" + ss.RunName() + "_" + ss.RunEpochName(ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur) + ".wts"
+	return ss.Net.Nm + "_" + ss.RunName() + "_" + ss.RunEpochName(ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur) + ".wts.gz"
 }
 
 // LogFileName returns default log file name
@@ -988,11 +965,16 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 
 	trlog := ss.TrnTrlLog
 	tix := etable.NewIdxView(trlog)
+	tix.Filter(func(et *etable.Table, row int) bool { // ignore question for ambiguity effects
+		return et.CellString("Input", row) != "question"
+	})
+
 	ambspl := split.GroupBy(tix, []string{"AmbigNouns"})
 
+	// no ambig and no final question
 	noambtix := etable.NewIdxView(trlog)
 	noambtix.Filter(func(et *etable.Table, row int) bool {
-		return et.CellFloat("AmbigNouns", row) == 0 // include error trials
+		return (et.CellFloat("AmbigNouns", row) == 0 && et.CellString("Input", row) != "question")
 	})
 
 	rolespl := split.GroupBy(noambtix, []string{"Role"})
@@ -1019,6 +1001,21 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 				dt.SetCellFloat(rl+lnm+cl, row, rolest.CellFloat(lnm+cl, ri))
 			}
 		}
+	}
+
+	questtix := etable.NewIdxView(trlog)
+	questtix.Filter(func(et *etable.Table, row int) bool {
+		return et.CellString("Input", row) == "question"
+	})
+	questspl := split.GroupBy(tix, []string{"AmbigNouns"})
+	for _, cl := range cols {
+		split.Agg(questspl, "Fill"+cl, agg.AggMean)
+	}
+	questst := questspl.AggsToTable(etable.ColNameOnly)
+	ss.TrnTrlQuestStats = questst
+	for _, cl := range cols {
+		dt.SetCellFloat("UnAmbQuestFill"+cl, row, questst.CellFloat("Fill"+cl, 0))
+		dt.SetCellFloat("AmbQuestFill"+cl, row, questst.CellFloat("Fill"+cl, 1))
 	}
 
 	for _, lnm := range ss.LayStatNms {
@@ -1060,6 +1057,8 @@ func (ss *Sim) ConfigTrnEpcLog(dt *etable.Table) {
 	for _, cl := range cols {
 		sch = append(sch, etable.Column{"UnAmbFill" + cl, etensor.FLOAT64, nil, nil})
 		sch = append(sch, etable.Column{"AmbFill" + cl, etensor.FLOAT64, nil, nil})
+		sch = append(sch, etable.Column{"UnAmbQuestFill" + cl, etensor.FLOAT64, nil, nil})
+		sch = append(sch, etable.Column{"AmbQuestFill" + cl, etensor.FLOAT64, nil, nil})
 	}
 
 	for _, lnm := range lys {
@@ -1098,6 +1097,8 @@ func (ss *Sim) ConfigTrnEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	for _, cl := range cols {
 		plt.SetColParams("UnAmbFill"+cl, eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
 		plt.SetColParams("AmbFill"+cl, eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
+		plt.SetColParams("UnAmbQuestFill"+cl, eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
+		plt.SetColParams("AmbQuestFill"+cl, eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
 	}
 
 	for _, lnm := range lys {
@@ -1462,7 +1463,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	plt = tv.AddNewTab(eplot.KiT_Plot2D, "RunPlot").(*eplot.Plot2D)
 	ss.RunPlot = ss.ConfigRunPlot(plt, ss.RunLog)
 
-	split.SetSplits(.3, .7)
+	split.SetSplits(.2, .8)
 
 	tbar.AddAction(gi.ActOpts{Label: "Init", Icon: "update", Tooltip: "Initialize everything including network weights, and start over.  Also applies current params.", UpdateFunc: func(act *gi.Action) {
 		act.SetActiveStateUpdt(!ss.IsRunning)
