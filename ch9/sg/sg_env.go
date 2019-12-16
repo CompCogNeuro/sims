@@ -159,7 +159,8 @@ func (ev *SentGenEnv) NextSent() {
 	ev.SentStats()
 	ev.SentIdx.Set(0)
 	// ev.SentSeqActiveDet() // todo: passive
-	ev.SentSeqActiveDetNoSum() // todo: passive
+	// ev.SentSeqActiveDetNoSum() // todo: passive
+	ev.SentSeqActiveDetRndSum() // todo: passive
 }
 
 // TransWord gets the translated word
@@ -209,6 +210,14 @@ func (ev *SentGenEnv) CheckWords(wrd, role, fill string) []error {
 // AddInput adds a new input with given sentence index word and role query
 func (ev *SentGenEnv) AddInput(sidx int, role string) {
 	wrd := ev.TransWord(ev.CurSent[sidx])
+	fill := ev.Rules.States[role]
+	ev.CheckWords(wrd, role, fill)
+	ev.SentInputs = append(ev.SentInputs, []string{wrd, role, fill})
+}
+
+// AddQuestion adds a new input with 'question' word and role query
+func (ev *SentGenEnv) AddQuestion(role string) {
+	wrd := "question"
 	fill := ev.Rules.States[role]
 	ev.CheckWords(wrd, role, fill)
 	ev.SentInputs = append(ev.SentInputs, []string{wrd, role, fill})
@@ -280,6 +289,25 @@ func (ev *SentGenEnv) SentSeqActiveDetNoSum() {
 	// for _, sq := range seq {
 	// 	ev.AddInput(slen-1, sq)
 	// }
+}
+
+// SentSeqActiveDetRndSum one random summary question
+func (ev *SentGenEnv) SentSeqActiveDetRndSum() {
+	ev.SentInputs = make([][]string, 0, 50)
+	mod := ev.Rules.States["Mod"]
+	seq := []string{"Agent", "Action", "Patient", mod}
+	for si, sq := range seq {
+		ev.AddInput(si, sq)
+	}
+	// get any modifier words with random query
+	slen := len(ev.CurSent)
+	for si := 3; si < slen-1; si++ {
+		ri := rand.Intn(3) // choose a role to query at random
+		ev.AddInput(si, seq[ri])
+	}
+	ev.AddInput(slen-1, mod)
+	ri := rand.Intn(3) // choose a role to query at random
+	ev.AddQuestion(seq[ri])
 }
 
 // RenderState renders the current state
