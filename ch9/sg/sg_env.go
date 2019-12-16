@@ -42,6 +42,7 @@ type SentGenEnv struct {
 	NAmbigVerbs   int               `desc:"number of ambiguous verbs (0 or 1)"`
 	SentInputs    [][]string        `desc:"generated sequence of sentence inputs including role-filler queries"`
 	SentIdx       env.CurPrvInt     `desc:"current index within sentence inputs"`
+	QType         string            `desc:"current question type -- from 4th value of SentInputs"`
 	SentState     etensor.Float32   `desc:"current sentence activation state"`
 	RoleState     etensor.Float32   `desc:"current role query activation state"`
 	FillerState   etensor.Float32   `desc:"current filler query activation state"`
@@ -145,7 +146,7 @@ func (ev *SentGenEnv) CurInputs() []string {
 func (ev *SentGenEnv) String() string {
 	cur := ev.CurInputs()
 	if cur != nil {
-		return fmt.Sprintf("%s %s=%s", cur[0], cur[1], cur[2])
+		return fmt.Sprintf("%s %s=%s %s", cur[0], cur[1], cur[2], cur[3])
 	}
 	return ""
 }
@@ -208,19 +209,21 @@ func (ev *SentGenEnv) CheckWords(wrd, role, fill string) []error {
 }
 
 // AddInput adds a new input with given sentence index word and role query
-func (ev *SentGenEnv) AddInput(sidx int, role string) {
+// stat is an extra status var: "revq" or "curq" (review question, vs. current question)
+func (ev *SentGenEnv) AddInput(sidx int, role string, stat string) {
 	wrd := ev.TransWord(ev.CurSent[sidx])
 	fill := ev.Rules.States[role]
 	ev.CheckWords(wrd, role, fill)
-	ev.SentInputs = append(ev.SentInputs, []string{wrd, role, fill})
+	ev.SentInputs = append(ev.SentInputs, []string{wrd, role, fill, stat})
 }
 
 // AddQuestion adds a new input with 'question' word and role query
+// automatically marked as a "revq"
 func (ev *SentGenEnv) AddQuestion(role string) {
 	wrd := "question"
 	fill := ev.Rules.States[role]
 	ev.CheckWords(wrd, role, fill)
-	ev.SentInputs = append(ev.SentInputs, []string{wrd, role, fill})
+	ev.SentInputs = append(ev.SentInputs, []string{wrd, role, fill, "revq"})
 }
 
 // SentSeqActiveProb generates active-form sequence of inputs, probabilistic prior queries
@@ -229,10 +232,10 @@ func (ev *SentGenEnv) SentSeqActiveProb() {
 	mod := ev.Rules.States["Mod"]
 	seq := []string{"Agent", "Action", "Patient"}
 	for si, sq := range seq {
-		ev.AddInput(si, sq)
+		ev.AddInput(si, sq, "curq")
 		for ri := 0; ri < si; ri++ {
 			if erand.BoolProb(float64(ev.PQueryPrior), -1) {
-				ev.AddInput(si, seq[ri])
+				ev.AddInput(si, seq[ri], "revq")
 			}
 		}
 	}
@@ -240,12 +243,12 @@ func (ev *SentGenEnv) SentSeqActiveProb() {
 	slen := len(ev.CurSent)
 	for si := 3; si < slen-1; si++ {
 		ri := rand.Intn(3) // choose a role to query at random
-		ev.AddInput(si, seq[ri])
+		ev.AddInput(si, seq[ri], "revq")
 	}
 	// last one has it all, always
-	ev.AddInput(slen-1, mod)
+	ev.AddInput(slen-1, mod, "curq")
 	for _, sq := range seq {
-		ev.AddInput(slen-1, sq)
+		ev.AddInput(slen-1, sq, "revq")
 	}
 }
 
@@ -255,18 +258,18 @@ func (ev *SentGenEnv) SentSeqActiveDet() {
 	mod := ev.Rules.States["Mod"]
 	seq := []string{"Agent", "Action", "Patient"}
 	for si, sq := range seq {
-		ev.AddInput(si, sq)
+		ev.AddInput(si, sq, "curq")
 	}
 	// get any modifier words with random query
 	slen := len(ev.CurSent)
 	for si := 3; si < slen-1; si++ {
 		ri := rand.Intn(3) // choose a role to query at random
-		ev.AddInput(si, seq[ri])
+		ev.AddInput(si, seq[ri], "revq")
 	}
 	// last one has it all, always
-	ev.AddInput(slen-1, mod)
+	ev.AddInput(slen-1, mod, "curq")
 	for _, sq := range seq {
-		ev.AddInput(slen-1, sq)
+		ev.AddInput(slen-1, sq, "revq")
 	}
 }
 
@@ -276,19 +279,15 @@ func (ev *SentGenEnv) SentSeqActiveDetNoSum() {
 	mod := ev.Rules.States["Mod"]
 	seq := []string{"Agent", "Action", "Patient"}
 	for si, sq := range seq {
-		ev.AddInput(si, sq)
+		ev.AddInput(si, sq, "curq")
 	}
 	// get any modifier words with random query
 	slen := len(ev.CurSent)
 	for si := 3; si < slen-1; si++ {
 		ri := rand.Intn(3) // choose a role to query at random
-		ev.AddInput(si, seq[ri])
+		ev.AddInput(si, seq[ri], "revq")
 	}
-	ev.AddInput(slen-1, mod)
-	// last one has it all, always
-	// for _, sq := range seq {
-	// 	ev.AddInput(slen-1, sq)
-	// }
+	ev.AddInput(slen-1, mod, "curq")
 }
 
 // SentSeqActiveDetRndSum one random summary question
@@ -296,18 +295,28 @@ func (ev *SentGenEnv) SentSeqActiveDetRndSum() {
 	ev.SentInputs = make([][]string, 0, 50)
 	mod := ev.Rules.States["Mod"]
 	seq := []string{"Agent", "Action", "Patient", mod}
-	for si, sq := range seq {
-		ev.AddInput(si, sq)
+	for si := 0; si < 3; si++ {
+		sq := seq[si]
+		ev.AddInput(si, sq, "curq")
+		switch si {
+		case 1:
+			// ev.AddQuestion("Agent")
+			ev.AddInput(si, "Agent", "revq")
+		case 2:
+			// ev.AddQuestion("Action")
+			ev.AddInput(si, "Action", "revq")
+		}
 	}
 	// get any modifier words with random query
 	slen := len(ev.CurSent)
 	for si := 3; si < slen-1; si++ {
 		ri := rand.Intn(3) // choose a role to query at random
-		ev.AddInput(si, seq[ri])
+		ev.AddInput(si, seq[ri], "revq")
 	}
-	ev.AddInput(slen-1, mod)
+	ev.AddInput(slen-1, mod, "curq")
 	ri := rand.Intn(3) // choose a role to query at random
-	ev.AddQuestion(seq[ri])
+	// ev.AddQuestion(seq[ri])
+	ev.AddInput(slen-1, seq[ri], "revq")
 }
 
 // RenderState renders the current state
@@ -325,6 +334,7 @@ func (ev *SentGenEnv) RenderState() {
 	ev.RoleState.SetFloat1D(ridx, 1)
 	fidx := ev.FillerMap[cur[2]]
 	ev.FillerState.SetFloat1D(fidx, 1)
+	ev.QType = cur[3]
 }
 
 // NextState generates the next inputs
