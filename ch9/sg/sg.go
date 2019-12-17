@@ -81,6 +81,14 @@ var ParamSets = params.Sets{
 				Params: params.Params{
 					"Layer.Inhib.Layer.Gi": "1.8", // 1.8 > 2.0 > 1.6 > 2.2
 				}},
+			{Sel: "#Decode", Desc: "except decoder needs less",
+				Params: params.Params{
+					"Layer.Inhib.Layer.Gi": "2.4", // 1.8 > 2.0 > 1.6 > 2.2
+				}},
+			{Sel: ".Gestalt", Desc: "gestalt needs more inhib",
+				Params: params.Params{
+					"Layer.Inhib.Layer.Gi": "2.4",
+				}},
 			{Sel: "#Filler", Desc: "higher inhib, 3.6 > 3.8 > 3.4 > 3.2 > 3.0 > 2.8 -- key for ambig!",
 				Params: params.Params{
 					"Layer.Inhib.Layer.Gi": "3.6",
@@ -130,7 +138,7 @@ var ParamSets = params.Sets{
 				}},
 			{Sel: "#GestaltDToInputP", Desc: "eliminating rescues EncodeD -- trying weaker",
 				Params: params.Params{
-					"Prjn.WtScale.Rel": "0.02", // .02 > .05 > .1 > .2 etc -- .02 better than nonthing!
+					"Prjn.WtScale.Rel": "0.02", // .02 > .05 > .1 > .2 etc -- .02 better than nothing!
 				}},
 			{Sel: ".BurstTRC", Desc: "standard weight is .3 here for larger distributed reps. no learn",
 				Params: params.Params{
@@ -316,7 +324,7 @@ func (ss *Sim) ConfigNet(net *deep.Network) {
 	enc.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Input", YAlign: relpos.Front, XAlign: relpos.Left})
 	encd.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "Encode", YAlign: relpos.Front, Space: 2})
 	dec.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "EncodeD", YAlign: relpos.Front, Space: 2})
-	gest.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "EncodeD", YAlign: relpos.Front, XAlign: relpos.Left, XOffset: -4})
+	gest.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Encode", YAlign: relpos.Front, XAlign: relpos.Left})
 	gestd.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "Gestalt", YAlign: relpos.Front, Space: 2})
 
 	full := prjn.NewFull()
