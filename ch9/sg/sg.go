@@ -73,7 +73,7 @@ var ParamSets = params.Sets{
 				}},
 			{Sel: "Layer", Desc: "more inhibition is better",
 				Params: params.Params{
-					"Layer.Inhib.Layer.Gi":  "2",   // 2 > 1.8
+					"Layer.Inhib.Layer.Gi":  "2.6", // 2.4 > 1.8
 					"Layer.Learn.AvgL.Gain": "2.5", // 2.5 > 3
 					"Layer.Act.Gbar.L":      "0.1", // lower leak = better
 				}},
@@ -1689,6 +1689,10 @@ func (ss *Sim) CmdArgs() {
 	flag.BoolVar(&nogui, "nogui", true, "if not passing any other args and want to run nogui, use nogui")
 	flag.Parse()
 	ss.Init()
+
+	if note != "" {
+		fmt.Printf("note: %s\n", note)
+	}
 
 	if ss.ParamSet != "" {
 		fmt.Printf("Using ParamSet: %s\n", ss.ParamSet)
