@@ -6,42 +6,141 @@
 Sentences | {
 	ActiveSemantic
 	ActiveSyntactic	
-	PassiveSemantic
-	PassiveSyntactic
+//	PassiveSemantic
+//	PassiveSyntactic
 	ActiveControl
 	Ambiguity1	
 	Ambiguity2
 	ConceptInstantiation
 	RoleElaboration1
-	RoleElaboration2
+//	RoleElaboration2
 	OnlineUpdate
 	OnlineUpdateControl
 	Conflict
 }
 
-// Easy: should be able to predict everything
+// Easy: should be able to predict everything, including that mod = instrument
 ActiveSemantic {
+	=Agent=Schoolgirl
+	=Action=Stirred
+	=Patient=Koolaid
+	=Mod=Instrument
+	=Instrument=Spoon
 	'schoolgirl' 'stirred' 'koolaid' 'with' 'spoon	'
 }
 
-busdriver gave rose to teacher	busdriver gave rosen to teacher	recipient	0	
+// Should be able to predict that teacher was recipient?
+ActiveSyntactic	 {
+	=Agent=Busdriver
+	=Action=Gave
+	=Patient=RoseN
+	=Mod=Recipient
+	=Recipient=Teacher
+	'busdriver' gave' 'rosen' 'to' 'teacher	'
+}
 
-jelly was spread by busdriver with knife	jelly was spread by busdriver with knife	instrument	1	
-teacher was kissed by busdriver	teacher was kissed by busdriver		1	
+// Passive form
+PassiveSemantic {
+	=Case=Passive
+	=Agent=Busdriver
+	=Action=Spread
+	=Patient=Jell
+	=Mod=Instrument
+	=Instrument=Knife
+	'jelly' 'was' 'spread' 'by' 'busdriver' 'with' 'knife	'
+}
 
-busdriver kissed teacher	busdriver kissed teacher		0	
+PassiveSyntactic {
+	=Case=Passive
+	=Agent=Busdriver
+	=Action=Kissed
+	=Patient=Teacher
+	=Mod=Location
+	=Location=Park
+	'teacher' 'was' 'kissed' 'by' 'busdriver' 'in' 'park'
+}
 
-busdriver threw ball in park	busdriver threwtossed ballsphere in park	location	0	
+// Active version of previous passive syntactic case
+ActiveControl {
+	=Agent=Busdriver
+	=Action=Kissed
+	=Patient=Teacher
+	=Mod=Location
+	=Location=Park
+	'busdriver' 'kissed' 'teacher' 'in' 'park'
+}
 
-teacher threw ball in livingroom	teacher threwhosted ballparty in livingroom	location	0	
-teacher kissed someone	teacher kissed pitcherpers		0	
+// Ambiguity: threw = threwtossed (busdriver), ball = ballsphere
+Ambiguity1	 {
+	=Agent=Busdriver
+	=Action=ThrewTossed
+	=Patient=BallSphere
+	=Mod=Location
+	=Location=Park
+	'busdriver' 'threwtossed' 'ballsphere' 'in' 'park'
+}
 
-schoolgirl ate crackers	schoolgirl ate crackers		0	crackers instrument finger
+// Ambiguity: threw = threwhosted (teacher), ball = ballparty
+Ambiguity2	 {
+	=Agent=Teacher
+	=Action=ThrewHosted
+	=Patient=BallParty
+	=Mod=Location
+	=Location=Livingroom
+	'teacher' 'threwhosted' 'ballparty' 'in' 'livingroom'
+}
 
-schoolgirl ate	schoolgirl ate		0	ate patient crackers
-child ate soup with daintiness	pitcherpers ate soup with daintiness	adverb	0	
+// Instantiate ambiguous someone reference
+ConceptInstantiation {
+	=Agent=Teacher
+	=Action=Kissed
+	=Patient=PitcherPers // could also be Busdriver
+	=Mod=Location
+	=Location=Park
+	'teacher' 'kissed' 'someone' 'in' 'park'
+}
 
-pitcher ate soup with daintiness	pitcherpers ate soup with daintiness	adverb	0	
+// Elaborate instrument with finger = something
+RoleElaboration1 {
+	=Agent=Schoolgirl
+	=Action=Ate
+	=Patient=Crackers
+	=Mod=Instrument
+	=Instrument=Finger
+	'schoolgirl' 'ate' 'crackers' 'with' 'something'
+}
 
-adult drank icedtea in kitchen	busdriver drank icedtea in kitchen	location	0	
+// this is subsumed in first case..
+// schoolgirl ate
+
+// Update child = schoolgirl based on daintiness
+OnlineUpdate {
+	=Agent=Schoolgirl
+	=Action=Ate
+	=Patient=Soup
+	=Mod=Adverb
+	=Instrument=Daintiness
+	'child' 'ate' 'soup' 'with' 'daintiness'
+}
+
+// Explicit contradictory input for daintiness
+OnlineUpdateControl {
+	=Agent=PitcherPers
+	=Action=Ate
+	=Patient=Soup
+	=Mod=Adverb
+	=Instrument=Daintiness
+	'pitcherpers' 'ate' 'soup' 'with' 'daintiness'
+}
+
+// Icedtea is always in Livingroom!
+Conflict {
+	=Agent=Busdriver
+	=Action=Drank
+	=Patient=Icedtea
+	=Mod=Location
+	=Location=Kitchen
+	'adult' 'drank' 'icedtea' 'in' 'kitchen'
+}
+
 
