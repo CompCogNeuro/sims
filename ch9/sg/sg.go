@@ -71,11 +71,11 @@ var ParamSets = params.Sets{
 					"Prjn.Learn.WtBal.On":    "true",
 					"Prjn.Learn.Lrate":       "0.04",
 				}},
-			{Sel: "Layer", Desc: "using default 1.8 inhib for hidden layers",
+			{Sel: "Layer", Desc: "more inhibition is better",
 				Params: params.Params{
-					"Layer.Inhib.Layer.Gi": "1.8",
-					// "Layer.Learn.AvgL.Gain": "1.5", // key to lower relative to 2.5
-					"Layer.Act.Gbar.L": "0.1", // lower leak = better
+					"Layer.Inhib.Layer.Gi":  "2",   // 2 > 1.8
+					"Layer.Learn.AvgL.Gain": "2.5", // 2.5 > 3
+					"Layer.Act.Gbar.L":      "0.1", // lower leak = better
 				}},
 			{Sel: "#Filler", Desc: "higher inhib, 3.6 > 3.8 > 3.4 > 3.2 > 3.0 > 2.8 -- key for ambig!",
 				Params: params.Params{
@@ -89,15 +89,15 @@ var ParamSets = params.Sets{
 				Params: params.Params{
 					"Prjn.WtScale.Rel": "0.2",
 				}},
-			{Sel: ".BurstCtxt", Desc: "no weight balance on deep context prjns -- makes a diff!",
+			{Sel: ".BurstCtxt", Desc: "yes weight balance",
 				Params: params.Params{
 					"Prjn.Learn.WtBal.On": "true",
-					"Prjn.WtScale.Rel":    "1",
+					"Prjn.WtScale.Rel":    "1", // 1 > 2
 				}},
-			{Sel: ".SelfCtxt", Desc: "no weight balance on deep context prjns -- makes a diff!",
+			{Sel: ".SelfCtxt", Desc: "yes weight balance",
 				Params: params.Params{
 					"Prjn.Learn.WtBal.On": "true",
-					"Prjn.WtScale.Rel":    "1",
+					"Prjn.WtScale.Rel":    "1", // 1 = 2 > 3
 				}},
 			{Sel: ".FmInput", Desc: "from localist inputs -- 1 == .3",
 				Params: params.Params{
@@ -114,6 +114,10 @@ var ParamSets = params.Sets{
 			{Sel: ".CtxtFmInput", Desc: "making this weaker than 1 causes encodeD to freeze, 1 == 1.5 > lower",
 				Params: params.Params{
 					"Prjn.WtScale.Rel": "1.0",
+				}},
+			{Sel: "#DecodeToGestaltD", Desc: "stronger is better",
+				Params: params.Params{
+					"Prjn.WtScale.Rel": "0.3", // .2 > .1 > .05(bad) > .02(vbad)
 				}},
 			{Sel: ".BurstTRC", Desc: "standard weight is .3 here for larger distributed reps. no learn",
 				Params: params.Params{
