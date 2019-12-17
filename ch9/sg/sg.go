@@ -77,6 +77,10 @@ var ParamSets = params.Sets{
 					"Layer.Learn.AvgL.Gain": "2.5", // 2.5 > 3
 					"Layer.Act.Gbar.L":      "0.1", // lower leak = better
 				}},
+			{Sel: ".Encode", Desc: "except encoder needs less",
+				Params: params.Params{
+					"Layer.Inhib.Layer.Gi": "1.8", // 1.8 > 2.0 maybe? > 1.6
+				}},
 			{Sel: "#Filler", Desc: "higher inhib, 3.6 > 3.8 > 3.4 > 3.2 > 3.0 > 2.8 -- key for ambig!",
 				Params: params.Params{
 					"Layer.Inhib.Layer.Gi": "3.6",
@@ -102,7 +106,7 @@ var ParamSets = params.Sets{
 			{Sel: ".FmInput", Desc: "from localist inputs -- 1 == .3",
 				Params: params.Params{
 					"Prjn.WtScale.Rel":      "1",
-					"Prjn.Learn.WtSig.Gain": "1",
+					"Prjn.Learn.WtSig.Gain": "6", // 1 == 6
 				}},
 			{Sel: ".InputPToSuper", Desc: "teaching signal from input pulvinar, to super -- .05 > .2",
 				Params: params.Params{
@@ -116,9 +120,17 @@ var ParamSets = params.Sets{
 				Params: params.Params{
 					"Prjn.WtScale.Rel": "1.0",
 				}},
-			{Sel: "#DecodeToGestaltD", Desc: "stronger is better",
+			{Sel: "#DecodeToGestaltD", Desc: "0.2 is best -- .3 worse for input prediction",
 				Params: params.Params{
-					"Prjn.WtScale.Rel": "0.3", // .3 == .2 > .1 > .05(bad) > .02(vbad)
+					"Prjn.WtScale.Rel": "0.2", // .2 > .3 > .1 > .05(bad) > .02(vbad)
+				}},
+			{Sel: "#GestaltDToEncodeD", Desc: "1 probably better actually",
+				Params: params.Params{
+					"Prjn.WtScale.Rel": "1",
+				}},
+			{Sel: "#GestaltDToInputP", Desc: "eliminating rescues EncodeD -- trying weaker",
+				Params: params.Params{
+					"Prjn.WtScale.Rel": "0.05",
 				}},
 			{Sel: ".BurstTRC", Desc: "standard weight is .3 here for larger distributed reps. no learn",
 				Params: params.Params{
@@ -291,8 +303,12 @@ func (ss *Sim) ConfigNet(net *deep.Network) {
 	role := net.AddLayer2D("Role", 9, 1, emer.Input)
 	fill := net.AddLayer2D("Filler", 11, 5, emer.Target)
 	enc, encd, _ := net.AddSuperDeep2D("Encode", 10, 10, deep.NoPulv, deep.NoAttnPrjn)
+	enc.SetClass("Encode")
+	encd.SetClass("Encode")
 	dec := net.AddLayer2D("Decode", 10, 10, emer.Hidden)
-	gest, gestd, _ := net.AddSuperDeep2D("Gestalt", 10, 10, deep.NoPulv, deep.NoAttnPrjn) // 16x16 not better
+	gest, gestd, _ := net.AddSuperDeep2D("Gestalt", 12, 12, deep.NoPulv, deep.NoAttnPrjn) // 12x12 def better with full
+	gest.SetClass("Gestalt")
+	gestd.SetClass("Gestalt")
 
 	inp.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "Input", YAlign: relpos.Front, Space: 2})
 	role.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "InputP", YAlign: relpos.Front, Space: 2})
@@ -315,7 +331,7 @@ func (ss *Sim) ConfigNet(net *deep.Network) {
 	net.ConnectLayers(gestd, encd, full, emer.Forward)
 
 	net.BidirConnectLayers(enc, gest, full)
-	net.ConnectLayers(gestd, inp, full, emer.Forward)
+	net.ConnectLayers(gestd, inp, full, emer.Forward)   // maybe obviates enc job?
 	pj = net.ConnectLayers(inp, gestd, full, emer.Back) // these are critical!
 	pj.SetClass("InputPToDeep")
 	pj = net.ConnectLayers(inp, gest, full, emer.Back)
