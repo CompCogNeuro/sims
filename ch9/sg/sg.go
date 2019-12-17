@@ -73,7 +73,7 @@ var ParamSets = params.Sets{
 				}},
 			{Sel: "Layer", Desc: "more inhibition is better",
 				Params: params.Params{
-					"Layer.Inhib.Layer.Gi":  "2.6", // 2.4 > 1.8
+					"Layer.Inhib.Layer.Gi":  "2.4", // 2.4 > 2.6+ > 2.2-
 					"Layer.Learn.AvgL.Gain": "2.5", // 2.5 > 3
 					"Layer.Act.Gbar.L":      "0.1", // lower leak = better
 				}},
@@ -101,7 +101,8 @@ var ParamSets = params.Sets{
 				}},
 			{Sel: ".FmInput", Desc: "from localist inputs -- 1 == .3",
 				Params: params.Params{
-					"Prjn.WtScale.Rel": "1",
+					"Prjn.WtScale.Rel":      "1",
+					"Prjn.Learn.WtSig.Gain": "1",
 				}},
 			{Sel: ".InputPToSuper", Desc: "teaching signal from input pulvinar, to super -- .05 > .2",
 				Params: params.Params{
@@ -117,7 +118,7 @@ var ParamSets = params.Sets{
 				}},
 			{Sel: "#DecodeToGestaltD", Desc: "stronger is better",
 				Params: params.Params{
-					"Prjn.WtScale.Rel": "0.3", // .2 > .1 > .05(bad) > .02(vbad)
+					"Prjn.WtScale.Rel": "0.3", // .3 == .2 > .1 > .05(bad) > .02(vbad)
 				}},
 			{Sel: ".BurstTRC", Desc: "standard weight is .3 here for larger distributed reps. no learn",
 				Params: params.Params{
@@ -164,17 +165,18 @@ type Sim struct {
 	LayStatNms      []string          `desc:"names of layers to collect more detailed stats on (avg act, etc)"`
 
 	// statistics: note use float64 as that is best for etable.Table
-	TrlErr     [2]float64 `inactive:"+" desc:"1 if trial was error, 0 if correct -- based on SSE = 0 (subject to .5 unit-wise tolerance)"`
-	TrlSSE     [2]float64 `inactive:"+" desc:"current trial's sum squared error"`
-	TrlAvgSSE  [2]float64 `inactive:"+" desc:"current trial's average sum squared error"`
-	TrlCosDiff [2]float64 `inactive:"+" desc:"current trial's cosine difference"`
-	EpcSSE     [2]float64 `inactive:"+" desc:"last epoch's total sum squared error"`
-	EpcAvgSSE  [2]float64 `inactive:"+" desc:"last epoch's average sum squared error (average over trials, and over units within layer)"`
-	EpcPctErr  [2]float64 `inactive:"+" desc:"last epoch's average TrlErr"`
-	EpcPctCor  [2]float64 `inactive:"+" desc:"1 - last epoch's average TrlErr"`
-	EpcCosDiff [2]float64 `inactive:"+" desc:"last epoch's average cosine difference for output layer (a normalized error measure, maximum of 1 when the minus phase exactly matches the plus)"`
-	FirstZero  int        `inactive:"+" desc:"epoch at when SSE first went to zero"`
-	NZero      int        `inactive:"+" desc:"number of epochs in a row with zero SSE"`
+	TrlErr        [2]float64 `inactive:"+" desc:"1 if trial was error, 0 if correct -- based on SSE = 0 (subject to .5 unit-wise tolerance)"`
+	TrlSSE        [2]float64 `inactive:"+" desc:"current trial's sum squared error"`
+	TrlAvgSSE     [2]float64 `inactive:"+" desc:"current trial's average sum squared error"`
+	TrlCosDiff    [2]float64 `inactive:"+" desc:"current trial's cosine difference"`
+	EpcSSE        [2]float64 `inactive:"+" desc:"last epoch's total sum squared error"`
+	EpcAvgSSE     [2]float64 `inactive:"+" desc:"last epoch's average sum squared error (average over trials, and over units within layer)"`
+	EpcPctErr     [2]float64 `inactive:"+" desc:"last epoch's average TrlErr"`
+	EpcPctCor     [2]float64 `inactive:"+" desc:"1 - last epoch's average TrlErr"`
+	EpcCosDiff    [2]float64 `inactive:"+" desc:"last epoch's average cosine difference for output layer (a normalized error measure, maximum of 1 when the minus phase exactly matches the plus)"`
+	EpcPerTrlMSec float64    `inactive:"+" desc:"how long did the epoch take per trial in wall-clock milliseconds"`
+	FirstZero     int        `inactive:"+" desc:"epoch at when SSE first went to zero"`
+	NZero         int        `inactive:"+" desc:"number of epochs in a row with zero SSE"`
 
 	// internal state - view:"-"
 	SumN         [2]float64                  `view:"-" inactive:"+" desc:"number of each stat"`
@@ -201,6 +203,7 @@ type Sim struct {
 	StopNow      bool                        `view:"-" desc:"flag to stop running"`
 	NeedsNewRun  bool                        `view:"-" desc:"flag to initialize NewRun if last one finished"`
 	RndSeed      int64                       `view:"-" desc:"the current random seed"`
+	LastEpcTime  time.Time                   `view:"-" desc:"timer for last epoch"`
 }
 
 // this registers this Sim Type and gives it properties that e.g.,
@@ -962,10 +965,20 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 	row := dt.Rows
 	dt.SetNumRows(row + 1)
 
-	epc := ss.TrainEnv.Epoch.Prv // this is triggered by increment so use previous value
+	epc := ss.TrainEnv.Epoch.Prv     // this is triggered by increment so use previous value
+	nt := float64(ss.TrnTrlLog.Rows) // number of trials in view
 
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
+
+	if ss.LastEpcTime.IsZero() {
+		ss.EpcPerTrlMSec = 0
+	} else {
+		iv := time.Now().Sub(ss.LastEpcTime)
+		ss.EpcPerTrlMSec = float64(iv) / (nt * float64(time.Millisecond))
+	}
+	ss.LastEpcTime = time.Now()
+	dt.SetCellFloat("PerTrlMSec", row, ss.EpcPerTrlMSec)
 
 	lys := []string{"Fill", "Inp"}
 
@@ -1063,6 +1076,7 @@ func (ss *Sim) ConfigTrnEpcLog(dt *etable.Table) {
 	sch := etable.Schema{
 		{"Run", etensor.INT64, nil, nil},
 		{"Epoch", etensor.INT64, nil, nil},
+		{"PerTrlMSec", etensor.FLOAT64, nil, nil},
 	}
 
 	lys := []string{"Fill", "Inp"}
@@ -1108,6 +1122,8 @@ func (ss *Sim) ConfigTrnEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Run", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("Epoch", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("PerTrlMSec", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+
 	for _, lnm := range lys {
 		plt.SetColParams(lnm+"SSE", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 		plt.SetColParams(lnm+"AvgSSE", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
@@ -1680,7 +1696,7 @@ func (ss *Sim) CmdArgs() {
 	var note string
 	flag.StringVar(&ss.ParamSet, "params", "", "ParamSet name to use -- must be valid name as listed in compiled-in params or loaded params")
 	flag.StringVar(&ss.Tag, "tag", "", "extra tag to add to file names saved from this run")
-	flag.StringVar(&note, "note", "", "user note -- not used")
+	flag.StringVar(&note, "note", "", "user note -- describe the run params etc")
 	flag.IntVar(&ss.MaxRuns, "runs", 1, "number of runs to do (note that MaxEpcs is in paramset)")
 	flag.BoolVar(&ss.LogSetParams, "setparams", false, "if true, print a record of each parameter that is set")
 	flag.BoolVar(&ss.SaveWts, "wts", true, "if true, save final weights after each run")
@@ -1693,7 +1709,6 @@ func (ss *Sim) CmdArgs() {
 	if note != "" {
 		fmt.Printf("note: %s\n", note)
 	}
-
 	if ss.ParamSet != "" {
 		fmt.Printf("Using ParamSet: %s\n", ss.ParamSet)
 	}
