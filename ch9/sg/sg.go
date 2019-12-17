@@ -79,7 +79,7 @@ var ParamSets = params.Sets{
 				}},
 			{Sel: ".Encode", Desc: "except encoder needs less",
 				Params: params.Params{
-					"Layer.Inhib.Layer.Gi": "2.2", // 1.8 > 2.0 maybe? > 1.6
+					"Layer.Inhib.Layer.Gi": "1.8", // 1.8 > 2.0 > 1.6 > 2.2
 				}},
 			{Sel: "#Filler", Desc: "higher inhib, 3.6 > 3.8 > 3.4 > 3.2 > 3.0 > 2.8 -- key for ambig!",
 				Params: params.Params{
@@ -126,11 +126,11 @@ var ParamSets = params.Sets{
 				}},
 			{Sel: "#GestaltDToEncodeD", Desc: "1 probably better actually",
 				Params: params.Params{
-					"Prjn.WtScale.Rel": "1",
+					"Prjn.WtScale.Rel": "1", // 0.5 is better for inputP prediction, but worse for hogging?
 				}},
 			{Sel: "#GestaltDToInputP", Desc: "eliminating rescues EncodeD -- trying weaker",
 				Params: params.Params{
-					"Prjn.WtScale.Rel": "0.05", // .05 > .1 > .2 etc
+					"Prjn.WtScale.Rel": "0.02", // .02 > .05 > .1 > .2 etc -- .02 better than nonthing!
 				}},
 			{Sel: ".BurstTRC", Desc: "standard weight is .3 here for larger distributed reps. no learn",
 				Params: params.Params{
