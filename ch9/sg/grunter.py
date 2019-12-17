@@ -97,7 +97,7 @@ def write_sbatch():
     args = " ".join(read_strings_strip("job.args"))
     f = open('job.sbatch', 'w')
     f.write("#!/bin/bash\n")
-    f.write("#SBATCH --mem=" + mem + "\n") # amount of memory -- not always needed
+    # f.write("#SBATCH --mem=" + mem + "\n") # amount of memory -- not always needed
     f.write("#SBATCH --time=" + str(hours) + ":00:00\n") 
     f.write("#SBATCH --ntasks=" + str(tasks) + "\n")
     f.write("#SBATCH --cpus-per-task=" + str(cpus_per_task) + "\n")
@@ -111,7 +111,7 @@ def write_sbatch():
     f.write("\n\n")
     f.write("go build\n")  # add anything here needed to prepare code
     f.write("date > job.start\n")
-    f.write("./" + grunt_proj + " --nogui + " + args + "\n")
+    f.write("./" + grunt_proj + " --nogui " + args + "\n")
     f.write("date > job.end\n")
     f.flush()
     f.close()
