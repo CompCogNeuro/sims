@@ -156,7 +156,7 @@ func (ev *SentGenEnv) NextSent() {
 	// ev.Rules.Trace = true
 	ev.CurSent = ev.Rules.Gen()
 	// fmt.Printf("%v\n", ev.CurSent)
-	ev.Rules.TrimStateQualifiers()
+	ev.Rules.States.TrimQualifiers()
 	ev.SentStats()
 	ev.SentIdx.Set(0)
 	// ev.SentSeqActiveDet() // todo: passive

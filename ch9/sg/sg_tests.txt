@@ -1,0 +1,47 @@
+// These are the esg (emergent stochastic / sentence generator) rules
+// See emer/emergent/esg for details on syntax etc.
+// test sentences
+
+// the | means to go in sequential order instead of generating at random
+Sentences | {
+	ActiveSemantic
+	ActiveSyntactic	
+	PassiveSemantic
+	PassiveSyntactic
+	ActiveControl
+	Ambiguity1	
+	Ambiguity2
+	ConceptInstantiation
+	RoleElaboration1
+	RoleElaboration2
+	OnlineUpdate
+	OnlineUpdateControl
+	Conflict
+}
+
+// Easy: should be able to predict everything
+ActiveSemantic {
+	'schoolgirl' 'stirred' 'koolaid' 'with' 'spoon	'
+}
+
+busdriver gave rose to teacher	busdriver gave rosen to teacher	recipient	0	
+
+jelly was spread by busdriver with knife	jelly was spread by busdriver with knife	instrument	1	
+teacher was kissed by busdriver	teacher was kissed by busdriver		1	
+
+busdriver kissed teacher	busdriver kissed teacher		0	
+
+busdriver threw ball in park	busdriver threwtossed ballsphere in park	location	0	
+
+teacher threw ball in livingroom	teacher threwhosted ballparty in livingroom	location	0	
+teacher kissed someone	teacher kissed pitcherpers		0	
+
+schoolgirl ate crackers	schoolgirl ate crackers		0	crackers instrument finger
+
+schoolgirl ate	schoolgirl ate		0	ate patient crackers
+child ate soup with daintiness	pitcherpers ate soup with daintiness	adverb	0	
+
+pitcher ate soup with daintiness	pitcherpers ate soup with daintiness	adverb	0	
+
+adult drank icedtea in kitchen	busdriver drank icedtea in kitchen	location	0	
+

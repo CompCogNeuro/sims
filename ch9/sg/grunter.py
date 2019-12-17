@@ -14,7 +14,7 @@ import os
 import subprocess
 from subprocess import Popen, PIPE
 import glob
-import datetime
+from datetime import datetime, timezone
 import shutil
 import re
 import getpass
@@ -89,9 +89,45 @@ def read_strings_strip(fnm):
             val[i] = v.rstrip()
     return val
 
-def timestamp():
-    return str(datetime.datetime.now())
+def utc_to_local(utc_dt):
+    return utc_dt.replace(tzinfo=timezone.utc).astimezone(tz=None)    
 
+def timestamp_local(dt):
+    # returns a string of datetime object in local time -- for printing
+    return utc_to_local(dt).strftime("%Y-%m-%d %H:%M:%S %Z")
+
+def timestamp_fmt(dt):
+    # returns a string of datetime object formatted in standard timestamp format
+    return dt.strftime("%Y-%m-%d %H:%M:%S %Z")
+
+def parse_timestamp(dtstr):
+    # returns a datetime object from timestamp-formatted string, None if not properly formatted
+    try:
+        dt = datetime.strptime(dtstr, "%Y-%m-%d %H:%M:%S %Z")
+    except ValueError as ve:
+        # print(str(ve))
+        return None
+    return dt
+
+def timestamp():
+    return timestamp_fmt(datetime.now(timezone.utc))
+
+def read_timestamp(fnm):
+    # read timestamp from file -- returns None if file does not exist or timestamp format is invalid
+    if not os.path.isfile(fnm):
+        return None
+    return parse_timestamp(read_string(fnm))
+
+def read_timestamp_to_local(fnm):
+    # read timestamp from file -- if can be converted to local time, then do that, else return string
+    if not os.path.isfile(fnm):
+        return ""
+    dstr = read_string(fnm)
+    dt = parse_timestamp(dstr)
+    if dt == None:
+        return dstr
+    return timestamp_local(dt)
+    
 # write_sbatch writes the job submission script: job.sbatch
 def write_sbatch():
     args = " ".join(read_strings_strip("job.args"))
@@ -110,9 +146,9 @@ def write_sbatch():
     f.write("unset SLURM_EXPORT_ENV\n")
     f.write("\n\n")
     f.write("go build\n")  # add anything here needed to prepare code
-    f.write("date > job.start\n")
+    f.write("date -u '+%Y-%m-%d %T %Z' > job.start\n")
     f.write("./" + grunt_proj + " --nogui " + args + "\n")
-    f.write("date > job.end\n")
+    f.write("date -u '+%Y-%m-%d %T %Z' > job.end\n")
     f.flush()
     f.close()
     
