@@ -577,8 +577,8 @@ func (ss *Sim) SaveWeights(filename gi.FileName) {
 	ss.Net.SaveWtsJSON(filename)
 }
 
-// OpenRec05Wts opens trained weights w/ rec=0.05
-func (ss *Sim) OpenRec05Wts() {
+// OpenWts opens trained weights w/ rec=0.05
+func (ss *Sim) OpenWts() {
 	ab, err := Asset("trained_rec05.wts") // embedded in executable
 	if err != nil {
 		log.Println(err)
@@ -1323,10 +1323,10 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	tbar.AddSeparator("spec")
 
-	tbar.AddAction(gi.ActOpts{Label: "Open Weights", Icon: "updt", Tooltip: "Open weights trained with excitatory lateral (recurrent) con scale = .05.", UpdateFunc: func(act *gi.Action) {
+	tbar.AddAction(gi.ActOpts{Label: "Open Weights", Icon: "updt", Tooltip: "Open trained weights", UpdateFunc: func(act *gi.Action) {
 		act.SetActiveStateUpdt(!ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
-		ss.OpenRec05Wts()
+		ss.OpenWts()
 	})
 
 	tbar.AddAction(gi.ActOpts{Label: "Wt Words", Icon: "search", Tooltip: "get words for currently-selected hidden-layer unit in netview.", UpdateFunc: func(act *gi.Action) {

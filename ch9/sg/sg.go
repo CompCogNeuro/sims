@@ -7,6 +7,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"log"
@@ -87,7 +88,7 @@ var ParamSets = params.Sets{
 				}},
 			{Sel: ".Gestalt", Desc: "gestalt needs more inhib",
 				Params: params.Params{
-					"Layer.Inhib.Layer.Gi": "2.4",
+					"Layer.Inhib.Layer.Gi": "2.4", // 2.4 > 2.2 > 2.6 -- very sensitive!
 				}},
 			{Sel: "#Filler", Desc: "higher inhib, 3.6 > 3.8 > 3.4 > 3.2 > 3.0 > 2.8 -- key for ambig!",
 				Params: params.Params{
@@ -185,6 +186,8 @@ type Sim struct {
 	LayStatNms      []string          `desc:"names of layers to collect more detailed stats on (avg act, etc)"`
 
 	// statistics: note use float64 as that is best for etable.Table
+	TrlOut        string     `inactive:"+" desc:"output response (most active Filler unit)"`
+	TrlPred       string     `inactive:"+" desc:"predicted word (most active InputP unit)"`
 	TrlErr        [2]float64 `inactive:"+" desc:"1 if trial was error, 0 if correct -- based on SSE = 0 (subject to .5 unit-wise tolerance)"`
 	TrlSSE        [2]float64 `inactive:"+" desc:"current trial's sum squared error"`
 	TrlAvgSSE     [2]float64 `inactive:"+" desc:"current trial's average sum squared error"`
@@ -291,8 +294,8 @@ func (ss *Sim) ConfigEnv() {
 
 	ss.TestEnv.Nm = "TestEnv"
 	ss.TestEnv.Dsc = "testing params and state"
-	ss.TestEnv.Seq.Max = 10
-	ss.TestEnv.Rules.OpenRules("sg_rules.txt")
+	ss.TestEnv.Seq.Max = 20
+	ss.TestEnv.Rules.OpenRules("sg_tests.txt")
 	ss.TestEnv.Words = SGWords
 	ss.TestEnv.Roles = SGRoles
 	ss.TestEnv.Fillers = SGFillers
@@ -310,7 +313,7 @@ func (ss *Sim) ConfigNet(net *deep.Network) {
 	in, inp := net.AddInputPulv2D("Input", 10, 5)
 	role := net.AddLayer2D("Role", 9, 1, emer.Input)
 	fill := net.AddLayer2D("Filler", 11, 5, emer.Target)
-	enc, encd, _ := net.AddSuperDeep2D("Encode", 12, 12, deep.NoPulv, deep.NoAttnPrjn)
+	enc, encd, _ := net.AddSuperDeep2D("Encode", 12, 12, deep.NoPulv, deep.NoAttnPrjn) // 12x12 better..
 	enc.SetClass("Encode")
 	encd.SetClass("Encode")
 	dec := net.AddLayer2D("Decode", 12, 12, emer.Hidden)
@@ -346,7 +349,8 @@ func (ss *Sim) ConfigNet(net *deep.Network) {
 	pj.SetClass("InputPToSuper")
 
 	net.BidirConnectLayers(gest, dec, full)
-	net.BidirConnectLayers(gestd, dec, full)
+	// net.BidirConnectLayers(gestd, dec, full)
+	net.ConnectLayers(gestd, dec, full, emer.Forward) // bidir is cheating!
 
 	// net.BidirConnectLayers(enc, dec, full) // not beneficial
 
@@ -568,6 +572,12 @@ func (ss *Sim) TrialStats(accum bool) {
 		} else {
 			ss.TrlErr[li] = 0
 		}
+		if lnm == "InputP" && ss.TrainEnv.Tick.Cur == 0 { // first trial unpredictable
+			ss.TrlCosDiff[li] = 0
+			ss.TrlSSE[li] = 0
+			ss.TrlAvgSSE[li] = 0
+			ss.TrlErr[li] = 0
+		}
 		if accum {
 			if ss.TrainEnv.Tick.Cur == 0 && li == 0 {
 				continue
@@ -577,6 +587,13 @@ func (ss *Sim) TrialStats(accum bool) {
 			ss.SumSSE[li] += ss.TrlSSE[li]
 			ss.SumAvgSSE[li] += ss.TrlAvgSSE[li]
 			ss.SumCosDiff[li] += ss.TrlCosDiff[li]
+		}
+		maxu := ly.Pools[0].ActM.MaxIdx
+		switch lnm {
+		case "Filler":
+			ss.TrlOut = ss.TrainEnv.Fillers[maxu]
+		case "InputP":
+			ss.TrlPred = ss.TrainEnv.Words[maxu]
 		}
 	}
 }
@@ -706,6 +723,16 @@ func (ss *Sim) Stopped() {
 	}
 }
 
+// OpenWts opens trained weights
+func (ss *Sim) OpenWts() {
+	ab, err := Asset("trained.wts") // embedded in executable
+	if err != nil {
+		log.Println(err)
+	}
+	ss.Net.ReadWtsJSON(bytes.NewBuffer(ab))
+	// ss.Net.OpenWtsJSON("trained.wts.gz")
+}
+
 // SaveWeights saves the network weights -- when called with giv.CallMethod
 // it will auto-prompt for filename
 func (ss *Sim) SaveWeights(filename gi.FileName) {
@@ -735,6 +762,19 @@ func (ss *Sim) TestTrial(returnOnChg bool) {
 	ss.AlphaCyc(false)   // !train
 	ss.TrialStats(false) // !accumulate
 	ss.LogTstTrl(ss.TstTrlLog)
+}
+
+// TestSeq runs testing trials for remainder of this sequence
+func (ss *Sim) TestSeq() {
+	ss.StopNow = false
+	curSeq := ss.TestEnv.Seq.Cur
+	for {
+		ss.TestTrial(true)
+		if ss.StopNow || ss.TestEnv.Seq.Cur != curSeq {
+			break
+		}
+	}
+	ss.Stopped()
 }
 
 // TestAll runs through the full set of testing items
@@ -880,8 +920,10 @@ func (ss *Sim) LogTrnTrl(dt *etable.Table) {
 	dt.SetCellFloat("Trial", row, float64(trl))
 	dt.SetCellString("TrialName", row, ss.TrainEnv.String())
 	dt.SetCellString("Input", row, cur[0])
+	dt.SetCellString("Pred", row, ss.TrlPred)
 	dt.SetCellString("Role", row, cur[1])
 	dt.SetCellString("Filler", row, cur[2])
+	dt.SetCellString("Output", row, ss.TrlOut)
 	dt.SetCellString("QType", row, cur[3])
 	dt.SetCellFloat("AmbigVerb", row, float64(ss.TrainEnv.NAmbigVerbs))
 	dt.SetCellFloat("AmbigNouns", row, math.Min(float64(ss.TrainEnv.NAmbigNouns), 1))
@@ -913,8 +955,10 @@ func (ss *Sim) ConfigTrnTrlLog(dt *etable.Table) {
 		{"Trial", etensor.INT64, nil, nil},
 		{"TrialName", etensor.STRING, nil, nil},
 		{"Input", etensor.STRING, nil, nil},
+		{"Pred", etensor.STRING, nil, nil},
 		{"Role", etensor.STRING, nil, nil},
 		{"Filler", etensor.STRING, nil, nil},
+		{"Output", etensor.STRING, nil, nil},
 		{"QType", etensor.STRING, nil, nil},
 		{"AmbigVerb", etensor.FLOAT64, nil, nil},
 		{"AmbigNouns", etensor.FLOAT64, nil, nil},
@@ -943,8 +987,10 @@ func (ss *Sim) ConfigTrnTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetColParams("Trial", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("TrialName", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("Input", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("Pred", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("Role", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("Filler", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("Output", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("QType", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("AmbigVerb", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
 	plt.SetColParams("AmbigNouns", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
@@ -1194,12 +1240,29 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 		dt.SetNumRows(row + 1)
 	}
 
+	cur := ss.TestEnv.CurInputs()
+	lys := []string{"Fill", "Inp"}
+
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
 	dt.SetCellFloat("Seq", row, float64(ss.TestEnv.Seq.Cur))
 	dt.SetCellFloat("Tick", row, float64(ss.TestEnv.Tick.Cur))
 	dt.SetCellFloat("Trial", row, float64(trl))
 	dt.SetCellString("TrialName", row, ss.TestEnv.String())
+	dt.SetCellString("Input", row, cur[0])
+	dt.SetCellString("Pred", row, ss.TrlPred)
+	dt.SetCellString("Role", row, cur[1])
+	dt.SetCellString("Filler", row, cur[2])
+	dt.SetCellString("Output", row, ss.TrlOut)
+	dt.SetCellString("QType", row, cur[3])
+	dt.SetCellFloat("AmbigVerb", row, float64(ss.TestEnv.NAmbigVerbs))
+	dt.SetCellFloat("AmbigNouns", row, math.Min(float64(ss.TestEnv.NAmbigNouns), 1))
+	for li, lnm := range lys {
+		dt.SetCellFloat(lnm+"Err", row, ss.TrlErr[li])
+		dt.SetCellFloat(lnm+"SSE", row, ss.TrlSSE[li])
+		dt.SetCellFloat(lnm+"AvgSSE", row, ss.TrlAvgSSE[li])
+		dt.SetCellFloat(lnm+"CosDiff", row, ss.TrlCosDiff[li])
+	}
 
 	// note: essential to use Go version of update when called from another goroutine
 	ss.TstTrlPlot.GoUpdate()
@@ -1211,6 +1274,8 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 	dt.SetMetaData("read-only", "true")
 	dt.SetMetaData("precision", strconv.Itoa(LogPrec))
 
+	lys := []string{"Fill", "Inp"}
+
 	nt := ss.TestEnv.Trial.Prv
 	sch := etable.Schema{
 		{"Run", etensor.INT64, nil, nil},
@@ -1219,9 +1284,20 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 		{"Tick", etensor.INT64, nil, nil},
 		{"Trial", etensor.INT64, nil, nil},
 		{"TrialName", etensor.STRING, nil, nil},
-		{"SSE", etensor.FLOAT64, nil, nil},
-		{"AvgSSE", etensor.FLOAT64, nil, nil},
-		{"CosDiff", etensor.FLOAT64, nil, nil},
+		{"Input", etensor.STRING, nil, nil},
+		{"Pred", etensor.STRING, nil, nil},
+		{"Role", etensor.STRING, nil, nil},
+		{"Filler", etensor.STRING, nil, nil},
+		{"Output", etensor.STRING, nil, nil},
+		{"QType", etensor.STRING, nil, nil},
+		{"AmbigVerb", etensor.FLOAT64, nil, nil},
+		{"AmbigNouns", etensor.FLOAT64, nil, nil},
+	}
+	for _, lnm := range lys {
+		sch = append(sch, etable.Column{lnm + "Err", etensor.FLOAT64, nil, nil})
+		sch = append(sch, etable.Column{lnm + "SSE", etensor.FLOAT64, nil, nil})
+		sch = append(sch, etable.Column{lnm + "AvgSSE", etensor.FLOAT64, nil, nil})
+		sch = append(sch, etable.Column{lnm + "CosDiff", etensor.FLOAT64, nil, nil})
 	}
 	dt.SetFromSchema(sch, nt)
 }
@@ -1229,6 +1305,9 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
 	plt.Params.Title = "Sentence Gestalt Test Trial Plot"
 	plt.Params.XAxisCol = "Trial"
+
+	lys := []string{"Fill", "Inp"}
+
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Run", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
@@ -1237,9 +1316,21 @@ func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetColParams("Tick", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("Trial", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("TrialName", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
-	plt.SetColParams("SSE", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
-	plt.SetColParams("AvgSSE", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0)
-	plt.SetColParams("CosDiff", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
+	plt.SetColParams("Input", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("Pred", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("Role", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("Filler", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("Output", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("QType", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("AmbigVerb", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
+	plt.SetColParams("AmbigNouns", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
+
+	for _, lnm := range lys {
+		plt.SetColParams(lnm+"Err", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
+		plt.SetColParams(lnm+"SSE", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
+		plt.SetColParams(lnm+"AvgSSE", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
+		plt.SetColParams(lnm+"CosDiff", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
+	}
 
 	return plt
 }
@@ -1457,7 +1548,7 @@ func (ss *Sim) ConfigRunPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D 
 
 func (ss *Sim) ConfigNetView(nv *netview.NetView) {
 	nv.ViewDefaults()
-	nv.Scene().Camera.Pose.Pos.Set(0, 1.5, 3.0) // more "head on" than default which is more "top down"
+	nv.Scene().Camera.Pose.Pos.Set(0, 1.2, 3.0) // more "head on" than default which is more "top down"
 	nv.Scene().Camera.LookAt(mat32.Vec3{0, 0, 0}, mat32.Vec3{0, 1, 0})
 }
 
@@ -1584,6 +1675,12 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	tbar.AddSeparator("test")
 
+	tbar.AddAction(gi.ActOpts{Label: "Open Weights", Icon: "updt", Tooltip: "Open trained weights ", UpdateFunc: func(act *gi.Action) {
+		act.SetActiveStateUpdt(!ss.IsRunning)
+	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+		ss.OpenWts()
+	})
+
 	tbar.AddAction(gi.ActOpts{Label: "Test Trial", Icon: "step-fwd", Tooltip: "Runs the next testing trial.", UpdateFunc: func(act *gi.Action) {
 		act.SetActiveStateUpdt(!ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
@@ -1592,6 +1689,16 @@ func (ss *Sim) ConfigGui() *gi.Window {
 			ss.TestTrial(false) // don't return on change -- wrap
 			ss.IsRunning = false
 			vp.SetNeedsFullRender()
+		}
+	})
+
+	tbar.AddAction(gi.ActOpts{Label: "Test Seq", Icon: "fast-fwd", Tooltip: "Advances one sequence (sentence) at a time.", UpdateFunc: func(act *gi.Action) {
+		act.SetActiveStateUpdt(!ss.IsRunning)
+	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+		if !ss.IsRunning {
+			ss.IsRunning = true
+			tbar.UpdateActions()
+			go ss.TestSeq()
 		}
 	})
 

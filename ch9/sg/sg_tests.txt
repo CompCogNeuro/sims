@@ -26,7 +26,7 @@ ActiveSemantic {
 	=Patient=Koolaid
 	=Mod=Instrument
 	=Instrument=Spoon
-	'schoolgirl' 'stirred' 'koolaid' 'with' 'spoon	'
+	'schoolgirl' 'stirred' 'koolaid' 'with' 'spoon'
 }
 
 // Should be able to predict that teacher was recipient?
@@ -36,7 +36,7 @@ ActiveSyntactic	 {
 	=Patient=RoseN
 	=Mod=Recipient
 	=Recipient=Teacher
-	'busdriver' gave' 'rosen' 'to' 'teacher	'
+	'busdriver' 'gave' 'rosen' 'to' 'teacher'
 }
 
 // Passive form
@@ -47,7 +47,7 @@ PassiveSemantic {
 	=Patient=Jell
 	=Mod=Instrument
 	=Instrument=Knife
-	'jelly' 'was' 'spread' 'by' 'busdriver' 'with' 'knife	'
+	'jelly' 'was' 'spread' 'by' 'busdriver' 'with' 'knife'
 }
 
 PassiveSyntactic {

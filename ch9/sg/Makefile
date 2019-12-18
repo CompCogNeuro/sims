@@ -1,7 +1,7 @@
 # Makefile for CCN sims projects
 
 # important: update these for each app
-ASSETS=train_pats.tsv probe.tsv besner.tsv glushko.tsv taraban.tsv phon_cons.tsv phon_vowel.tsv trained.wts
+ASSETS=trained.wts
 
 # default package install 
 PKGDIR=$(HOME)/ccnsimpkg
