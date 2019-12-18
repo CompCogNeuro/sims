@@ -83,7 +83,7 @@ var ParamSets = params.Sets{
 				}},
 			{Sel: "#Decode", Desc: "except decoder needs less",
 				Params: params.Params{
-					"Layer.Inhib.Layer.Gi": "2.4", // 1.8 > 2.0 > 1.6 > 2.2
+					"Layer.Inhib.Layer.Gi": "1.8", // 1.8 > 2.0+
 				}},
 			{Sel: ".Gestalt", Desc: "gestalt needs more inhib",
 				Params: params.Params{
@@ -134,7 +134,7 @@ var ParamSets = params.Sets{
 				}},
 			{Sel: "#GestaltDToEncodeD", Desc: "1 probably better actually",
 				Params: params.Params{
-					"Prjn.WtScale.Rel": "1", // 0.5 is better for inputP prediction, but worse for hogging?
+					"Prjn.WtScale.Rel": "1", // 1 > 0.5 for sure
 				}},
 			{Sel: "#GestaltDToInputP", Desc: "eliminating rescues EncodeD -- trying weaker",
 				Params: params.Params{
@@ -310,10 +310,10 @@ func (ss *Sim) ConfigNet(net *deep.Network) {
 	in, inp := net.AddInputPulv2D("Input", 10, 5)
 	role := net.AddLayer2D("Role", 9, 1, emer.Input)
 	fill := net.AddLayer2D("Filler", 11, 5, emer.Target)
-	enc, encd, _ := net.AddSuperDeep2D("Encode", 10, 10, deep.NoPulv, deep.NoAttnPrjn)
+	enc, encd, _ := net.AddSuperDeep2D("Encode", 12, 12, deep.NoPulv, deep.NoAttnPrjn)
 	enc.SetClass("Encode")
 	encd.SetClass("Encode")
-	dec := net.AddLayer2D("Decode", 10, 10, emer.Hidden)
+	dec := net.AddLayer2D("Decode", 12, 12, emer.Hidden)
 	gest, gestd, _ := net.AddSuperDeep2D("Gestalt", 12, 12, deep.NoPulv, deep.NoAttnPrjn) // 12x12 def better with full
 	gest.SetClass("Gestalt")
 	gestd.SetClass("Gestalt")
