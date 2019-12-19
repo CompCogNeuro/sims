@@ -2,8 +2,14 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// sg runs a DeepLeabra network on the classic Reber grammar
-// finite state automaton problem.
+// sg is the sentence gestalt model, which learns to encode both
+// syntax and semantics of sentences in an integrated "gestalt"
+// hidden layer. The sentences have simple agent-verb-patient
+// structure with optional prepositional or adverb modifier
+// phrase at the end, and can be either in the active or passive
+// form (80% active, 20% passive). There are ambiguous terms that
+// need to be resolved via context, showing a key interaction
+// between syntax and semantics.
 package main
 
 import (
@@ -107,10 +113,15 @@ var ParamSets = params.Sets{
 					"Prjn.Learn.WtBal.On": "true",
 					"Prjn.WtScale.Rel":    "1", // 1 > 2
 				}},
-			{Sel: ".SelfCtxt", Desc: "yes weight balance",
+			{Sel: ".GestSelfCtxt", Desc: "yes weight balance",
 				Params: params.Params{
 					"Prjn.Learn.WtBal.On": "true",
-					"Prjn.WtScale.Rel":    "1", // 1 = 2 > 3
+					"Prjn.WtScale.Rel":    "3", // 3 > 2 > 4 (blows up)
+				}},
+			{Sel: ".EncSelfCtxt", Desc: "yes weight balance",
+				Params: params.Params{
+					"Prjn.Learn.WtBal.On": "true",
+					"Prjn.WtScale.Rel":    "5", // 5 > 4 ?
 				}},
 			{Sel: ".FmInput", Desc: "from localist inputs -- 1 == .3",
 				Params: params.Params{
@@ -129,17 +140,17 @@ var ParamSets = params.Sets{
 				Params: params.Params{
 					"Prjn.WtScale.Rel": "1.0",
 				}},
-			{Sel: "#DecodeToGestaltD", Desc: "0.2 is best -- .3 worse for input prediction",
+			{Sel: "#DecodeToGestaltD", Desc: "this leaks current role into context directly",
 				Params: params.Params{
 					"Prjn.WtScale.Rel": "0.2", // .2 > .3 > .1 > .05(bad) > .02(vbad)
 				}},
-			{Sel: "#GestaltDToEncodeD", Desc: "1 probably better actually",
+			{Sel: "#GestaltDToEncodeD", Desc: "currently removed",
 				Params: params.Params{
 					"Prjn.WtScale.Rel": "1", // 1 > 0.5 for sure
 				}},
 			{Sel: "#GestaltDToInputP", Desc: "eliminating rescues EncodeD -- trying weaker",
 				Params: params.Params{
-					"Prjn.WtScale.Rel": "0.02", // .02 > .05 > .1 > .2 etc -- .02 better than nothing!
+					"Prjn.WtScale.Rel": "0.05", // .02 > .05 > .1 > .2 etc -- .02 better than nothing!
 				}},
 			{Sel: ".BurstTRC", Desc: "standard weight is .3 here for larger distributed reps. no learn",
 				Params: params.Params{
@@ -162,12 +173,9 @@ type Sim struct {
 	TstEpcLog       *etable.Table     `view:"no-inline" desc:"testing epoch-level log data"`
 	TrnTrlLog       *etable.Table     `view:"no-inline" desc:"training trial-level log data"`
 	TstTrlLog       *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
-	TstErrLog       *etable.Table     `view:"no-inline" desc:"log of all test trials where errors were made"`
 	TrnTrlAmbStats  *etable.Table     `view:"no-inline" desc:"aggregate trl stats for last epc"`
 	TrnTrlRoleStats *etable.Table     `view:"no-inline" desc:"aggregate trl stats for last epc"`
 	TrnTrlQTypStats *etable.Table     `view:"no-inline" desc:"aggregate trl stats for last epc"`
-	TstErrStats     *etable.Table     `view:"no-inline" desc:"stats on test trials where errors were made"`
-	TstCycLog       *etable.Table     `view:"no-inline" desc:"testing cycle-level log data"`
 	RunLog          *etable.Table     `view:"no-inline" desc:"summary log of each run"`
 	RunStats        *etable.Table     `view:"no-inline" desc:"aggregate stats on all runs"`
 	Params          params.Sets       `view:"no-inline" desc:"full collection of param sets"`
@@ -214,7 +222,6 @@ type Sim struct {
 	TstEpcPlot   *eplot.Plot2D               `view:"-" desc:"the testing epoch plot"`
 	TrnTrlPlot   *eplot.Plot2D               `view:"-" desc:"the train-trial plot"`
 	TstTrlPlot   *eplot.Plot2D               `view:"-" desc:"the test-trial plot"`
-	TstCycPlot   *eplot.Plot2D               `view:"-" desc:"the test-cycle plot"`
 	RunPlot      *eplot.Plot2D               `view:"-" desc:"the run plot"`
 	TrnEpcFile   *os.File                    `view:"-" desc:"log file"`
 	RunFile      *os.File                    `view:"-" desc:"log file"`
@@ -243,14 +250,13 @@ func (ss *Sim) New() {
 	ss.TstEpcLog = &etable.Table{}
 	ss.TrnTrlLog = &etable.Table{}
 	ss.TstTrlLog = &etable.Table{}
-	ss.TstCycLog = &etable.Table{}
 	ss.RunLog = &etable.Table{}
 	ss.RunStats = &etable.Table{}
 	ss.Params = ParamSets
 	ss.RndSeed = 1
 	ss.ViewOn = true
 	ss.TrainUpdt = leabra.AlphaCycle
-	ss.TestUpdt = leabra.Cycle
+	ss.TestUpdt = leabra.AlphaCycle
 	ss.TestInterval = 5000
 	ss.LayStatNms = []string{"Encode", "EncodeD", "Gestalt", "GestaltD", "Decode"}
 }
@@ -266,7 +272,6 @@ func (ss *Sim) Config() {
 	ss.ConfigTstEpcLog(ss.TstEpcLog)
 	ss.ConfigTrnTrlLog(ss.TrnTrlLog)
 	ss.ConfigTstTrlLog(ss.TstTrlLog)
-	ss.ConfigTstCycLog(ss.TstCycLog)
 	ss.ConfigRunLog(ss.RunLog)
 }
 
@@ -283,6 +288,7 @@ func (ss *Sim) ConfigEnv() {
 	ss.TrainEnv.Dsc = "training params and state"
 	ss.TrainEnv.Seq.Max = 100 // sequences per epoch training
 	ss.TrainEnv.Rules.OpenRules("sg_rules.txt")
+	ss.TrainEnv.PPassive = 0.2
 	ss.TrainEnv.Words = SGWords
 	ss.TrainEnv.Roles = SGRoles
 	ss.TrainEnv.Fillers = SGFillers
@@ -294,8 +300,9 @@ func (ss *Sim) ConfigEnv() {
 
 	ss.TestEnv.Nm = "TestEnv"
 	ss.TestEnv.Dsc = "testing params and state"
-	ss.TestEnv.Seq.Max = 20
+	ss.TestEnv.Seq.Max = 13
 	ss.TestEnv.Rules.OpenRules("sg_tests.txt")
+	ss.TestEnv.PPassive = 0 // passive explicitly marked
 	ss.TestEnv.Words = SGWords
 	ss.TestEnv.Roles = SGRoles
 	ss.TestEnv.Fillers = SGFillers
@@ -309,6 +316,25 @@ func (ss *Sim) ConfigEnv() {
 }
 
 func (ss *Sim) ConfigNet(net *deep.Network) {
+	// overall strategy:
+	//
+	// Encode does pure prediction of next word, which remains about 60% correct at best
+	// Gestalt gets direct word input, does full error-driven fill-role learning
+	// via decoder.
+	//
+	// Gestalt can be entirely independent of encode, or recv encode -- testing value.
+	// GestaltD depends *critically* on getting direct error signal from Decode!
+	//
+	// For pure predictive encoder, InputP -> Gestalt is bad.  if we leak Decode
+	// error signal back to Encode, then it is actually useful, as is GestaltD -> InputP
+	//
+	// run notes:
+	// 54 = no enc <-> gestalt -- not much diff..  probably just get rid of enc then?
+	// 48 = enc -> gestalt still, no inp -> gest
+	// 44 = gestd -> encd, otherwise same as 48 -- improves inp pred due to leak via gestd, else fill same
+	// 43 = best perf overall -- 44 + gestd -> inp  -- inp a bit better
+	//
+
 	net.InitName(net, "SentGestalt")
 	in, inp := net.AddInputPulv2D("Input", 10, 5)
 	role := net.AddLayer2D("Role", 9, 1, emer.Input)
@@ -322,8 +348,8 @@ func (ss *Sim) ConfigNet(net *deep.Network) {
 	gestd.SetClass("Gestalt")
 
 	inp.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "Input", YAlign: relpos.Front, Space: 2})
-	role.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "InputP", YAlign: relpos.Front, Space: 2})
-	fill.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "Role", YAlign: relpos.Front, Space: 2})
+	role.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "InputP", YAlign: relpos.Front, Space: 4})
+	fill.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "Role", YAlign: relpos.Front, Space: 4})
 	enc.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Input", YAlign: relpos.Front, XAlign: relpos.Left})
 	encd.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "Encode", YAlign: relpos.Front, Space: 2})
 	dec.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "EncodeD", YAlign: relpos.Front, Space: 2})
@@ -334,23 +360,38 @@ func (ss *Sim) ConfigNet(net *deep.Network) {
 
 	pj := net.ConnectLayers(in, enc, full, emer.Forward)
 	pj.SetClass("FmInput")
+
+	pj = net.ConnectLayers(in, gest, full, emer.Forward) // this is key -- skip encoder
+	pj.SetClass("FmInput")
+
 	net.ConnectLayers(encd, inp, full, emer.Forward)
 	pj = net.ConnectLayers(inp, encd, full, emer.Back)
 	pj.SetClass("InputPToDeep")
 	pj = net.ConnectLayers(inp, enc, full, emer.Back)
 	pj.SetClass("InputPToSuper")
-	net.ConnectLayers(gestd, encd, full, emer.Forward)
 
+	// gestd gets error from Filler, this communicates Filler to encd -> corrupts prediction
+	// net.ConnectLayers(gestd, encd, full, emer.Forward)
+
+	// testing no use of enc at all
 	net.BidirConnectLayers(enc, gest, full)
-	net.ConnectLayers(gestd, inp, full, emer.Forward)   // maybe obviates enc job?
-	pj = net.ConnectLayers(inp, gestd, full, emer.Back) // these are critical!
-	pj.SetClass("InputPToDeep")
-	pj = net.ConnectLayers(inp, gest, full, emer.Back)
-	pj.SetClass("InputPToSuper")
+
+	net.ConnectLayers(gestd, enc, full, emer.Back) // give enc the best of gestd
+	// net.ConnectLayers(gestd, gest, full, emer.Back) // not essential?  todo retest
+
+	// this allows current role info to propagate back to input prediction
+	// does not seem to be important
+	// net.ConnectLayers(gestd, inp, full, emer.Forward) // must be weaker..
+
+	// if gestd not driving inp, then this is bad -- .005 MIGHT be tiny bit beneficial but not worth it
+	// pj = net.ConnectLayers(inp, gestd, full, emer.Back) // these enable prediction
+	// pj.SetClass("InputPToGestalt")
+	// pj = net.ConnectLayers(inp, gest, full, emer.Back)
+	// pj.SetClass("InputPToGestalt")
 
 	net.BidirConnectLayers(gest, dec, full)
-	// net.BidirConnectLayers(gestd, dec, full)
-	net.ConnectLayers(gestd, dec, full, emer.Forward) // bidir is cheating!
+	net.BidirConnectLayers(gestd, dec, full) // bidir is essential here to get error signal
+	// directly into context layer -- has rel of 0.2
 
 	// net.BidirConnectLayers(enc, dec, full) // not beneficial
 
@@ -359,13 +400,13 @@ func (ss *Sim) ConfigNet(net *deep.Network) {
 
 	// add extra deep context
 	pj = net.ConnectLayers(encd, encd, full, deep.BurstCtxt)
-	pj.SetClass("SelfCtxt")
+	pj.SetClass("EncSelfCtxt")
 	pj = net.ConnectLayers(in, encd, full, deep.BurstCtxt)
 	pj.SetClass("CtxtFmInput")
 
 	// add extra deep context
 	pj = net.ConnectLayers(gestd, gestd, full, deep.BurstCtxt)
-	pj.SetClass("SelfCtxt")
+	pj.SetClass("GestSelfCtxt")
 	pj = net.ConnectLayers(in, gestd, full, deep.BurstCtxt) // yes better
 	pj.SetClass("CtxtFmInput")
 
@@ -447,9 +488,6 @@ func (ss *Sim) AlphaCyc(train bool) {
 	for qtr := 0; qtr < 4; qtr++ {
 		for cyc := 0; cyc < ss.Time.CycPerQtr; cyc++ {
 			ss.Net.Cycle(&ss.Time)
-			if !train {
-				ss.LogTstCyc(ss.TstCycLog, ss.Time.Cycle)
-			}
 			ss.Time.CycleInc()
 			if ss.ViewOn {
 				switch viewUpdt {
@@ -483,9 +521,6 @@ func (ss *Sim) AlphaCyc(train bool) {
 	}
 	if ss.ViewOn && viewUpdt == leabra.AlphaCycle {
 		ss.UpdateView(train)
-	}
-	if !train {
-		ss.TstCycPlot.GoUpdate() // make sure up-to-date at end
 	}
 }
 
@@ -572,7 +607,7 @@ func (ss *Sim) TrialStats(accum bool) {
 		} else {
 			ss.TrlErr[li] = 0
 		}
-		if lnm == "InputP" && ss.TrainEnv.Tick.Cur == 0 { // first trial unpredictable
+		if lnm == "InputP" && ss.TrainEnv.Tick.Cur == 1 { // first sent trial unpredictable
 			ss.TrlCosDiff[li] = 0
 			ss.TrlSSE[li] = 0
 			ss.TrlAvgSSE[li] = 0
@@ -631,6 +666,9 @@ func (ss *Sim) TrainTrial() {
 			}
 		}
 	}
+
+	fill := ss.Net.LayerByName("Filler").(deep.DeepLayer).AsDeep()
+	fill.SetType(emer.Target)
 
 	ss.ApplyInputs(&ss.TrainEnv)
 	ss.AlphaCyc(true)   // train
@@ -758,6 +796,9 @@ func (ss *Sim) TestTrial(returnOnChg bool) {
 		}
 	}
 
+	fill := ss.Net.LayerByName("Filler").(deep.DeepLayer).AsDeep()
+	fill.SetType(emer.Compare)
+
 	ss.ApplyInputs(&ss.TestEnv)
 	ss.AlphaCyc(false)   // !train
 	ss.TrialStats(false) // !accumulate
@@ -780,6 +821,7 @@ func (ss *Sim) TestSeq() {
 // TestAll runs through the full set of testing items
 func (ss *Sim) TestAll() {
 	ss.TestEnv.Init(ss.TrainEnv.Run.Cur)
+	ss.TstTrlLog.SetNumRows(0)
 	for {
 		ss.TestTrial(true) // return on change -- don't wrap
 		_, _, chg := ss.TestEnv.Counter(env.Epoch)
@@ -1051,7 +1093,6 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 	dt.SetCellFloat("PerTrlMSec", row, ss.EpcPerTrlMSec)
 
 	lys := []string{"Fill", "Inp"}
-
 	for li, lnm := range lys {
 		ss.EpcSSE[li] = ss.SumSSE[li] / ss.SumN[li]
 		ss.SumSSE[li] = 0
@@ -1070,7 +1111,29 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 		dt.SetCellFloat(lnm+"CosDiff", row, ss.EpcCosDiff[li])
 	}
 
-	trlog := ss.TrnTrlLog
+	ss.LogEpcStats(dt, ss.TrnTrlLog)
+
+	for _, lnm := range ss.LayStatNms {
+		ly := ss.Net.LayerByName(lnm).(deep.DeepLayer).AsDeep()
+		dt.SetCellFloat(ly.Nm+" ActAvg", row, float64(ly.Pools[0].ActAvg.ActPAvgEff))
+		hog, dead := ss.HogDead(lnm)
+		dt.SetCellFloat(ly.Nm+" Hog", row, hog)
+		dt.SetCellFloat(ly.Nm+" Dead", row, dead)
+	}
+
+	// note: essential to use Go version of update when called from another goroutine
+	ss.TrnEpcPlot.GoUpdate()
+	if ss.TrnEpcFile != nil {
+		if ss.TrainEnv.Run.Cur == 0 && epc == 0 {
+			dt.WriteCSVHeaders(ss.TrnEpcFile, etable.Tab)
+		}
+		dt.WriteCSVRow(ss.TrnEpcFile, row, etable.Tab, true)
+	}
+}
+
+// LogEpcStats does extra SG epoch-level stats on a given trial table
+func (ss *Sim) LogEpcStats(dt *etable.Table, trlog *etable.Table) {
+	row := dt.Rows - 1
 	tix := etable.NewIdxView(trlog)
 	ambspl := split.GroupBy(tix, []string{"AmbigNouns"})
 	qtspl := split.GroupBy(tix, []string{"QType"})
@@ -1082,6 +1145,7 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 	// })
 	// rolespl := split.GroupBy(noambtix, []string{"Role"})
 
+	lys := []string{"Fill", "Inp"}
 	cols := []string{"Err", "SSE", "CosDiff"}
 	for _, lnm := range lys {
 		for _, cl := range cols {
@@ -1118,23 +1182,6 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 	// 		}
 	// 	}
 	// }
-
-	for _, lnm := range ss.LayStatNms {
-		ly := ss.Net.LayerByName(lnm).(deep.DeepLayer).AsDeep()
-		dt.SetCellFloat(ly.Nm+" ActAvg", row, float64(ly.Pools[0].ActAvg.ActPAvgEff))
-		hog, dead := ss.HogDead(lnm)
-		dt.SetCellFloat(ly.Nm+" Hog", row, hog)
-		dt.SetCellFloat(ly.Nm+" Dead", row, dead)
-	}
-
-	// note: essential to use Go version of update when called from another goroutine
-	ss.TrnEpcPlot.GoUpdate()
-	if ss.TrnEpcFile != nil {
-		if ss.TrainEnv.Run.Cur == 0 && epc == 0 {
-			dt.WriteCSVHeaders(ss.TrnEpcFile, etable.Tab)
-		}
-		dt.WriteCSVRow(ss.TrnEpcFile, row, etable.Tab, true)
-	}
 }
 
 func (ss *Sim) ConfigTrnEpcLog(dt *etable.Table) {
@@ -1304,11 +1351,14 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 
 func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
 	plt.Params.Title = "Sentence Gestalt Test Trial Plot"
-	plt.Params.XAxisCol = "Trial"
+	plt.Params.XAxisCol = "TrialName"
+	plt.Params.Type = eplot.Bar
+	plt.SetTable(dt)
+	plt.Params.XAxisRot = 45
+	plt.Params.BarWidth = 5
 
 	lys := []string{"Fill", "Inp"}
 
-	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Run", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("Epoch", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
@@ -1320,17 +1370,19 @@ func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetColParams("Pred", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("Role", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("Filler", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
-	plt.SetColParams("Output", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("Output", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("QType", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
-	plt.SetColParams("AmbigVerb", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
-	plt.SetColParams("AmbigNouns", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
+	plt.SetColParams("AmbigVerb", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
+	plt.SetColParams("AmbigNouns", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
 
 	for _, lnm := range lys {
-		plt.SetColParams(lnm+"Err", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
-		plt.SetColParams(lnm+"SSE", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
+		plt.SetColParams(lnm+"Err", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
+		plt.SetColParams(lnm+"SSE", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
 		plt.SetColParams(lnm+"AvgSSE", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
-		plt.SetColParams(lnm+"CosDiff", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
+		plt.SetColParams(lnm+"CosDiff", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
 	}
+
+	plt.SetColParams("FillErr", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
 
 	return plt
 }
@@ -1350,30 +1402,16 @@ func (ss *Sim) LogTstEpc(dt *etable.Table) {
 	// data table, instead of incrementing on the Sim
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
-	dt.SetCellFloat("SSE", row, agg.Sum(tix, "SSE")[0])
-	dt.SetCellFloat("AvgSSE", row, agg.Mean(tix, "AvgSSE")[0])
-	dt.SetCellFloat("PctErr", row, agg.PropIf(tix, "SSE", func(idx int, val float64) bool {
-		return val > 0
-	})[0])
-	dt.SetCellFloat("PctCor", row, agg.PropIf(tix, "SSE", func(idx int, val float64) bool {
-		return val == 0
-	})[0])
-	dt.SetCellFloat("CosDiff", row, agg.Mean(tix, "CosDiff")[0])
 
-	trlix := etable.NewIdxView(trl)
-	trlix.Filter(func(et *etable.Table, row int) bool {
-		return et.CellFloat("SSE", row) > 0 // include error trials
-	})
-	ss.TstErrLog = trlix.NewTable()
+	lys := []string{"Fill", "Inp"}
+	for _, lnm := range lys {
+		dt.SetCellFloat(lnm+"SSE", row, agg.Mean(tix, lnm+"SSE")[0])
+		dt.SetCellFloat(lnm+"AvgSSE", row, agg.Mean(tix, lnm+"AvgSSE")[0])
+		dt.SetCellFloat(lnm+"PctErr", row, agg.Mean(tix, lnm+"Err")[0])
+		dt.SetCellFloat(lnm+"CosDiff", row, agg.Mean(tix, lnm+"CosDiff")[0])
+	}
 
-	allsp := split.All(trlix)
-	split.Agg(allsp, "SSE", agg.AggSum)
-	split.Agg(allsp, "AvgSSE", agg.AggMean)
-	split.Agg(allsp, "InActM", agg.AggMean)
-	split.Agg(allsp, "InActP", agg.AggMean)
-	split.Agg(allsp, "Targs", agg.AggMean)
-
-	ss.TstErrStats = allsp.AggsToTable(etable.AddAggName)
+	ss.LogEpcStats(dt, ss.TstTrlLog)
 
 	// note: essential to use Go version of update when called from another goroutine
 	ss.TstEpcPlot.GoUpdate()
@@ -1385,15 +1423,27 @@ func (ss *Sim) ConfigTstEpcLog(dt *etable.Table) {
 	dt.SetMetaData("read-only", "true")
 	dt.SetMetaData("precision", strconv.Itoa(LogPrec))
 
-	dt.SetFromSchema(etable.Schema{
+	sch := etable.Schema{
 		{"Run", etensor.INT64, nil, nil},
 		{"Epoch", etensor.INT64, nil, nil},
-		{"SSE", etensor.FLOAT64, nil, nil},
-		{"AvgSSE", etensor.FLOAT64, nil, nil},
-		{"PctErr", etensor.FLOAT64, nil, nil},
-		{"PctCor", etensor.FLOAT64, nil, nil},
-		{"CosDiff", etensor.FLOAT64, nil, nil},
-	}, 0)
+	}
+
+	lys := []string{"Fill", "Inp"}
+	for _, lnm := range lys {
+		sch = append(sch, etable.Column{lnm + "SSE", etensor.FLOAT64, nil, nil})
+		sch = append(sch, etable.Column{lnm + "AvgSSE", etensor.FLOAT64, nil, nil})
+		sch = append(sch, etable.Column{lnm + "PctErr", etensor.FLOAT64, nil, nil})
+		sch = append(sch, etable.Column{lnm + "CosDiff", etensor.FLOAT64, nil, nil})
+	}
+
+	cols := []string{"Err", "SSE", "CosDiff"}
+	for _, cl := range cols {
+		sch = append(sch, etable.Column{"UnAmbFill" + cl, etensor.FLOAT64, nil, nil})
+		sch = append(sch, etable.Column{"AmbFill" + cl, etensor.FLOAT64, nil, nil})
+		sch = append(sch, etable.Column{"CurQFill" + cl, etensor.FLOAT64, nil, nil})
+		sch = append(sch, etable.Column{"RevQFill" + cl, etensor.FLOAT64, nil, nil})
+	}
+	dt.SetFromSchema(sch, 0)
 }
 
 func (ss *Sim) ConfigTstEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
@@ -1403,63 +1453,21 @@ func (ss *Sim) ConfigTstEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Run", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("Epoch", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
-	plt.SetColParams("SSE", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
-	plt.SetColParams("AvgSSE", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
-	plt.SetColParams("PctErr", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1) // default plot
-	plt.SetColParams("PctCor", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1) // default plot
-	plt.SetColParams("CosDiff", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
-	return plt
-}
 
-//////////////////////////////////////////////
-//  TstCycLog
-
-// LogTstCyc adds data from current trial to the TstCycLog table.
-// log just has 100 cycles, is overwritten
-func (ss *Sim) LogTstCyc(dt *etable.Table, cyc int) {
-	if dt.Rows <= cyc {
-		dt.SetNumRows(cyc + 1)
+	lys := []string{"Fill", "Inp"}
+	for _, lnm := range lys {
+		plt.SetColParams(lnm+"SSE", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+		plt.SetColParams(lnm+"AvgSSE", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+		plt.SetColParams(lnm+"PctErr", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1) // default plot
+		plt.SetColParams(lnm+"CosDiff", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
 	}
 
-	dt.SetCellFloat("Cycle", cyc, float64(cyc))
-	for _, lnm := range ss.LayStatNms {
-		ly := ss.Net.LayerByName(lnm).(deep.DeepLayer).AsDeep()
-		dt.SetCellFloat(ly.Nm+" Ge.Avg", cyc, float64(ly.Pools[0].Inhib.Ge.Avg))
-		dt.SetCellFloat(ly.Nm+" Act.Avg", cyc, float64(ly.Pools[0].Inhib.Act.Avg))
-	}
-
-	if cyc%10 == 0 { // too slow to do every cyc
-		// note: essential to use Go version of update when called from another goroutine
-		ss.TstCycPlot.GoUpdate()
-	}
-}
-
-func (ss *Sim) ConfigTstCycLog(dt *etable.Table) {
-	dt.SetMetaData("name", "TstCycLog")
-	dt.SetMetaData("desc", "Record of activity etc over one trial by cycle")
-	dt.SetMetaData("read-only", "true")
-	dt.SetMetaData("precision", strconv.Itoa(LogPrec))
-
-	np := 100 // max cycles
-	sch := etable.Schema{
-		{"Cycle", etensor.INT64, nil, nil},
-	}
-	for _, lnm := range ss.LayStatNms {
-		sch = append(sch, etable.Column{lnm + " Ge.Avg", etensor.FLOAT64, nil, nil})
-		sch = append(sch, etable.Column{lnm + " Act.Avg", etensor.FLOAT64, nil, nil})
-	}
-	dt.SetFromSchema(sch, np)
-}
-
-func (ss *Sim) ConfigTstCycPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
-	plt.Params.Title = "Sentence Gestalt Test Cycle Plot"
-	plt.Params.XAxisCol = "Cycle"
-	plt.SetTable(dt)
-	// order of params: on, fixMin, min, fixMax, max
-	plt.SetColParams("Cycle", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
-	for _, lnm := range ss.LayStatNms {
-		plt.SetColParams(lnm+" Ge.Avg", true, true, 0, true, .5)
-		plt.SetColParams(lnm+" Act.Avg", true, true, 0, true, .5)
+	cols := []string{"Err", "SSE", "CosDiff"}
+	for _, cl := range cols {
+		plt.SetColParams("UnAmbFill"+cl, eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
+		plt.SetColParams("AmbFill"+cl, eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
+		plt.SetColParams("CurQFill"+cl, (cl == "Err"), eplot.FixMin, 0, eplot.FixMax, 1)
+		plt.SetColParams("RevQFill"+cl, (cl == "Err"), eplot.FixMin, 0, eplot.FixMax, 1)
 	}
 	return plt
 }
@@ -1558,7 +1566,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	height := 1200
 
 	gi.SetAppName("SG")
-	gi.SetAppAbout(`This demonstrates a basic DeepLeabra model on the Finite State Automaton problem (e.g., the Reber grammar). See <a href="https://github.com/emer/emergent">emergent on GitHub</a>.</p>`)
+	gi.SetAppAbout(`This is the sentence gestalt model, which learns to encode both syntax and semantics of sentences in an integrated "gestalt" hidden layer. The sentences have simple agent-verb-patient structure with optional prepositional or adverb modifier phrase at the end, and can be either in the active or passive form (80% active, 20% passive). There are ambiguous terms that need to be resolved via context, showing a key interaction between syntax and semantics. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch9/sg/README.md">README.md on GitHub</a>.</p>`)
 
 	win := gi.NewWindow2D("SG", "Sentence Gestalt", width, height, true)
 	ss.Win = win
@@ -1595,9 +1603,6 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	plt = tv.AddNewTab(eplot.KiT_Plot2D, "TstTrlPlot").(*eplot.Plot2D)
 	ss.TstTrlPlot = ss.ConfigTstTrlPlot(plt, ss.TstTrlLog)
-
-	plt = tv.AddNewTab(eplot.KiT_Plot2D, "TstCycPlot").(*eplot.Plot2D)
-	ss.TstCycPlot = ss.ConfigTstCycPlot(plt, ss.TstCycLog)
 
 	plt = tv.AddNewTab(eplot.KiT_Plot2D, "TstEpcPlot").(*eplot.Plot2D)
 	ss.TstEpcPlot = ss.ConfigTstEpcPlot(plt, ss.TstEpcLog)
@@ -1729,7 +1734,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	tbar.AddAction(gi.ActOpts{Label: "README", Icon: "file-markdown", Tooltip: "Opens your browser on the README file that contains instructions for how to run this model."}, win.This(),
 		func(recv, send ki.Ki, sig int64, data interface{}) {
-			gi.OpenURL("https://github.com/emer/leabra/blob/master/examples/sg/README.md")
+			gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch9/sg/README.md")
 		})
 
 	vp.UpdateEndNoSig(updt)

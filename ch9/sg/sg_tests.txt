@@ -6,8 +6,8 @@
 Sentences | {
 	ActiveSemantic
 	ActiveSyntactic	
-//	PassiveSemantic
-//	PassiveSyntactic
+	PassiveSemantic
+	PassiveSyntactic
 	ActiveControl
 	Ambiguity1	
 	Ambiguity2
@@ -39,15 +39,15 @@ ActiveSyntactic	 {
 	'busdriver' 'gave' 'rosen' 'to' 'teacher'
 }
 
-// Passive form
+// Passive form -- the Case=Passive causes it to render as passive
 PassiveSemantic {
 	=Case=Passive
 	=Agent=Busdriver
 	=Action=Spread
-	=Patient=Jell
+	=Patient=Jelly
 	=Mod=Instrument
 	=Instrument=Knife
-	'jelly' 'was' 'spread' 'by' 'busdriver' 'with' 'knife'
+	'busdriver' 'spread' 'jelly' 'with' 'knife'
 }
 
 PassiveSyntactic {
@@ -57,7 +57,7 @@ PassiveSyntactic {
 	=Patient=Teacher
 	=Mod=Location
 	=Location=Park
-	'teacher' 'was' 'kissed' 'by' 'busdriver' 'in' 'park'
+	'busdriver' 'kissed' 'teacher' 'in' 'park'
 }
 
 // Active version of previous passive syntactic case
@@ -110,16 +110,13 @@ RoleElaboration1 {
 	'schoolgirl' 'ate' 'crackers' 'with' 'something'
 }
 
-// this is subsumed in first case..
-// schoolgirl ate
-
 // Update child = schoolgirl based on daintiness
 OnlineUpdate {
 	=Agent=Schoolgirl
 	=Action=Ate
 	=Patient=Soup
 	=Mod=Adverb
-	=Instrument=Daintiness
+	=Adverb=Daintiness
 	'child' 'ate' 'soup' 'with' 'daintiness'
 }
 
@@ -129,7 +126,7 @@ OnlineUpdateControl {
 	=Action=Ate
 	=Patient=Soup
 	=Mod=Adverb
-	=Instrument=Daintiness
+	=Adverb=Daintiness
 	'pitcherpers' 'ate' 'soup' 'with' 'daintiness'
 }
 

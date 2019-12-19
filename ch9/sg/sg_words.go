@@ -71,7 +71,7 @@ var SGWords = []string{
 	"to",
 	"by",
 	"was",
-	"question",
+	"start",
 }
 
 var SGRoles = []string{

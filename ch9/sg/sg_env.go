@@ -23,8 +23,7 @@ type SentGenEnv struct {
 	Nm            string            `desc:"name of this environment"`
 	Dsc           string            `desc:"description of this environment"`
 	Rules         esg.Rules         `desc:"core sent-gen rules -- loaded from a grammar / rules file -- Gen() here generates one sentence"`
-	PPassive      float32           `desc:"probability of generating passive sentence forms"`
-	PQueryPrior   float32           `desc:"probability of querying prior role-filler info before end of sentence"`
+	PPassive      float64           `desc:"probability of generating passive sentence forms"`
 	WordTrans     map[string]string `desc:"translate unambiguous words into ambiguous words"`
 	Words         []string          `desc:"list of words used for activating state units according to index"`
 	WordMap       map[string]int    `desc:"map of words onto index in Words list"`
@@ -104,6 +103,7 @@ func (ev *SentGenEnv) Init(run int) {
 	ev.Trial.Cur = -1 // init state -- key so that first Step() = 0
 	ev.SentIdx.Set(-1)
 
+	ev.Rules.Init()
 	ev.MapsFmWords()
 
 	ev.SentState.SetShape([]int{len(ev.Words)}, nil, []string{"Words"})
@@ -159,9 +159,19 @@ func (ev *SentGenEnv) NextSent() {
 	ev.Rules.States.TrimQualifiers()
 	ev.SentStats()
 	ev.SentIdx.Set(0)
-	// ev.SentSeqActiveDet() // todo: passive
-	// ev.SentSeqActiveDetNoSum() // todo: passive
-	ev.SentSeqActiveDetRndSum() // todo: passive
+	if cs, has := ev.Rules.States["Case"]; has {
+		if cs == "Passive" {
+			ev.SentSeqPassive()
+		} else {
+			ev.SentSeqActive()
+		}
+	} else {
+		if erand.BoolProb(ev.PPassive, -1) {
+			ev.SentSeqPassive()
+		} else {
+			ev.SentSeqActive()
+		}
+	}
 }
 
 // TransWord gets the translated word
@@ -208,13 +218,22 @@ func (ev *SentGenEnv) CheckWords(wrd, role, fill string) []error {
 	return errs
 }
 
+func (ev *SentGenEnv) NewInputs() {
+	ev.SentInputs = make([][]string, 0, 16)
+}
+
+// AddRawInput adds raw input
+func (ev *SentGenEnv) AddRawInput(word, role, fill, stat string) {
+	ev.SentInputs = append(ev.SentInputs, []string{word, role, fill, stat})
+}
+
 // AddInput adds a new input with given sentence index word and role query
 // stat is an extra status var: "revq" or "curq" (review question, vs. current question)
 func (ev *SentGenEnv) AddInput(sidx int, role string, stat string) {
 	wrd := ev.TransWord(ev.CurSent[sidx])
 	fill := ev.Rules.States[role]
 	ev.CheckWords(wrd, role, fill)
-	ev.SentInputs = append(ev.SentInputs, []string{wrd, role, fill, stat})
+	ev.AddRawInput(wrd, role, fill, stat)
 }
 
 // AddQuestion adds a new input with 'question' word and role query
@@ -223,90 +242,51 @@ func (ev *SentGenEnv) AddQuestion(role string) {
 	wrd := "question"
 	fill := ev.Rules.States[role]
 	ev.CheckWords(wrd, role, fill)
-	ev.SentInputs = append(ev.SentInputs, []string{wrd, role, fill, "revq"})
+	ev.AddRawInput(wrd, role, fill, "revq")
 }
 
-// SentSeqActiveProb generates active-form sequence of inputs, probabilistic prior queries
-func (ev *SentGenEnv) SentSeqActiveProb() {
-	ev.SentInputs = make([][]string, 0, 50)
-	mod := ev.Rules.States["Mod"]
-	seq := []string{"Agent", "Action", "Patient"}
-	for si, sq := range seq {
-		ev.AddInput(si, sq, "curq")
-		for ri := 0; ri < si; ri++ {
-			if erand.BoolProb(float64(ev.PQueryPrior), -1) {
-				ev.AddInput(si, seq[ri], "revq")
-			}
-		}
-	}
-	// get any modifier words with action query
-	slen := len(ev.CurSent)
-	for si := 3; si < slen-1; si++ {
-		ri := rand.Intn(3) // choose a role to query at random
-		ev.AddInput(si, seq[ri], "revq")
-	}
-	// last one has it all, always
-	ev.AddInput(slen-1, mod, "curq")
-	for _, sq := range seq {
-		ev.AddInput(slen-1, sq, "revq")
-	}
-}
-
-// SentSeqActiveDet generates active-form sequence of inputs, deterministic sequence
-func (ev *SentGenEnv) SentSeqActiveDet() {
-	ev.SentInputs = make([][]string, 0, 50)
-	mod := ev.Rules.States["Mod"]
-	seq := []string{"Agent", "Action", "Patient"}
-	for si, sq := range seq {
-		ev.AddInput(si, sq, "curq")
-	}
-	// get any modifier words with random query
-	slen := len(ev.CurSent)
-	for si := 3; si < slen-1; si++ {
-		ri := rand.Intn(3) // choose a role to query at random
-		ev.AddInput(si, seq[ri], "revq")
-	}
-	// last one has it all, always
-	ev.AddInput(slen-1, mod, "curq")
-	for _, sq := range seq {
-		ev.AddInput(slen-1, sq, "revq")
-	}
-}
-
-// SentSeqActiveDetNoSum generates active-form sequence of inputs, deterministic sequence, no summary
-func (ev *SentGenEnv) SentSeqActiveDetNoSum() {
-	ev.SentInputs = make([][]string, 0, 50)
-	mod := ev.Rules.States["Mod"]
-	seq := []string{"Agent", "Action", "Patient"}
-	for si, sq := range seq {
-		ev.AddInput(si, sq, "curq")
-	}
-	// get any modifier words with random query
-	slen := len(ev.CurSent)
-	for si := 3; si < slen-1; si++ {
-		ri := rand.Intn(3) // choose a role to query at random
-		ev.AddInput(si, seq[ri], "revq")
-	}
-	ev.AddInput(slen-1, mod, "curq")
-}
-
-// SentSeqActiveDetRndSum one random summary question
-func (ev *SentGenEnv) SentSeqActiveDetRndSum() {
-	ev.SentInputs = make([][]string, 0, 50)
+// SentSeqActive active form sentence sequence, with incremental review questions
+func (ev *SentGenEnv) SentSeqActive() {
+	ev.NewInputs()
+	ev.AddRawInput("start", "Action", "None", "curq") // start question helps in long run!
 	mod := ev.Rules.States["Mod"]
 	seq := []string{"Agent", "Action", "Patient", mod}
 	for si := 0; si < 3; si++ {
 		sq := seq[si]
 		ev.AddInput(si, sq, "curq")
-		switch si {
+		switch si { // these additional questions are key for revq perf
 		case 1:
-			// ev.AddQuestion("Agent")
+			// ev.AddQuestion("Agent")  // question not as good..
 			ev.AddInput(si, "Agent", "revq")
 		case 2:
 			// ev.AddQuestion("Action")
 			ev.AddInput(si, "Action", "revq")
 		}
 	}
+	// get any modifier words with random query
+	slen := len(ev.CurSent)
+	for si := 3; si < slen-1; si++ {
+		ri := rand.Intn(3) // choose a role to query at random
+		ev.AddInput(si, seq[ri], "revq")
+	}
+	ev.AddInput(slen-1, mod, "curq")
+	ri := rand.Intn(3) // choose a role to query at random
+	// ev.AddQuestion(seq[ri])
+	ev.AddInput(slen-1, seq[ri], "revq")
+}
+
+// SentSeqPassive passive form sentence sequence, with incremental review questions
+func (ev *SentGenEnv) SentSeqPassive() {
+	ev.NewInputs()
+	ev.AddRawInput("start", "Action", "None", "curq") // start question helps in long run!
+	mod := ev.Rules.States["Mod"]
+	seq := []string{"Agent", "Action", "Patient", mod}
+	ev.AddInput(2, "Patient", "curq") // 2 = patient word in active form
+	ev.AddRawInput("was", "Patient", ev.Rules.States["Patient"], "revq")
+	ev.AddInput(1, "Action", "curq") // 1 = action word in active form
+	ev.AddRawInput("by", "Action", ev.Rules.States["Action"], "revq")
+	ev.AddInput(0, "Agent", "curq") // 0 = agent word in active form
+	// note: we already get review questions for free with was and by
 	// get any modifier words with random query
 	slen := len(ev.CurSent)
 	for si := 3; si < slen-1; si++ {
