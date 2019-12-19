@@ -121,7 +121,7 @@ var ParamSets = params.Sets{
 			{Sel: ".EncSelfCtxt", Desc: "yes weight balance",
 				Params: params.Params{
 					"Prjn.Learn.WtBal.On": "true",
-					"Prjn.WtScale.Rel":    "5", // 5 > 4 ?
+					"Prjn.WtScale.Rel":    "5", // 5 > 4 > 3 > 6
 				}},
 			{Sel: ".FmInput", Desc: "from localist inputs -- 1 == .3",
 				Params: params.Params{
