@@ -2,105 +2,118 @@ Back to [All Sims](https://github.com/CompCogNeuro/sims) (also for general info 
 
 # Introduction
 
-This simulation explores the way that regularities and exceptions are learned in the mapping between spelling (orthography) and sound (phonology), in the context of a "direct pathway" mapping between these two forms of word representations.
+This network learns to encode both syntax and semantics of sentences in an integrated "gestalt" hidden layer. The sentences have simple agent-verb-patient structure with optional prepositional or adverb modifier phrase at the end, and can be either in the active or passive form (80% active, 20% passive). There are ambiguous terms that need to be resolved via context, showing a key interaction between syntax and semantics.
 
-This is a large network, and it takes at least several 10's of mins or longer to train, so we start by loading pre-trained weights.
+This version of the model uses the more recent *DeepLeabra* framework [(O'Reilly et al, 2017)](#references) that incorporates the functions of the deep layers of the neocortex and its interconnectivity with the thalamus.  We hypothesize that these circuits support a powerful form of predictive error-driven learning, where the top-down cortical projections drive a prediction on the pulvinar nucleus of the thalamus, which serves as the minus phase, and then phasic bursting inputs drive a periodic plus phase representing what actually happened.  This bursting happens at the 10 Hz *alpha* frequency (every 100 msec), and forms the basis for the use of this time scale as the primary organizing principle in our models.
 
-* Do `Open Trained Wts` in the toolbar.
+The current model uses these circuits to learn by attempting to predict which word will appear next in the sentences -- this prediction is represented in the `InputP` pulvinar layer.  To support predictive learning, the deep layers also have the ability to maintain "context" information from the previous time step, and this is also critical for enabling the model to remember information from prior words in the sentence.  This contextual information is similar to the simple recurrent network (SRN) model [Elman, 1990](#references), which was used in the prior version of this simulation.
 
-# Reading Words
+# Training
 
-First, we will see that the network can read words that are presented to it, using a standard list of probe words developed by [Taraban & McClelland, 1987](#references).
+In addition to the predictive learning, the network is trained by asking questions about current and previous information presented to the network.  During the minus phase of every trial, the current word is on the `Input`, and a question is posed in the `Role` input layer about what a particular semantic role is for the current sentence. For example, for the first word in an active sentence, which is always the "agent" of the sentence, the `Role` input will be `Agent`, and the network just needs to produce on the `Filler` output layer the same thing that is present in the `Input`. However, on the next trial, a new word (the verb or `Action`) is presented, but the network must still remember the `Agent` from the prior trial. This is what the `GestaltD` Deep context layer provides. You can see all of this in the testing we'll perform next. If you want to see the training process in more detail, you can click on `Init` and `Step Trial` through a few trials.
 
-* Note that the `TestingEnv` in the control panel is set to `Probe`, which is this set of words.  Do `Test Trial` in the toolbar.
+* Next, press `Open Weights` in the toolbar to load pre-trained weights (the network takes many minutes to hours to train). Then, you can start by poking around the network and exploring the connectivity using the `r.Wt` view, and then return to viewing `Act`.
 
-The first word the network reads is "best," presented at the left-most edge of the input. You can read this word from the Ortho-graphy input layer from the individual letters within each of the 4 activated 3x9 slots. Each of these slots corresponds to one location and contains 26 units corresponding to one of the 26 letters of the alphabet (with one extra unused unit), organized from the bottom-left to upper-right as usual. To familiarize yourself with the layout of the input patterns, verify that "best" is in fact the pattern presented. 
+# Testing
 
-The `TrlPhon` entry in the control panel decodes the Phon-ological output, by matching each phonological slot output pattern with the patterns for each of the consonants and vowels. A capital X indicates that the pattern does not exactly match any of the correct outputs. If you run the test prior to doing LoadWeights, it will be all X's. You should see that `TrlPhon` says `bbbestt` which is the correct repeated-consonant response for this word. If you want, you can look at the patterns in the `PhonConsPats` and `PhonVowelPats` tables and compare those with the outputs to see exactly how this information is encoded in the network. 
+Now, let's evaluate the trained network's performance, by exploring its performance on a set of specially selected test sentences listed here:
 
-Also shown in the information just under the network, in the `Name` field, is a code for the type of word (which depends on the different testing sets) -- for this Probe test set, the codes are:
+* Role assignment:
+    + Active semantic: The schoolgirl stirred the Kool-Aid with a spoon.
+    + Active syntactic: The busdriver gave the rose to the teacher.
+    + Passive semantic: The jelly was spread by the busdriver with the knife.
+    + Passive syntactic: The teacher was kissed by the busdriver.
+    + Active control: The busdriver kissed the teacher.
+*  Word ambiguity:
+    + The busdriver threw the ball in the park.
+    + The teacher threw the ball in the living room.
+* Concept instantiation:
+    + The teacher kissed someone (male).
+* Role elaboration
+    + The schoolgirl ate crackers (with finger).
+    + The schoolgirl ate (soup).
+* Online update
+    + The child ate soup with daintiness.
+    + control: The pitcher ate soup with daintiness.
+* Conflict
+    + The adult drank iced tea in the kitchen (living room).
 
-* HRC -- High freq regular consistent (e.g., best)
-* HRI -- High freq regular inconsistent (e.g., bone, c.f., done)
-* HAM -- High freq ambiguous (e.g., brown, c.f., blown)
-* HEX -- High freq exception (e.g., both, c.f., cloth
-* LRC -- Low freq regular consistent (e.g., beam)
-* LRI -- Low freq regular inconsistent (e.g., brood, c.f., blood)
-* LAM -- Low freq ambiguous (e.g., blown, c.f., brown)
-* LEX -- Low freq exception (e.g., bowl, c.f., growl)
+The test sentences are designed to illustrate different aspects of the sentence comprehension task, as noted in the table. First, a set of role assignment tasks provide either semantic or purely syntactic cues to assign the main roles in the sentence. The semantic cues depend on the fact that only animate nouns can be agents, whereas inanimate nouns can only be patients. Although animacy is not explicitly provided in the input, the training environment enforces this constraint. Thus, when a sentence starts off with "The jelly...," we can tell that because jelly is inanimate, it must be the patient of a passive sentence, and not the agent of an active one. However, if the sentence begins with "The busdriver...," we do not know if the busdriver is an agent or a patient, and we thus have to wait to see if the syntactic cue of the word *was* appears next.
 
-Let's continue to observe the network's reading performance, observing specifically the translation invariance property.
+* Do `Test trial` to see the first word in the first test sentence.
 
-* `Test Trial` for several more trials.
+The first word of the active semantic role assignment sentence (schoolgirl) is presented, and the network correctly answers that schoolgirl is the agent of the sentence. Note that there is no plus-phase and no training during this testing, so everything depends on the integration of the input words.
 
-You should notice that the "best" input appears in successively more rightward positions in the input. Despite these differences in input location, the network produces the correct output. This spatial invariance coding, like the `objrec` model we explored in the Perception Chapter, requires the network to both maintain some information about the local ordering of the letters (so it pronounces "best" instead of "steb," for example), but also treat the entire pattern the same regardless of where it appears. We will see in a moment that this network developed the same general solution to this problem as the object recognition network, using a combination of locally spatially invariant and yet conjunctive encoding.
+* Continue to do `Test Trial` through to the final word in this Active semantic sentence (spoon). You can click on the `TstTrlPlot` tab to see a bar-plot of each trial as it goes through, with the network's `Output` response. You should observe that the network is able to identify correctly the roles of all of the words presented. Because in this sentence the roles of the words are constrained by their semantics, this success demonstrates that the network is sensitive to these semantic constraints and can use them in parsing.
 
-You can continue to observe the network's performance. Although you may observe an occasional error (especially as the items get lower in frequency and more irregular), the network should pronounce most words correctly -- no small feat itself given that there are nearly 3,000 words presented in as many as 4 different locations each! 
+* Now Step through the next sentence (Active syntactic) -- you can do `Test Seq` to zip through the entire sequence of one sentence and just look at the bar plot.
 
-# Network Connectivity and Learning
+This sentence has two animate nouns (busdriver and teacher), so the network must use the syntactic word order cues to infer that the busdriver is the agent, while using the "gave to" syntactic construction to recognize that the teacher is the recipient. Observe that at the final word in the sentence, the network has correctly identified all the words.
 
-Now, let's explore the connectivity and weights of the trained network.
+In the next sentence, the passive construction is used, but this should be obvious from the semantic cue that jelly cannot be an agent.
 
-* Click on `r.Wt` in the network view and click on some units on the left hand side of the `OrthoCode` layer, and then throughout the layer.
+* Step through Passive semantic and observe that the network correctly parses this sentence.
 
-Notice that the left-most units receive from the left-most 3 letter slots, where each letter slot is a 3x9 pool of units. As you progress to the right in the OrthoCode pools, the units receive from overlapping pools of 3 letter slots.
+In the final role assignment case, the sentence is passive and there are only syntactic constraints available to identify whether the teacher is the agent or the patient. This is the most difficult construction that the network faces, and it does not appear to get it right -- it gets confused about the busdriver toward the end of the sentence, replacing him with pitcherpers and schooolgirl. 
 
-As you click on these OrthoCode units, pay attention to the patterns of weights. You should notice that there are often cases where the unit has strong weights from the same input letter(s) across two or three of the slots, whereas other units encode sequences of different letters across the slots. This is just like the V2 units in the object recognition model in the Perception Chapter, which encode the same feature(s) regardless of location (spatial invariance), and also small combinations of different features (increasing featural complexity).
+* Step through this Passive syntactic sentence.
 
-This invariant coding is just the kind of thing that the [Plaut, McClelland, Seidenberg, and Patterson (1996)](#references) (hereafter PMSP) hand-tuned input representations were designed to accomplish, as discussed in the main chapter, and we can see that this network learned them on its own.
+Further testing has shown that the network sometimes gets this sentence right, but often makes errors. This can apparently be attributed to the lower frequency of passive sentences, as you can see from the next sentence, which is a "control condition" of the higher frequency active form of the previous sentence, with which the network has no difficulties.
 
-* To see what the `Hidden` units are coding, click on different Hidden units and then go back and forth between the OrthoCode and Hidden units by noting the most strongly connected Hidden units for a given OrthoCode unit, etc.
+* Step through this Active control sentence.
 
-The hidden layer units have more complex receptive fields that can encompass all of the orthography input slots, just like the IT units in the object recognition model. You should see the same patterns of spatial invariance and increased featural complexity. These units are in a position to encode the regularities of English pronunciation, and also the context sensitivity of these regularities. The conjunctions of input letters represented in the network play a similar role as the wickelfeatures of the [Seidenberg & McClelland, 1989](#references) (SM89) model and the hand-tuned conjunctive units in the PMSP model.
+The next two sentences test the network's ability to resolve ambiguous words, in this case *throw* and *balll* based on the surrounding semantic context. During training, the network learns that busdrivers throw baseballs, whereas teachers throw parties. Thus, the network should produce the appropriate interpretation of these ambiguous sentences.
 
-There are several important lessons from looking at the weights. First, the network seems to learn the right kinds of representations to allow for good generalization. These representations are similar to those of the V4 layer of the object recognition model in that they combine spatial invariance with conjunctive feature encoding. Second, although we are able to obtain insight by looking at some of the representations, not all are so easily interpretable. Further, once the network's complex activation dynamics are figured into the picture, it is even more difficult to figure out what is happening in the processing of any given input. As we know from the nature of the mapping problem itself, lots of subtle countervailing forces must be balanced out to determine how to pronounce a given word. Finally, the fact that we can easily interpret some units' weights is due to the use of Hebbian learning, which causes the weights to reflect the probabilities of unit co-occurrence.
+* Step through these next two sentences (Ambiguity1 and 2) to verify that this is the case.
 
-* Poke around some more at the network's weights, and document a relatively clear example of how the representations across the OrthoCode and Hidden layers make sense in terms of the input/output mapping being performed.  Looking at the front row of OrthoCode in the central pool is a good strategy, for keeping track of where you are, and don't neglect the weights from Hidden to Phon output which can be particularly informative.
+Note that the network makes a mistake here by replacing *teacher* with the other agent that also throws parties, the *schoolgirl*. Thus, the network's context memory is not perfect, but it tends to make semantically appropriate errors, just as people do. 
 
-> **Question 9.7:** Specify what OrthoCode units you have chosen (unit pool, row, col position within pool), what letters those OrthoCode units encode, and how the hidden unit(s) combine the OrthoCode units together -- describe how this combination of letters across locations makes sense in terms the need for both spatial invariance and conjunctive encoding.
+The next test sentence probes the ability of the network to instantiate an ambiguous term (e.g., *someone*) with a more concrete concept. Because the teacher only kisses males (the pitcher or the busdriver), the network should be able to instantiate the ambiguous *someone* with either of these two males.
 
-# Nonword Pronunciation
+* As you Step through this sentence, observe that `someone` is instantiated with `pitcherpers`. 
 
-We next test the network's ability to *generalize* by pronouncing nonwords that exploit the regularities in the spelling to sound mapping. A number of nonword sets exist in the literature -- we use three sets that PMSP used to test their model. The first set of nonwords is comprised of two lists, the first derived from regular words, the second from exception words [(Glushko, 1979)](#references). The second set was constructed to determine if nonwords that are homophones for actual words are pronounced better than those which are not, so the set is also comprised of two lists, a control list and a homophone list [(McCann & Besner, 1987)](#references). The third set of nonwords were derived from the regular and exception probe word lists that we used to test the network earlier [(Taraban & McClelland, 1987)](#references).
+A similar phenomenon can be found in the role elaboration test questions. Here, the network is able to answer questions about aspects of an event that were not actually stated in the input. For example, the network can infer that the schoolgirl would eat crackers with her fingers.
 
-* Return to viewing the `Act` variable in the NetView, set `TestingEnv` to `Glushko`, do `Test All` then quickly hit `Stop` (the `Test All` sets the actual testing environment and resets to start of that).
+* Step through the next sentence (Role elaboration1).
 
-You should see that network correctly pronounced the nonword "beed" by producing bbbEddd as the output.
+You should see that the very last question regarding the instrument role is answered correctly with fingers, even though fingers was never presented in the input. The next sentence takes this one step further and has the network infer what the schoolgirl tends to eat (crackers). 
 
-* Continue to `Test Trial` through some more items on this and the other two testing lists (`Besner`, `Taraban`).
+* Go ahead and Step through this one (Role elaboration2).
 
-| Nonword Set               | ss Model | PMSP  | People |
-|---------------------------|----------|-------|--------|
-| Glushko regulars          | 95.3     | 97.7  | 93.8   |
-| Glushko exceptions raw    | 79.0     | 72.1  | 78.3   |
-| Glushko exceptions alt OK | 97.6     | 100.0 | 95.9   |
-| McCann & Besner ctrls     | 85.9     | 85.0  | 88.6   |
-| McCann & Besner homoph    | 92.3     | n/a   | 94.3   |
-| Taraban & McClelland      | 97.9     | n/a   | 100.0  |
+The next test sentence is intended to evaluate the online updating of information in a case where subsequent information further constrains an initially vague word. In this case, the sentence starts with the word *child*, and the original weights for and older version of the network vacillated back and forth about which child it answered the agent question with. When the network received the adverb *daintiness*, this uniquely identified the schoolgirl, which it then reported as the agent of the sentence (even though it did not appear to fully encode the daintiness input, producing *pleasure* instead). In the trained weights for this model, the network strongly encoded pitcher as the child, and even decided that he should be eating steak (perhaps as a carry-over from the fact that the other male, the busdriver, has a strong preference from steak). This reinforcement of the male agent representation made the model impervious to the daintiness input.
 
-**Table 1** Comparison of nonword reading performance for our spelling-to-sound model (ss Model), the PMSP model, and data from people, across a range of different nonword datasets as described in the text. Our model performs comparably to people, after learning on nearly 3,000 English monosyllabic words.
+* Step through the Online Update sentence.
 
-The total percentages for both our model, PMSP (where reported) and the comparable human data are shown in Table 1 in the Language Chapter (reproduced above). Clearly, the present model is performing at roughly the same level as both humans and the PMSP model. Thus, we can conclude that the network is capable of extracting the often complex and subtle underlying regularities and subregularities present in the mapping of spelling to sound in English monosyllables, and applying these to nonwords in a way that matches what people tend to do.
+To verify that *daintiness* is having an effect on this result, we can run the next control condition where the pitcher is specified as the agent of the sentence -- the older version clearly switched from saying *pitcherpers* to saying *schoolgirl* after receiving the *daintiness* input. Again, this model reinforces the male representation and outputs steak and is unaffected by the daintiness input.
 
-* You can press `Test All` for each `TestingEnv` and click on the `TstEpcPlot` to see a plot of the overall generalization performance, and the `TstErrLog` table shows the errors for each case.
+* Step through the Online control sentence.
 
-We tried to determine for each error why the network might have produced the output it did. In many cases, this output reflected a valid pronunciation present in the training set, but it just didn't happen to be the pronunciation that the list-makers chose. This was particularly true for the Glushko (1979) exception list (for the network and for people). Also, the McCann & Besner (1987) lists contain two words that have a "j" in the coda, which never occurs in the training set. These words were excluded by PMSP, and we discount them here too. Nevertheless, the network did sometimes get these words correct.
+The final test sentence illustrates how the network deals with conflicting information. In this case, the training environment always specifies that iced tea is drunk in the living room, but the input sentence says it was drunk in the kitchen. 
 
-> **Question 9.8:** Can you explain why the present model was sometimes able to pronounce the "j" in the coda correctly, even though none of the training words had a "j" there? (Hint: Think about the effect of translating words over different positions in the input.)
+* Step through this Conflict sentence.
 
-One final aspect of the model that bears on empirical data is its ability to simulate naming latencies as a function of different word features. The features of interest are word frequency and consistency (as enumerated in the Probe codes listed above). The empirical data shows that, as one might expect, higher frequency and more consistent words are named faster than lower frequency and inconsistent words. However, frequency interacts with consistency, such that the frequency effect decreases with increasing consistency (e.g., highly consistent words are pronounced at pretty much the same speed regardless of their frequency, whereas inconsistent words depend more on their frequency). The PMSP model shows the appropriate naming latency effects (and see that paper for more discussion of the empirical literature).
+Notice that the network responds with pitcher (container) for the location, despite getting kitchen in the input. This also causes it to think that the agent is the teacher for some reason.. The main point is that when *kitchen* is input, the network responds with something more consistent with its prior knowledge (Iced-tea is stirred in the container). This may provide a useful demonstration of how prior knowledge biases sentence comprehension, as has been shown in the classic "war of the ghosts" experiment (Bartlett, 1932) and many others.
 
-We assessed the extent to which our model also showed these naming latency effects by recording the average settling time for the words in different frequency and consistency groups for the Probe inputs (shown above). The results are shown in the `TstRTPlot` if you `Test all` on the `Probe` set. The model exhibits some of the appropriate main effects of regularity (e.g., HRC and LRC are both the fastest compared to all other condition, and the exception words, HEX and LEX, are the slowest), and also exhibits the critical interaction, whereby the most consistent words do not exhibit a frequency effect (HRC and LRC are statistically equivalent), and the low frequency exception words (LEX) are slower than the high frequency ones (HEX), but not by very much. Also, some of the other conditions are not entirely sensible. Overall, the frequency effects are very small in this model, likely because of the log compression on frequencies -- it takes much longer to train without this, but clearly the raw frequencies are more realistic.
+# Nature of Representations
+
+Having seen that the network behaves reasonably (if not perfectly), we can explore the nature of its internal representations to get a sense of how it works.
+
+* Press ProbeClust on the overall control panel.
+
+After a short delay, the cluster plot for the unambiguous nouns will show up, followed by the cluster plot for a set of probe sentences (see data/InputData/ProbeSentences data table for these). These sentences systematically vary the agents, patients, and verbs to reveal how these are represented.
+
+* Click the NounEncodeCluster first.
+
+This cluster plot shows very sensible similarity relationships among the encoding representation of the inputs.
+
+* Click the ProbeSentCluster tab to see the sentence probe cluster plot.
+
+This cluster plot shows that the sentences are first clustered together according to verb (not perfectly, but most of the ate (at) cases are in one big cluster, and drink (dr) and stir (st) are in separate clusters, with just a few "outlier" cases at the top), and then by patient, and then by agent within that. Furthermore, across the different patients, there appears to be the same similarity structure for the agents. Thus, we can see that the gestalt representation encodes information in a systematic fashion, as we would expect from the network's behavior. 
+
+> **Question 9.12:** Does this cluster structure reflect purely syntactic information, purely semantic information, or a combination of both types of information? Try to articulate in your own words why this kind of representation would be useful for processing language.
 
 # References
 
-* Glushko, R. J. (1979). The organization and activation of orthographic knowledge in reading aloud. Journal of Experimental Psychology: Human Perception and Performance, 5, 674–691.
+* Elman, J. L. (1990). Finding Structure In Time. Cognitive Science, 14(2), 179–211.
 
-* McCann, R. S., & Besner, D. (1987). Reading Pseudohomophones: Implications for Models of Pronunciation and the Locus of the Word-Frequency Effects in Word Naming. Journal of Experimental Psychology: Human Perception and Performance, 13, 14–24.
-
-* Plaut, D. C., McClelland, J. L., Seidenberg, M. S., & Patterson, K. (1996). Understanding normal and impaired word reading: Computational principles in quasi-regular domains. Psychological Review, 103, 56–115.
-
-* Seidenberg, M. S., & McClelland, J. L. (1989). A distributed, developmental model of word recognition and naming. Psychological Review, 96, 523–568.
-
-* Taraban, R., & McClelland, J. L. (1987). Conspiracy effects in word pronunciation. Journal of Memory and Language, 26, 608–631.
-
+* O’Reilly, R. C., Wyatte, D. R., & Rohrlich, J. (2017). Deep predictive learning: A comprehensive model of three visual streams. ArXiv:1709.04654 [q-Bio]. Retrieved from http://arxiv.org/abs/1709.04654
