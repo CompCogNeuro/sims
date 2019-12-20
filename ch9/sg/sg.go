@@ -174,6 +174,7 @@ type Sim struct {
 	TstEpcLog       *etable.Table     `view:"no-inline" desc:"testing epoch-level log data"`
 	TrnTrlLog       *etable.Table     `view:"no-inline" desc:"training trial-level log data"`
 	TstTrlLog       *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
+	ProbeTrlLog     *etable.Table     `view:"no-inline" desc:"probing trial-level log data"`
 	TrnTrlAmbStats  *etable.Table     `view:"no-inline" desc:"aggregate trl stats for last epc"`
 	TrnTrlRoleStats *etable.Table     `view:"no-inline" desc:"aggregate trl stats for last epc"`
 	TrnTrlQTypStats *etable.Table     `view:"no-inline" desc:"aggregate trl stats for last epc"`
@@ -187,6 +188,7 @@ type Sim struct {
 	NZeroStop       int               `desc:"if a positive number, training will stop after this many epochs with zero SSE"`
 	TrainEnv        SentGenEnv        `desc:"Training environment -- contains everything about iterating over input / output patterns over training"`
 	TestEnv         SentGenEnv        `desc:"Testing environment -- manages iterating over testing"`
+	ProbeEnv        SentGenEnv        `desc:"Probe environment -- manages iterating over testing"`
 	Time            leabra.Time       `desc:"leabra timing parameters and state"`
 	ViewOn          bool              `desc:"whether to update the network view while running"`
 	TrainUpdt       leabra.TimeScales `desc:"at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model"`
@@ -251,6 +253,7 @@ func (ss *Sim) New() {
 	ss.TstEpcLog = &etable.Table{}
 	ss.TrnTrlLog = &etable.Table{}
 	ss.TstTrlLog = &etable.Table{}
+	ss.ProbeTrlLog = &etable.Table{}
 	ss.RunLog = &etable.Table{}
 	ss.RunStats = &etable.Table{}
 	ss.Params = ParamSets
@@ -273,6 +276,7 @@ func (ss *Sim) Config() {
 	ss.ConfigTstEpcLog(ss.TstEpcLog)
 	ss.ConfigTrnTrlLog(ss.TrnTrlLog)
 	ss.ConfigTstTrlLog(ss.TstTrlLog)
+	ss.ConfigProbeTrlLog(ss.ProbeTrlLog)
 	ss.ConfigRunLog(ss.RunLog)
 }
 
@@ -314,8 +318,23 @@ func (ss *Sim) ConfigEnv() {
 	ss.TestEnv.AmbigNouns = SGAmbigNouns
 	ss.TestEnv.Validate()
 
+	ss.ProbeEnv.Nm = "ProbeEnv"
+	ss.ProbeEnv.Dsc = "probe params and state"
+	ss.ProbeEnv.Seq.Max = 14
+	// ss.ProbeEnv.OpenRulesFromAsset("sg_probes.txt")
+	ss.ProbeEnv.Rules.OpenRules("sg_probes.txt")
+	ss.ProbeEnv.PPassive = 0 // passive explicitly marked
+	ss.ProbeEnv.Words = SGWords
+	ss.ProbeEnv.Roles = SGRoles
+	ss.ProbeEnv.Fillers = SGFillers
+	ss.ProbeEnv.WordTrans = SGWordTrans
+	ss.ProbeEnv.AmbigVerbs = SGAmbigVerbs
+	ss.ProbeEnv.AmbigNouns = SGAmbigNouns
+	ss.ProbeEnv.Validate()
+
 	ss.TrainEnv.Init(0)
 	ss.TestEnv.Init(0)
+	ss.ProbeEnv.Init(0)
 }
 
 func (ss *Sim) ConfigNet(net *deep.Network) {
@@ -861,6 +880,24 @@ func (ss *Sim) RunTestAll() {
 	ss.Stopped()
 }
 
+// ProbeAll runs all probes
+func (ss *Sim) ProbeAll() {
+	ss.InitTest()
+	ss.ProbeEnv.Init(ss.TrainEnv.Run.Cur)
+	ss.ProbeTrlLog.SetNumRows(0)
+
+	fill := ss.Net.LayerByName("Filler").(deep.DeepLayer).AsDeep()
+	fill.SetType(emer.Compare)
+
+	for i := 0; i < 16; i++ {
+		ss.ProbeEnv.Step()
+		ss.ApplyInputs(&ss.ProbeEnv)
+		ss.AlphaCyc(false)   // !train
+		ss.TrialStats(false) // !accumulate
+		ss.LogProbeTrl(ss.ProbeTrlLog)
+	}
+}
+
 /////////////////////////////////////////////////////////////////////////
 //   Params setting
 
@@ -1313,9 +1350,17 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 	cur := ss.TestEnv.CurInputs()
 	lys := []string{"Fill", "Inp"}
 
+	st := ""
+	for n, _ := range ss.TestEnv.Rules.Fired {
+		if n != "Sentences" {
+			st = n
+		}
+	}
+
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
 	dt.SetCellFloat("Seq", row, float64(ss.TestEnv.Seq.Cur))
+	dt.SetCellString("SentType", row, st)
 	dt.SetCellFloat("Tick", row, float64(ss.TestEnv.Tick.Cur))
 	dt.SetCellFloat("Trial", row, float64(trl))
 	dt.SetCellString("TrialName", row, ss.TestEnv.String())
@@ -1346,11 +1391,11 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 
 	lys := []string{"Fill", "Inp"}
 
-	nt := ss.TestEnv.Trial.Prv
 	sch := etable.Schema{
 		{"Run", etensor.INT64, nil, nil},
 		{"Epoch", etensor.INT64, nil, nil},
 		{"Seq", etensor.INT64, nil, nil},
+		{"SentType", etensor.STRING, nil, nil},
 		{"Tick", etensor.INT64, nil, nil},
 		{"Trial", etensor.INT64, nil, nil},
 		{"TrialName", etensor.STRING, nil, nil},
@@ -1369,7 +1414,7 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 		sch = append(sch, etable.Column{lnm + "AvgSSE", etensor.FLOAT64, nil, nil})
 		sch = append(sch, etable.Column{lnm + "CosDiff", etensor.FLOAT64, nil, nil})
 	}
-	dt.SetFromSchema(sch, nt)
+	dt.SetFromSchema(sch, 0)
 }
 
 func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
@@ -1386,6 +1431,7 @@ func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetColParams("Run", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("Epoch", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("Seq", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("SentType", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("Tick", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("Trial", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("TrialName", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
@@ -1493,6 +1539,68 @@ func (ss *Sim) ConfigTstEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 		plt.SetColParams("RevQFill"+cl, (cl == "Err"), eplot.FixMin, 0, eplot.FixMax, 1)
 	}
 	return plt
+}
+
+//////////////////////////////////////////////
+//  ProbeTrlLog
+
+// LogProbeTrl adds data from current trial to the ProbeTrlLog table.
+// log always contains number of testing items
+func (ss *Sim) LogProbeTrl(dt *etable.Table) {
+	epc := ss.TrainEnv.Epoch.Prv // this is triggered by increment so use previous value
+	trl := ss.ProbeEnv.Trial.Cur
+	row := dt.Rows
+
+	if dt.Rows <= row {
+		dt.SetNumRows(row + 1)
+	}
+
+	cur := ss.ProbeEnv.CurInputs()
+	st := ""
+	for n, _ := range ss.ProbeEnv.Rules.Fired {
+		if n != "Sentences" {
+			st = n
+		}
+	}
+
+	dt.SetCellFloat("Run", row, float64(ss.ProbeEnv.Run.Cur))
+	dt.SetCellFloat("Epoch", row, float64(epc))
+	dt.SetCellFloat("Seq", row, float64(ss.ProbeEnv.Seq.Cur))
+	dt.SetCellString("SentType", row, st)
+	dt.SetCellFloat("Tick", row, float64(ss.ProbeEnv.Tick.Cur))
+	dt.SetCellFloat("Trial", row, float64(trl))
+	dt.SetCellString("TrialName", row, ss.ProbeEnv.String())
+	dt.SetCellString("Input", row, cur[0])
+	dt.SetCellString("Pred", row, ss.TrlPred)
+	dt.SetCellString("Role", row, cur[1])
+	dt.SetCellString("Filler", row, cur[2])
+	dt.SetCellString("Output", row, ss.TrlOut)
+	dt.SetCellString("QType", row, cur[3])
+
+}
+
+func (ss *Sim) ConfigProbeTrlLog(dt *etable.Table) {
+	dt.SetMetaData("name", "ProbeTrlLog")
+	dt.SetMetaData("desc", "Record of testing per input pattern")
+	dt.SetMetaData("read-only", "true")
+	dt.SetMetaData("precision", strconv.Itoa(LogPrec))
+
+	sch := etable.Schema{
+		{"Run", etensor.INT64, nil, nil},
+		{"Epoch", etensor.INT64, nil, nil},
+		{"Seq", etensor.INT64, nil, nil},
+		{"SentType", etensor.STRING, nil, nil},
+		{"Tick", etensor.INT64, nil, nil},
+		{"Trial", etensor.INT64, nil, nil},
+		{"TrialName", etensor.STRING, nil, nil},
+		{"Input", etensor.STRING, nil, nil},
+		{"Pred", etensor.STRING, nil, nil},
+		{"Role", etensor.STRING, nil, nil},
+		{"Filler", etensor.STRING, nil, nil},
+		{"Output", etensor.STRING, nil, nil},
+		{"QType", etensor.STRING, nil, nil},
+	}
+	dt.SetFromSchema(sch, 0)
 }
 
 //////////////////////////////////////////////
@@ -1754,6 +1862,15 @@ func (ss *Sim) ConfigGui() *gi.Window {
 			ss.TstTrlLog.SetNumRows(0)
 			ss.TstTrlPlot.Update()
 		})
+
+	tbar.AddAction(gi.ActOpts{Label: "Probe All", Icon: "fast-fwd", Tooltip: "probe inputs.", UpdateFunc: func(act *gi.Action) {
+		act.SetActiveStateUpdt(!ss.IsRunning)
+	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+		if !ss.IsRunning {
+			ss.ProbeAll()
+			vp.SetNeedsFullRender()
+		}
+	})
 
 	tbar.AddSeparator("misc")
 
