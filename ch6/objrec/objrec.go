@@ -1102,6 +1102,7 @@ func (ss *Sim) ConfigTstEpcLog(dt *etable.Table) {
 func (ss *Sim) ConfigTstEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
 	plt.Params.Title = "Object Recognition Testing Epoch Plot"
 	plt.Params.XAxisCol = "Obj"
+	plt.Params.Type = eplot.Bar
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Obj", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)

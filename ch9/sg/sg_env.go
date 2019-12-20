@@ -5,7 +5,9 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"log"
 	"math/rand"
 	"strings"
 
@@ -88,6 +90,14 @@ func (ev *SentGenEnv) State(element string) etensor.Tensor {
 
 func (ev *SentGenEnv) Actions() env.Elements {
 	return nil
+}
+
+func (ev *SentGenEnv) OpenRulesFromAsset(fnm string) {
+	ab, err := Asset(fnm) // embedded in executable
+	if err != nil {
+		log.Println(err)
+	}
+	ev.Rules.ReadRules(bytes.NewBuffer(ab))
 }
 
 func (ev *SentGenEnv) Init(run int) {
@@ -256,10 +266,8 @@ func (ev *SentGenEnv) SentSeqActive() {
 		ev.AddInput(si, sq, "curq")
 		switch si { // these additional questions are key for revq perf
 		case 1:
-			// ev.AddQuestion("Agent")  // question not as good..
 			ev.AddInput(si, "Agent", "revq")
 		case 2:
-			// ev.AddQuestion("Action")
 			ev.AddInput(si, "Action", "revq")
 		}
 	}
@@ -271,7 +279,14 @@ func (ev *SentGenEnv) SentSeqActive() {
 	}
 	ev.AddInput(slen-1, mod, "curq")
 	ri := rand.Intn(3) // choose a role to query at random
-	// ev.AddQuestion(seq[ri])
+	if fq, has := ev.Rules.States["FinalQ"]; has {
+		for i := range seq {
+			if seq[i] == fq {
+				ri = i
+				break
+			}
+		}
+	}
 	ev.AddInput(slen-1, seq[ri], "revq")
 }
 
