@@ -1,7 +1,7 @@
 # Makefile for CCN sims projects
 
 # important: update these for each app
-ASSETS=trained.wts
+ASSETS=trained.wts sg_rules.txt sg_tests.txt
 
 # default package install 
 PKGDIR=$(HOME)/ccnsimpkg

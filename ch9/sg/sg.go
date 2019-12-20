@@ -21,6 +21,7 @@ import (
 	"math/rand"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/emer/emergent/emer"
@@ -194,8 +195,8 @@ type Sim struct {
 	LayStatNms      []string          `desc:"names of layers to collect more detailed stats on (avg act, etc)"`
 
 	// statistics: note use float64 as that is best for etable.Table
-	TrlOut        string     `inactive:"+" desc:"output response (most active Filler unit)"`
-	TrlPred       string     `inactive:"+" desc:"predicted word (most active InputP unit)"`
+	TrlOut        string     `inactive:"+" desc:"output response(s) output units active > .2"`
+	TrlPred       string     `inactive:"+" desc:"predicted word(s) active > .2"`
 	TrlErr        [2]float64 `inactive:"+" desc:"1 if trial was error, 0 if correct -- based on SSE = 0 (subject to .5 unit-wise tolerance)"`
 	TrlSSE        [2]float64 `inactive:"+" desc:"current trial's sum squared error"`
 	TrlAvgSSE     [2]float64 `inactive:"+" desc:"current trial's average sum squared error"`
@@ -253,7 +254,7 @@ func (ss *Sim) New() {
 	ss.RunLog = &etable.Table{}
 	ss.RunStats = &etable.Table{}
 	ss.Params = ParamSets
-	ss.RndSeed = 1
+	ss.RndSeed = 10
 	ss.ViewOn = true
 	ss.TrainUpdt = leabra.AlphaCycle
 	ss.TestUpdt = leabra.AlphaCycle
@@ -287,7 +288,8 @@ func (ss *Sim) ConfigEnv() {
 	ss.TrainEnv.Nm = "TrainEnv"
 	ss.TrainEnv.Dsc = "training params and state"
 	ss.TrainEnv.Seq.Max = 100 // sequences per epoch training
-	ss.TrainEnv.Rules.OpenRules("sg_rules.txt")
+	ss.TrainEnv.OpenRulesFromAsset("sg_rules.txt")
+	// ss.TrainEnv.Rules.OpenRules("sg_rules.txt")
 	ss.TrainEnv.PPassive = 0.2
 	ss.TrainEnv.Words = SGWords
 	ss.TrainEnv.Roles = SGRoles
@@ -300,8 +302,9 @@ func (ss *Sim) ConfigEnv() {
 
 	ss.TestEnv.Nm = "TestEnv"
 	ss.TestEnv.Dsc = "testing params and state"
-	ss.TestEnv.Seq.Max = 13
-	ss.TestEnv.Rules.OpenRules("sg_tests.txt")
+	ss.TestEnv.Seq.Max = 14
+	ss.TestEnv.OpenRulesFromAsset("sg_tests.txt")
+	//	ss.TestEnv.Rules.OpenRules("sg_tests.txt")
 	ss.TestEnv.PPassive = 0 // passive explicitly marked
 	ss.TestEnv.Words = SGWords
 	ss.TestEnv.Roles = SGRoles
@@ -589,6 +592,19 @@ func (ss *Sim) InitStats() {
 	}
 }
 
+// ActiveUnitNames reports names of units ActM active > thr, using list of names for units
+func (ss *Sim) ActiveUnitNames(lnm string, nms []string, thr float32) []string {
+	var acts []string
+	ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
+	for ni := range ly.Neurons {
+		nrn := &ly.Neurons[ni]
+		if nrn.ActM > thr {
+			acts = append(acts, nms[ni])
+		}
+	}
+	return acts
+}
+
 // TrialStats computes the trial-level statistics and adds them to the epoch accumulators if
 // accum is true.  Note that we're accumulating stats here on the Sim side so the
 // core algorithm side remains as simple as possible, and doesn't need to worry about
@@ -623,12 +639,11 @@ func (ss *Sim) TrialStats(accum bool) {
 			ss.SumAvgSSE[li] += ss.TrlAvgSSE[li]
 			ss.SumCosDiff[li] += ss.TrlCosDiff[li]
 		}
-		maxu := ly.Pools[0].ActM.MaxIdx
 		switch lnm {
 		case "Filler":
-			ss.TrlOut = ss.TrainEnv.Fillers[maxu]
+			ss.TrlOut = strings.Join(ss.ActiveUnitNames(lnm, ss.TrainEnv.Fillers, .2), ", ")
 		case "InputP":
-			ss.TrlPred = ss.TrainEnv.Words[maxu]
+			ss.TrlPred = strings.Join(ss.ActiveUnitNames(lnm, ss.TrainEnv.Words, .2), ", ")
 		}
 	}
 }
@@ -780,6 +795,15 @@ func (ss *Sim) SaveWeights(filename gi.FileName) {
 ////////////////////////////////////////////////////////////////////////////////////////////
 // Testing
 
+// InitTest initializes testing state
+func (ss *Sim) InitTest() {
+	rand.Seed(ss.RndSeed)
+	ss.TestEnv.Init(ss.TrainEnv.Run.Cur)
+	ss.TstTrlLog.SetNumRows(0)
+	ss.Net.InitActs()
+	ss.UpdateView(false)
+}
+
 // TestTrial runs one trial of testing -- always sequentially presented inputs
 func (ss *Sim) TestTrial(returnOnChg bool) {
 	ss.TestEnv.Step()
@@ -820,8 +844,7 @@ func (ss *Sim) TestSeq() {
 
 // TestAll runs through the full set of testing items
 func (ss *Sim) TestAll() {
-	ss.TestEnv.Init(ss.TrainEnv.Run.Cur)
-	ss.TstTrlLog.SetNumRows(0)
+	ss.InitTest()
 	for {
 		ss.TestTrial(true) // return on change -- don't wrap
 		_, _, chg := ss.TestEnv.Counter(env.Epoch)
@@ -1281,7 +1304,7 @@ func (ss *Sim) ConfigTrnEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 func (ss *Sim) LogTstTrl(dt *etable.Table) {
 	epc := ss.TrainEnv.Epoch.Prv // this is triggered by increment so use previous value
 	trl := ss.TestEnv.Trial.Cur
-	row := trl
+	row := dt.Rows
 
 	if dt.Rows <= row {
 		dt.SetNumRows(row + 1)
@@ -1680,10 +1703,17 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	tbar.AddSeparator("test")
 
-	tbar.AddAction(gi.ActOpts{Label: "Open Weights", Icon: "updt", Tooltip: "Open trained weights ", UpdateFunc: func(act *gi.Action) {
+	tbar.AddAction(gi.ActOpts{Label: "Open Weights", Icon: "update", Tooltip: "Open trained weights ", UpdateFunc: func(act *gi.Action) {
 		act.SetActiveStateUpdt(!ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		ss.OpenWts()
+	})
+
+	tbar.AddAction(gi.ActOpts{Label: "Init Test", Icon: "update", Tooltip: "Initialize to start of testing items.", UpdateFunc: func(act *gi.Action) {
+		act.SetActiveStateUpdt(!ss.IsRunning)
+	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+		ss.InitTest()
+		vp.SetNeedsFullRender()
 	})
 
 	tbar.AddAction(gi.ActOpts{Label: "Test Trial", Icon: "step-fwd", Tooltip: "Runs the next testing trial.", UpdateFunc: func(act *gi.Action) {
@@ -1719,10 +1749,10 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	tbar.AddSeparator("log")
 
-	tbar.AddAction(gi.ActOpts{Label: "Reset RunLog", Icon: "reset", Tooltip: "Reset the accumulated log of all Runs, which are tagged with the ParamSet used"}, win.This(),
+	tbar.AddAction(gi.ActOpts{Label: "Reset TstTrlLog", Icon: "update", Tooltip: "Reset the Testing trial log, so it is easier to read"}, win.This(),
 		func(recv, send ki.Ki, sig int64, data interface{}) {
-			ss.RunLog.SetNumRows(0)
-			ss.RunPlot.Update()
+			ss.TstTrlLog.SetNumRows(0)
+			ss.TstTrlPlot.Update()
 		})
 
 	tbar.AddSeparator("misc")
