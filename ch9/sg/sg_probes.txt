@@ -1,0 +1,120 @@
+// These are the esg (emergent stochastic / sentence generator) rules
+// See emer/emergent/esg for details on syntax etc.
+// probe sentences
+
+// the | means to go in sequential order instead of generating at random
+Sentences | {
+	bu_at_so
+	te_at_so
+	pi_at_so
+	sc_at_so
+	bu_at_st
+	te_at_st
+	pi_at_st
+	sc_at_st
+	bu_dr_ic
+	te_dr_ic
+	pi_dr_ic
+	sc_dr_ic
+	bu_st_ko
+	te_st_ko
+	pi_st_ko
+	sc_st_ko
+}
+
+bu_at_so {
+	=Agent=Busdriver
+	=Action=Ate
+	=Patient=Soup
+	'busdriver' 'ate' 'soup'
+}
+te_at_so {
+	=Agent=Teacher
+	=Action=Ate
+	=Patient=Soup
+	'teacher' 'ate' 'soup'
+}
+pi_at_so {
+	=Agent=PitcherPers
+	=Action=Ate
+	=Patient=Soup
+	'pitcherpers' 'ate' 'soup'
+}
+sc_at_so {
+	=Agent=Schoolgirl
+	=Action=Ate
+	=Patient=Soup
+	'schoolgirl' 'ate' 'soup'
+}
+bu_at_st {
+	=Agent=Busdriver
+	=Action=Ate
+	=Patient=Steak
+	'busdriver' 'ate' 'steak'
+}
+te_at_st {
+	=Agent=Teacher
+	=Action=Ate
+	=Patient=Steak
+	'teacher' 'ate' 'steak'
+}
+pi_at_st {
+	=Agent=PitcherPers
+	=Action=Ate
+	=Patient=Steak
+	'pitcherpers' 'ate' 'steak'
+}
+sc_at_st {
+	=Agent=Schoolgirl
+	=Action=Ate
+	=Patient=Steak
+	'schoolgirl' 'ate' 'steak'
+}
+bu_dr_ic {
+	=Agent=Busdriver
+	=Action=Drank
+	=Patient=Icedtea
+	'busdriver' 'drank' 'icedtea'
+}
+te_dr_ic {
+	=Agent=Teacher
+	=Action=Drank
+	=Patient=Icedtea
+	'teacher' 'drank' 'icedtea'
+}
+pi_dr_ic {
+	=Agent=PitcherPers
+	=Action=Drank
+	=Patient=Icedtea
+	'pitcherpers' 'drank' 'icedtea'
+}
+sc_dr_ic {
+	=Agent=Schoolgirl
+	=Action=Drank
+	=Patient=Icedtea
+	'schoolgirl' 'drank' 'icedtea'
+}
+bu_st_ko {
+	=Agent=Busdriver
+	=Action=Stirred
+	=Patient=Koolaid
+	'busdriver' 'stirred' 'koolaid'
+}
+te_st_ko {
+	=Agent=Teacher
+	=Action=Stirred
+	=Patient=Koolaid
+	'teacher' 'stirred' 'koolaid'
+}
+pi_st_ko {
+	=Agent=PitcherPers
+	=Action=Stirred
+	=Patient=Koolaid
+	'pitcherpers' 'stirred' 'koolaid'
+}
+sc_st_ko {
+	=Agent=Schoolgirl
+	=Action=Stirred
+	=Patient=Koolaid
+	'schoolgirl' 'stirred' 'koolaid'
+}
