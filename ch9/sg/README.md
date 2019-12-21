@@ -44,13 +44,13 @@ The test sentences are designed to illustrate different aspects of the sentence 
 
 * Do `Init Test` and then `Test Trial` to see the first word in the first test sentence.
 
-The first word of the active semantic role assignment sentence (`schoolgirl`) is presented, and the network correctly answers that schoolgirl is the agent of the sentence, which is shown in the `TrlOut` field in the left control panel.  The `TrlErr` field has two values -- the first will show a `1` if there is an error in the Filler output, and the 2nd column shows `InputP` prediction errors (these are common as the model has no idea what to expect, especially early in the sentence).
+The first word of the active semantic role assignment sentence (`schoolgirl`) is presented, and the network correctly answers that schoolgirl is the agent of the sentence, which is shown in the `TrlOut` field in the left control panel.  The `TrlErr` field has two values -- the first will show a `1` if there is an error in the Filler output, and the 2nd column shows `InputP` prediction errors (these are relatively common because getting the prediction exactly correct is impossible due to the stochastic way that sentences are made).  The `TrlPred` field shows these predictions -- they are generally fairly reasonable despite the unpredictability.
 
 Note that there is no plus-phase and no training during this testing, so everything depends on the integration of the input words.
 
-* Continue to do `Test Trial` through to the final word in this Active semantic sentence (spoon). You can click on the `TstTrlPlot` tab to see a bar-plot of each trial as it goes through, with the network's `Output` response.
+* Continue to do `Test Trial` through to the final word in this Active semantic sentence (spoon). You can click on the `TstTrlPlot` tab to see a bar-plot of each trial as it goes through, with the network's `Output` response, and open up the full log by clicking on `TstTrlLog`.  
 
-You should observe that the network is able to identify correctly the roles of all of the words presented (a big yellow bar will show up for any errors). Because in this sentence the roles of the words are constrained by their semantics, this success demonstrates that the network is sensitive to these semantic constraints and can use them in parsing.
+You should observe that the network is able to identify correctly the roles of all of the words presented (a big blue bar will show up for any errors). Because in this sentence the roles of the words are constrained by their semantics, this success demonstrates that the network is sensitive to these semantic constraints and can use them in parsing.
 
 * Hit `Reset TstTrlLog` and then `Test Trial` through the next sentence (Active syntactic) -- you can do `Test Seq` to zip through the entire sequence of one sentence and just look at the bar plot.
 
@@ -108,19 +108,17 @@ This may provide a useful demonstration of how prior knowledge biases sentence c
 
 # Nature of Representations
 
-Having seen that the network behaves reasonably (if not perfectly), we can explore the nature of its internal representations to get a sense of how it works.
+Having seen that the network behaves reasonably (if not perfectly), we can explore the nature of its internal representations (in the Gestalt layer) to get a sense of how it works.
 
-* Press ProbeClust on the overall control panel.
+* Select the `NounProbeClustPlot` tab, and press `ProbeAll` in the toolbar.
 
-After a short delay, the cluster plot for the unambiguous nouns will show up, followed by the cluster plot for a set of probe sentences (see data/InputData/ProbeSentences data table for these). These sentences systematically vary the agents, patients, and verbs to reveal how these are represented.
+After a short delay, the cluster plot for the nouns will show up.  This cluster plot shows some sensible pairings of words such as "schoolgirl" and "daintiness" and "crackers" and "jelly".  However, these results are limited because the words were just presented outside of any sentence context, which the model never experienced.
 
-* Click the NounEncodeCluster first.
+* Click the `SentProbeClustPlot` tab to see the sentence probe cluster plot -- you will need to hit the `Update` button a couple of times within that view to get it to render properly.
 
-This cluster plot shows very sensible similarity relationships among the encoding representation of the inputs.
+These probe sentences systematically vary the agents, verbs, and patients to reveal how the Gestalt layer encodes these factors.  Agents: `bu` = busdriver, `te` = teacher, `pi` = pitcher, `sc` = schoolgirl; Verbs: `dr` = drank, `st` = stirred, `at` = ate; Patients: `ic` = icedtea, `ko` = koolaid, `so` = soup,  `st` = steak.
 
-* Click the ProbeSentCluster tab to see the sentence probe cluster plot.
-
-This cluster plot shows that the sentences are first clustered together according to verb (not perfectly, but most of the ate (at) cases are in one big cluster, and drink (dr) and stir (st) are in separate clusters, with just a few "outlier" cases at the top), and then by patient, and then by agent within that. Furthermore, across the different patients, there appears to be the same similarity structure for the agents. Thus, we can see that the gestalt representation encodes information in a systematic fashion, as we would expect from the network's behavior. 
+This cluster plot shows that the sentences are first clustered together according to verb, and when the verb is the same (ate), the patient (soup vs. steak) breaks apart the clusters.  Within each verb cluster, the grouping of the agents also is organized systematically -- busdriver and schoolgirl are the most different and they never group, whereas busdriver, teacher and pitcher, schoolgirl are most typically related. Thus, we can see that the gestalt representation encodes information in a systematic fashion, as we would expect from the network's behavior. 
 
 > **Question 9.12:** Does this cluster structure reflect purely syntactic information, purely semantic information, or a combination of both types of information? Try to articulate in your own words why this kind of representation would be useful for processing language.
 

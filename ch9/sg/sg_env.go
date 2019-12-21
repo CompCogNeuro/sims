@@ -44,7 +44,7 @@ type SentGenEnv struct {
 	SentInputs    [][]string        `desc:"generated sequence of sentence inputs including role-filler queries"`
 	SentIdx       env.CurPrvInt     `desc:"current index within sentence inputs"`
 	QType         string            `desc:"current question type -- from 4th value of SentInputs"`
-	SentState     etensor.Float32   `desc:"current sentence activation state"`
+	WordState     etensor.Float32   `desc:"current sentence activation state"`
 	RoleState     etensor.Float32   `desc:"current role query activation state"`
 	FillerState   etensor.Float32   `desc:"current filler query activation state"`
 	Run           env.Ctr           `view:"inline" desc:"current run of model as provided during Init"`
@@ -79,7 +79,7 @@ func (ev *SentGenEnv) States() env.Elements {
 func (ev *SentGenEnv) State(element string) etensor.Tensor {
 	switch element {
 	case "Input":
-		return &ev.SentState
+		return &ev.WordState
 	case "Role":
 		return &ev.RoleState
 	case "Filler":
@@ -103,6 +103,8 @@ func (ev *SentGenEnv) OpenRulesFromAsset(fnm string) {
 func (ev *SentGenEnv) Init(run int) {
 	ev.Run.Scale = env.Run
 	ev.Epoch.Scale = env.Epoch
+	ev.Seq.Scale = env.Sequence
+	ev.Tick.Scale = env.Tick
 	ev.Trial.Scale = env.Trial
 	ev.Run.Init()
 	ev.Epoch.Init()
@@ -116,7 +118,7 @@ func (ev *SentGenEnv) Init(run int) {
 	ev.Rules.Init()
 	ev.MapsFmWords()
 
-	ev.SentState.SetShape([]int{len(ev.Words)}, nil, []string{"Words"})
+	ev.WordState.SetShape([]int{len(ev.Words)}, nil, []string{"Words"})
 	ev.RoleState.SetShape([]int{len(ev.Roles)}, nil, []string{"Roles"})
 	ev.FillerState.SetShape([]int{len(ev.Fillers)}, nil, []string{"Fillers"})
 }
@@ -271,8 +273,11 @@ func (ev *SentGenEnv) SentSeqActive() {
 			ev.AddInput(si, "Action", "revq")
 		}
 	}
-	// get any modifier words with random query
 	slen := len(ev.CurSent)
+	if slen == 3 {
+		return
+	}
+	// get any modifier words with random query
 	for si := 3; si < slen-1; si++ {
 		ri := rand.Intn(3) // choose a role to query at random
 		ev.AddInput(si, seq[ri], "revq")
@@ -316,7 +321,7 @@ func (ev *SentGenEnv) SentSeqPassive() {
 
 // RenderState renders the current state
 func (ev *SentGenEnv) RenderState() {
-	ev.SentState.SetZeros()
+	ev.WordState.SetZeros()
 	ev.RoleState.SetZeros()
 	ev.FillerState.SetZeros()
 	cur := ev.CurInputs()
@@ -324,7 +329,7 @@ func (ev *SentGenEnv) RenderState() {
 		return
 	}
 	widx := ev.WordMap[cur[0]]
-	ev.SentState.SetFloat1D(widx, 1)
+	ev.WordState.SetFloat1D(widx, 1)
 	ridx := ev.RoleMap[cur[1]]
 	ev.RoleState.SetFloat1D(ridx, 1)
 	fidx := ev.FillerMap[cur[2]]
