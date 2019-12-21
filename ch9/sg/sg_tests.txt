@@ -19,7 +19,7 @@ Sentences | {
 	Conflict
 }
 
-// Seq 1: should be able to predict everything, including that mod = instrument
+// Seq 0: should be able to predict everything, including that mod = instrument
 ActiveSemantic {
 	=Agent=Schoolgirl
 	=Action=Stirred
@@ -30,7 +30,7 @@ ActiveSemantic {
 	'schoolgirl' 'stirred' 'koolaid' 'with' 'spoon'
 }
 
-// Seq 2: Should be able to predict that teacher was recipient?
+// Seq 1: Should be able to predict that teacher was recipient?
 ActiveSyntactic	 {
 	=Agent=Busdriver
 	=Action=Gave
@@ -41,7 +41,7 @@ ActiveSyntactic	 {
 	'busdriver' 'gave' 'rosen' 'to' 'teacher'
 }
 
-// Seq 3: Passive form -- the Case=Passive causes it to render as passive
+// Seq 2: Passive form -- the Case=Passive causes it to render as passive
 PassiveSemantic {
 	=Case=Passive
 	=Agent=Busdriver
@@ -53,7 +53,7 @@ PassiveSemantic {
 	'busdriver' 'spread' 'jelly' 'with' 'knife'
 }
 
-// Seq 4: Passive, can it get agent and patient right?
+// Seq 3: Passive, can it get agent and patient right?
 PassiveSyntactic {
 	=Case=Passive
 	=Agent=Busdriver
@@ -65,7 +65,7 @@ PassiveSyntactic {
 	'busdriver' 'kissed' 'teacher' 'in' 'park'
 }
 
-// Seq 5: Active version of previous passive syntactic case
+// Seq 4: Active version of previous passive syntactic case
 ActiveControl {
 	=Agent=Busdriver
 	=Action=Kissed
@@ -76,7 +76,7 @@ ActiveControl {
 	'busdriver' 'kissed' 'teacher' 'in' 'park'
 }
 
-// Seq 6: Ambiguity: threw = threwtossed (busdriver), ball = ballsphere
+// Seq 5: Ambiguity: threw = threwtossed (busdriver), ball = ballsphere
 Ambiguity1	 {
 	=Agent=Busdriver
 	=Action=ThrewTossed
@@ -87,7 +87,7 @@ Ambiguity1	 {
 	'busdriver' 'threwtossed' 'ballsphere' 'in' 'park'
 }
 
-// Seq 7: Ambiguity: threw = threwhosted (teacher), ball = ballparty
+// Seq 6: Ambiguity: threw = threwhosted (teacher), ball = ballparty
 Ambiguity2	 {
 	=Agent=Teacher
 	=Action=ThrewHosted
@@ -98,7 +98,7 @@ Ambiguity2	 {
 	'teacher' 'threwhosted' 'ballparty' 'in' 'livingroom'
 }
 
-// Seq 8: Instantiate ambiguous someone reference
+// Seq 7: Instantiate ambiguous someone reference
 ConceptInstantiation {
 	=Agent=Teacher
 	=Action=Kissed
@@ -109,7 +109,7 @@ ConceptInstantiation {
 	'teacher' 'kissed' 'someone' 'in' 'park'
 }
 
-// Seq 9: Elaborate instrument with something -> knife
+// Seq 8: Elaborate instrument with something -> knife
 RoleElaboration1 {
 	=Agent=Busdriver
 	=Action=Ate
@@ -120,7 +120,7 @@ RoleElaboration1 {
 	'busdriver' 'ate' 'steak' 'with' 'something'
 }
 
-// Seq 10: Elaborate instrument with something -> spoon?
+// Seq 9: Elaborate instrument with something -> spoon?
 RoleElaboration2 {
 	=Agent=PitcherPers
 	=Action=Ate
@@ -131,7 +131,7 @@ RoleElaboration2 {
 	'pitcherpers' 'ate' 'something' 'with' 'spoon'
 }
 
-// Seq 11: Update child = schoolgirl based on daintiness
+// Seq 10: Update child = schoolgirl based on daintiness
 OnlineUpdate {
 	=Agent=Schoolgirl
 	=Action=Ate
@@ -142,7 +142,7 @@ OnlineUpdate {
 	'child' 'ate' 'soup' 'with' 'daintiness'
 }
 
-// Seq 12: Explicit contradictory input for daintiness
+// Seq 11: Explicit contradictory input for daintiness
 OnlineUpdateControl {
 	=Agent=PitcherPers
 	=Action=Ate
@@ -153,7 +153,7 @@ OnlineUpdateControl {
 	'pitcherpers' 'ate' 'soup' 'with' 'daintiness'
 }
 
-// Seq 13: Icedtea is always in Livingroom!
+// Seq 12: Icedtea is always in Livingroom!
 Conflict {
 	=Agent=Busdriver
 	=Action=Drank

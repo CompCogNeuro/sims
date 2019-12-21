@@ -31,10 +31,13 @@ import (
 	"github.com/emer/emergent/prjn"
 	"github.com/emer/emergent/relpos"
 	"github.com/emer/etable/agg"
+	"github.com/emer/etable/clust"
 	"github.com/emer/etable/eplot"
 	"github.com/emer/etable/etable"
 	"github.com/emer/etable/etensor"
 	_ "github.com/emer/etable/etview" // include to get gui views
+	"github.com/emer/etable/metric"
+	"github.com/emer/etable/simat"
 	"github.com/emer/etable/split"
 	"github.com/emer/leabra/deep"
 	"github.com/emer/leabra/leabra"
@@ -174,9 +177,9 @@ type Sim struct {
 	TstEpcLog       *etable.Table     `view:"no-inline" desc:"testing epoch-level log data"`
 	TrnTrlLog       *etable.Table     `view:"no-inline" desc:"training trial-level log data"`
 	TstTrlLog       *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
-	ProbeTrlLog     *etable.Table     `view:"no-inline" desc:"probing trial-level log data"`
+	SentProbeTrlLog *etable.Table     `view:"no-inline" desc:"probing trial-level log data"`
+	NounProbeTrlLog *etable.Table     `view:"no-inline" desc:"probing trial-level log data"`
 	TrnTrlAmbStats  *etable.Table     `view:"no-inline" desc:"aggregate trl stats for last epc"`
-	TrnTrlRoleStats *etable.Table     `view:"no-inline" desc:"aggregate trl stats for last epc"`
 	TrnTrlQTypStats *etable.Table     `view:"no-inline" desc:"aggregate trl stats for last epc"`
 	RunLog          *etable.Table     `view:"no-inline" desc:"summary log of each run"`
 	RunStats        *etable.Table     `view:"no-inline" desc:"aggregate stats on all runs"`
@@ -188,13 +191,17 @@ type Sim struct {
 	NZeroStop       int               `desc:"if a positive number, training will stop after this many epochs with zero SSE"`
 	TrainEnv        SentGenEnv        `desc:"Training environment -- contains everything about iterating over input / output patterns over training"`
 	TestEnv         SentGenEnv        `desc:"Testing environment -- manages iterating over testing"`
-	ProbeEnv        SentGenEnv        `desc:"Probe environment -- manages iterating over testing"`
+	SentProbeEnv    SentGenEnv        `desc:"Probe environment -- manages iterating over testing"`
+	NounProbeEnv    ProbeEnv          `desc:"Probe environment -- manages iterating over testing"`
 	Time            leabra.Time       `desc:"leabra timing parameters and state"`
 	ViewOn          bool              `desc:"whether to update the network view while running"`
 	TrainUpdt       leabra.TimeScales `desc:"at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model"`
 	TestUpdt        leabra.TimeScales `desc:"at what time scale to update the display during testing?  Anything longer than Epoch updates at Epoch in this model"`
 	TestInterval    int               `desc:"how often to run through all the test patterns, in terms of training epochs -- can use 0 or -1 for no testing"`
-	LayStatNms      []string          `desc:"names of layers to collect more detailed stats on (avg act, etc)"`
+	LayStatNms      []string          `view:"-" desc:"names of layers to collect more detailed stats on (avg act, etc)"`
+	StatLayNms      []string          `view:"-" desc:"stat layers"`
+	StatNms         []string          `view:"-" desc:"stat short names"`
+	ProbeNms        []string          `view:"-" desc:"layers to probe"`
 
 	// statistics: note use float64 as that is best for etable.Table
 	TrlOut        string     `inactive:"+" desc:"output response(s) output units active > .2"`
@@ -213,30 +220,32 @@ type Sim struct {
 	NZero         int        `inactive:"+" desc:"number of epochs in a row with zero SSE"`
 
 	// internal state - view:"-"
-	SumN         [2]float64                  `view:"-" inactive:"+" desc:"number of each stat"`
-	SumErr       [2]float64                  `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
-	SumSSE       [2]float64                  `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
-	SumAvgSSE    [2]float64                  `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
-	SumCosDiff   [2]float64                  `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
-	Win          *gi.Window                  `view:"-" desc:"main GUI window"`
-	NetView      *netview.NetView            `view:"-" desc:"the network viewer"`
-	ToolBar      *gi.ToolBar                 `view:"-" desc:"the master toolbar"`
-	TrnEpcPlot   *eplot.Plot2D               `view:"-" desc:"the training epoch plot"`
-	TstEpcPlot   *eplot.Plot2D               `view:"-" desc:"the testing epoch plot"`
-	TrnTrlPlot   *eplot.Plot2D               `view:"-" desc:"the train-trial plot"`
-	TstTrlPlot   *eplot.Plot2D               `view:"-" desc:"the test-trial plot"`
-	RunPlot      *eplot.Plot2D               `view:"-" desc:"the run plot"`
-	TrnEpcFile   *os.File                    `view:"-" desc:"log file"`
-	RunFile      *os.File                    `view:"-" desc:"log file"`
-	ValsTsrs     map[string]*etensor.Float32 `view:"-" desc:"for holding layer values"`
-	SaveWts      bool                        `view:"-" desc:"for command-line run only, auto-save final weights after each run"`
-	NoGui        bool                        `view:"-" desc:"if true, runing in no GUI mode"`
-	LogSetParams bool                        `view:"-" desc:"if true, print message for all params that are set"`
-	IsRunning    bool                        `view:"-" desc:"true if sim is running"`
-	StopNow      bool                        `view:"-" desc:"flag to stop running"`
-	NeedsNewRun  bool                        `view:"-" desc:"flag to initialize NewRun if last one finished"`
-	RndSeed      int64                       `view:"-" desc:"the current random seed"`
-	LastEpcTime  time.Time                   `view:"-" desc:"timer for last epoch"`
+	SumN               [2]float64                  `view:"-" inactive:"+" desc:"number of each stat"`
+	SumErr             [2]float64                  `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
+	SumSSE             [2]float64                  `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
+	SumAvgSSE          [2]float64                  `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
+	SumCosDiff         [2]float64                  `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
+	Win                *gi.Window                  `view:"-" desc:"main GUI window"`
+	NetView            *netview.NetView            `view:"-" desc:"the network viewer"`
+	ToolBar            *gi.ToolBar                 `view:"-" desc:"the master toolbar"`
+	TrnEpcPlot         *eplot.Plot2D               `view:"-" desc:"the training epoch plot"`
+	TstEpcPlot         *eplot.Plot2D               `view:"-" desc:"the testing epoch plot"`
+	TrnTrlPlot         *eplot.Plot2D               `view:"-" desc:"the train-trial plot"`
+	TstTrlPlot         *eplot.Plot2D               `view:"-" desc:"the test-trial plot"`
+	SentProbeClustPlot *eplot.Plot2D               `view:"-" desc:"the probe cluster plot"`
+	NounProbeClustPlot *eplot.Plot2D               `view:"-" desc:"the probe cluster plot"`
+	RunPlot            *eplot.Plot2D               `view:"-" desc:"the run plot"`
+	TrnEpcFile         *os.File                    `view:"-" desc:"log file"`
+	RunFile            *os.File                    `view:"-" desc:"log file"`
+	ValsTsrs           map[string]*etensor.Float32 `view:"-" desc:"for holding layer values"`
+	SaveWts            bool                        `view:"-" desc:"for command-line run only, auto-save final weights after each run"`
+	NoGui              bool                        `view:"-" desc:"if true, runing in no GUI mode"`
+	LogSetParams       bool                        `view:"-" desc:"if true, print message for all params that are set"`
+	IsRunning          bool                        `view:"-" desc:"true if sim is running"`
+	StopNow            bool                        `view:"-" desc:"flag to stop running"`
+	NeedsNewRun        bool                        `view:"-" desc:"flag to initialize NewRun if last one finished"`
+	RndSeed            int64                       `view:"-" desc:"the current random seed"`
+	LastEpcTime        time.Time                   `view:"-" desc:"timer for last epoch"`
 }
 
 // this registers this Sim Type and gives it properties that e.g.,
@@ -253,7 +262,8 @@ func (ss *Sim) New() {
 	ss.TstEpcLog = &etable.Table{}
 	ss.TrnTrlLog = &etable.Table{}
 	ss.TstTrlLog = &etable.Table{}
-	ss.ProbeTrlLog = &etable.Table{}
+	ss.SentProbeTrlLog = &etable.Table{}
+	ss.NounProbeTrlLog = &etable.Table{}
 	ss.RunLog = &etable.Table{}
 	ss.RunStats = &etable.Table{}
 	ss.Params = ParamSets
@@ -263,6 +273,9 @@ func (ss *Sim) New() {
 	ss.TestUpdt = leabra.AlphaCycle
 	ss.TestInterval = 5000
 	ss.LayStatNms = []string{"Encode", "EncodeD", "Gestalt", "GestaltD", "Decode"}
+	ss.StatLayNms = []string{"Filler", "InputP"}
+	ss.StatNms = []string{"Fill", "Inp"}
+	ss.ProbeNms = []string{"Gestalt", "GestaltD"}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -276,7 +289,8 @@ func (ss *Sim) Config() {
 	ss.ConfigTstEpcLog(ss.TstEpcLog)
 	ss.ConfigTrnTrlLog(ss.TrnTrlLog)
 	ss.ConfigTstTrlLog(ss.TstTrlLog)
-	ss.ConfigProbeTrlLog(ss.ProbeTrlLog)
+	ss.ConfigSentProbeTrlLog(ss.SentProbeTrlLog)
+	ss.ConfigNounProbeTrlLog(ss.NounProbeTrlLog)
 	ss.ConfigRunLog(ss.RunLog)
 }
 
@@ -318,23 +332,29 @@ func (ss *Sim) ConfigEnv() {
 	ss.TestEnv.AmbigNouns = SGAmbigNouns
 	ss.TestEnv.Validate()
 
-	ss.ProbeEnv.Nm = "ProbeEnv"
-	ss.ProbeEnv.Dsc = "probe params and state"
-	ss.ProbeEnv.Seq.Max = 14
-	// ss.ProbeEnv.OpenRulesFromAsset("sg_probes.txt")
-	ss.ProbeEnv.Rules.OpenRules("sg_probes.txt")
-	ss.ProbeEnv.PPassive = 0 // passive explicitly marked
-	ss.ProbeEnv.Words = SGWords
-	ss.ProbeEnv.Roles = SGRoles
-	ss.ProbeEnv.Fillers = SGFillers
-	ss.ProbeEnv.WordTrans = SGWordTrans
-	ss.ProbeEnv.AmbigVerbs = SGAmbigVerbs
-	ss.ProbeEnv.AmbigNouns = SGAmbigNouns
-	ss.ProbeEnv.Validate()
+	ss.SentProbeEnv.Nm = "SentProbeEnv"
+	ss.SentProbeEnv.Dsc = "probe params and state"
+	ss.SentProbeEnv.Seq.Max = 17
+	ss.SentProbeEnv.OpenRulesFromAsset("sg_probes.txt")
+	// ss.SentProbeEnv.Rules.OpenRules("sg_probes.txt")
+	ss.SentProbeEnv.PPassive = 0 // passive explicitly marked
+	ss.SentProbeEnv.Words = SGWords
+	ss.SentProbeEnv.Roles = SGRoles
+	ss.SentProbeEnv.Fillers = SGFillers
+	ss.SentProbeEnv.WordTrans = SGWordTrans
+	ss.SentProbeEnv.AmbigVerbs = SGAmbigVerbs
+	ss.SentProbeEnv.AmbigNouns = SGAmbigNouns
+	ss.SentProbeEnv.Validate()
+
+	ss.NounProbeEnv.Nm = "NounProbeEnv"
+	ss.NounProbeEnv.Dsc = "probe params and state"
+	ss.NounProbeEnv.Words = SGWords
+	ss.NounProbeEnv.Validate()
 
 	ss.TrainEnv.Init(0)
 	ss.TestEnv.Init(0)
-	ss.ProbeEnv.Init(0)
+	ss.SentProbeEnv.Init(0)
+	ss.NounProbeEnv.Init(0)
 }
 
 func (ss *Sim) ConfigNet(net *deep.Network) {
@@ -546,7 +566,7 @@ func (ss *Sim) AlphaCyc(train bool) {
 	}
 }
 
-// ApplyInputs applies input patterns from given envirbonment.
+// ApplyInputs applies input patterns from given environment.
 // It is good practice to have this be a separate method with appropriate
 // args so that it can be used for various different contexts
 // (training, testing, etc).
@@ -555,6 +575,24 @@ func (ss *Sim) ApplyInputs(en env.Env) {
 	// going to the same layers, but good practice and cheap anyway
 
 	lays := []string{"Input", "Role", "Filler"}
+	for _, lnm := range lays {
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
+		pats := en.State(ly.Nm)
+		if pats != nil {
+			ly.ApplyExt(pats)
+		}
+	}
+}
+
+// ApplyInputsProbe applies input patterns from given environment.
+// It is good practice to have this be a separate method with appropriate
+// args so that it can be used for various different contexts
+// (training, testing, etc).
+func (ss *Sim) ApplyInputsProbe(en env.Env) {
+	ss.Net.InitExt() // clear any existing inputs -- not strictly necessary if always
+	// going to the same layers, but good practice and cheap anyway
+
+	lays := []string{"Input"}
 	for _, lnm := range lays {
 		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		pats := en.State(ly.Nm)
@@ -630,8 +668,7 @@ func (ss *Sim) ActiveUnitNames(lnm string, nms []string, thr float32) []string {
 // different time-scales over which stats could be accumulated etc.
 // You can also aggregate directly from log data, as is done for testing stats
 func (ss *Sim) TrialStats(accum bool) {
-	lys := []string{"Filler", "InputP"}
-	for li, lnm := range lys {
+	for li, lnm := range ss.StatLayNms {
 		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		ss.TrlCosDiff[li] = float64(ly.CosDiff.Cos)
 		sse, avgsse := ly.MSE(0.5) // 0.5 = per-unit tolerance -- right side of .5
@@ -883,19 +920,38 @@ func (ss *Sim) RunTestAll() {
 // ProbeAll runs all probes
 func (ss *Sim) ProbeAll() {
 	ss.InitTest()
-	ss.ProbeEnv.Init(ss.TrainEnv.Run.Cur)
-	ss.ProbeTrlLog.SetNumRows(0)
+	ss.SentProbeEnv.Init(ss.TrainEnv.Run.Cur)
+	ss.SentProbeTrlLog.SetNumRows(0)
 
 	fill := ss.Net.LayerByName("Filler").(deep.DeepLayer).AsDeep()
 	fill.SetType(emer.Compare)
 
-	for i := 0; i < 16; i++ {
-		ss.ProbeEnv.Step()
-		ss.ApplyInputs(&ss.ProbeEnv)
+	for {
+		ss.SentProbeEnv.Step()
+		if ss.SentProbeEnv.Seq.Cur == 0 {
+			break
+		}
+		ss.ApplyInputs(&ss.SentProbeEnv)
 		ss.AlphaCyc(false)   // !train
 		ss.TrialStats(false) // !accumulate
-		ss.LogProbeTrl(ss.ProbeTrlLog)
+		ss.LogSentProbeTrl(ss.SentProbeTrlLog)
 	}
+
+	ss.NounProbeEnv.Init(ss.TrainEnv.Run.Cur)
+	ss.NounProbeTrlLog.SetNumRows(0)
+	epc := ss.NounProbeEnv.Epoch.Cur
+	for {
+		ss.NounProbeEnv.Step()
+		if ss.NounProbeEnv.Epoch.Cur != epc {
+			break
+		}
+		ss.Net.InitActs()
+		ss.ApplyInputsProbe(&ss.NounProbeEnv)
+		ss.AlphaCyc(false)   // !train
+		ss.TrialStats(false) // !accumulate
+		ss.LogNounProbeTrl(ss.NounProbeTrlLog)
+	}
+	ss.ProbeClusterPlot()
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -1013,11 +1069,10 @@ func (ss *Sim) LogTrnTrl(dt *etable.Table) {
 	}
 
 	cur := ss.TrainEnv.CurInputs()
-	lys := []string{"Fill", "Inp"}
 
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
-	dt.SetCellFloat("Seq", row, float64(ss.TrainEnv.Seq.Cur))
+	dt.SetCellFloat("Seq", row, float64(ss.TrainEnv.Seq.Prv))
 	dt.SetCellFloat("Tick", row, float64(ss.TrainEnv.Tick.Cur))
 	dt.SetCellFloat("Trial", row, float64(trl))
 	dt.SetCellString("TrialName", row, ss.TrainEnv.String())
@@ -1029,7 +1084,7 @@ func (ss *Sim) LogTrnTrl(dt *etable.Table) {
 	dt.SetCellString("QType", row, cur[3])
 	dt.SetCellFloat("AmbigVerb", row, float64(ss.TrainEnv.NAmbigVerbs))
 	dt.SetCellFloat("AmbigNouns", row, math.Min(float64(ss.TrainEnv.NAmbigNouns), 1))
-	for li, lnm := range lys {
+	for li, lnm := range ss.StatNms {
 		dt.SetCellFloat(lnm+"Err", row, ss.TrlErr[li])
 		dt.SetCellFloat(lnm+"SSE", row, ss.TrlSSE[li])
 		dt.SetCellFloat(lnm+"AvgSSE", row, ss.TrlAvgSSE[li])
@@ -1045,8 +1100,6 @@ func (ss *Sim) ConfigTrnTrlLog(dt *etable.Table) {
 	dt.SetMetaData("desc", "Record of training per input pattern")
 	dt.SetMetaData("read-only", "true")
 	dt.SetMetaData("precision", strconv.Itoa(LogPrec))
-
-	lys := []string{"Fill", "Inp"}
 
 	// nt := ss.TrainEnv.Trial.Prv
 	sch := etable.Schema{
@@ -1065,7 +1118,7 @@ func (ss *Sim) ConfigTrnTrlLog(dt *etable.Table) {
 		{"AmbigVerb", etensor.FLOAT64, nil, nil},
 		{"AmbigNouns", etensor.FLOAT64, nil, nil},
 	}
-	for _, lnm := range lys {
+	for _, lnm := range ss.StatNms {
 		sch = append(sch, etable.Column{lnm + "Err", etensor.FLOAT64, nil, nil})
 		sch = append(sch, etable.Column{lnm + "SSE", etensor.FLOAT64, nil, nil})
 		sch = append(sch, etable.Column{lnm + "AvgSSE", etensor.FLOAT64, nil, nil})
@@ -1077,8 +1130,6 @@ func (ss *Sim) ConfigTrnTrlLog(dt *etable.Table) {
 func (ss *Sim) ConfigTrnTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
 	plt.Params.Title = "Sentence Gestalt Train Trial Plot"
 	plt.Params.XAxisCol = "Trial"
-
-	lys := []string{"Fill", "Inp"}
 
 	plt.SetTable(dt)
 	// order of params: on, fixMin, min, fixMax, max
@@ -1097,7 +1148,7 @@ func (ss *Sim) ConfigTrnTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetColParams("AmbigVerb", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
 	plt.SetColParams("AmbigNouns", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
 
-	for _, lnm := range lys {
+	for _, lnm := range ss.StatNms {
 		plt.SetColParams(lnm+"Err", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
 		plt.SetColParams(lnm+"SSE", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
 		plt.SetColParams(lnm+"AvgSSE", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
@@ -1152,8 +1203,7 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 	ss.LastEpcTime = time.Now()
 	dt.SetCellFloat("PerTrlMSec", row, ss.EpcPerTrlMSec)
 
-	lys := []string{"Fill", "Inp"}
-	for li, lnm := range lys {
+	for li, lnm := range ss.StatNms {
 		ss.EpcSSE[li] = ss.SumSSE[li] / ss.SumN[li]
 		ss.SumSSE[li] = 0
 		ss.EpcAvgSSE[li] = ss.SumAvgSSE[li] / ss.SumN[li]
@@ -1205,9 +1255,8 @@ func (ss *Sim) LogEpcStats(dt *etable.Table, trlog *etable.Table) {
 	// })
 	// rolespl := split.GroupBy(noambtix, []string{"Role"})
 
-	lys := []string{"Fill", "Inp"}
 	cols := []string{"Err", "SSE", "CosDiff"}
-	for _, lnm := range lys {
+	for _, lnm := range ss.StatNms {
 		for _, cl := range cols {
 			split.Agg(ambspl, lnm+cl, agg.AggMean)
 			split.Agg(qtspl, lnm+cl, agg.AggMean)
@@ -1235,7 +1284,7 @@ func (ss *Sim) LogEpcStats(dt *etable.Table, trlog *etable.Table) {
 		}
 	}
 
-	// for _, lnm := range lys {
+	// for _, lnm := range ss.StatNms {
 	// 	for ri, rl := range SGRoles {
 	// 		for _, cl := range cols {
 	// 			dt.SetCellFloat(rl+lnm+cl, row, rolest.CellFloat(lnm+cl, ri))
@@ -1256,8 +1305,7 @@ func (ss *Sim) ConfigTrnEpcLog(dt *etable.Table) {
 		{"PerTrlMSec", etensor.FLOAT64, nil, nil},
 	}
 
-	lys := []string{"Fill", "Inp"}
-	for _, lnm := range lys {
+	for _, lnm := range ss.StatNms {
 		sch = append(sch, etable.Column{lnm + "SSE", etensor.FLOAT64, nil, nil})
 		sch = append(sch, etable.Column{lnm + "AvgSSE", etensor.FLOAT64, nil, nil})
 		sch = append(sch, etable.Column{lnm + "PctErr", etensor.FLOAT64, nil, nil})
@@ -1273,7 +1321,7 @@ func (ss *Sim) ConfigTrnEpcLog(dt *etable.Table) {
 		sch = append(sch, etable.Column{"RevQFill" + cl, etensor.FLOAT64, nil, nil})
 	}
 
-	// for _, lnm := range lys {
+	// for _, lnm := range ss.StatNms {
 	// 	for _, rl := range SGRoles {
 	// 		for _, cl := range cols {
 	// 			sch = append(sch, etable.Column{rl + lnm + cl, etensor.FLOAT64, nil, nil})
@@ -1294,14 +1342,12 @@ func (ss *Sim) ConfigTrnEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.Params.XAxisCol = "Epoch"
 	plt.SetTable(dt)
 
-	lys := []string{"Fill", "Inp"}
-
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Run", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("Epoch", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("PerTrlMSec", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 
-	for _, lnm := range lys {
+	for _, lnm := range ss.StatNms {
 		plt.SetColParams(lnm+"SSE", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 		plt.SetColParams(lnm+"AvgSSE", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 		plt.SetColParams(lnm+"PctErr", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1) // default plot
@@ -1317,7 +1363,7 @@ func (ss *Sim) ConfigTrnEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 		plt.SetColParams("RevQFill"+cl, (cl == "Err"), eplot.FixMin, 0, eplot.FixMax, 1)
 	}
 
-	// for _, lnm := range lys {
+	// for _, lnm := range ss.StatNms {
 	// 	for _, rl := range SGRoles {
 	// 		for _, cl := range cols {
 	// 			plt.SetColParams(rl+lnm+cl, eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
@@ -1348,7 +1394,6 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 	}
 
 	cur := ss.TestEnv.CurInputs()
-	lys := []string{"Fill", "Inp"}
 
 	st := ""
 	for n, _ := range ss.TestEnv.Rules.Fired {
@@ -1359,7 +1404,7 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
-	dt.SetCellFloat("Seq", row, float64(ss.TestEnv.Seq.Cur))
+	dt.SetCellFloat("Seq", row, float64(ss.TestEnv.Seq.Prv))
 	dt.SetCellString("SentType", row, st)
 	dt.SetCellFloat("Tick", row, float64(ss.TestEnv.Tick.Cur))
 	dt.SetCellFloat("Trial", row, float64(trl))
@@ -1372,7 +1417,7 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 	dt.SetCellString("QType", row, cur[3])
 	dt.SetCellFloat("AmbigVerb", row, float64(ss.TestEnv.NAmbigVerbs))
 	dt.SetCellFloat("AmbigNouns", row, math.Min(float64(ss.TestEnv.NAmbigNouns), 1))
-	for li, lnm := range lys {
+	for li, lnm := range ss.StatNms {
 		dt.SetCellFloat(lnm+"Err", row, ss.TrlErr[li])
 		dt.SetCellFloat(lnm+"SSE", row, ss.TrlSSE[li])
 		dt.SetCellFloat(lnm+"AvgSSE", row, ss.TrlAvgSSE[li])
@@ -1388,8 +1433,6 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 	dt.SetMetaData("desc", "Record of testing per input pattern")
 	dt.SetMetaData("read-only", "true")
 	dt.SetMetaData("precision", strconv.Itoa(LogPrec))
-
-	lys := []string{"Fill", "Inp"}
 
 	sch := etable.Schema{
 		{"Run", etensor.INT64, nil, nil},
@@ -1408,7 +1451,7 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 		{"AmbigVerb", etensor.FLOAT64, nil, nil},
 		{"AmbigNouns", etensor.FLOAT64, nil, nil},
 	}
-	for _, lnm := range lys {
+	for _, lnm := range ss.StatNms {
 		sch = append(sch, etable.Column{lnm + "Err", etensor.FLOAT64, nil, nil})
 		sch = append(sch, etable.Column{lnm + "SSE", etensor.FLOAT64, nil, nil})
 		sch = append(sch, etable.Column{lnm + "AvgSSE", etensor.FLOAT64, nil, nil})
@@ -1424,8 +1467,6 @@ func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetTable(dt)
 	plt.Params.XAxisRot = 45
 	plt.Params.BarWidth = 5
-
-	lys := []string{"Fill", "Inp"}
 
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Run", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
@@ -1444,7 +1485,7 @@ func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetColParams("AmbigVerb", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
 	plt.SetColParams("AmbigNouns", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
 
-	for _, lnm := range lys {
+	for _, lnm := range ss.StatNms {
 		plt.SetColParams(lnm+"Err", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
 		plt.SetColParams(lnm+"SSE", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
 		plt.SetColParams(lnm+"AvgSSE", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
@@ -1472,8 +1513,7 @@ func (ss *Sim) LogTstEpc(dt *etable.Table) {
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
 
-	lys := []string{"Fill", "Inp"}
-	for _, lnm := range lys {
+	for _, lnm := range ss.StatNms {
 		dt.SetCellFloat(lnm+"SSE", row, agg.Mean(tix, lnm+"SSE")[0])
 		dt.SetCellFloat(lnm+"AvgSSE", row, agg.Mean(tix, lnm+"AvgSSE")[0])
 		dt.SetCellFloat(lnm+"PctErr", row, agg.Mean(tix, lnm+"Err")[0])
@@ -1497,8 +1537,7 @@ func (ss *Sim) ConfigTstEpcLog(dt *etable.Table) {
 		{"Epoch", etensor.INT64, nil, nil},
 	}
 
-	lys := []string{"Fill", "Inp"}
-	for _, lnm := range lys {
+	for _, lnm := range ss.StatNms {
 		sch = append(sch, etable.Column{lnm + "SSE", etensor.FLOAT64, nil, nil})
 		sch = append(sch, etable.Column{lnm + "AvgSSE", etensor.FLOAT64, nil, nil})
 		sch = append(sch, etable.Column{lnm + "PctErr", etensor.FLOAT64, nil, nil})
@@ -1523,8 +1562,7 @@ func (ss *Sim) ConfigTstEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.SetColParams("Run", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("Epoch", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 
-	lys := []string{"Fill", "Inp"}
-	for _, lnm := range lys {
+	for _, lnm := range ss.StatNms {
 		plt.SetColParams(lnm+"SSE", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 		plt.SetColParams(lnm+"AvgSSE", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 		plt.SetColParams(lnm+"PctErr", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1) // default plot
@@ -1542,34 +1580,34 @@ func (ss *Sim) ConfigTstEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 }
 
 //////////////////////////////////////////////
-//  ProbeTrlLog
+//  SentProbeTrlLog
 
-// LogProbeTrl adds data from current trial to the ProbeTrlLog table.
+// LogSentProbeTrl adds data from current trial to the SentProbeTrlLog table.
 // log always contains number of testing items
-func (ss *Sim) LogProbeTrl(dt *etable.Table) {
+func (ss *Sim) LogSentProbeTrl(dt *etable.Table) {
 	epc := ss.TrainEnv.Epoch.Prv // this is triggered by increment so use previous value
-	trl := ss.ProbeEnv.Trial.Cur
+	trl := ss.SentProbeEnv.Trial.Cur
 	row := dt.Rows
 
 	if dt.Rows <= row {
 		dt.SetNumRows(row + 1)
 	}
 
-	cur := ss.ProbeEnv.CurInputs()
+	cur := ss.SentProbeEnv.CurInputs()
 	st := ""
-	for n, _ := range ss.ProbeEnv.Rules.Fired {
+	for n, _ := range ss.SentProbeEnv.Rules.Fired {
 		if n != "Sentences" {
 			st = n
 		}
 	}
 
-	dt.SetCellFloat("Run", row, float64(ss.ProbeEnv.Run.Cur))
+	dt.SetCellFloat("Run", row, float64(ss.SentProbeEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
-	dt.SetCellFloat("Seq", row, float64(ss.ProbeEnv.Seq.Cur))
+	dt.SetCellFloat("Seq", row, float64(ss.SentProbeEnv.Seq.Prv))
 	dt.SetCellString("SentType", row, st)
-	dt.SetCellFloat("Tick", row, float64(ss.ProbeEnv.Tick.Cur))
+	dt.SetCellFloat("Tick", row, float64(ss.SentProbeEnv.Tick.Cur))
 	dt.SetCellFloat("Trial", row, float64(trl))
-	dt.SetCellString("TrialName", row, ss.ProbeEnv.String())
+	dt.SetCellString("TrialName", row, ss.SentProbeEnv.String())
 	dt.SetCellString("Input", row, cur[0])
 	dt.SetCellString("Pred", row, ss.TrlPred)
 	dt.SetCellString("Role", row, cur[1])
@@ -1577,10 +1615,16 @@ func (ss *Sim) LogProbeTrl(dt *etable.Table) {
 	dt.SetCellString("Output", row, ss.TrlOut)
 	dt.SetCellString("QType", row, cur[3])
 
+	for _, lnm := range ss.ProbeNms {
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
+		vt := ss.ValsTsr(lnm)
+		ly.UnitValsTensor(vt, "ActM")
+		dt.SetCellTensor(lnm, row, vt)
+	}
 }
 
-func (ss *Sim) ConfigProbeTrlLog(dt *etable.Table) {
-	dt.SetMetaData("name", "ProbeTrlLog")
+func (ss *Sim) ConfigSentProbeTrlLog(dt *etable.Table) {
+	dt.SetMetaData("name", "SentProbeTrlLog")
 	dt.SetMetaData("desc", "Record of testing per input pattern")
 	dt.SetMetaData("read-only", "true")
 	dt.SetMetaData("precision", strconv.Itoa(LogPrec))
@@ -1600,7 +1644,90 @@ func (ss *Sim) ConfigProbeTrlLog(dt *etable.Table) {
 		{"Output", etensor.STRING, nil, nil},
 		{"QType", etensor.STRING, nil, nil},
 	}
+	for _, lnm := range ss.ProbeNms {
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
+		sch = append(sch, etable.Column{lnm, etensor.FLOAT64, ly.Shp.Shp, nil})
+	}
+
 	dt.SetFromSchema(sch, 0)
+}
+
+//////////////////////////////////////////////
+//  NounProbeTrlLog
+
+// LogNounProbeTrl adds data from current trial to the NounProbeTrlLog table.
+// log always contains number of testing items
+func (ss *Sim) LogNounProbeTrl(dt *etable.Table) {
+	epc := ss.TrainEnv.Epoch.Prv // this is triggered by increment so use previous value
+	trl := ss.NounProbeEnv.Trial.Cur
+	row := dt.Rows
+
+	if dt.Rows <= row {
+		dt.SetNumRows(row + 1)
+	}
+
+	dt.SetCellFloat("Run", row, float64(ss.NounProbeEnv.Run.Cur))
+	dt.SetCellFloat("Epoch", row, float64(epc))
+	dt.SetCellFloat("Trial", row, float64(trl))
+	dt.SetCellString("TrialName", row, ss.NounProbeEnv.String())
+
+	for _, lnm := range ss.ProbeNms {
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
+		vt := ss.ValsTsr(lnm)
+		ly.UnitValsTensor(vt, "ActM")
+		dt.SetCellTensor(lnm, row, vt)
+	}
+}
+
+func (ss *Sim) ConfigNounProbeTrlLog(dt *etable.Table) {
+	dt.SetMetaData("name", "NounProbeTrlLog")
+	dt.SetMetaData("desc", "Record of testing per input pattern")
+	dt.SetMetaData("read-only", "true")
+	dt.SetMetaData("precision", strconv.Itoa(LogPrec))
+
+	sch := etable.Schema{
+		{"Run", etensor.INT64, nil, nil},
+		{"Epoch", etensor.INT64, nil, nil},
+		{"Trial", etensor.INT64, nil, nil},
+		{"TrialName", etensor.STRING, nil, nil},
+	}
+	for _, lnm := range ss.ProbeNms {
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
+		sch = append(sch, etable.Column{lnm, etensor.FLOAT64, ly.Shp.Shp, nil})
+	}
+
+	dt.SetFromSchema(sch, 0)
+}
+
+// ProbeClustPlot does cluster plotting of probe data
+func (ss *Sim) ProbeClusterPlot() {
+	stix := etable.NewIdxView(ss.SentProbeTrlLog)
+	stix.Filter(func(et *etable.Table, row int) bool {
+		return et.CellFloat("Tick", row) == 5 // last of each sequence
+	})
+	ss.ClustPlot(ss.SentProbeClustPlot, stix, "Gestalt", "SentType", clust.ContrastDist)
+	ss.SentProbeClustPlot.Update()
+
+	ntix := etable.NewIdxView(ss.NounProbeTrlLog)
+	ss.ClustPlot(ss.NounProbeClustPlot, ntix, "Gestalt", "TrialName", clust.MaxDist)
+	ss.NounProbeClustPlot.Update()
+}
+
+// ClustPlot does one cluster plot on given table column
+func (ss *Sim) ClustPlot(plt *eplot.Plot2D, ix *etable.IdxView, colNm, lblNm string, dfunc clust.DistFunc) {
+	nm, _ := ix.Table.MetaData["name"]
+	smat := &simat.SimMat{}
+	smat.TableCol(ix, colNm, lblNm, false, metric.Euclidean64)
+	pt := &etable.Table{}
+	clust.Plot(pt, clust.Glom(smat, dfunc), smat)
+	plt.InitName(plt, colNm)
+	plt.Params.Title = "Cluster Plot of: " + nm + " " + colNm
+	plt.Params.XAxisCol = "X"
+	plt.SetTable(pt)
+	// order of params: on, fixMin, min, fixMax, max
+	plt.SetColParams("X", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("Y", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("Label", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0)
 }
 
 //////////////////////////////////////////////
@@ -1737,6 +1864,12 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	plt = tv.AddNewTab(eplot.KiT_Plot2D, "TstEpcPlot").(*eplot.Plot2D)
 	ss.TstEpcPlot = ss.ConfigTstEpcPlot(plt, ss.TstEpcLog)
+
+	plt = tv.AddNewTab(eplot.KiT_Plot2D, "SentProbeClustPlot").(*eplot.Plot2D)
+	ss.SentProbeClustPlot = plt
+
+	plt = tv.AddNewTab(eplot.KiT_Plot2D, "NounProbeClustPlot").(*eplot.Plot2D)
+	ss.NounProbeClustPlot = plt
 
 	plt = tv.AddNewTab(eplot.KiT_Plot2D, "RunPlot").(*eplot.Plot2D)
 	ss.RunPlot = ss.ConfigRunPlot(plt, ss.RunLog)
