@@ -1256,7 +1256,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	gi.SetAppName("sir")
 	gi.SetAppAbout(`illustrates the dynamic gating of information into PFC active maintenance, by the basal ganglia (BG). It uses a simple Store-Ignore-Recall (SIR) task, where the BG system learns via phasic dopamine signals and trial-and-error exploration, discovering what needs to be stored, ignored, and recalled as a function of reinforcement of correct behavior, and learned reinforcement of useful working memory representations. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch10/sir/README.md">README.md on GitHub</a>.</p>`)
 
-	win := gi.NewWindow2D("sir", "SIR: PBWM", width, height, true)
+	win := gi.NewMainWindow("sir", "SIR: PBWM", width, height)
 	ss.Win = win
 
 	vp := win.WinViewport2D()

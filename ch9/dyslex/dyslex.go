@@ -56,7 +56,7 @@ type LesionTypes int32
 
 //go:generate stringer -type=LesionTypes
 
-var KiT_LesionTypes = kit.Enums.AddEnum(LesionTypesN, false, nil)
+var KiT_LesionTypes = kit.Enums.AddEnum(LesionTypesN, kit.NotBitFlag, nil)
 
 func (ev LesionTypes) MarshalJSON() ([]byte, error)  { return kit.EnumMarshalJSON(ev) }
 func (ev *LesionTypes) UnmarshalJSON(b []byte) error { return kit.EnumUnmarshalJSON(ev, b) }
@@ -1350,7 +1350,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	gi.SetAppName("dyslex")
 	gi.SetAppAbout(`Simulates normal and disordered (dyslexic) reading performance in terms of a distributed representation of word-level knowledge across Orthography, Semantics, and Phonology. It is based on a model by Plaut and Shallice (1993). Note that this form of dyslexia is *aquired* (via brain lesions such as stroke) and not the more prevalent developmental variety.  See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch9/dyslex/README.md">README.md on GitHub</a>.</p>`)
 
-	win := gi.NewWindow2D("dyslex", "Dyslex", width, height, true)
+	win := gi.NewMainWindow("dyslex", "Dyslex", width, height)
 	ss.Win = win
 
 	vp := win.WinViewport2D()

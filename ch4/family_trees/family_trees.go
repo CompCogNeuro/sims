@@ -69,7 +69,7 @@ type LearnType int32
 
 //go:generate stringer -type=LearnType
 
-var KiT_LearnType = kit.Enums.AddEnum(LearnTypeN, false, nil)
+var KiT_LearnType = kit.Enums.AddEnum(LearnTypeN, kit.NotBitFlag, nil)
 
 func (ev LearnType) MarshalJSON() ([]byte, error)  { return kit.EnumMarshalJSON(ev) }
 func (ev *LearnType) UnmarshalJSON(b []byte) error { return kit.EnumUnmarshalJSON(ev, b) }
@@ -1287,7 +1287,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	gi.SetAppName("family_trees")
 	gi.SetAppAbout(`shows how learning can recode inputs that have no similarity structure into a hidden layer that captures the *functional* similarity structure of the items. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch4/family_trees/README.md">README.md on GitHub</a>.</p>`)
 
-	win := gi.NewWindow2D("family_trees", "Family Trees", width, height, true)
+	win := gi.NewMainWindow("family_trees", "Family Trees", width, height)
 	ss.Win = win
 
 	vp := win.WinViewport2D()

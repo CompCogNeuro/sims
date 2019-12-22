@@ -52,7 +52,7 @@ type EnvType int32
 
 //go:generate stringer -type=EnvType
 
-var KiT_EnvType = kit.Enums.AddEnum(EnvTypeN, false, nil)
+var KiT_EnvType = kit.Enums.AddEnum(EnvTypeN, kit.NotBitFlag, nil)
 
 func (ev EnvType) MarshalJSON() ([]byte, error)  { return kit.EnumMarshalJSON(ev) }
 func (ev *EnvType) UnmarshalJSON(b []byte) error { return kit.EnumUnmarshalJSON(ev, b) }
@@ -1152,7 +1152,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	gi.SetAppName("priming")
 	gi.SetAppAbout(`This simulation explores the neural basis of *priming* -- the often surprisingly strong impact of residual traces from prior experience, which can be either *weight-based* (small changes in synapses) or *activation-based* (residual neural activity).  In the first part, we see how small weight changes caused by the standard slow cortical learning rate can produce significant behavioral priming, causing the network to favor one output pattern over another.  Likewise, residual activation can bias subsequent processing, but this is short-lived and transient compared to the long-lasting effects of weight-based priming. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch8/priming/README.md">README.md on GitHub</a>.</p>`)
 
-	win := gi.NewWindow2D("priming", "Priming", width, height, true)
+	win := gi.NewMainWindow("priming", "Priming", width, height)
 	ss.Win = win
 
 	vp := win.WinViewport2D()

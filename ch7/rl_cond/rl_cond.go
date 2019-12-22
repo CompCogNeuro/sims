@@ -715,7 +715,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	gi.SetAppName("rl_cond")
 	gi.SetAppAbout(`rl_cond explores the temporal differences (TD) reinforcement learning algorithm under some basic Pavlovian conditioning environments. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch7/rl_cond/README.md">README.md on GitHub</a>.</p>`)
 
-	win := gi.NewWindow2D("rl_cond", "Reinforcement Learning", width, height, true)
+	win := gi.NewMainWindow("rl_cond", "Reinforcement Learning", width, height)
 	ss.Win = win
 
 	vp := win.WinViewport2D()

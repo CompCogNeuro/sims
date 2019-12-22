@@ -52,7 +52,7 @@ type PatsType int32
 
 //go:generate stringer -type=PatsType
 
-var KiT_PatsType = kit.Enums.AddEnum(PatsTypeN, false, nil)
+var KiT_PatsType = kit.Enums.AddEnum(PatsTypeN, kit.NotBitFlag, nil)
 
 func (ev PatsType) MarshalJSON() ([]byte, error)  { return kit.EnumMarshalJSON(ev) }
 func (ev *PatsType) UnmarshalJSON(b []byte) error { return kit.EnumUnmarshalJSON(ev, b) }
@@ -75,7 +75,7 @@ type LearnType int32
 
 //go:generate stringer -type=LearnType
 
-var KiT_LearnType = kit.Enums.AddEnum(LearnTypeN, false, nil)
+var KiT_LearnType = kit.Enums.AddEnum(LearnTypeN, kit.NotBitFlag, nil)
 
 func (ev LearnType) MarshalJSON() ([]byte, error)  { return kit.EnumMarshalJSON(ev) }
 func (ev *LearnType) UnmarshalJSON(b []byte) error { return kit.EnumUnmarshalJSON(ev, b) }
@@ -1085,7 +1085,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	gi.SetAppName("err_driven_hidden")
 	gi.SetAppAbout(`shows how XCal error driven learning can train a hidden layer to solve problems that are otherwise impossible for a simple two layer network (as we saw in the Pattern Associator exploration, which should be completed first before doing this one). See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch4/err_driven_hidden/README.md">README.md on GitHub</a>.</p>`)
 
-	win := gi.NewWindow2D("err_driven_hidden", "Error Driven Hidden Layer Learning", width, height, true)
+	win := gi.NewMainWindow("err_driven_hidden", "Error Driven Hidden Layer Learning", width, height)
 	ss.Win = win
 
 	vp := win.WinViewport2D()

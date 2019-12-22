@@ -51,7 +51,7 @@ type TestType int32
 
 //go:generate stringer -type=TestType
 
-var KiT_TestType = kit.Enums.AddEnum(TestTypeN, false, nil)
+var KiT_TestType = kit.Enums.AddEnum(TestTypeN, kit.NotBitFlag, nil)
 
 func (ev TestType) MarshalJSON() ([]byte, error)  { return kit.EnumMarshalJSON(ev) }
 func (ev *TestType) UnmarshalJSON(b []byte) error { return kit.EnumUnmarshalJSON(ev, b) }
@@ -70,7 +70,7 @@ type LesionType int32
 
 //go:generate stringer -type=LesionType
 
-var KiT_LesionType = kit.Enums.AddEnum(LesionTypeN, false, nil)
+var KiT_LesionType = kit.Enums.AddEnum(LesionTypeN, kit.NotBitFlag, nil)
 
 func (ev LesionType) MarshalJSON() ([]byte, error)  { return kit.EnumMarshalJSON(ev) }
 func (ev *LesionType) UnmarshalJSON(b []byte) error { return kit.EnumUnmarshalJSON(ev, b) }
@@ -88,7 +88,7 @@ type LesionSize int32
 
 //go:generate stringer -type=LesionSize
 
-var KiT_LesionSize = kit.Enums.AddEnum(LesionSizeN, false, nil)
+var KiT_LesionSize = kit.Enums.AddEnum(LesionSizeN, kit.NotBitFlag, nil)
 
 func (ev LesionSize) MarshalJSON() ([]byte, error)  { return kit.EnumMarshalJSON(ev) }
 func (ev *LesionSize) UnmarshalJSON(b []byte) error { return kit.EnumUnmarshalJSON(ev, b) }
@@ -882,7 +882,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	gi.SetAppName("attn")
 	gi.SetAppAbout(`attn: This simulation illustrates how object recognition (ventral, what) and spatial (dorsal, where) pathways interact to produce spatial attention effects, and accurately capture the effects of brain damage to the spatial pathway. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch6/attn/README.md">README.md on GitHub</a>.</p>`)
 
-	win := gi.NewWindow2D("attn", "Attention", width, height, true)
+	win := gi.NewMainWindow("attn", "Attention", width, height)
 	ss.Win = win
 
 	vp := win.WinViewport2D()

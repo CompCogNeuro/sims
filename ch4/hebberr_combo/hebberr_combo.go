@@ -52,7 +52,7 @@ type PatsType int32
 
 //go:generate stringer -type=PatsType
 
-var KiT_PatsType = kit.Enums.AddEnum(PatsTypeN, false, nil)
+var KiT_PatsType = kit.Enums.AddEnum(PatsTypeN, kit.NotBitFlag, nil)
 
 func (ev PatsType) MarshalJSON() ([]byte, error)  { return kit.EnumMarshalJSON(ev) }
 func (ev *PatsType) UnmarshalJSON(b []byte) error { return kit.EnumUnmarshalJSON(ev, b) }
@@ -78,7 +78,7 @@ type LearnType int32
 
 //go:generate stringer -type=LearnType
 
-var KiT_LearnType = kit.Enums.AddEnum(LearnTypeN, false, nil)
+var KiT_LearnType = kit.Enums.AddEnum(LearnTypeN, kit.NotBitFlag, nil)
 
 func (ev LearnType) MarshalJSON() ([]byte, error)  { return kit.EnumMarshalJSON(ev) }
 func (ev *LearnType) UnmarshalJSON(b []byte) error { return kit.EnumUnmarshalJSON(ev, b) }
@@ -1143,7 +1143,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	gi.SetAppAbout(`shows how XCal hebbian learning in shallower layers of a network can aid an error driven learning network to generalize to unseen combinations of patterns.
  See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch4/hebberr_combo/README.md">README.md on GitHub</a>.</p>`)
 
-	win := gi.NewWindow2D("hebberr_combo", "Hebbian+Error Driven Learning", width, height, true)
+	win := gi.NewMainWindow("hebberr_combo", "Hebbian+Error Driven Learning", width, height)
 	ss.Win = win
 
 	vp := win.WinViewport2D()

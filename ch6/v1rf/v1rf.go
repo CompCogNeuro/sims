@@ -974,7 +974,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	gi.SetAppName("v1rf")
 	gi.SetAppAbout(`This simulation illustrates how self-organizing learning in response to natural images produces the oriented edge detector receptive field properties of neurons in primary visual cortex (V1). This provides insight into why the visual system encodes information in the way it does, while also providing an important test of the biological relevance of our computational models. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch6/v1rf/README.md">README.md on GitHub</a>.</p>`)
 
-	win := gi.NewWindow2D("v1rf", "V1 Receptive Fields", width, height, true)
+	win := gi.NewMainWindow("v1rf", "V1 Receptive Fields", width, height)
 	ss.Win = win
 
 	vp := win.WinViewport2D()

@@ -1551,7 +1551,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	gi.SetAppName("hip")
 	gi.SetAppAbout(`runs a hippocampus model on the AB-AC paired associate learning task. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch8/hip/README.md">README.md on GitHub</a>.</p>`)
 
-	win := gi.NewWindow2D("hip", "Hippocampus AB-AC", width, height, true)
+	win := gi.NewMainWindow("hip", "Hippocampus AB-AC", width, height)
 	ss.Win = win
 
 	vp := win.WinViewport2D()
