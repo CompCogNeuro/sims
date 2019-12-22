@@ -489,7 +489,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	gi.SetAppName("detector")
 	gi.SetAppAbout(`This simulation shows how an individual neuron can act like a detector, picking out specific patterns from its inputs and responding with varying degrees of selectivity to the match between its synaptic weights and the input activity pattern. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch2/detector/README.md">README.md on GitHub</a>.</p>`)
 
-	win := gi.NewWindow2D("detector", "Neuron as Detector", width, height, true)
+	win := gi.NewMainWindow("detector", "Neuron as Detector", width, height)
 	ss.Win = win
 
 	vp := win.WinViewport2D()

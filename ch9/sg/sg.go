@@ -1826,7 +1826,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	gi.SetAppName("SG")
 	gi.SetAppAbout(`This is the sentence gestalt model, which learns to encode both syntax and semantics of sentences in an integrated "gestalt" hidden layer. The sentences have simple agent-verb-patient structure with optional prepositional or adverb modifier phrase at the end, and can be either in the active or passive form (80% active, 20% passive). There are ambiguous terms that need to be resolved via context, showing a key interaction between syntax and semantics. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch9/sg/README.md">README.md on GitHub</a>.</p>`)
 
-	win := gi.NewWindow2D("SG", "Sentence Gestalt", width, height, true)
+	win := gi.NewMainWindow("SG", "Sentence Gestalt", width, height)
 	ss.Win = win
 
 	vp := win.WinViewport2D()

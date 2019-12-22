@@ -1310,7 +1310,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	gi.SetAppName("stroop")
 	gi.SetAppAbout(`illustrates how the PFC can produce top-down biasing for executive control, in the context of the widely-studied Stroop task. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch10/stroop/README.md">README.md on GitHub</a>.</p>`)
 
-	win := gi.NewWindow2D("stroop", "Stroop", width, height, true)
+	win := gi.NewMainWindow("stroop", "Stroop", width, height)
 	ss.Win = win
 
 	vp := win.WinViewport2D()

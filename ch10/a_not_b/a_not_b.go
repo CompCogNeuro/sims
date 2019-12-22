@@ -57,7 +57,7 @@ type Delays int32
 
 //go:generate stringer -type=Delays
 
-var KiT_Delays = kit.Enums.AddEnum(DelaysN, false, nil)
+var KiT_Delays = kit.Enums.AddEnum(DelaysN, kit.NotBitFlag, nil)
 
 func (ev Delays) MarshalJSON() ([]byte, error)  { return kit.EnumMarshalJSON(ev) }
 func (ev *Delays) UnmarshalJSON(b []byte) error { return kit.EnumUnmarshalJSON(ev, b) }
@@ -738,7 +738,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	gi.SetAppName("a_not_b")
 	gi.SetAppAbout(`explores how the development of PFC active maintenance abilities can help to make behavior more flexible, in the sense that it can rapidly shift with changes in the environment. The development of flexibility has been extensively explored in the context of Piaget's famous A-not-B task, where a toy is first hidden several times in one hiding location (A), and then hidden in a new location (B). Depending on various task parameters, young kids reliably reach back at A instead of updating to B. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch10/a_not_b/README.md">README.md on GitHub</a>.</p>`)
 
-	win := gi.NewWindow2D("a_not_b", "A not B", width, height, true)
+	win := gi.NewMainWindow("a_not_b", "A not B", width, height)
 	ss.Win = win
 
 	vp := win.WinViewport2D()

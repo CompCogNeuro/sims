@@ -457,7 +457,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	gi.SetAppAbout(`This simulation explores the use of constraint satisfaction in processing ambiguous stimuli. The example we will use is the *Necker cube*, which and can be viewed as a cube in one of two orientations, where people flip back and forth.
   See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch3/necker_cube/README.md">README.md on GitHub</a>.</p>`)
 
-	win := gi.NewWindow2D("necker_cube", "Necker Cube", width, height, true)
+	win := gi.NewMainWindow("necker_cube", "Necker Cube", width, height)
 	ss.Win = win
 
 	vp := win.WinViewport2D()

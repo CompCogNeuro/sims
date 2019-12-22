@@ -929,7 +929,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	gi.SetAppAbout(`illustrates how self-organizing learning emerges from the interactions between
 inhibitory competition, rich-get-richer Hebbian learning, and homeostasis (negative feedback). See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch4/self_org/README.md">README.md on GitHub</a>.</p>`)
 
-	win := gi.NewWindow2D("self_org", "Self Organizing", width, height, true)
+	win := gi.NewMainWindow("self_org", "Self Organizing", width, height)
 	ss.Win = win
 
 	vp := win.WinViewport2D()

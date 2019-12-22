@@ -579,7 +579,7 @@ control overall activity levels within the network, by providing both
 feedforward and feedback inhibition to excitatory pyramidal neurons.
   See <a href="https://github.com/CompCogNeuro/sims/ch3/inhib/README.md">README.md on GitHub</a>.</p>`)
 
-	win := gi.NewWindow2D("inhib", "Inhibition", width, height, true)
+	win := gi.NewMainWindow("inhib", "Inhibition", width, height)
 	ss.Win = win
 
 	vp := win.WinViewport2D()

@@ -1221,7 +1221,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	gi.SetAppName("sem")
 	gi.SetAppAbout(`sem is trained using Hebbian learning on paragraphs from an early draft of the *Computational Explorations..* textbook, allowing it to learn about the overall statistics of when different words co-occur with other words, and thereby learning a surprisingly capable (though clearly imperfect) level of semantic knowlege about the topics covered in the textbook.  This replicates the key results from the Latent Semantic Analysis research by Landauer and Dumais (1997). See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch9/sem/README.md">README.md on GitHub</a>.</p>`)
 
-	win := gi.NewWindow2D("sem", "Sem Semantic Hebbian Learning", width, height, true)
+	win := gi.NewMainWindow("sem", "Sem Semantic Hebbian Learning", width, height)
 	ss.Win = win
 
 	vp := win.WinViewport2D()
