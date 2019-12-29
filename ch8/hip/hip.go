@@ -1122,7 +1122,7 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 		if ss.TrainEnv.Run.Cur == 0 && epc == 0 {
 			dt.WriteCSVHeaders(ss.TrnEpcFile, etable.Tab)
 		}
-		dt.WriteCSVRow(ss.TrnEpcFile, row, etable.Tab, true)
+		dt.WriteCSVRow(ss.TrnEpcFile, row, etable.Tab)
 	}
 }
 
@@ -1430,8 +1430,8 @@ func (ss *Sim) ConfigTstCycPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Cycle", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	for _, lnm := range ss.LayStatNms {
-		plt.SetColParams(lnm+" Ge.Avg", true, true, 0, true, .5)
-		plt.SetColParams(lnm+" Act.Avg", true, true, 0, true, .5)
+		plt.SetColParams(lnm+" Ge.Avg", eplot.On, eplot.FixMin, 0, eplot.FixMax, .5)
+		plt.SetColParams(lnm+" Act.Avg", eplot.On, eplot.FixMin, 0, eplot.FixMax, .5)
 	}
 	return plt
 }
@@ -1487,7 +1487,7 @@ func (ss *Sim) LogRun(dt *etable.Table) {
 		if row == 0 {
 			dt.WriteCSVHeaders(ss.RunFile, etable.Tab)
 		}
-		dt.WriteCSVRow(ss.RunFile, row, etable.Tab, true)
+		dt.WriteCSVRow(ss.RunFile, row, etable.Tab)
 	}
 }
 
@@ -1878,18 +1878,4 @@ func (ss *Sim) CmdArgs() {
 	}
 	fmt.Printf("Running %d Runs\n", ss.MaxRuns)
 	ss.Train()
-}
-
-func mainrun() {
-	TheSim.New()
-	TheSim.Config()
-
-	if len(os.Args) > 1 {
-		TheSim.CmdArgs() // simple assumption is that any args = no gui -- could add explicit arg if you want
-	} else {
-		// gi.Update2DTrace = true
-		TheSim.Init()
-		win := TheSim.ConfigGui()
-		win.StartEventLoop()
-	}
 }

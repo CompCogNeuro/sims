@@ -691,7 +691,7 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 		if ss.TrainEnv.Run.Cur == 0 && epc == 0 {
 			dt.WriteCSVHeaders(ss.TrnEpcFile, etable.Tab)
 		}
-		dt.WriteCSVRow(ss.TrnEpcFile, row, etable.Tab, true)
+		dt.WriteCSVRow(ss.TrnEpcFile, row, etable.Tab)
 	}
 }
 
