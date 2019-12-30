@@ -26,6 +26,6 @@ You probably have to do a "right mouse click" (e.g., Ctrl + click) to open the e
 
 # Status
 
-**11/2/2019**: Chapters 2-7 are complete (excluding pvlv and cereb from ch7 which will come later) with a binary release for *mac* only -- will update for all three supported platforms upon request, or after all projects are done.  Python versions will be made available pending a program to convert the go files to python more automatically.
+**12/30/2019**: Version 1.0.0 release -- all sims complete and well tested!  This version has go module support and should be reliably buildable from source, in addition to the binary release.
 
 
