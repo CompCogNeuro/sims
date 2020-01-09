@@ -1269,7 +1269,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	ss.ToolBar = tbar
 
 	split := gi.AddNewSplitView(mfr, "split")
-	split.Dim = gi.X
+	split.Dim = mat32.X
 	split.SetStretchMax()
 
 	sv := giv.AddNewStructView(split, "sv")

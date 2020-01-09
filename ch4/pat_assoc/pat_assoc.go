@@ -1090,7 +1090,7 @@ layers. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch4/pat_as
 	ss.ToolBar = tbar
 
 	split := gi.AddNewSplitView(mfr, "split")
-	split.Dim = gi.X
+	split.Dim = mat32.X
 	split.SetStretchMax()
 
 	sv := giv.AddNewStructView(split, "sv")
