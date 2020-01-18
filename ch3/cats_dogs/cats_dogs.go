@@ -253,7 +253,9 @@ func (ss *Sim) AlphaCyc() {
 			ss.Time.CycleInc()
 			switch viewUpdt {
 			case leabra.Cycle:
-				ss.UpdateView()
+				if cyc != ss.Time.CycPerQtr-1 { // will be updated by quarter
+					ss.UpdateView()
+				}
 			case leabra.FastSpike:
 				if (cyc+1)%10 == 0 {
 					ss.UpdateView()
