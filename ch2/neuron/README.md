@@ -82,7 +82,7 @@ Next, we'll see how the discrete spiking behavior of the neuron can be approxima
 
 You should see that the green line in the graph now rises up and then decreases slowly due to accommodation, without the discrete spiking values observed before. Similarly, the blue membrane potential value rises up and decreases slowly as well, instead of being reset after spiking.
 
-> **Question 2.7:** Compare the spike rates with rate coded activations by reporting the act values just before cycle 160 (e.g., cycle 155) for GbarE = .2, .3, .4 with `Spike` = false, and the corresponding values in the `Spike` = true case for the same g_bar.e values. Use the red arrow click mode to find values in the graph by clicking on the green act line at the corresponding cycle (155).
+> **Question 2.7:** Compare the spike rates with rate coded activations by reporting the act values just before cycle 160 (e.g., cycle 155) for GbarE = .2, .3, .4 with `Spike` = false, and the corresponding values in the `Spike` = true case for the same GbarE values. For now, you'll have to click on the `TstCycLog` and scroll to cycle 155 to see the exact numbers -- a future release will hopefully enable you to just hover over the line and see the value on the graph directly.
 
 You should have observed that the `Act` value tracks the actual spiking rate reasonably well, indicating that *Noisy X-over-X-plus-1* is a resonable approximation to the actual neural spiking rate.
 
