@@ -1,6 +1,6 @@
 # Computational Cognitive Neuroscience Simulations
 
-This repository contains the neural network simulation models for the [CCN Textbook](https://grey.colorado.edu/CompCogNeuro/index.php/CCNBook/Main).  Here is a backup [PDF](https://github.com/CompCogNeuro/sims/blob/master/ccnbook_12_16_2016.pdf))
+This repository contains the neural network simulation models for the [CCN Textbook](https://grey.colorado.edu/CompCogNeuro/index.php/CCNBook/Main).  Here is a backup [PDF](https://github.com/CompCogNeuro/sims/blob/master/ccnbook_12_16_2016.pdf) of the text -- soon the text will be ported over to a markdown-based book in this repository.
 
 These models are implemented in the new *Go* (golang) version of [emergent](https://github.com/emer/emergent), with Python versions available as well (note: not yet!).  This github repository contains the full source code and you can build and run the models by cloning the repository and building / running the individual projects as described in the emergent Wiki help page: [Wiki Install](https://github.com/emer/emergent/wiki/Install).
 
