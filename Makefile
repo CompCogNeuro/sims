@@ -10,8 +10,30 @@ $(SUBDIRS):
 
 .PHONY: $(TOPTARGETS) $(SUBDIRS)
 
+tidy: export GO111MODULE = on
+tidy:
+	@echo "GO111MODULE = $(value GO111MODULE)"
+	go mod tidy
+
+old:
+	@echo "GO111MODULE = $(value GO111MODULE)"
+	go list -u -m all | grep '\['
+	
+mod-update: export GO111MODULE = on
+mod-update:
+	@echo "GO111MODULE = $(value GO111MODULE)"
+	go get -u ./...
+	go mod tidy
+
+# gopath-update is for GOPATH to get most things updated.
+# need to call it in a target executable directory
+gopath-update: export GO111MODULE = off
+gopath-update:
+	@echo "GO111MODULE = $(value GO111MODULE)"
+	cd cmd/pi; go get -u ./...
+
 # NOTE: MUST update version number here prior to running 'make release' and edit this file! 
-VERS=v1.0.1
+VERS=v1.0.2
 PACKAGE=sims
 GIT_COMMIT=`git rev-parse --short HEAD`
 VERS_DATE=`date -u +%Y-%m-%d\ %H:%M`
