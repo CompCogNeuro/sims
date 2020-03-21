@@ -624,11 +624,9 @@ func (ss *Sim) Stopped() {
 	ss.IsRunning = false
 	if ss.Win != nil {
 		vp := ss.Win.WinViewport2D()
-		vp.BlockUpdates()
 		if ss.ToolBar != nil {
 			ss.ToolBar.UpdateActions()
 		}
-		vp.UnblockUpdates()
 		vp.SetNeedsFullRender()
 	}
 }
