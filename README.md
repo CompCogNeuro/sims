@@ -1,12 +1,16 @@
 # Computational Cognitive Neuroscience Simulations
 
-This repository contains the neural network simulation models for the [CCN Textbook](https://grey.colorado.edu/CompCogNeuro/index.php/CCNBook/Main).  Here is a backup [PDF](https://github.com/CompCogNeuro/sims/blob/master/ccnbook_12_16_2016.pdf) of the text -- soon the text will be ported over to a markdown-based book in this repository.
+This repository contains the neural network simulation models for the [CCN Textbook](https://github.com/CompCogNeuro/ed4) (now on github!).
 
 These models are implemented in the new *Go* (golang) version of [emergent](https://github.com/emer/emergent), with Python versions available as well (note: not yet!).  This github repository contains the full source code and you can build and run the models by cloning the repository and building / running the individual projects as described in the emergent Wiki help page: [Wiki Install](https://github.com/emer/emergent/wiki/Install).
 
 The simplest way to run the simulations is by downloading a `zip` (or `tar.gz` for linux) file of all of the built models for your platform.  These are fully self-contained executable files and should "just work" on each platform.
 
-* The full set of files are in the [Releases](https://github.com/CompCogNeuro/sims/releases) directory -- check there for files of the form `ccn_sims_<version>_<platform>.zip` where `<version>` is the version string (higher generally better), and `<platform>` is `mac`, `linux`, or `windows`.
+* The full set of files are in the [Releases](https://github.com/CompCogNeuro/sims/releases) directory -- look under `Assets` for files of the form `ccn_sims_<version>_<platform>.zip` where `<version>` is the version string (higher generally better), and `<platform>` is `mac`, `linux`, or `windows`.  Here are links (based on last time this README was updated)
+
+    + [ccn_sims_v1.0.3_mac.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.0.3/ccn_sims_v1.0.3_mac.zip)
+    + [ccn_sims_v1.0.3_windows.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.0.3/ccn_sims_v1.0.3_windows.zip)
+    + [ccn_sims_v1.0.3_linux.tar.gz](https://github.com/CompCogNeuro/sims/releases/download/v1.0.3/ccn_sims_v1.0.3_linux.tar.gz)
 
 # Usage
 
@@ -26,6 +30,6 @@ You probably have to do a "right mouse click" (e.g., Ctrl + click) to open the e
 
 # Status
 
-**12/30/2019**: Version 1.0.0 release -- all sims complete and well tested!  This version has go module support and should be reliably buildable from source, in addition to the binary release.
+**3/30/2020**: Version 1.0.3 release -- no major changes, just updated to most recent GoGi GUI.
 
 
