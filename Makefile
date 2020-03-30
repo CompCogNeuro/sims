@@ -19,6 +19,18 @@ old:
 	@echo "GO111MODULE = $(value GO111MODULE)"
 	go list -u -m all | grep '\['
 	
+# updates go.mod to master for all of the goki dependencies
+# note: must somehow remember to do this for any other depend
+# that we need to update at any point!
+master: export GO111MODULE = on
+master:
+	@echo "GO111MODULE = $(value GO111MODULE)"
+	go get -u github.com/emer/etable@master
+	go get -u github.com/emer/emergent@master
+	go get -u github.com/emer/leabra@master
+	go list -m all | grep emer
+	go mod tidy
+	
 mod-update: export GO111MODULE = on
 mod-update:
 	@echo "GO111MODULE = $(value GO111MODULE)"
