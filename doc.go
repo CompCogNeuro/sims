@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-/* Package sims are the neural network simulation models for the [CCN Textbook](https://grey.colorado.edu/CompCogNeuro/index.php/CCNBook/Main).
+/* Package sims are the neural network simulation models for the [CCN Textbook](https://github.com/CompCogNeuro/ed4).
 
 These models are implemented in the new *Go* (golang) version of
 [emergent](https://github.com/emer/emergent), with Python versions

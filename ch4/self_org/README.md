@@ -2,8 +2,7 @@ Back to [All Sims](https://github.com/CompCogNeuro/sims) (also for general info 
 
 # Introduction
 
-This model illustrates how self-organizing learning emerges from the interactions between the following factors (as discussed in the [Learning
-Chapter](https://grey.colorado.edu/CompCogNeuro/index.php/CCNBook/Learning#Self-Organizing_Learning:_Long_Time_Scales_and_the_BCM_Model)):
+This model illustrates how self-organizing learning emerges from the interactions between the following factors (as discussed in the *Learning* Chapter of the  [CCN Textbook](https://github.com/CompCogNeuro/ed4) ):
 
 * **Inhibitory competition** -- only the most strongly driven neurons get over the inhibitory threshold, and can get active. These are the ones whose current synaptic weights best fit ("detect") the current input pattern.
 
@@ -11,7 +10,7 @@ Chapter](https://grey.colorado.edu/CompCogNeuro/index.php/CCNBook/Learning#Self-
 
 * **homeostasis** to balance the positive feedback loop -- if left unchecked, the rich-get-richer dynamic ends up with a few units dominating everything, and as a result, all the inputs get categorized into one useless, overly-broad category ("everything"). The homeostatic mechanism in BCM helps fight against this by raising the floating threshold for highly active neurons, causing their weights to decrease, and restoring a balance. Similarly, under-active neurons experience net weight increases that get them participating and competing more effectively.
 
-The net result is the development of a set of neural detectors that relatively evenly cover the space of different inputs patterns, with systematic categories that encompass the statistical regularities. For example, cats like milk, and dogs like bones, and we can learn this just by observing the reliable co-occurrence of cats with milk and dogs with bones. This kind of reliable co-ocurrence is what we mean by "statistical regularity". See [Hebbian Learning](https://grey.colorado.edu/CompCogNeuro/index.php/CCNBook/Learning/Hebbian) for a very simple illustration of why Hebbian-style learning mechanisms capture patterns of co-occurrence. It is really just a variant on the basic maxim that "things that fire together, wire together".
+The net result is the development of a set of neural detectors that relatively evenly cover the space of different inputs patterns, with systematic categories that encompass the statistical regularities. For example, cats like milk, and dogs like bones, and we can learn this just by observing the reliable co-occurrence of cats with milk and dogs with bones. This kind of reliable co-ocurrence is what we mean by "statistical regularity". See *Hebbian Learning* Appendix in the [CCN Textbook](https://github.com/CompCogNeuro/ed4) for a very simple illustration of why Hebbian-style learning mechanisms capture patterns of co-occurrence. It is really just a variant on the basic maxim that "things that fire together, wire together".
 
 In this exploration, the network learns about a simple world that consists purely of horizontal and vertical lines, with these lines appearing always in combination with other lines. The clear objective of self-organizing learning in this case is to extract the underlying statistical regularity that these lines exist as reliable collections of pixels, and it would be much more efficient to encode this world in terms of the lines, instead of individual pixels.
 
