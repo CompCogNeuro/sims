@@ -11,6 +11,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"math/rand"
 	"strconv"
 
 	"github.com/emer/emergent/emer"
@@ -88,19 +89,22 @@ var ParamSets = params.Sets{
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
-	Net        *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
-	Pats       *etable.Table     `view:"no-inline" desc:"click to see the full face testing input patterns to use"`
-	PartPats   *etable.Table     `view:"no-inline" desc:"click to see the partial face testing input patterns to use"`
-	TstTrlLog  *etable.Table     `view:"no-inline" desc:"testing trial-level log data -- click to see record of network's response to each input"`
-	Params     params.Sets       `view:"no-inline" desc:"full collection of param sets -- not really interesting for this model"`
-	TestEnv    env.FixedTable    `desc:"Testing environment -- manages iterating over testing"`
-	Time       leabra.Time       `desc:"leabra timing parameters and state"`
-	ViewUpdt   leabra.TimeScales `desc:"at what time scale to update the display during testing?  Change to AlphaCyc to make display updating go faster"`
-	TstRecLays []string          `desc:"names of layers to record activations etc of during testing"`
-	ClustFaces *eplot.Plot2D     `view:"no-inline" desc:"cluster plot of faces"`
-	ClustEmote *eplot.Plot2D     `view:"no-inline" desc:"cluster plot of emotions"`
-	ClustGend  *eplot.Plot2D     `view:"no-inline" desc:"cluster plot of genders"`
-	ClustIdent *eplot.Plot2D     `view:"no-inline" desc:"cluster plot of identity"`
+	Net           *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
+	Pats          *etable.Table     `view:"no-inline" desc:"click to see the full face testing input patterns to use"`
+	PartPats      *etable.Table     `view:"no-inline" desc:"click to see the partial face testing input patterns to use"`
+	TstTrlLog     *etable.Table     `view:"no-inline" desc:"testing trial-level log data -- click to see record of network's response to each input"`
+	PrjnTable     *etable.Table     `view:"no-inline" desc:"projection of testing data"`
+	Params        params.Sets       `view:"no-inline" desc:"full collection of param sets -- not really interesting for this model"`
+	TestEnv       env.FixedTable    `desc:"Testing environment -- manages iterating over testing"`
+	Time          leabra.Time       `desc:"leabra timing parameters and state"`
+	ViewUpdt      leabra.TimeScales `desc:"at what time scale to update the display during testing?  Change to AlphaCyc to make display updating go faster"`
+	TstRecLays    []string          `desc:"names of layers to record activations etc of during testing"`
+	ClustFaces    *eplot.Plot2D     `view:"no-inline" desc:"cluster plot of faces"`
+	ClustEmote    *eplot.Plot2D     `view:"no-inline" desc:"cluster plot of emotions"`
+	ClustGend     *eplot.Plot2D     `view:"no-inline" desc:"cluster plot of genders"`
+	ClustIdent    *eplot.Plot2D     `view:"no-inline" desc:"cluster plot of identity"`
+	PrjnRandom    *eplot.Plot2D     `view:"no-inline" desc:"random projection plot"`
+	PrjnEmoteGend *eplot.Plot2D     `view:"no-inline" desc:"projection plot of emotions & gender"`
 
 	// internal state - view:"-"
 	Win        *gi.Window                  `view:"-" desc:"main GUI window"`
@@ -125,6 +129,7 @@ func (ss *Sim) New() {
 	ss.Pats = &etable.Table{}
 	ss.PartPats = &etable.Table{}
 	ss.TstTrlLog = &etable.Table{}
+	ss.PrjnTable = &etable.Table{}
 	ss.Params = ParamSets
 	ss.ViewUpdt = leabra.Cycle
 	ss.TstRecLays = []string{"Input", "Emotion", "Gender", "Identity"}
@@ -132,6 +137,8 @@ func (ss *Sim) New() {
 	ss.ClustEmote = &eplot.Plot2D{}
 	ss.ClustGend = &eplot.Plot2D{}
 	ss.ClustIdent = &eplot.Plot2D{}
+	ss.PrjnRandom = &eplot.Plot2D{}
+	ss.PrjnEmoteGend = &eplot.Plot2D{}
 	ss.Defaults()
 }
 
@@ -486,6 +493,8 @@ func (ss *Sim) ClusterPlots() {
 	ss.ClustPlot(ss.ClustEmote, ss.Pats, "Emotion")
 	ss.ClustPlot(ss.ClustGend, ss.Pats, "Gender")
 	ss.ClustPlot(ss.ClustIdent, ss.Pats, "Identity")
+
+	ss.PrjnPlot()
 }
 
 // ClustPlot does one cluster plot on given table column
@@ -503,6 +512,82 @@ func (ss *Sim) ClustPlot(plt *eplot.Plot2D, dt *etable.Table, colNm string) {
 	plt.SetColParams("X", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("Y", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("Label", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0)
+}
+
+func (ss *Sim) PrjnPlot() {
+	ss.TestAll()
+
+	rvec0 := make([]float32, 256)
+	rvec1 := make([]float32, 256)
+	for i := range rvec1 {
+		rvec0[i] = .15 * (2*rand.Float32() - 1)
+		rvec1[i] = .15 * (2*rand.Float32() - 1)
+	}
+
+	tst := ss.TstTrlLog
+	nr := tst.Rows
+	dt := ss.PrjnTable
+	ss.ConfigPrjnTable(dt)
+
+	for r := 0; r < nr; r++ {
+		// single emotion dimension from sad to happy
+		emote := 0.5*tst.CellTensorFloat1D("Emotion", r, 0) + -0.5*tst.CellTensorFloat1D("Emotion", r, 1)
+		emote += .1 * (2*rand.Float64() - 1) // some jitter so labels are readable
+		// single geneder dimension from male to femail
+		gend := 0.5*tst.CellTensorFloat1D("Gender", r, 0) + -0.5*tst.CellTensorFloat1D("Gender", r, 1)
+		gend += .1 * (2*rand.Float64() - 1) // some jitter so labels are readable
+		input := tst.CellTensor("Input", r).(*etensor.Float32)
+		rprjn0 := metric.InnerProduct32(rvec0, input.Values)
+		rprjn1 := metric.InnerProduct32(rvec1, input.Values)
+		dt.SetCellFloat("Trial", r, tst.CellFloat("Trial", r))
+		dt.SetCellString("TrialName", r, tst.CellString("TrialName", r))
+		dt.SetCellFloat("GendPrjn", r, gend)
+		dt.SetCellFloat("EmotePrjn", r, emote)
+		dt.SetCellFloat("RndPrjn0", r, float64(rprjn0))
+		dt.SetCellFloat("RndPrjn1", r, float64(rprjn1))
+	}
+
+	plt := ss.PrjnRandom
+	plt.InitName(plt, "PrjnRandom")
+	plt.Params.Title = "Face Random Prjn Plot"
+	plt.Params.XAxisCol = "RndPrjn0"
+	plt.SetTable(dt)
+	plt.Params.Lines = false
+	plt.Params.Points = true
+	// order of params: on, fixMin, min, fixMax, max
+	plt.SetColParams("TrialName", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("RndPrjn0", eplot.Off, eplot.FixMin, -1, eplot.FixMax, 1)
+	plt.SetColParams("RndPrjn1", eplot.On, eplot.FixMin, -1, eplot.FixMax, 1)
+
+	plt = ss.PrjnEmoteGend
+	plt.InitName(plt, "PrjnEmoteGend")
+	plt.Params.Title = "Face Emotion / Gender Prjn Plot"
+	plt.Params.XAxisCol = "GendPrjn"
+	plt.SetTable(dt)
+	plt.Params.Lines = false
+	plt.Params.Points = true
+	// order of params: on, fixMin, min, fixMax, max
+	plt.SetColParams("TrialName", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0)
+	plt.SetColParams("GendPrjn", eplot.Off, eplot.FixMin, -1, eplot.FixMax, 1)
+	plt.SetColParams("EmotePrjn", eplot.On, eplot.FixMin, -1, eplot.FixMax, 1)
+}
+
+func (ss *Sim) ConfigPrjnTable(dt *etable.Table) {
+	dt.SetMetaData("name", "PrjnTable")
+	dt.SetMetaData("desc", "projection of data onto dimension")
+	dt.SetMetaData("read-only", "true")
+	dt.SetMetaData("precision", strconv.Itoa(LogPrec))
+
+	nt := ss.TestEnv.Table.Len() // number in view
+	sch := etable.Schema{
+		{"Trial", etensor.INT64, nil, nil},
+		{"TrialName", etensor.STRING, nil, nil},
+	}
+	sch = append(sch, etable.Column{"GendPrjn", etensor.FLOAT64, nil, nil})
+	sch = append(sch, etable.Column{"EmotePrjn", etensor.FLOAT64, nil, nil})
+	sch = append(sch, etable.Column{"RndPrjn0", etensor.FLOAT64, nil, nil})
+	sch = append(sch, etable.Column{"RndPrjn1", etensor.FLOAT64, nil, nil})
+	dt.SetFromSchema(sch, nt)
 }
 
 //////////////////////////////////////////////
@@ -557,7 +642,7 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 	}
 	for _, lnm := range ss.TstRecLays {
 		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
-		sch = append(sch, etable.Column{lnm, etensor.FLOAT64, ly.Shp.Shp, nil})
+		sch = append(sch, etable.Column{lnm, etensor.FLOAT32, ly.Shp.Shp, nil})
 	}
 	dt.SetFromSchema(sch, nt)
 }
