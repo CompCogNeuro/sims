@@ -800,12 +800,12 @@ func (ss *Sim) ValsTsr(name string) *etensor.Float32 {
 // LogTstTrl adds data from current trial to the TstTrlLog table.
 // log always contains number of testing items
 func (ss *Sim) LogTstTrl(dt *etable.Table) {
-	trl := ss.TestEnv.Trial.Cur
+	// trl := ss.TestEnv.Trial.Cur
 	row := dt.Rows
 	if dt.Rows <= row {
 		dt.SetNumRows(row + 1)
 	}
-	dt.SetCellFloat("Trial", row, float64(trl))
+	dt.SetCellFloat("Trial", row, float64(row))
 	dt.SetCellString("TrialName", row, ss.TestEnv.GroupName.Cur)
 	dt.SetCellFloat("Cycle", row, float64(ss.Time.Cycle))
 

@@ -1,5 +1,8 @@
 # go through all the sims
 
+# when building for a release:
+# IMPORTANT: for mac, export MACOSX_DEPLOYMENT_TARGET=10.8
+
 TOPTARGETS := all clean mac linux windows
 
 SUBDIRS := $(wildcard */.)
