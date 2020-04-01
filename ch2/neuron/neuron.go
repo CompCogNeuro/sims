@@ -420,6 +420,11 @@ func (ss *Sim) ConfigTstCycPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	return plt
 }
 
+func (ss *Sim) ResetTstCycPlot() {
+	ss.TstCycLog.SetNumRows(0)
+	ss.TstCycPlot.Update()
+}
+
 //////////////////////////////////////////////
 //  SpikeVsRateLog
 
@@ -534,6 +539,16 @@ See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch2/neuron/README.
 			ss.RunCycles()
 			ss.IsRunning = false
 			vp.SetNeedsFullRender()
+		}
+	})
+
+	tbar.AddSeparator("run-sep")
+
+	tbar.AddAction(gi.ActOpts{Label: "Reset Plot", Icon: "update", Tooltip: "Reset TstCycPlot.", UpdateFunc: func(act *gi.Action) {
+		act.SetActiveStateUpdt(!ss.IsRunning)
+	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+		if !ss.IsRunning {
+			ss.ResetTstCycPlot()
 		}
 	})
 
