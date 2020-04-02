@@ -46,7 +46,7 @@ The graph shows the activation (`Act`) for the unit as a function of trial (and 
 
 Now, let's try to understand exactly why the unit responds as it does. The key to doing so is to understand the relationship between the pattern of weights and the input pattern.
 
-* Click the `TestPats` again (or find the already-open window if you didn't close it), and place that scrolled to the `8` digit next to the netview window, so you can see both.  Then do `Init` in the toolbar and `Test Trial` for each input digit in turn.
+* Click the `Pats` again (or find the already-open window if you didn't close it), and place that scrolled to the `8` digit next to the netview window, so you can see both.  Then do `Init` in the toolbar and `Test Trial` for each input digit in turn.
 
 > **Question 2.8:** For each digit, report the number of active Input units where there is also a weight of 1 according to the `8` digit pattern.  In other words, report the *overlap* between the input activity and the weight pattern.
 
