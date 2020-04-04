@@ -32,4 +32,81 @@ You probably have to do a "right mouse click" (e.g., Ctrl + click) to open the e
 
 **3/30/2020**: Version 1.0.3 release -- no major changes, just updated to most recent GoGi GUI.
 
+# List of Sims and Exercise Questions
+
+Here's a full list of all the simulations and the textbook exercise questions associated with them:
+
+## Chapter 2: Neuron
+
+* `neuron`: Integration, spiking and rate code activation. (Questions **2.1 -- 2.7**)
+
+* `detector`: The neuron as a detector -- demonstrates the critical function of synaptic weights in determining what a neuron detects. (Questions **2.8 -- 2.10**)
+
+## Chapter 3: Networks
+
+* `face_categ`: Face categorization, including bottom-up and top-down processing (used for multiple explorations in Networks chapter) (Questions **3.1 -- 3.3**)
+
+* `cats_dogs`: Constraint satisfaction in the Cats and Dogs model. (Question **3.4**)
+
+* `necker_cube`: Constraint satisfaction and the role of noise and accommodation in the Necker Cube model. (Question **3.5**)
+
+* `inhib`: Inhibitory interactions via inhibitory interneurons, and FFFB approximation. (Questions **3.6 -- 3.8**)
+
+## Chapter 4: Learning
+
+* `self_org`: Self organizing learning using BCM-like dynamic of XCAL (Questions **4.1 -- 4.2**).
+
+* `pat_assoc`: Basic two-layer network learning simple input/output mapping tasks (pattern associator) with Hebbian and Error-driven mechanisms (Questions **4.3 -- 4.6**).
+
+* `err_driven_hidden`: Full error-driven learning with a hidden layer, can solve any input output mapping (Question **4.7**).
+
+* `family_trees`: Learning in a deep (multi-hidden-layer) network, showing advantages of combination of self-organizing and error-driven learning (Questions **4.8 -- 4.9**).
+
+* `hebberr_combo`: Hebbian learning in combination with error-driven facilitates generalization (Questions **4.10 -- 4.12**).
+
+Note: no sims for chapter 5
+
+## Chapter 6: Perception and Attention
+
+* `v1rf`: V1 receptive fields from Hebbian learning, with lateral topography. (Questions **6.1 -- 6.2**)
+
+* `objrec`: Invariant object recognition over hierarchical transforms. (Questions **6.3 -- 6.5**)
+
+* `attn`: Spatial attention interacting with object recognition pathway, in a small-scale model. (Questions **6.6 -- 6.11**)
+
+## Chapter 7: Motor Control and Reinforcement Learning
+
+* `bg`: Action selection / gating and reinforcement learning in the basal ganglia. (Questions **7.1 -- 7.4**)
+
+* `rl_cond`: Pavlovian Conditioning using Temporal Differences Reinforcement Learning. (Questions **7.5 -- 7.6**)
+
+* `pvlv`: Pavlovian Conditioning with the PVLV model (Questions **7.7 -- 7.9**)  **NOT YET AVAIL!**
+
+* `cereb`: Cerebellum role in motor learning, learning from errors. (Questions **7.10 -- 7.11**) **NOT YET AVAIL!**
+
+## Chapter 8: Learning and Memory
+
+* `abac`: Paired associate AB-AC learning and catastrophic interference. (Questions **8.1 -- 8.3**)
+
+* `hip`: Hippocampus model and overcoming interference. (Questions **8.4 -- 8.6**)
+
+* `priming`: Weight and Activation-based priming. (Questions **8.7 -- 8.8**)
+
+## Chapter 9: Language
+
+* `dyslex`: Normal and disordered reading and the distributed lexicon. (Questions **9.1 -- 9.6**)
+
+* `ss`: Orthography to Phonology mapping and regularity, frequency effects. (Questions **9.7 -- 9.8**)
+
+* `sem`: Semantic Representations from World Co-occurrences and Hebbian Learning. (Questions **9.9 -- 9.11**)
+
+* `sg`:  The Sentence Gestalt model. (Question **9.12**)
+
+## Chapter 10: Executive Function
+
+* `stroop`: The Stroop effect and PFC top-down biasing (Questions **10.1 -- 10.3**)
+
+* `a_not_b`: Development of PFC active maintenance and the A-not-B task (Questions **10.4 -- 10.6**)
+
+* `sir`: Store/Ignore/Recall Task - Updating and Maintenance in more complex PFC model (Questions **10.7 -- 10.8**)
 
