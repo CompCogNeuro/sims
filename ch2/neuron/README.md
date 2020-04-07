@@ -55,7 +55,7 @@ By systematically searching the parameter range for `GbarE` between .1 and .2, y
 
 > **Question 2.3:** To 2 decimal places (e.g., 0.15), what value of `GbarE` puts the neuron just over threshold, such that it spikes at this value, but not at the next value below it?
 
-* Note: If you want to see the precise numbers for the values in the graph, click on the `TstCycLog`.  You don't need these yet but may want to look at them anyway -- the precise numbers you need here are for the `GbarE` parameter, but it might be useful to see the underlying Vm values.
+* Note: If you want to see the precise numbers for the values in the graph, click on the `TstCycLog`.  Be sure to press `UpdtView` if you run again, to update to current results.  You don't need these yet but may want to look at them anyway -- the precise numbers you need here are for the `GbarE` parameter, but it might be useful to see the underlying Vm values.
 
 > **Question 2.4 (advanced):** Using the equation for the equilibrium membrane potential from the Neuron chapter, compute the exact value of excitatory input required to just reach threshold, showing your math (note that: Gl is a constant = .3; Ge is 1 when the input is on; inhibition is not present here and can be ignored) -- this should agree with your empirically determined value.
 
