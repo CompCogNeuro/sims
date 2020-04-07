@@ -72,6 +72,8 @@ As a result of working through the Ge net input calculation, you should now have
 
 Next, we will explore how we can change how much information is conveyed by the activation signal. We will manipulate the leak current (`GbarL`), which has a default value of 2, which is sufficient to oppose the strength of the excitatory inputs for all but the strongest (best fitting) input pattern (the 8).
 
+**IMPORTANT:** you must press `Init` for changes in `GbarL` to take effect!
+
 * Reduce the `GbarL` value from 2 to 1.8, and do `Init` then `Test Trial` (you might want to change `ViewUpdt` to `AlphaCycle` instead of `Cycle` so it only shows the final result of setting for each input).  You can alternatively just hit `Test All` and look at the `TstTrlPlot`.
 
 > **Question 2.9:** What happens to the pattern of receiving neuron activity over the different digits when you change GbarL to 1.8, 1.5, and 2.3 -- which input digits does it respond to for each case?  In terms of the tug-of-war model between excitatory and inhibition & leak (i.e., GbarL = leak), why does changing leak have this effect (a simple one-sentence answer is sufficient)?
