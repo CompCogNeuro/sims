@@ -131,4 +131,9 @@ $ go build       # this will get all the dependencies and build everything
 $ ./objrec &     # this will run the newly-build executable
 ```
 
+All the dependencies (emergent packages, gogi gui packages, etc) will be installed in:
+```
+~/go/pkg/mod/github.com/
+```
+where `~` means your home directory (can also be changed by setting `GOPATH` to any directory).
 
