@@ -2,7 +2,7 @@
 
 This repository contains the neural network simulation models for the [CCN Textbook](https://github.com/CompCogNeuro/ed4) (now on github!).
 
-These models are implemented in the new *Go* (golang) version of [emergent](https://github.com/emer/emergent), with Python versions available as well (note: not yet!).  This github repository contains the full source code and you can build and run the models by cloning the repository and building / running the individual projects as described in the emergent Wiki help page: [Wiki Install](https://github.com/emer/emergent/wiki/Install).
+These models are implemented in the new *Go* (golang) version of [emergent](https://github.com/emer/emergent), with Python versions available as well (note: not yet!).  This github repository contains the full source code and you can build and run the models by cloning the repository and building / running the individual projects as described in the emergent Wiki help page: [Wiki Install](https://github.com/emer/emergent/wiki/Install) -- see [Build From Source](#build-from-source) section below for specific step-by-step instructions.
 
 The simplest way to run the simulations is by downloading a `zip` (or `tar.gz` for linux) file of all of the built models for your platform.  These are fully self-contained executable files and should "just work" on each platform.
 
@@ -109,4 +109,26 @@ Note: no sims for chapter 5
 * `a_not_b`: Development of PFC active maintenance and the A-not-B task (Questions **10.4 -- 10.6**)
 
 * `sir`: Store/Ignore/Recall Task - Updating and Maintenance in more complex PFC model (Questions **10.7 -- 10.8**)
+
+# Build From Source
+
+First, you *must* read and follow the [GoGi Install](https://github.com/goki/gi/wiki/Install) instructions, and build the `examples/widgets` example and make sure it runs -- that page has all the details for extra things needed for different operating systems.
+
+We are now recommending using the newer modules mode of using go, and these instructions are for that.
+
+**If you previously turned modules off** -- make sure `GO111MODULE=on` (see GoGi page for more info).
+
+(If you're doing this the first time, just proceed -- the default is for modules = on)
+
+The `#` notes after each line are comments explaining the command -- don't type those!
+
+```bash
+$ cd <wherever you want to install>  # change to directory where you want to install
+$ git clone https://github.com/CompCogNeuro/sims   # get the code, makes a sims dir
+$ cd sims        # go into it
+$ cd ch6/objrec  # this has the most dependencies -- test it
+$ go build       # this will get all the dependencies and build everything
+$ ./objrec &     # this will run the newly-build executable
+```
+
 
