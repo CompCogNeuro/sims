@@ -73,7 +73,7 @@ Thus, as we discussed in the *Networks* Chapter, the network has roughly symmetr
 
 A simple first step for observing the effects of bidirectional connectivity is to activate a set of high-level category values and have that information flow top-down to the input layer to generate an image that corresponds to the combination of such categories. For example, if we activate Happy, Female, and Lisa, then we might expect that the network will be able to "imagine" what Lisa looks like when she's happy.
 
-* Click the `Set Input` button in the top toolbar, and select `Top Down`, and then do Init and hit `Test Trial` multiple times to see the activation dynamics unfold -- use the Time VCR buttons to examine the settling cycle-by-cycle.
+* In the NetView, select the `Act` variable. Next, click the `Set Input` button in the top toolbar, and select `Top Down`, and then do Init and hit `Test Trial` multiple times to see the activation dynamics unfold -- use the Time VCR buttons to examine the settling cycle-by-cycle.
 
 You should see that the high-level category values for the first face in the list (Happy, Male, Alberto) were activated at the start, and then the face image filed in over time based on this top-down information.
 
