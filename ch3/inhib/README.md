@@ -67,7 +67,7 @@ These exercises should help you to see that a combination of both feedforward an
 
 We just saw that feedforward inhibition is important for anticipating and offsetting the excitation coming from the inputs to the hidden layer. In addition to this feedforward inhibitory connectivity, the anticipatory effect depends on a difference between excitatory and inhibitory neurons in their rate of updating, which is controlled by the `Dt.GTau` parameters `HiddenGTau` and `InhibGTau` in the control panel (see [CCN Textbook](https://github.com/CompCogNeuro/ed4), Chapter 2). As you can see, the excitatory neurons are updated at tau of 40 (slower), while the inhibitory are at 20 (faster) -- these numbers correspond roughly to how many cycles it takes for a substantial amount of change happen. The faster updating of the inhibitory neurons allows them to more quickly become activated by the feedforward input, and send anticipatory inhibition to the excitatory hidden units before they actually get activated.
 
-* To verify this, click on Defaults, set ff_inhib_dt_net_tau to 40 (instead of the 20 default), and then Run. 
+* To verify this, click on Defaults, set `InhibGTau` to 40 (instead of the 20 default), and then Run. 
 
 You should see that the inhibition is no longer capable of anticipating the excitation as well, resulting in larger initial oscillations. Also, the faster inhibitory time constant enables inhibition to more rapidly adapt to changes in the overall excitation level. There is ample evidence that cortical inhibitory neurons respond faster to inputs than pyramidal neurons (e.g., Douglas & Martin, 1990).
 
@@ -123,7 +123,7 @@ You should run this section after having read the *FFFB Inhibition Function* sec
 
 * Reset the parameters to their default values using the `Defaults` button, click the `BidirNet` on to use that, and then Test to get the initial state of the network. This should reproduce the standard activation graph for the case with actual inhibitory neurons.
 
-* Now, set `FFFBInhib` on to use the FFFB function described in the main text. Also set the `HiddenGbarI` and `InhibGbarI` parameters to 1 (otherwise the computed inhibition will be inaccurate), and the rate constant parameters to their defaults for normal (non unit inhib) operation, which is `HiddenGTau` and `InhibGTau` both to 1.4. Finally, you need to turn off the inhibitory projections (when present, these will contribute in addition to whatever is computed by FFFB) -- set bdir_inhib_wt_scale.abs to 0 (this sets the absolute scaling factor to 0, effectively nullifying these connections). Hit Apply. 
+* Now, set `FFFBInhib` on to use the FFFB function described in the main text. Also set the `HiddenGbarI` and `InhibGbarI` parameters to 1 (otherwise the computed inhibition will be inaccurate), and the rate constant parameters to their defaults for normal (non unit inhib) operation, which is `HiddenGTau` and `InhibGTau` both to 1.4. 
 
 * Press `Test Trial`.
 
@@ -135,7 +135,7 @@ You should see the hidden activities approach the 20% level now -- this shows th
 
 * To test the set point behavior of the FFFB functions, we can vary the amount of excitatory input by changing the `InputPct` levels, to 10 and 30 instead of the 20% default. After you change `InputPct`, you need to do `ConfigPats` in the toolbar (this makes a new input pattern with this percent of neurons active), and then `Test Trial`. 
 
-> **Question 3.8:** How much does the hidden average activity level vary as a function of the different input_pct levels (10, 20, 30). What does this reveal about the set point nature of the FFFB inhibition mechanism?
+> **Question 3.8:** How much does the hidden average activity level vary as a function of the different `InputPct` levels (10, 20, 30). What does this reveal about the set point nature of the FFFB inhibition mechanism?
 
 Finally, you can explore the effects of changing the `*GbarI` and `FFinhibWtScale`, `FBinhibWtScale` parameters, which change the overall amount of inhibition, and amounts of feedforward and feedback inhibition, respectively.
 
