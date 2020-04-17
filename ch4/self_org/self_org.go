@@ -80,7 +80,7 @@ var ParamSets = params.Sets{
 	}},
 	{Name: "Hidden2Act", Desc: "hidden layer with ~2 units active", Sheets: params.Sheets{
 		"Network": &params.Sheet{
-			{Sel: "#Hidden", Desc: "std inhib",
+			{Sel: "#Hidden", Desc: "std inhib -- note: overwritten by TrainGi param!",
 				Params: params.Params{
 					"Layer.Inhib.Layer.Gi": "1.8",
 				}},
@@ -88,7 +88,7 @@ var ParamSets = params.Sets{
 	}},
 	{Name: "Hidden1Act", Desc: "hidden layer with ~1 unit active", Sheets: params.Sheets{
 		"Network": &params.Sheet{
-			{Sel: "#Hidden", Desc: "higher inhib",
+			{Sel: "#Hidden", Desc: "higher inhib because fewer units should be active -- note: overwritten by TestGi param!",
 				Params: params.Params{
 					"Layer.Inhib.Layer.Gi": "2.5",
 				}},
@@ -104,6 +104,8 @@ var ParamSets = params.Sets{
 type Sim struct {
 	AvgLGain      float32           `def:"2.5" desc:"key BCM hebbian learning parameter, that determines how high the floating threshold goes -- higher = more homeostatic pressure against rich-get-richer feedback loops"`
 	InputNoise    float32           `def:"0" desc:"variance on gaussian noise to add to inputs"`
+	TrainGi       float32           `def:"1.8" desc:"strength of inhibition during training with two lines present in input"`
+	TestGi        float32           `def:"2.5" desc:"strength of inhibition during testing with one line present in input -- higher because fewer neurons should be active"`
 	Net           *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
 	Lines2        *etable.Table     `view:"no-inline" desc:"easy training patterns -- can be learned with Hebbian"`
 	Lines1        *etable.Table     `view:"no-inline" desc:"hard training patterns -- require error-driven"`
@@ -177,6 +179,8 @@ func (ss *Sim) New() {
 func (ss *Sim) Defaults() {
 	ss.AvgLGain = 2.5
 	ss.InputNoise = 0
+	ss.TrainGi = 1.8
+	ss.TestGi = 2.5
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -614,6 +618,14 @@ func (ss *Sim) SetParamsSet(setNm string, sheet string, setMsg bool) error {
 			simp.Apply(ss, setMsg)
 		}
 	}
+
+	ly := ss.Net.LayerByName("Hidden").(leabra.LeabraLayer).AsLeabra()
+	if setNm == "Hidden2Act" {
+		ly.Inhib.Layer.Gi = ss.TrainGi
+	} else if setNm == "Hidden1Act" {
+		ly.Inhib.Layer.Gi = ss.TestGi
+	}
+
 	// note: if you have more complex environments with parameters, definitely add
 	// sheets for them, e.g., "TrainEnv", "TestEnv" etc
 	return err
