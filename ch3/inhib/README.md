@@ -135,7 +135,7 @@ You should see the hidden activities approach the 20% level now -- this shows th
 
 * To test the set point behavior of the FFFB functions, we can vary the amount of excitatory input by changing the `InputPct` levels, to 10 and 30 instead of the 20% default. After you change `InputPct`, you need to do `ConfigPats` in the toolbar (this makes a new input pattern with this percent of neurons active), and then `Test Trial`. 
 
-> **Question 3.8:** How much does the hidden average activity level vary as a function of the different `InputPct` levels (10, 20, 30). What does this reveal about the set point nature of the FFFB inhibition mechanism?
+> **Question 3.8:** How much does the hidden average activity level vary as a function of the different `InputPct` levels (10, 20, 30). What does this reveal about the set point nature of the FFFB inhibition mechanism (i.e., the extent to which it works like an air conditioner that works to maintain a fixed set-point temperature)?
 
 Finally, you can explore the effects of changing the `*GbarI` and `FFinhibWtScale`, `FBinhibWtScale` parameters, which change the overall amount of inhibition, and amounts of feedforward and feedback inhibition, respectively.
 
