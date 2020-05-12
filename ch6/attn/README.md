@@ -151,7 +151,7 @@ Our model can be used to simulate at least the qualitative patterns of behavior 
 
 Now, let's see this in the model.
 
-* First, un-lesion the network by running `Lesion` and selecting `NoLesion` for `Layers`. Next, set `Test` to `StdPosner`. Then, click the `KNaAdapt` toggle to On to turn on adaptation. Next, let's choose a cue duration that, even with the accommodation channels active, still produces the original pattern of results. Set `CueDur` to 50. Now, do `Init`, `Test Item` and `Test All` as usual.
+* First, un-lesion the network by running `Lesion` and selecting `NoLesion` for `Layers`. Next, set `Test` to `StdPosner`. Then, click the `KNaAdapt` toggle to On to turn on adaptation. Next, let's choose a cue duration that, even with the accommodation channels active, still produces the original pattern of results. Set `CueDur` to 50. Now, do `Init`, `Test Trial` and `Test All` as usual.
 
 You should observe the now-familiar pattern of a valid facilitation and an invalid slowing (although a bit weaker).
 
@@ -159,7 +159,7 @@ You should observe the now-familiar pattern of a valid facilitation and an inval
 
 You should see that the valid-invalid difference decreases progressively with increasing duration, and ultimately, the validly cued condition can actually be a bit *slower* than the invalidly cued one, which is the hallmark of the inhibition of return phenomenon (Figure 8.28). The effect sizes here are fairly small because the form of adaptation here is relatively weak -- a more significant GABA-B like delayed inhibition effect (which is not currently implemented) would be needed to produce more substantial effects.
 
-* Switch to the `NetView`, set `ViewUpdt` to `Cycle` and `Test Item` through the running of the network with `CueDur` at 300.
+* Switch to the `NetView`, set `ViewUpdt` to `Cycle` and `Test Trial` through the running of the network with `CueDur` at 300.
 
 > **Question 6.11:** Report in detail what happens on the valid and invalid trials that produces the inhibition of return effect.
 
