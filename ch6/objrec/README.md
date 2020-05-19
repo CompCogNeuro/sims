@@ -75,7 +75,7 @@ You should see that the V4 units are encoding simple conjunctions of line elemen
 
 You can now examine the IT patterns (Figure 4), and compare them with the V4 ones.
 
-> **Question 6.5:** Based on your examination of the IT units, do they appear to code for entire objects, or just parts of different objects? Explain.
+> **Question 6.5:** Based on your examination of the IT units, do individual neurons appear to code for a single entire object, or rather parts of different objects (such that an individual neuron is active across multiple objects)? Explain.
 
 By focusing specifically on the number of objects a given unit clearly *doesn't* participate in (based on the Output layer), it should be clear that the IT units are more selective than the V4 units, which substantiates the idea that the IT units are encoding more complex combinations of features that are shared by fewer objects (thus making them more selective to particular subsets of objects). Thus, we see evidence here of the hierarchical increase in featural complexity required to encode featural relationships while also producing spatial invariance.   Also, the IT patterns are much blurrier and this means that they are integrating over more locations / distortions of the input images -- i.e., they are more invariant.
 
