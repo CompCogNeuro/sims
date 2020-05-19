@@ -107,7 +107,7 @@ Now, we lesion the model, and see if it simulates the patient's data. However, b
 
 > **Question 6.8:** Report the resulting averages from the `TstStats` table.
 
-> **Question 6.9:** Compute the invalid-valid difference, and compare it with the patient's data, and with the intact network.
+> **Question 6.9:** Compute the invalid-valid difference, and compare it first with that same difference in the intact network, and then with the patient's data as discussed above.
 
 You should have found that you can simulate the apparent disengage deficit without having a specific "disengager" mechanism (at least qualitatively).
 
