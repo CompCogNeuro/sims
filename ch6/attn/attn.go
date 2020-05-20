@@ -182,13 +182,13 @@ var ParamSets = params.Sets{
 				Params: params.Params{
 					"Prjn.WtScale.Rel": "0.6", // note: controlled by Sim param
 				}},
-			{Sel: "#Spat1ToV1", Desc: "stronger spatial top-down wt scale",
+			{Sel: "#Spat1ToV1", Desc: "stronger spatial top-down wt scale -- key param for invalid effect",
 				Params: params.Params{
-					"Prjn.WtScale.Rel": "0.5",
+					"Prjn.WtScale.Rel": "0.4",
 				}},
-			{Sel: "#Spat2ToSpat1", Desc: "stronger spatial top-down wt scale",
+			{Sel: "#Spat2ToSpat1", Desc: "stronger spatial top-down wt scale -- key param for invalid effect",
 				Params: params.Params{
-					"Prjn.WtScale.Rel": "0.5",
+					"Prjn.WtScale.Rel": "0.4",
 				}},
 		},
 	}},
@@ -800,12 +800,14 @@ func (ss *Sim) ValsTsr(name string) *etensor.Float32 {
 // LogTstTrl adds data from current trial to the TstTrlLog table.
 // log always contains number of testing items
 func (ss *Sim) LogTstTrl(dt *etable.Table) {
-	// trl := ss.TestEnv.Trial.Cur
 	row := dt.Rows
 	if dt.Rows <= row {
 		dt.SetNumRows(row + 1)
 	}
-	dt.SetCellFloat("Trial", row, float64(row))
+
+	trl := row % 3 // every third item is a new trial type
+
+	dt.SetCellFloat("Trial", row, float64(trl))
 	dt.SetCellString("TrialName", row, ss.TestEnv.GroupName.Cur)
 	dt.SetCellFloat("Cycle", row, float64(ss.Time.Cycle))
 
