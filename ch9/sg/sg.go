@@ -1466,7 +1466,6 @@ func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.Params.Type = eplot.Bar
 	plt.SetTable(dt)
 	plt.Params.XAxisRot = 45
-	plt.Params.BarWidth = 5
 
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Run", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)

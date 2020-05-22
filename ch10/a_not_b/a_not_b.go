@@ -702,7 +702,6 @@ func (ss *Sim) ConfigTrnTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.Params.XAxisCol = "TrialName"
 	plt.Params.Type = eplot.Bar
 	plt.SetTable(dt) // this sets defaults so set params after
-	plt.Params.BarWidth = 2
 	plt.Params.XAxisRot = 90
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Trial", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)

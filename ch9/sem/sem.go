@@ -1128,7 +1128,6 @@ func (ss *Sim) ConfigTstQuizPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plo
 	plt.Params.XAxisCol = "QNo"
 	plt.Params.Type = eplot.Bar
 	plt.SetTable(dt)
-	plt.Params.BarWidth = 10
 	// plt.Params.XAxisRot = 45
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Run", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
