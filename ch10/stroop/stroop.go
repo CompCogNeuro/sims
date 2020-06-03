@@ -989,7 +989,7 @@ func (ss *Sim) ConfigTrnEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 func (ss *Sim) LogTstTrl(dt *etable.Table, trl int, trlnm string) {
 	epc := ss.TrainEnv.Epoch.Prv // this is triggered by increment so use previous value
 
-	row := trl
+	row := dt.Rows
 	if dt.Rows <= row {
 		dt.SetNumRows(row + 1)
 	}
@@ -1457,6 +1457,12 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	})
 
 	tbar.AddSeparator("misc")
+
+	tbar.AddAction(gi.ActOpts{Label: "Reset TstTrlLog", Icon: "reset", Tooltip: "Reset the test trial log -- otherwise it accumulates to compare across parameters etc."}, win.This(),
+		func(recv, send ki.Ki, sig int64, data interface{}) {
+			ss.TstTrlLog.SetNumRows(0)
+			ss.TstTrlPlot.Update()
+		})
 
 	tbar.AddAction(gi.ActOpts{Label: "New Seed", Icon: "new", Tooltip: "Generate a new initial random seed to get different results.  By default, Init re-establishes the same initial seed every time."}, win.This(),
 		func(recv, send ki.Ki, sig int64, data interface{}) {
