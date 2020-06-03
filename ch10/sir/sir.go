@@ -94,13 +94,6 @@ var ParamSets = params.Sets{
 					"Prjn.WtInit.Var":  "0",
 					"Prjn.WtInit.Sym":  "false",
 				}},
-			{Sel: "#RWPredToSNc", Desc: "Fixed strong",
-				Params: params.Params{
-					"Prjn.Learn.Learn": "false",
-					"Prjn.WtInit.Mean": "1",
-					"Prjn.WtInit.Var":  "0",
-					"Prjn.WtInit.Sym":  "false",
-				}},
 			{Sel: "#Rew", Desc: "Reward layer -- no clamp limits",
 				Params: params.Params{
 					"Layer.Act.Clamp.Range.Min": "-1",
