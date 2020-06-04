@@ -24,7 +24,7 @@ You will see the activation flow through the network, and it should settle into 
 
 The `ConAbs` column shows whether this item is concrete (*Con*) or abstract (*Abs*), and the columns after that indicate what type of error the network makes: `Vis` = visual errors, `Sem` = semantic errors, `VisSem` = both, `Blend` = not a clearly pronounced word, `Other` = some other hard-to-categorize error.  Concrete words have more distinctive features, whereas abstract words have fewer, which impacts their relative susceptibility to lesions.
 
-> **Question 9.1:** Do you think the initial phonological activation is caused by the "direct" input via orthography or the "indirect" input via semantics? Did you see any cases where the initial phonological pattern is subsequently altered when the later input arrives? List the words where this happened.
+> **Question 9.1:** Do you think the initial phonological activation is caused by the "direct" input via orthography or the "indirect" input via semantics? Did you see any cases where the initial phonological pattern is subsequently altered when the later input arrives?  Provide an example word where this happened.
 
 # Reading with Complete Pathway Lesions
 
