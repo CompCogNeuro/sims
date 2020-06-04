@@ -8,6 +8,18 @@ This is a large network, and it takes at least several 10's of mins or longer to
 
 * Do `Open Trained Wts` in the toolbar.
 
+# Phonology Patterns
+
+The following two figures show the phonological patterns for the pools in the `Output` layer, with the specific phonological features shown in the lower right hand corner.  
+
+<img src="fig_pmsp_cons_pats.png" width="50%" title="Consonant Phonology Patterns">
+
+**Consonant feature patterns.**  *Place:* lb = labial, ld = labiodental, dt = dental, al = alveolar, pl = palatal, vl = velar, gl = glottal, pl- = no place; *Manner:* ps = plosive, fr = fricative, sv = semivowel, lq = liquid, ns = nasal, mn- = no manner; vo+ = vocalized, vo- = not
+
+<img src="fig_pmsp_vowel_pats.png" width="50%" title="Vowel Phonology Patterns">
+
+**Vowel feature patterns.** fb = front-back position (1-7); ud = up-down position (1-6); rs = round short, rl = round long, fs = flat short, fl = flat long, fl- = no round / flat.
+
 # Reading Words
 
 First, we will see that the network can read words that are presented to it, using a standard list of probe words developed by [Taraban & McClelland, 1987](#references).
