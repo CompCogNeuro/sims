@@ -12,13 +12,13 @@ This is a large network, and it takes at least several 10's of mins or longer to
 
 The following two figures show the phonological patterns for the pools in the `Output` layer, with the specific phonological features shown in the lower right hand corner.  
 
-<img src="fig_pmsp_cons_pats.png" width="50%" title="Consonant Phonology Patterns">
+<img src="fig_pmsp_cons_pats.png" height="500px" title="Consonant Phonology Patterns">
 
-**Consonant feature patterns.**  *Place:* lb = labial, ld = labiodental, dt = dental, al = alveolar, pl = palatal, vl = velar, gl = glottal, pl- = no place; *Manner:* ps = plosive, fr = fricative, sv = semivowel, lq = liquid, ns = nasal, mn- = no manner; vo+ = vocalized, vo- = not
+**Consonant feature patterns.**  Features (left-right bottom-to-top): *Place:* lb = labial, ld = labiodental, dt = dental, al = alveolar, pl = palatal, vl = velar, gl = glottal, pl- = no place; *Manner:* ps = plosive, fr = fricative, sv = semivowel, lq = liquid, ns = nasal, mn- = no manner; vo+ = vocalized, vo- = not
 
-<img src="fig_pmsp_vowel_pats.png" width="50%" title="Vowel Phonology Patterns">
+<img src="fig_pmsp_vowel_pats.png" height="500px" title="Vowel Phonology Patterns">
 
-**Vowel feature patterns.** fb = front-back position (1-7); ud = up-down position (1-6); rs = round short, rl = round long, fs = flat short, fl = flat long, fl- = no round / flat.
+**Vowel feature patterns.** Features: fb = front-back position (1-7); ud = up-down position (1-6); rs = round short, rl = round long, fs = flat short, fl = flat long, fl- = no round / flat.
 
 # Reading Words
 
