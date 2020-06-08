@@ -40,7 +40,7 @@ You should see 6 rows, 3 for word reading and 3 for color naming. In the first 3
 
 Now, we can actually test the network.
 
-* Click on `TstTrlPlot` and do `Test All`.
+* Click on `TstTrlPlot` and do `Test All` (do *not* press `Init` here or in any of the cases below -- otherwise you will have to retrain the network).
 
 You will see the response times (cycles of settling) plotted in the graph, labeled with the Control (Ctrl), Conflict (Conf), and Congruent (Cong) conditions, respectively.
 
