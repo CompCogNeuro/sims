@@ -32,7 +32,7 @@ import (
 	"github.com/emer/etable/split"
 	"github.com/emer/leabra/deep"
 	"github.com/emer/leabra/leabra"
-	"github.com/emer/leabra/pbwm"
+	pbwm "github.com/emer/leabra/pbwm1"
 	"github.com/goki/gi/gi"
 	"github.com/goki/gi/gimain"
 	"github.com/goki/gi/giv"
