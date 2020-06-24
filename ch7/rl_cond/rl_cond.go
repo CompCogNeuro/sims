@@ -26,9 +26,8 @@ import (
 	"github.com/emer/etable/etensor"
 	"github.com/emer/etable/etview" // include to get gui views
 	"github.com/emer/etable/simat"
-	"github.com/emer/leabra/deep"
 	"github.com/emer/leabra/leabra"
-	"github.com/emer/leabra/pbwm"
+	"github.com/emer/leabra/rl"
 	"github.com/goki/gi/gi"
 	"github.com/goki/gi/gimain"
 	"github.com/goki/gi/giv"
@@ -100,7 +99,7 @@ var ParamSets = params.Sets{
 type Sim struct {
 	Discount        float32           `def:"0.9" desc:"discount factor for future rewards"`
 	Lrate           float32           `def:"0.5" desc:"learning rate"`
-	Net             *pbwm.Network     `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
+	Net             *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
 	TrainEnv        CondEnv           `desc:"Training environment -- conditioning environment"`
 	TrnEpcLog       *etable.Table     `view:"no-inline" desc:"training epoch-level log data"`
 	TrnTrlLog       *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
@@ -142,7 +141,7 @@ var TheSim Sim
 
 // New creates new blank elements and initializes defaults
 func (ss *Sim) New() {
-	ss.Net = &pbwm.Network{}
+	ss.Net = &leabra.Network{}
 	ss.TrnEpcLog = &etable.Table{}
 	ss.TrnTrlLog = &etable.Table{}
 	ss.RewPredInputWts = &etensor.Float32{}
@@ -195,18 +194,18 @@ func (ss *Sim) ConfigEnv() {
 	ss.TrainEnv.Init(0)
 }
 
-func (ss *Sim) ConfigNet(net *pbwm.Network) {
+func (ss *Sim) ConfigNet(net *leabra.Network) {
 	net.InitName(net, "RLCond")
 
-	rew, rp, ri, td := net.AddTDLayers("", relpos.RightOf, 4)
+	rew, rp, ri, td := rl.AddTDLayers(net, "", relpos.RightOf, 4)
 	_ = rew
 	_ = ri
 	inp := net.AddLayer2D("Input", 3, 20, emer.Input)
 	inp.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Rew", YAlign: relpos.Front, XAlign: relpos.Left})
 
-	net.ConnectLayersPrjn(inp, rp, prjn.NewFull(), emer.Forward, &pbwm.TDRewPredPrjn{})
+	net.ConnectLayersPrjn(inp, rp, prjn.NewFull(), emer.Forward, &rl.TDRewPredPrjn{})
 
-	td.(*pbwm.TDDaLayer).SendToAllBut(nil) // send dopamine to all layers..
+	td.(*rl.TDDaLayer).SendDA.AddAllBut(net, nil) // send dopamine to all layers..
 
 	net.Defaults()
 	ss.SetParams("Network", false) // only set Network params
@@ -326,7 +325,7 @@ func (ss *Sim) ApplyInputs(en env.Env) {
 
 	lays := []string{"Input"}
 	for _, lnm := range lays {
-		ly := ss.Net.LayerByName(lnm).(deep.DeepLayer).AsDeep()
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		pats := en.State(ly.Nm)
 		if pats == nil {
 			continue
@@ -335,7 +334,7 @@ func (ss *Sim) ApplyInputs(en env.Env) {
 	}
 
 	pats := en.State("Reward")
-	ly := ss.Net.LayerByName("Rew").(deep.DeepLayer).AsDeep()
+	ly := ss.Net.LayerByName("Rew").(leabra.LeabraLayer).AsLeabra()
 	ly.ApplyExt1DTsr(pats)
 }
 
@@ -494,11 +493,11 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 	}
 	err := ss.SetParamsSet("Base", sheet, setMsg)
 
-	ri := ss.Net.LayerByName("RewInteg").(*pbwm.TDRewIntegLayer)
+	ri := ss.Net.LayerByName("RewInteg").(*rl.TDRewIntegLayer)
 	ri.RewInteg.Discount = ss.Discount
 
-	rp := ss.Net.LayerByName("RewPred").(*pbwm.TDRewPredLayer)
-	fmi := rp.RcvPrjns.SendName("Input").(deep.DeepPrjn).AsLeabra()
+	rp := ss.Net.LayerByName("RewPred").(*rl.TDRewPredLayer)
+	fmi := rp.RcvPrjns.SendName("Input").(leabra.LeabraPrjn).AsLeabra()
 	fmi.Learn.Lrate = ss.Lrate
 
 	return err
@@ -595,9 +594,9 @@ func (ss *Sim) ConfigTrnEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 func (ss *Sim) RewPredInput(dt etensor.Tensor) {
 	col := dt.(*etensor.Float32)
 	vals := col.Values
-	inp := ss.Net.LayerByName("Input").(deep.DeepLayer).AsDeep()
+	inp := ss.Net.LayerByName("Input").(leabra.LeabraLayer).AsLeabra()
 	isz := inp.Shape().Len()
-	hid := ss.Net.LayerByName("RewPred").(deep.DeepLayer).AsDeep()
+	hid := ss.Net.LayerByName("RewPred").(leabra.LeabraLayer).AsLeabra()
 	ysz := hid.Shape().Dim(0)
 	xsz := hid.Shape().Dim(1)
 	for y := 0; y < ysz; y++ {
@@ -648,15 +647,15 @@ func (ss *Sim) LogTrnTrl(dt *etable.Table) {
 	dt.SetCellFloat("Trial", row, float64(trl))
 	dt.SetCellFloat("Event", row, float64(evt))
 
-	td := ss.Net.LayerByName("TD").(deep.DeepLayer).AsDeep()
-	rp := ss.Net.LayerByName("RewPred").(deep.DeepLayer).AsDeep()
+	td := ss.Net.LayerByName("TD").(leabra.LeabraLayer).AsLeabra()
+	rp := ss.Net.LayerByName("RewPred").(leabra.LeabraLayer).AsLeabra()
 
 	dt.SetCellFloat("TD", row, float64(td.Neurons[0].Act))
 	dt.SetCellFloat("RewPred", row, float64(rp.Neurons[0].Act))
 
 	for _, lnm := range ss.TstRecLays {
 		tsr := ss.ValsTsr(lnm)
-		ly := ss.Net.LayerByName(lnm).(deep.DeepLayer).AsDeep()
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		ly.UnitValsTensor(tsr, "ActAvg")
 		dt.SetCellTensor(lnm, row, tsr)
 	}
@@ -681,7 +680,7 @@ func (ss *Sim) ConfigTrnTrlLog(dt *etable.Table) {
 		{"RewPred", etensor.FLOAT64, nil, nil},
 	}
 	for _, lnm := range ss.TstRecLays {
-		ly := ss.Net.LayerByName(lnm).(deep.DeepLayer).AsDeep()
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		sch = append(sch, etable.Column{lnm, etensor.FLOAT64, ly.Shp.Shp, nil})
 	}
 	dt.SetFromSchema(sch, nt)

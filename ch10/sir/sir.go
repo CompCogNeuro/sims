@@ -33,6 +33,7 @@ import (
 	"github.com/emer/leabra/deep"
 	"github.com/emer/leabra/leabra"
 	pbwm "github.com/emer/leabra/pbwm1"
+	"github.com/emer/leabra/rl"
 	"github.com/goki/gi/gi"
 	"github.com/goki/gi/gimain"
 	"github.com/goki/gi/giv"
@@ -364,8 +365,8 @@ func (ss *Sim) ConfigEnv() {
 
 func (ss *Sim) ConfigNet(net *pbwm.Network) {
 	net.InitName(net, "SIR")
-	rew, rp, da := net.AddRWLayers("", relpos.Behind, 2)
-	snc := da.(*pbwm.RWDaLayer)
+	rew, rp, da := rl.AddRWLayers(&net.Network.Network, "", relpos.Behind, 2)
+	snc := da.(*rl.RWDaLayer)
 	snc.SetName("SNc")
 
 	inp := net.AddLayer2D("Input", 1, 7, emer.Input)
@@ -393,8 +394,8 @@ func (ss *Sim) ConfigNet(net *pbwm.Network) {
 	fmin.Scale.Set(1, 1)
 	fmin.Wrap = true
 
-	net.ConnectLayersPrjn(inp, rp, full, emer.Forward, &pbwm.RWPrjn{})
-	net.ConnectLayersPrjn(pfcMntD, rp, full, emer.Forward, &pbwm.RWPrjn{})
+	net.ConnectLayersPrjn(inp, rp, full, emer.Forward, &rl.RWPrjn{})
+	net.ConnectLayersPrjn(pfcMntD, rp, full, emer.Forward, &rl.RWPrjn{})
 
 	pj := net.ConnectLayersPrjn(ctrl, mtxGo, fmin, emer.Forward, &pbwm.MatrixTracePrjn{})
 	pj.SetClass("MatrixPrjn")
@@ -411,7 +412,7 @@ func (ss *Sim) ConfigNet(net *pbwm.Network) {
 	pj.SetClass("FmPFCOutD")
 	net.ConnectLayers(inp, out, full, emer.Forward)
 
-	snc.SendToAllBut(nil) // send dopamine to all layers..
+	snc.SendDA.AddAllBut(net, nil) // send dopamine to all layers..
 
 	net.Defaults()
 	ss.SetParams("Network", false) // only set Network params
@@ -567,7 +568,7 @@ func (ss *Sim) ApplyReward(train bool) {
 	mxi := out.Pools[0].Inhib.Act.MaxIdx
 	en.SetReward(mxi)
 	pats := en.State("Reward")
-	ly := ss.Net.LayerByName("Rew").(deep.DeepLayer).AsDeep()
+	ly := ss.Net.LayerByName("Rew").(leabra.LeabraLayer).AsLeabra()
 	ly.ApplyExt1DTsr(pats)
 }
 
