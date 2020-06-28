@@ -32,9 +32,9 @@ import (
 	"github.com/emer/etable/etensor"
 	"github.com/emer/etable/etview" // include to get gui views
 	"github.com/emer/etable/simat"
-	"github.com/emer/leabra/deep"
 	"github.com/emer/leabra/leabra"
-	"github.com/emer/leabra/pbwm"
+	pbwm "github.com/emer/leabra/pbwm1"
+	"github.com/emer/leabra/rl"
 	"github.com/goki/gi/gi"
 	"github.com/goki/gi/gimain"
 	"github.com/goki/gi/giv"
@@ -249,7 +249,7 @@ func (ss *Sim) ConfigEnv() {
 
 func (ss *Sim) ConfigNet(net *pbwm.Network) {
 	net.InitName(net, "BG")
-	snc := net.AddClampDaLayer("SNc")
+	snc := rl.AddClampDaLayer(&net.Network.Network, "SNc")
 	inp := net.AddLayer2D("Input", 1, 6, emer.Input)
 	inp.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "SNc", YAlign: relpos.Front, XAlign: relpos.Left})
 
@@ -271,7 +271,7 @@ func (ss *Sim) ConfigNet(net *pbwm.Network) {
 
 	mtxGo.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "SNc", YAlign: relpos.Front, Space: 2})
 
-	snc.SendToAllBut(nil) // send dopamine to all layers..
+	snc.SendDA.AddAllBut(net, nil) // send dopamine to all layers..
 
 	net.Defaults()
 	ss.SetParams("Network", false) // only set Network params
@@ -391,7 +391,7 @@ func (ss *Sim) ApplyInputs(en env.Env) {
 
 	lays := []string{"Input"}
 	for _, lnm := range lays {
-		ly := ss.Net.LayerByName(lnm).(deep.DeepLayer).AsDeep()
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		pats := en.State(ly.Nm)
 		if pats == nil {
 			continue
@@ -400,7 +400,7 @@ func (ss *Sim) ApplyInputs(en env.Env) {
 	}
 
 	pats := en.State("Reward")
-	ly := ss.Net.LayerByName("SNc").(deep.DeepLayer).AsDeep()
+	ly := ss.Net.LayerByName("SNc").(leabra.LeabraLayer).AsLeabra()
 	ly.ApplyExt1DTsr(pats)
 }
 
@@ -689,9 +689,9 @@ func (ss *Sim) ConfigTrnEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 func (ss *Sim) MtxInput(dt etensor.Tensor) {
 	col := dt.(*etensor.Float32)
 	vals := col.Values
-	inp := ss.Net.LayerByName("Input").(deep.DeepLayer).AsDeep()
+	inp := ss.Net.LayerByName("Input").(leabra.LeabraLayer).AsLeabra()
 	isz := inp.Shape().Len()
-	hid := ss.Net.LayerByName("MatrixGo").(deep.DeepLayer).AsDeep()
+	hid := ss.Net.LayerByName("MatrixGo").(leabra.LeabraLayer).AsLeabra()
 	ysz := hid.Shape().Dim(2)
 	xsz := hid.Shape().Dim(3)
 	for y := 0; y < ysz; y++ {
@@ -743,7 +743,7 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 
 	for _, lnm := range ss.TstRecLays {
 		tsr := ss.ValsTsr(lnm)
-		ly := ss.Net.LayerByName(lnm).(deep.DeepLayer).AsDeep()
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		ly.UnitValsTensor(tsr, "ActAvg")
 		dt.SetCellTensor(lnm, row, tsr)
 	}
@@ -766,7 +766,7 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 		{"TrialName", etensor.STRING, nil, nil},
 	}
 	for _, lnm := range ss.TstRecLays {
-		ly := ss.Net.LayerByName(lnm).(deep.DeepLayer).AsDeep()
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		sch = append(sch, etable.Column{lnm, etensor.FLOAT64, ly.Shp.Shp, nil})
 	}
 	dt.SetFromSchema(sch, nt)
