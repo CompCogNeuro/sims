@@ -704,10 +704,13 @@ func (ss *Sim) MemStats(train bool) {
 	cmpN := 0.0           // completion target
 	trgOnN := 0.0
 	trgOffN := 0.0
+	actMi, _ := ecout.UnitVarIdx("ActM")
+	targi, _ := ecout.UnitVarIdx("Targ")
+	actQ1i, _ := ecout.UnitVarIdx("ActQ1")
 	for ni := 0; ni < nn; ni++ {
-		actm := ecout.UnitVal1D("ActM", ni)
-		trg := ecout.UnitVal1D("Targ", ni) // full pattern target
-		inact := ecin.UnitVal1D("ActQ1", ni)
+		actm := ecout.UnitVal1D(actMi, ni)
+		trg := ecout.UnitVal1D(targi, ni) // full pattern target
+		inact := ecin.UnitVal1D(actQ1i, ni)
 		if trg < 0.5 { // trgOff
 			trgOffN += 1
 			if actm > 0.5 {
