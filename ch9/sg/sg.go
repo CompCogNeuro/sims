@@ -87,6 +87,11 @@ var ParamSets = params.Sets{
 					"Layer.Inhib.Layer.Gi":  "2.4", // 2.4 > 2.6+ > 2.2-
 					"Layer.Learn.AvgL.Gain": "2.5", // 2.5 > 3
 					"Layer.Act.Gbar.L":      "0.1", // lower leak = better
+					"Layer.Act.Init.Decay":  "0",
+				}},
+			{Sel: "TRCLayer", Desc: "standard weight is .3 here for larger distributed reps. no learn",
+				Params: params.Params{
+					"Layer.TRC.DriveScale": "0.8", // using .8 for localist layer
 				}},
 			{Sel: ".Encode", Desc: "except encoder needs less",
 				Params: params.Params{
@@ -112,7 +117,7 @@ var ParamSets = params.Sets{
 				Params: params.Params{
 					"Prjn.WtScale.Rel": "0.2",
 				}},
-			{Sel: ".BurstCtxt", Desc: "yes weight balance",
+			{Sel: "CTCtxtPrjn", Desc: "yes weight balance",
 				Params: params.Params{
 					"Prjn.Learn.WtBal.On": "true",
 					"Prjn.WtScale.Rel":    "1", // 1 > 2
@@ -144,23 +149,17 @@ var ParamSets = params.Sets{
 				Params: params.Params{
 					"Prjn.WtScale.Rel": "1.0",
 				}},
-			{Sel: "#DecodeToGestaltD", Desc: "this leaks current role into context directly",
+			{Sel: "#DecodeToGestaltCT", Desc: "this leaks current role into context directly",
 				Params: params.Params{
 					"Prjn.WtScale.Rel": "0.2", // .2 > .3 > .1 > .05(bad) > .02(vbad)
 				}},
-			{Sel: "#GestaltDToEncodeD", Desc: "currently removed",
+			{Sel: "#GestaltCTToEncodeCT", Desc: "currently removed",
 				Params: params.Params{
 					"Prjn.WtScale.Rel": "1", // 1 > 0.5 for sure
 				}},
-			{Sel: "#GestaltDToInputP", Desc: "eliminating rescues EncodeD -- trying weaker",
+			{Sel: "#GestaltCTToInputP", Desc: "eliminating rescues EncodeD -- trying weaker",
 				Params: params.Params{
 					"Prjn.WtScale.Rel": "0.05", // .02 > .05 > .1 > .2 etc -- .02 better than nothing!
-				}},
-			{Sel: ".BurstTRC", Desc: "standard weight is .3 here for larger distributed reps. no learn",
-				Params: params.Params{
-					"Prjn.WtInit.Mean": "0.8", // using .8 for localist layer
-					"Prjn.WtInit.Var":  "0",
-					"Prjn.Learn.Learn": "false",
 				}},
 		},
 	}},
@@ -272,10 +271,10 @@ func (ss *Sim) New() {
 	ss.TrainUpdt = leabra.AlphaCycle
 	ss.TestUpdt = leabra.AlphaCycle
 	ss.TestInterval = 5000
-	ss.LayStatNms = []string{"Encode", "EncodeD", "Gestalt", "GestaltD", "Decode"}
+	ss.LayStatNms = []string{"Encode", "EncodeCT", "Gestalt", "GestaltCT", "Decode"}
 	ss.StatLayNms = []string{"Filler", "InputP"}
 	ss.StatNms = []string{"Fill", "Inp"}
-	ss.ProbeNms = []string{"Gestalt", "GestaltD"}
+	ss.ProbeNms = []string{"Gestalt", "GestaltCT"}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -381,11 +380,11 @@ func (ss *Sim) ConfigNet(net *deep.Network) {
 	in, inp := net.AddInputPulv2D("Input", 10, 5)
 	role := net.AddLayer2D("Role", 9, 1, emer.Input)
 	fill := net.AddLayer2D("Filler", 11, 5, emer.Target)
-	enc, encd, _ := net.AddSuperDeep2D("Encode", 12, 12, deep.NoPulv, deep.NoAttnPrjn) // 12x12 better..
+	enc, encd, _ := net.AddSuperCT2D("Encode", 12, 12, deep.NoPulv) // 12x12 better..
 	enc.SetClass("Encode")
 	encd.SetClass("Encode")
 	dec := net.AddLayer2D("Decode", 12, 12, emer.Hidden)
-	gest, gestd, _ := net.AddSuperDeep2D("Gestalt", 12, 12, deep.NoPulv, deep.NoAttnPrjn) // 12x12 def better with full
+	gest, gestd, _ := net.AddSuperCT2D("Gestalt", 12, 12, deep.NoPulv) // 12x12 def better with full
 	gest.SetClass("Gestalt")
 	gestd.SetClass("Gestalt")
 
@@ -394,7 +393,7 @@ func (ss *Sim) ConfigNet(net *deep.Network) {
 	fill.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "Role", YAlign: relpos.Front, Space: 4})
 	enc.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Input", YAlign: relpos.Front, XAlign: relpos.Left})
 	encd.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "Encode", YAlign: relpos.Front, Space: 2})
-	dec.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "EncodeD", YAlign: relpos.Front, Space: 2})
+	dec.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "EncodeCT", YAlign: relpos.Front, Space: 2})
 	gest.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Encode", YAlign: relpos.Front, XAlign: relpos.Left})
 	gestd.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "Gestalt", YAlign: relpos.Front, Space: 2})
 
@@ -441,15 +440,15 @@ func (ss *Sim) ConfigNet(net *deep.Network) {
 	net.BidirConnectLayers(dec, fill, full)
 
 	// add extra deep context
-	pj = net.ConnectLayers(encd, encd, full, deep.BurstCtxt)
+	pj = net.ConnectCtxtToCT(encd, encd, full)
 	pj.SetClass("EncSelfCtxt")
-	pj = net.ConnectLayers(in, encd, full, deep.BurstCtxt)
+	pj = net.ConnectCtxtToCT(in, encd, full)
 	pj.SetClass("CtxtFmInput")
 
 	// add extra deep context
-	pj = net.ConnectLayers(gestd, gestd, full, deep.BurstCtxt)
+	pj = net.ConnectCtxtToCT(gestd, gestd, full)
 	pj.SetClass("GestSelfCtxt")
-	pj = net.ConnectLayers(in, gestd, full, deep.BurstCtxt) // yes better
+	pj = net.ConnectCtxtToCT(in, gestd, full) // yes better
 	pj.SetClass("CtxtFmInput")
 
 	net.Defaults()
@@ -740,7 +739,7 @@ func (ss *Sim) TrainTrial() {
 		}
 	}
 
-	fill := ss.Net.LayerByName("Filler").(deep.DeepLayer).AsDeep()
+	fill := ss.Net.LayerByName("Filler").(leabra.LeabraLayer).AsLeabra()
 	fill.SetType(emer.Target)
 
 	ss.ApplyInputs(&ss.TrainEnv)
@@ -876,7 +875,7 @@ func (ss *Sim) TestTrial(returnOnChg bool) {
 		}
 	}
 
-	fill := ss.Net.LayerByName("Filler").(deep.DeepLayer).AsDeep()
+	fill := ss.Net.LayerByName("Filler").(leabra.LeabraLayer).AsLeabra()
 	fill.SetType(emer.Compare)
 
 	ss.ApplyInputs(&ss.TestEnv)
@@ -923,7 +922,7 @@ func (ss *Sim) ProbeAll() {
 	ss.SentProbeEnv.Init(ss.TrainEnv.Run.Cur)
 	ss.SentProbeTrlLog.SetNumRows(0)
 
-	fill := ss.Net.LayerByName("Filler").(deep.DeepLayer).AsDeep()
+	fill := ss.Net.LayerByName("Filler").(leabra.LeabraLayer).AsLeabra()
 	fill.SetType(emer.Compare)
 
 	for {
@@ -1164,7 +1163,7 @@ func (ss *Sim) ConfigTrnTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 // and under dead threshold
 func (ss *Sim) HogDead(lnm string) (hog, dead float64) {
 	lvt := ss.ValsTsr(lnm)
-	ly := ss.Net.LayerByName(lnm).(deep.DeepLayer).AsDeep()
+	ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 	ly.UnitValsTensor(lvt, "ActAvg")
 	n := float64(lvt.Len())
 	if n == 0 {
@@ -1224,7 +1223,7 @@ func (ss *Sim) LogTrnEpc(dt *etable.Table) {
 	ss.LogEpcStats(dt, ss.TrnTrlLog)
 
 	for _, lnm := range ss.LayStatNms {
-		ly := ss.Net.LayerByName(lnm).(deep.DeepLayer).AsDeep()
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		dt.SetCellFloat(ly.Nm+" ActAvg", row, float64(ly.Pools[0].ActAvg.ActPAvgEff))
 		hog, dead := ss.HogDead(lnm)
 		dt.SetCellFloat(ly.Nm+" Hog", row, hog)
