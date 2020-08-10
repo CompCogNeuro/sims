@@ -91,7 +91,12 @@ var ParamSets = params.Sets{
 				}},
 			{Sel: "TRCLayer", Desc: "standard weight is .3 here for larger distributed reps. no learn",
 				Params: params.Params{
-					"Layer.TRC.DriveScale": "0.8", // using .8 for localist layer
+					"Layer.TRC.DriveScale":        "0.8", // using .8 for localist layer
+					"Layer.Inhib.ActAvg.UseFirst": "false",
+				}},
+			{Sel: "CTLayer", Desc: "don't use first as it is typically very low",
+				Params: params.Params{
+					"Layer.Inhib.ActAvg.UseFirst": "false",
 				}},
 			{Sel: ".Encode", Desc: "except encoder needs less",
 				Params: params.Params{
@@ -109,7 +114,7 @@ var ParamSets = params.Sets{
 				Params: params.Params{
 					"Layer.Inhib.Layer.Gi": "3.6",
 				}},
-			{Sel: "#InputP", Desc: "higher inhib -- 2.4 == 2.2 > 2.6",
+			{Sel: "#EncodeP", Desc: "higher inhib -- 2.4 == 2.2 > 2.6",
 				Params: params.Params{
 					"Layer.Inhib.Layer.Gi": "2.4",
 				}},
@@ -125,23 +130,23 @@ var ParamSets = params.Sets{
 			{Sel: ".GestSelfCtxt", Desc: "yes weight balance",
 				Params: params.Params{
 					"Prjn.Learn.WtBal.On": "true",
-					"Prjn.WtScale.Rel":    "3", // 3 > 2 > 4 (blows up)
+					"Prjn.WtScale.Rel":    "3", // 3 > 2 > 4 (blows up) -- not better to start smaller
 				}},
 			{Sel: ".EncSelfCtxt", Desc: "yes weight balance",
 				Params: params.Params{
 					"Prjn.Learn.WtBal.On": "true",
-					"Prjn.WtScale.Rel":    "5", // 5 > 4 > 3 > 6
+					"Prjn.WtScale.Rel":    "5", // 5 > 4 > 3 > 6 -- not better to start smaller
 				}},
 			{Sel: ".FmInput", Desc: "from localist inputs -- 1 == .3",
 				Params: params.Params{
 					"Prjn.WtScale.Rel":      "1",
 					"Prjn.Learn.WtSig.Gain": "6", // 1 == 6
 				}},
-			{Sel: ".InputPToSuper", Desc: "teaching signal from input pulvinar, to super -- .05 > .2",
+			{Sel: ".EncodePToSuper", Desc: "teaching signal from input pulvinar, to super -- .05 > .2",
 				Params: params.Params{
 					"Prjn.WtScale.Rel": "0.05", // .05 > .2
 				}},
-			{Sel: ".InputPToDeep", Desc: "critical to make this small so deep context dominates -- .05",
+			{Sel: ".EncodePToCT", Desc: "critical to make this small so deep context dominates -- .05",
 				Params: params.Params{
 					"Prjn.WtScale.Rel": "0.05",
 				}},
@@ -157,9 +162,21 @@ var ParamSets = params.Sets{
 				Params: params.Params{
 					"Prjn.WtScale.Rel": "1", // 1 > 0.5 for sure
 				}},
-			{Sel: "#GestaltCTToInputP", Desc: "eliminating rescues EncodeD -- trying weaker",
+			{Sel: "#GestaltCTToEncodeP", Desc: "eliminating rescues EncodeD -- trying weaker",
 				Params: params.Params{
 					"Prjn.WtScale.Rel": "0.05", // .02 > .05 > .1 > .2 etc -- .02 better than nothing!
+				}},
+		},
+	}},
+	{Name: "StrongSelfCtxt", Desc: "increase the self context strength -- not useful", Sheets: params.Sheets{
+		"Network": &params.Sheet{
+			{Sel: ".GestSelfCtxt", Desc: "yes weight balance",
+				Params: params.Params{
+					"Prjn.WtScale.Rel": "3", // 3 > 2 > 4 (blows up) -- start at 1, then move to 3
+				}},
+			{Sel: ".EncSelfCtxt", Desc: "yes weight balance",
+				Params: params.Params{
+					"Prjn.WtScale.Rel": "5", // 5 > 4 > 3 > 6 -- start at 1, then move to 5
 				}},
 		},
 	}},
@@ -272,7 +289,7 @@ func (ss *Sim) New() {
 	ss.TestUpdt = leabra.AlphaCycle
 	ss.TestInterval = 5000
 	ss.LayStatNms = []string{"Encode", "EncodeCT", "Gestalt", "GestaltCT", "Decode"}
-	ss.StatLayNms = []string{"Filler", "InputP"}
+	ss.StatLayNms = []string{"Filler", "EncodeP"}
 	ss.StatNms = []string{"Fill", "Inp"}
 	ss.ProbeNms = []string{"Gestalt", "GestaltCT"}
 }
@@ -366,8 +383,8 @@ func (ss *Sim) ConfigNet(net *deep.Network) {
 	// Gestalt can be entirely independent of encode, or recv encode -- testing value.
 	// GestaltD depends *critically* on getting direct error signal from Decode!
 	//
-	// For pure predictive encoder, InputP -> Gestalt is bad.  if we leak Decode
-	// error signal back to Encode, then it is actually useful, as is GestaltD -> InputP
+	// For pure predictive encoder, EncodeP -> Gestalt is bad.  if we leak Decode
+	// error signal back to Encode, then it is actually useful, as is GestaltD -> EncodeP
 	//
 	// run notes:
 	// 54 = no enc <-> gestalt -- not much diff..  probably just get rid of enc then?
@@ -377,25 +394,28 @@ func (ss *Sim) ConfigNet(net *deep.Network) {
 	//
 
 	net.InitName(net, "SentGestalt")
-	in, inp := net.AddInputPulv2D("Input", 10, 5)
+	in := net.AddLayer2D("Input", 10, 5, emer.Input)
 	role := net.AddLayer2D("Role", 9, 1, emer.Input)
 	fill := net.AddLayer2D("Filler", 11, 5, emer.Target)
-	enc, encd, _ := net.AddSuperCT2D("Encode", 12, 12, deep.NoPulv) // 12x12 better..
+	enc, encct, encp := net.AddDeep2D("Encode", 12, 12) // 12x12 better..
 	enc.SetClass("Encode")
-	encd.SetClass("Encode")
+	encct.SetClass("Encode")
 	dec := net.AddLayer2D("Decode", 12, 12, emer.Hidden)
-	gest, gestd, _ := net.AddSuperCT2D("Gestalt", 12, 12, deep.NoPulv) // 12x12 def better with full
+	gest, gestct := net.AddDeepNoTRC2D("Gestalt", 12, 12) // 12x12 def better with full
 	gest.SetClass("Gestalt")
-	gestd.SetClass("Gestalt")
+	gestct.SetClass("Gestalt")
 
-	inp.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "Input", YAlign: relpos.Front, Space: 2})
-	role.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "InputP", YAlign: relpos.Front, Space: 4})
+	encp.Shape().CopyShape(in.Shape())
+	encp.(*deep.TRCLayer).Drivers.Add("Input")
+
+	encp.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "Input", YAlign: relpos.Front, Space: 2})
+	role.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "EncodeP", YAlign: relpos.Front, Space: 4})
 	fill.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "Role", YAlign: relpos.Front, Space: 4})
 	enc.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Input", YAlign: relpos.Front, XAlign: relpos.Left})
-	encd.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "Encode", YAlign: relpos.Front, Space: 2})
+	encct.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "Encode", YAlign: relpos.Front, Space: 2})
 	dec.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "EncodeCT", YAlign: relpos.Front, Space: 2})
 	gest.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Encode", YAlign: relpos.Front, XAlign: relpos.Left})
-	gestd.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "Gestalt", YAlign: relpos.Front, Space: 2})
+	gestct.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "Gestalt", YAlign: relpos.Front, Space: 2})
 
 	full := prjn.NewFull()
 
@@ -405,11 +425,10 @@ func (ss *Sim) ConfigNet(net *deep.Network) {
 	pj = net.ConnectLayers(in, gest, full, emer.Forward) // this is key -- skip encoder
 	pj.SetClass("FmInput")
 
-	net.ConnectLayers(encd, inp, full, emer.Forward)
-	pj = net.ConnectLayers(inp, encd, full, emer.Back)
-	pj.SetClass("InputPToDeep")
-	pj = net.ConnectLayers(inp, enc, full, emer.Back)
-	pj.SetClass("InputPToSuper")
+	pj = encct.RecvPrjns().SendName("EncodeP")
+	pj.SetClass("EncodePToCT")
+	pj = enc.RecvPrjns().SendName("EncodeP")
+	pj.SetClass("EncodePToSuper")
 
 	// gestd gets error from Filler, this communicates Filler to encd -> corrupts prediction
 	// net.ConnectLayers(gestd, encd, full, emer.Forward)
@@ -417,7 +436,7 @@ func (ss *Sim) ConfigNet(net *deep.Network) {
 	// testing no use of enc at all
 	net.BidirConnectLayers(enc, gest, full)
 
-	net.ConnectLayers(gestd, enc, full, emer.Back) // give enc the best of gestd
+	net.ConnectLayers(gestct, enc, full, emer.Back) // give enc the best of gestd
 	// net.ConnectLayers(gestd, gest, full, emer.Back) // not essential?  todo retest
 
 	// this allows current role info to propagate back to input prediction
@@ -426,12 +445,12 @@ func (ss *Sim) ConfigNet(net *deep.Network) {
 
 	// if gestd not driving inp, then this is bad -- .005 MIGHT be tiny bit beneficial but not worth it
 	// pj = net.ConnectLayers(inp, gestd, full, emer.Back) // these enable prediction
-	// pj.SetClass("InputPToGestalt")
+	// pj.SetClass("EncodePToGestalt")
 	// pj = net.ConnectLayers(inp, gest, full, emer.Back)
-	// pj.SetClass("InputPToGestalt")
+	// pj.SetClass("EncodePToGestalt")
 
 	net.BidirConnectLayers(gest, dec, full)
-	net.BidirConnectLayers(gestd, dec, full) // bidir is essential here to get error signal
+	net.BidirConnectLayers(gestct, dec, full) // bidir is essential here to get error signal
 	// directly into context layer -- has rel of 0.2
 
 	// net.BidirConnectLayers(enc, dec, full) // not beneficial
@@ -440,15 +459,15 @@ func (ss *Sim) ConfigNet(net *deep.Network) {
 	net.BidirConnectLayers(dec, fill, full)
 
 	// add extra deep context
-	pj = net.ConnectCtxtToCT(encd, encd, full)
+	pj = net.ConnectCtxtToCT(encct, encct, full)
 	pj.SetClass("EncSelfCtxt")
-	pj = net.ConnectCtxtToCT(in, encd, full)
+	pj = net.ConnectCtxtToCT(in, encct, full)
 	pj.SetClass("CtxtFmInput")
 
 	// add extra deep context
-	pj = net.ConnectCtxtToCT(gestd, gestd, full)
+	pj = net.ConnectCtxtToCT(gestct, gestct, full)
 	pj.SetClass("GestSelfCtxt")
-	pj = net.ConnectCtxtToCT(in, gestd, full) // yes better
+	pj = net.ConnectCtxtToCT(in, gestct, full) // yes better
 	pj.SetClass("CtxtFmInput")
 
 	net.Defaults()
@@ -680,7 +699,7 @@ func (ss *Sim) TrialStats(accum bool) {
 		} else {
 			ss.TrlErr[li] = 0
 		}
-		if lnm == "InputP" && ss.TrainEnv.Tick.Cur == 1 { // first sent trial unpredictable
+		if lnm == "EncodeP" && ss.TrainEnv.Tick.Cur == 1 { // first sent trial unpredictable
 			ss.TrlCosDiff[li] = 0
 			ss.TrlSSE[li] = 0
 			ss.TrlAvgSSE[li] = 0
@@ -699,7 +718,7 @@ func (ss *Sim) TrialStats(accum bool) {
 		switch lnm {
 		case "Filler":
 			ss.TrlOut = strings.Join(ss.ActiveUnitNames(lnm, ss.TrainEnv.Fillers, .2), ", ")
-		case "InputP":
+		case "EncodeP":
 			ss.TrlPred = strings.Join(ss.ActiveUnitNames(lnm, ss.TrainEnv.Words, .2), ", ")
 		}
 	}
@@ -788,8 +807,11 @@ func (ss *Sim) TrainRun() {
 }
 
 // LrateSched implements the learning rate schedule
+// also CT self-context strength schedule!
 func (ss *Sim) LrateSched(epc int) {
 	switch epc {
+	// case 2: // this is not any better than setting at the start
+	// 	ss.SetParamsSet("StrongSelfCtxt", "Network", true)
 	case 200:
 		ss.Net.LrateMult(0.5)
 		fmt.Printf("dropped lrate 0.5 at epoch: %d\n", epc)
