@@ -130,7 +130,6 @@ var ParamSets = params.Sets{
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
 	Net           *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
-	Easy          *etable.Table     `view:"no-inline" desc:"easy training patterns -- can be learned with Hebbian"`
 	TrnEpcLog     *etable.Table     `view:"no-inline" desc:"training epoch-level log data"`
 	TstEpcLog     *etable.Table     `view:"no-inline" desc:"testing epoch-level log data"`
 	TstTrlLog     *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
@@ -207,7 +206,6 @@ var TheSim Sim
 // New creates new blank elements and initializes defaults
 func (ss *Sim) New() {
 	ss.Net = &leabra.Network{}
-	ss.Easy = &etable.Table{}
 	ss.TrnEpcLog = &etable.Table{}
 	ss.TstEpcLog = &etable.Table{}
 	ss.TstTrlLog = &etable.Table{}
