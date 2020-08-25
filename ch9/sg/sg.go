@@ -1184,17 +1184,16 @@ func (ss *Sim) ConfigTrnTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 // HogDead computes the proportion of units in given layer name with ActAvg over hog thr
 // and under dead threshold
 func (ss *Sim) HogDead(lnm string) (hog, dead float64) {
-	lvt := ss.ValsTsr(lnm)
 	ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
-	ly.UnitValsTensor(lvt, "ActAvg")
-	n := float64(lvt.Len())
+	n := float64(len(ly.Neurons))
 	if n == 0 {
 		return
 	}
-	for _, val := range lvt.Values {
-		if val > 0.3 {
+	for ni := range ly.Neurons {
+		nrn := &ly.Neurons[ni]
+		if nrn.ActAvg > 0.3 {
 			hog += 1
-		} else if val < 0.01 {
+		} else if nrn.ActAvg < 0.01 {
 			dead += 1
 		}
 	}
