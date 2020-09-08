@@ -173,13 +173,11 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 	gend := net.AddLayer2D("Gender", 1, 2, emer.Compare)
 	iden := net.AddLayer2D("Identity", 1, 10, emer.Compare)
 
-	net.ConnectLayers(inp, emo, prjn.NewFull(), emer.Forward)
-	net.ConnectLayers(inp, gend, prjn.NewFull(), emer.Forward)
-	net.ConnectLayers(inp, iden, prjn.NewFull(), emer.Forward)
+	full := prjn.NewFull()
 
-	net.ConnectLayers(emo, inp, prjn.NewFull(), emer.Back)
-	net.ConnectLayers(gend, inp, prjn.NewFull(), emer.Back)
-	net.ConnectLayers(iden, inp, prjn.NewFull(), emer.Back)
+	net.BidirConnectLayers(inp, emo, full)
+	net.BidirConnectLayers(inp, gend, full)
+	net.BidirConnectLayers(inp, iden, full)
 
 	emo.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Input", YAlign: relpos.Front, XAlign: relpos.Left, Space: 2})
 	gend.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Input", YAlign: relpos.Front, XAlign: relpos.Right, Space: 2})
@@ -230,7 +228,7 @@ func (ss *Sim) Init() {
 // use tabs to achieve a reasonable formatting overall
 // and add a few tabs at the end to allow for expansion..
 func (ss *Sim) Counters() string {
-	return fmt.Sprintf("Trial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TestEnv.Trial.Cur, ss.Time.Cycle, ss.TestEnv.TrialName.Cur)
+	return fmt.Sprintf("Trial:\t%d\tCycle:\t%d\tName:\t%s\t\t\t", ss.TestEnv.Trial.Cur, ss.Time.Cycle, ss.TestEnv.TrialName.Cur)
 }
 
 func (ss *Sim) UpdateView() {
@@ -773,7 +771,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 					} else {
 						if !ss.IsRunning {
 							ss.IsRunning = true
-							fmt.Printf("testing index: %v\n", idxs[0])
+							fmt.Printf("testing index: %d\n", idxs[0])
 							ss.TestItem(idxs[0])
 							ss.IsRunning = false
 							vp.SetNeedsFullRender()

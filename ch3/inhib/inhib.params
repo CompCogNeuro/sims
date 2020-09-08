@@ -1,0 +1,83 @@
+[
+  {
+    "Name": "Base",
+    "Desc": "these are the best params",
+    "Sheets": {
+      "Network": [
+        {
+          "Sel": "Prjn",
+          "Desc": "no learning",
+          "Params": {
+            "Prjn.Learn.Learn": "false",
+            "Prjn.WtInit.Dist": "Uniform",
+            "Prjn.WtInit.Mean": "0.25",
+            "Prjn.WtInit.Var": "0.2"
+          }
+        },
+        {
+          "Sel": "Layer",
+          "Desc": "generic params for all layers: lower gain, slower, soft clamp",
+          "Params": {
+            "Layer.Act.Dt.GTau": "40",
+            "Layer.Act.Gbar.I": "0.4",
+            "Layer.Act.Gbar.L": "0.1",
+            "Layer.Inhib.ActAvg.Fixed": "true",
+            "Layer.Inhib.ActAvg.Init": "0.2",
+            "Layer.Inhib.Layer.On": "false"
+          }
+        },
+        {
+          "Sel": ".InhibLay",
+          "Desc": "generic params for all layers: lower gain, slower, soft clamp",
+          "Params": {
+            "Layer.Act.XX1.Thr": "0.4"
+          }
+        },
+        {
+          "Sel": ".Inhib",
+          "Desc": "inhibitory projections",
+          "Params": {
+            "Prjn.WtInit.Dist": "Uniform",
+            "Prjn.WtInit.Mean": "0.5",
+            "Prjn.WtInit.Sym": "false",
+            "Prjn.WtInit.Var": "0"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "Name": "Untrained",
+    "Desc": "simulates untrained weights -- lower variance",
+    "Sheets": {
+      "Network": [
+        {
+          "Sel": ".Excite",
+          "Desc": "excitatory connections",
+          "Params": {
+            "Prjn.WtInit.Dist": "Uniform",
+            "Prjn.WtInit.Mean": "0.25",
+            "Prjn.WtInit.Var": "0.2"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "Name": "Trained",
+    "Desc": "simulates trained weights -- higher variance",
+    "Sheets": {
+      "Network": [
+        {
+          "Sel": ".Excite",
+          "Desc": "excitatory connections",
+          "Params": {
+            "Prjn.WtInit.Dist": "Gaussian",
+            "Prjn.WtInit.Mean": "0.25",
+            "Prjn.WtInit.Var": "0.7"
+          }
+        }
+      ]
+    }
+  }
+]

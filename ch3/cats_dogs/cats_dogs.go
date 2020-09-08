@@ -150,23 +150,15 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 	name.SetClass("Id") // share params
 	iden.SetClass("Id")
 
-	net.ConnectLayers(name, iden, prjn.NewOneToOne(), emer.Forward)
-	net.ConnectLayers(iden, name, prjn.NewOneToOne(), emer.Back)
+	one2one := prjn.NewOneToOne()
+	full := prjn.NewFull()
 
-	net.ConnectLayers(color, iden, prjn.NewFull(), emer.Forward)
-	net.ConnectLayers(iden, color, prjn.NewFull(), emer.Back)
-
-	net.ConnectLayers(food, iden, prjn.NewFull(), emer.Forward)
-	net.ConnectLayers(iden, food, prjn.NewFull(), emer.Back)
-
-	net.ConnectLayers(size, iden, prjn.NewFull(), emer.Forward)
-	net.ConnectLayers(iden, size, prjn.NewFull(), emer.Back)
-
-	net.ConnectLayers(spec, iden, prjn.NewFull(), emer.Forward)
-	net.ConnectLayers(iden, spec, prjn.NewFull(), emer.Back)
-
-	net.ConnectLayers(toy, iden, prjn.NewFull(), emer.Forward)
-	net.ConnectLayers(iden, toy, prjn.NewFull(), emer.Back)
+	net.BidirConnectLayers(name, iden, one2one)
+	net.BidirConnectLayers(color, iden, full)
+	net.BidirConnectLayers(food, iden, full)
+	net.BidirConnectLayers(size, iden, full)
+	net.BidirConnectLayers(spec, iden, full)
+	net.BidirConnectLayers(toy, iden, full)
 
 	iden.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Name", YAlign: relpos.Front, XAlign: relpos.Left, YOffset: 1})
 	color.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Identity", YAlign: relpos.Front, XAlign: relpos.Left, YOffset: 1})
@@ -220,7 +212,7 @@ func (ss *Sim) Init() {
 // use tabs to achieve a reasonable formatting overall
 // and add a few tabs at the end to allow for expansion..
 func (ss *Sim) Counters() string {
-	return fmt.Sprintf("Trial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TestEnv.Trial.Cur, ss.Time.Cycle, ss.TestEnv.TrialName.Cur)
+	return fmt.Sprintf("Trial:\t%d\tCycle:\t%d\tName:\t%s\t\t\t", ss.TestEnv.Trial.Cur, ss.Time.Cycle, ss.TestEnv.TrialName.Cur)
 }
 
 func (ss *Sim) UpdateView() {
@@ -658,7 +650,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 					} else {
 						if !ss.IsRunning {
 							ss.IsRunning = true
-							fmt.Printf("testing index: %v\n", idxs[0])
+							fmt.Printf("testing index: %d\n", idxs[0])
 							ss.TestItem(idxs[0])
 							ss.IsRunning = false
 							vp.SetNeedsFullRender()
