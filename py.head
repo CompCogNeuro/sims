@@ -1,0 +1,426 @@
+issues:
+
+* cats_dogs: sch.append in for loop
+* plots not displaying on tab -- isvisible check not good probably
+
+
+go:
+* %v -> %s / %d
+* check ConfigNet -- BidirConnectLayers
+
+py:
+* nil -> 0 except plot configs
+* search err
+* search _,
+* search switch
+* search Asset
+* sch.append(etable.Column(
+* nil, nil -> nilInts, nilStrs
+* check SetParams for customs
+
+################
+
+#!/usr/local/bin/pyleabra -i
+
+# Copyright (c) 2019, The Emergent Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file.
+
+# use:
+# just type file name to run, or:
+# pyleabra -i <file>.py 
+
+# labra25ra runs a simple random-associator 5x5 = 25 four-layer leabra network
+
+from leabra import go, leabra, emer, relpos, eplot, env, agg, patgen, prjn, etable, efile, split, etensor, params, netview, rand, erand, gi, giv, epygiv, mat32
+
+import importlib as il
+import io, sys, getopt
+from datetime import datetime, timezone
+
+# this will become Sim later.. 
+TheSim = 1
+
+# use this for e.g., etable.Column construction args where nil would be passed
+nilInts = go.Slice_int()
+
+# use this for e.g., etable.Column construction args where nil would be passed
+nilStrs = go.Slice_string()
+
+# LogPrec is precision for saving float values in logs
+LogPrec = 4
+
+# note: we cannot use methods for callbacks from Go -- must be separate functions
+# so below are all the callbacks from the GUI toolbar actions
+
+def InitCB(recv, send, sig, data):
+    TheSim.Init()
+    TheSim.ClassView.Update()
+    TheSim.vp.SetNeedsFullRender()
+
+def TrainCB(recv, send, sig, data):
+    if not TheSim.IsRunning:
+        TheSim.IsRunning = True
+        TheSim.ToolBar.UpdateActions()
+        TheSim.Train()
+
+def StopCB(recv, send, sig, data):
+    TheSim.Stop()
+
+def StepTrialCB(recv, send, sig, data):
+    if not TheSim.IsRunning:
+        TheSim.IsRunning = True
+        TheSim.TrainTrial()
+        TheSim.IsRunning = False
+        TheSim.ClassView.Update()
+        TheSim.vp.SetNeedsFullRender()
+
+def StepEpochCB(recv, send, sig, data):
+    if not TheSim.IsRunning:
+        TheSim.IsRunning = True
+        TheSim.ToolBar.UpdateActions()
+        TheSim.TrainEpoch()
+
+def StepRunCB(recv, send, sig, data):
+    if not TheSim.IsRunning:
+        TheSim.IsRunning = True
+        TheSim.ToolBar.UpdateActions()
+        TheSim.TrainRun()
+
+def TestTrialCB(recv, send, sig, data):
+    if not TheSim.IsRunning:
+        TheSim.IsRunning = True
+        TheSim.TestTrial(False)
+        TheSim.IsRunning = False
+        TheSim.ClassView.Update()
+        TheSim.vp.SetNeedsFullRender()
+
+def TestItemCB2(recv, send, sig, data):
+    win = gi.Window(handle=recv)
+    vp = win.WinViewport2D()
+    dlg = gi.Dialog(handle=send)
+    if sig != gi.DialogAccepted:
+        return
+    val = gi.StringPromptDialogValue(dlg)
+    idxs = TheSim.TestEnv.Table.RowsByString("Name", val, True, True) # contains, ignoreCase
+    if len(idxs) == 0:
+        gi.PromptDialog(vp, gi.DlgOpts(Title="Name Not Found", Prompt="No patterns found containing: " + val), True, False, go.nil, go.nil)
+    else:
+        if not TheSim.IsRunning:
+            TheSim.IsRunning = True
+            print("testing index: %s" % idxs[0])
+            TheSim.TestItem(idxs[0])
+            TheSim.IsRunning = False
+            vp.SetNeedsFullRender()
+
+def TestItemCB(recv, send, sig, data):
+    win = gi.Window(handle=recv)
+    gi.StringPromptDialog(win.WinViewport2D(), "", "Test Item",
+        gi.DlgOpts(Title="Test Item", Prompt="Enter the Name of a given input pattern to test (case insensitive, contains given string."), win, TestItemCB2)
+
+def TestAllCB(recv, send, sig, data):
+    if not TheSim.IsRunning:
+        TheSim.IsRunning = True
+        TheSim.ToolBar.UpdateActions()
+        TheSim.RunTestAll()
+
+def ResetRunLogCB(recv, send, sig, data):
+    TheSim.RunLog.SetNumRows(0)
+    TheSim.RunPlot.Update()
+
+def NewRndSeedCB(recv, send, sig, data):
+    TheSim.NewRndSeed()
+
+def ReadmeCB(recv, send, sig, data):
+    gi.OpenURL("https://github.com/emer/leabra/blob/master/examples/ra25/README.md")
+
+def FilterSSE(et, row):
+    return etable.Table(handle=et).CellFloat("SSE", row) > 0 # include error trials    
+
+def UpdtFuncNotRunning(act):
+    act.SetActiveStateUpdt(not TheSim.IsRunning)
+    
+def UpdtFuncRunning(act):
+    act.SetActiveStateUpdt(TheSim.IsRunning)
+
+    
+#####################################################    
+#     Sim
+
+class Sim(object):
+    """
+    Sim encapsulates the entire simulation model, and we define all the
+    functionality as methods on this struct.  This structure keeps all relevant
+    state information organized and available without having to pass everything around
+    as arguments to methods, and provides the core GUI interface (note the view tags
+    for the fields which provide hints to how things should be displayed).
+    """
+    def __init__(ss):
+        ss.Net = leabra.Network()
+        ss.Pats     = etable.Table()
+        ss.TrnEpcLog   = etable.Table()
+        ss.TstEpcLog   = etable.Table()
+        ss.TstTrlLog   = etable.Table()
+        ss.TstErrLog   = etable.Table()
+        ss.TstErrStats = etable.Table()
+        ss.TstCycLog   = etable.Table()
+        ss.RunLog      = etable.Table()
+        ss.RunStats    = etable.Table()
+        ss.Params     = params.Sets()
+        ss.ParamSet = ""
+        ss.Tag      = ""
+        ss.MaxRuns  = 10
+        ss.MaxEpcs  = 50
+        ss.NZeroStop = 5
+        ss.TrainEnv = env.FixedTable()
+        ss.TestEnv  = env.FixedTable()
+        ss.Time     = leabra.Time()
+        ss.ViewOn   = True
+        ss.TrainUpdt = leabra.AlphaCycle
+        ss.TestUpdt = leabra.Cycle
+        ss.TestInterval = 5
+        ss.LayStatNms  = go.Slice_string(["Hidden1", "Hidden2", "Output"])
+        
+        # statistics
+        ss.TrlErr     = 0.0
+        ss.TrlSSE     = 0.0
+        ss.TrlAvgSSE  = 0.0
+        ss.TrlCosDiff = 0.0
+        ss.EpcSSE     = 0.0
+        ss.EpcAvgSSE  = 0.0
+        ss.EpcPctErr  = 0.0
+        ss.EpcPctCor  = 0.0
+        ss.EpcCosDiff = 0.0
+        ss.FirstZero  = -1
+        ss.NZero      = 0
+        
+        # internal state - view:"-"
+        ss.SumErr     = 0.0
+        ss.SumSSE     = 0.0
+        ss.SumAvgSSE  = 0.0
+        ss.SumCosDiff = 0.0
+        ss.CntErr     = 0.0
+        ss.Win        = 0
+        ss.vp         = 0
+        ss.ToolBar    = 0
+        ss.NetView    = 0
+        ss.TrnEpcPlot = 0
+        ss.TstEpcPlot = 0
+        ss.TstTrlPlot = 0
+        ss.TstCycPlot = 0
+        ss.RunPlot    = 0
+        ss.TrnEpcFile = 0
+        ss.RunFile    = 0
+        ss.SaveWts    = False
+        ss.NoGui        = False
+        ss.LogSetParams = False
+        ss.IsRunning    = False
+        ss.StopNow    = False
+        ss.NeedsNewRun = False
+        ss.RndSeed    = 0
+        ss.ValsTsrs   = {}
+       
+        # ClassView tags for controlling display of fields
+        ss.Tags = {
+            'TrlErr': 'inactive:"+"',
+            'TrlSSE': 'inactive:"+"',
+            'TrlAvgSSE': 'inactive:"+"',
+            'TrlCosDiff': 'inactive:"+"',
+            'EpcSSE': 'inactive:"+"',
+            'EpcAvgSSE': 'inactive:"+"',
+            'EpcPctErr': 'inactive:"+"',
+            'EpcPctCor': 'inactive:"+"',
+            'EpcCosDiff': 'inactive:"+"',
+            'FirstZero': 'inactive:"+"',
+            'NZero': 'inactive:"+"',
+            'SumErr': 'view:"-"',
+            'SumSSE': 'view:"-"',
+            'SumAvgSSE': 'view:"-"',
+            'SumCosDiff': 'view:"-"',
+            'CntErr': 'view:"-"',
+            'Win': 'view:"-"',
+            'vp': 'view:"-"',
+            'ToolBar': 'view:"-"',
+            'NetView': 'view:"-"',
+            'TrnEpcPlot': 'view:"-"',
+            'TstEpcPlot': 'view:"-"',
+            'TstTrlPlot': 'view:"-"',
+            'TstCycPlot': 'view:"-"',
+            'RunPlot': 'view:"-"',
+            'TrnEpcFile': 'view:"-"',
+            'RunFile': 'view:"-"',
+            'SaveWts': 'view:"-"',
+            'NoGui': 'view:"-"',
+            'LogSetParams': 'view:"-"',
+            'IsRunning': 'view:"-"',
+            'StopNow': 'view:"-"',
+            'RndSeed': 'view:"-"',
+            'NeedsNewRun': 'view:"-"',
+            'ValsTsrs': 'view:"-"',
+            'ClassView': 'view:"-"',
+            'Tags': 'view:"-"',
+        }
+    
+    def InitParams(ss):
+        """
+        Sets the default set of parameters -- Base is always applied, and others can be optionally
+        selected to apply on top of that
+        """
+        ss.Params.OpenJSON("ra25_std.params")
+
+		
+#################
+
+    def AlphaCyc(ss, train):
+        """
+        AlphaCyc runs one alpha-cycle (100 msec, 4 quarters) of processing.
+        External inputs must have already been applied prior to calling,
+        using ApplyExt method on relevant layers (see TrainTrial, TestTrial).
+        If train is true, then learning DWt or WtFmDWt calls are made.
+        Handles netview updating within scope of AlphaCycle
+        """
+
+        if ss.Win != 0:
+            ss.Win.PollEvents() # this is essential for GUI responsiveness while running
+        viewUpdt = ss.TrainUpdt
+        if not train:
+            viewUpdt = ss.TestUpdt
+
+        # update prior weight changes at start, so any DWt values remain visible at end
+        # you might want to do this less frequently to achieve a mini-batch update
+        # in which case, move it out to the TrainTrial method where the relevant
+        # counters are being dealt with.
+        if train:
+            ss.Net.WtFmDWt()
+
+        ss.Net.AlphaCycInit()
+        ss.Time.AlphaCycStart()
+        for qtr in range(4):
+            for cyc in range(ss.Time.CycPerQtr):
+                ss.Net.Cycle(ss.Time)
+                if not train:
+                    ss.LogTstCyc(ss.TstCycLog, ss.Time.Cycle)
+                ss.Time.CycleInc()
+                if ss.ViewOn:
+                    if viewUpdt == leabra.Cycle:
+                        if cyc != ss.Time.CycPerQtr-1: # will be updated by quarter
+                            ss.UpdateView(train)
+                    if viewUpdt == leabra.FastSpike:
+                        if (cyc+1)%10 == 0:
+                            ss.UpdateView(train)
+            ss.Net.QuarterFinal(ss.Time)
+            ss.Time.QuarterInc()
+            if ss.ViewOn:
+                if viewUpdt <= leabra.Quarter:
+                    ss.UpdateView(train)
+                if viewUpdt == leabra.Phase:
+                    if qtr >= 2:
+                        ss.UpdateView(train)
+
+        if train:
+            ss.Net.DWt()
+        if ss.ViewOn and viewUpdt == leabra.AlphaCycle:
+            ss.UpdateView(train)
+        if ss.TstCycPlot != 0 and not train:
+            ss.TstCycPlot.GoUpdate() # make sure up-to-date at end
+
+#############			
+			
+    def SetParams(ss, sheet, setMsg):
+        """
+        SetParams sets the params for "Base" and then current ParamSet.
+        If sheet is empty, then it applies all avail sheets (e.g., Network, Sim)
+        otherwise just the named sheet
+        if setMsg = true then we output a message for each param that was set.
+        """
+        if sheet == "":
+            ss.Params.ValidateSheets(go.Slice_string(["Network", "Sim"]))
+        ss.SetParamsSet("Base", sheet, setMsg)
+        if ss.ParamSet != "" and ss.ParamSet != "Base":
+            sps = ss.ParamSet.split()
+            for ps in sps:
+                ss.SetParamsSet(ps, sheet, setMsg)
+
+    def SetParamsSet(ss, setNm, sheet, setMsg):
+        """
+        SetParamsSet sets the params for given params.Set name.
+        If sheet is empty, then it applies all avail sheets (e.g., Network, Sim)
+        otherwise just the named sheet
+        if setMsg = true then we output a message for each param that was set.
+        """
+        pset = ss.Params.SetByNameTry(setNm)
+        if sheet == "" or sheet == "Network":
+            if "Network" in pset.Sheets:
+                netp = pset.SheetByNameTry("Network")
+                ss.Net.ApplyParams(netp, setMsg)
+
+        if sheet == "" or sheet == "Sim":
+            if "Sim" in pset.Sheets:
+                simp= pset.SheetByNameTry("Sim")
+                epygiv.ApplyParams(ss, simp, setMsg)
+				
+    def ValsTsr(ss, name):
+        """
+        ValsTsr gets value tensor of given name, creating if not yet made
+        """
+        if name in ss.ValsTsrs:
+            return ss.ValsTsrs[name]
+        tsr = etensor.Float32()
+        ss.ValsTsrs[name] = tsr
+        return tsr
+
+##################
+
+        plt = eplot.Plot2D()
+        tv.AddTab(plt, "RunPlot")
+        ss.RunPlot = ss.ConfigRunPlot(plt, ss.RunLog)
+
+        split.SetSplitsList(go.Slice_float32([.3, .7]))
+
+        recv = win.This()
+        
+        tbar.AddAction(gi.ActOpts(Label="Init", Icon="update", Tooltip="Initialize everything including network weights, and start over.  Also applies current params.", UpdateFunc=UpdtFuncNotRunning), recv, InitCB)
+
+        tbar.AddAction(gi.ActOpts(Label="Train", Icon="run", Tooltip="Starts the network training, picking up from wherever it may have left off.  If not stopped, training will complete the specified number of Runs through the full number of Epochs of training, with testing automatically occuring at the specified interval.", UpdateFunc=UpdtFuncNotRunning), recv, TrainCB)
+        
+        tbar.AddAction(gi.ActOpts(Label="Stop", Icon="stop", Tooltip="Interrupts running.  Hitting Train again will pick back up where it left off.", UpdateFunc=UpdtFuncRunning), recv, StopCB)
+        
+        tbar.AddAction(gi.ActOpts(Label="Step Trial", Icon="step-fwd", Tooltip="Advances one training trial at a time.", UpdateFunc=UpdtFuncNotRunning), recv, StepTrialCB)
+        
+        tbar.AddAction(gi.ActOpts(Label="Step Epoch", Icon="fast-fwd", Tooltip="Advances one epoch (complete set of training patterns) at a time.", UpdateFunc=UpdtFuncNotRunning), recv, StepEpochCB)
+
+        tbar.AddAction(gi.ActOpts(Label="Step Run", Icon="fast-fwd", Tooltip="Advances one full training Run at a time.", UpdateFunc=UpdtFuncNotRunning), recv, StepRunCB)
+        
+        tbar.AddSeparator("test")
+        
+        tbar.AddAction(gi.ActOpts(Label="Test Trial", Icon="step-fwd", Tooltip="Runs the next testing trial.", UpdateFunc=UpdtFuncNotRunning), recv, TestTrialCB)
+        
+        tbar.AddAction(gi.ActOpts(Label="Test Item", Icon="step-fwd", Tooltip="Prompts for a specific input pattern name to run, and runs it in testing mode.", UpdateFunc=UpdtFuncNotRunning), recv, TestItemCB)
+        
+        tbar.AddAction(gi.ActOpts(Label="Test All", Icon="fast-fwd", Tooltip="Tests all of the testing trials.", UpdateFunc=UpdtFuncNotRunning), recv, TestAllCB)
+
+        tbar.AddSeparator("log")
+        
+        tbar.AddAction(gi.ActOpts(Label="Reset RunLog", Icon="reset", Tooltip="Resets the accumulated log of all Runs, which are tagged with the ParamSet used"), recv, ResetRunLogCB)
+
+        tbar.AddSeparator("misc")
+        
+        tbar.AddAction(gi.ActOpts(Label="New Seed", Icon="new", Tooltip="Generate a new initial random seed to get different results.  By default, Init re-establishes the same initial seed every time."), recv, NewRndSeedCB)
+
+        tbar.AddAction(gi.ActOpts(Label="README", Icon="file-markdown", Tooltip="Opens your browser on the README file that contains instructions for how to run this model."), recv, ReadmeCB)
+
+        # main menu
+        appnm = gi.AppName()
+        mmen = win.MainMenu
+        mmen.ConfigMenus(go.Slice_string([appnm, "File", "Edit", "Window"]))
+
+        amen = gi.Action(win.MainMenu.ChildByName(appnm, 0))
+        amen.Menu.AddAppMenu(win)
+
+        emen = gi.Action(win.MainMenu.ChildByName("Edit", 1))
+        emen.Menu.AddCopyCutPaste(win)
+
+        win.MainMenuUpdated()
+        vp.UpdateEndNoSig(updt)
+        win.GoStartEventLoop()
+		

@@ -180,7 +180,7 @@ func (ss *Sim) Init() {
 // use tabs to achieve a reasonable formatting overall
 // and add a few tabs at the end to allow for expansion..
 func (ss *Sim) Counters() string {
-	return fmt.Sprintf("Trial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TestEnv.Trial.Cur, ss.Time.Cycle, ss.TestEnv.TrialName.Cur)
+	return fmt.Sprintf("Trial:\t%d\tCycle:\t%d\tName:\t%s\t\t\t", ss.TestEnv.Trial.Cur, ss.Time.Cycle, ss.TestEnv.TrialName.Cur)
 }
 
 func (ss *Sim) UpdateView() {
@@ -504,8 +504,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	split := gi.AddNewSplitView(mfr, "split")
 	split.Dim = mat32.X
-	split.SetStretchMaxWidth()
-	split.SetStretchMaxHeight()
+	split.SetStretchMax()
 
 	sv := giv.AddNewStructView(split, "sv")
 	sv.SetStruct(ss)
@@ -566,7 +565,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 					} else {
 						if !ss.IsRunning {
 							ss.IsRunning = true
-							fmt.Printf("testing index: %v\n", idxs[0])
+							fmt.Printf("testing index: %d\n", idxs[0])
 							ss.TestItem(idxs[0])
 							ss.IsRunning = false
 							vp.SetNeedsFullRender()

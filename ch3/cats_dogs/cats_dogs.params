@@ -1,0 +1,38 @@
+[
+  {
+    "Name": "Base",
+    "Desc": "these are the best params",
+    "Sheets": {
+      "Network": [
+        {
+          "Sel": "Prjn",
+          "Desc": "no learning",
+          "Params": {
+            "Prjn.Learn.Learn": "false"
+          }
+        },
+        {
+          "Sel": "Layer",
+          "Desc": "generic params for all layers: lower gain, slower, soft clamp",
+          "Params": {
+            "Layer.Act.Clamp.Gain": "1",
+            "Layer.Act.Clamp.Hard": "false",
+            "Layer.Act.Dt.VmTau": "4",
+            "Layer.Act.Gbar.L": "0.1",
+            "Layer.Act.XX1.Gain": "40",
+            "Layer.Inhib.ActAvg.Fixed": "true",
+            "Layer.Inhib.ActAvg.Init": "0.25",
+            "Layer.Inhib.Layer.FBTau": "3"
+          }
+        },
+        {
+          "Sel": ".Id",
+          "Desc": "specific inhibition for identity, name",
+          "Params": {
+            "Layer.Inhib.Layer.Gi": "4.0"
+          }
+        }
+      ]
+    }
+  }
+]
