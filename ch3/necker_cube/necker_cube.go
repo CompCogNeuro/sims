@@ -247,11 +247,14 @@ func (ss *Sim) ApplyInputs() {
 
 	// just directly apply all 1s to input
 	ly := ss.Net.LayerByName("NeckerCube").(leabra.LeabraLayer).AsLeabra()
-	pats := make([]float64, 16)
-	for i := range pats {
-		pats[i] = 1
+	tsr := ss.ValsTsr("Inputs")
+	tsr.SetShape([]int{16}, nil, nil)
+	if tsr.FloatVal1D(0) != 1 {
+		for i := range tsr.Values {
+			tsr.Values[i] = 1
+		}
 	}
-	ly.ApplyExt1D(pats)
+	ly.ApplyExt(tsr)
 }
 
 // Stop tells the sim to stop running

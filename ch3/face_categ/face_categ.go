@@ -499,7 +499,7 @@ func (ss *Sim) ClusterPlots() {
 func (ss *Sim) ClustPlot(plt *eplot.Plot2D, dt *etable.Table, colNm string) {
 	ix := etable.NewIdxView(dt)
 	smat := &simat.SimMat{}
-	smat.TableCol(ix, colNm, "Name", false, metric.Euclidean64)
+	smat.TableColStd(ix, colNm, "Name", false, metric.Euclidean)
 	pt := &etable.Table{}
 	clust.Plot(pt, clust.Glom(smat, clust.MinDist), smat)
 	plt.InitName(plt, colNm)
@@ -515,11 +515,13 @@ func (ss *Sim) ClustPlot(plt *eplot.Plot2D, dt *etable.Table, colNm string) {
 func (ss *Sim) PrjnPlot() {
 	ss.TestAll()
 
-	rvec0 := make([]float32, 256)
-	rvec1 := make([]float32, 256)
-	for i := range rvec1 {
-		rvec0[i] = .15 * (2*rand.Float32() - 1)
-		rvec1[i] = .15 * (2*rand.Float32() - 1)
+	rvec0 := ss.ValsTsr("rvec0")
+	rvec1 := ss.ValsTsr("rvec1")
+	rvec0.SetShape([]int{256}, nil, nil)
+	rvec1.SetShape([]int{256}, nil, nil)
+	for i := range rvec1.Values {
+		rvec0.Values[i] = .15 * (2*rand.Float32() - 1)
+		rvec1.Values[i] = .15 * (2*rand.Float32() - 1)
 	}
 
 	tst := ss.TstTrlLog
@@ -535,8 +537,8 @@ func (ss *Sim) PrjnPlot() {
 		gend := 0.5*tst.CellTensorFloat1D("Gender", r, 0) + -0.5*tst.CellTensorFloat1D("Gender", r, 1)
 		gend += .1 * (2*rand.Float64() - 1) // some jitter so labels are readable
 		input := tst.CellTensor("Input", r).(*etensor.Float32)
-		rprjn0 := metric.InnerProduct32(rvec0, input.Values)
-		rprjn1 := metric.InnerProduct32(rvec1, input.Values)
+		rprjn0 := metric.InnerProduct32(rvec0.Values, input.Values)
+		rprjn1 := metric.InnerProduct32(rvec1.Values, input.Values)
 		dt.SetCellFloat("Trial", r, tst.CellFloat("Trial", r))
 		dt.SetCellString("TrialName", r, tst.CellString("TrialName", r))
 		dt.SetCellFloat("GendPrjn", r, gend)
@@ -649,6 +651,7 @@ func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 	plt.Params.Title = "FaceCateg Test Trial Plot"
 	plt.Params.XAxisCol = "Trial"
 	plt.SetTable(dt)
+	plt.SetStretchMax()
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColParams("Trial", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
 	plt.SetColParams("TrialName", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0)

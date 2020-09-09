@@ -17,7 +17,7 @@
 # including the ability to dynamically iterate both bottom-up and
 # top-down to cleanup partial inputs (partially occluded face images).
 
-from leabra import go, leabra, emer, relpos, eplot, env, agg, patgen, prjn, etable, efile, split, etensor, params, netview, rand, erand, gi, giv, epygiv, mat32
+from leabra import go, leabra, emer, relpos, eplot, env, agg, patgen, prjn, etable, efile, split, etensor, params, netview, rand, erand, gi, giv, epygiv, mat32, simat, metric
 
 import importlib as il
 import io, sys, getopt
@@ -494,12 +494,13 @@ class Sim(object):
     def PrjnPlot(ss):
         ss.TestAll()
 
-        # todo!
-        # rvec0 = make([]float32, 256)
-        # rvec1 = make([]float32, 256)
-        for i in rvec1 :
-            rvec0[i] = .15 * (2*rand.Float32() - 1)
-            rvec1[i] = .15 * (2*rand.Float32() - 1)
+        rvec0 = ss.ValsTsr("rvec0")
+        rvec1 = ss.ValsTsr("rvec1")
+        rvec0.SetShape(go.Slice_int([256]), nilInt, nilStr)
+        rvec1.SetShape(go.Slice_int([256]), nilInt, nilStr)
+        for i in range(256):
+            rvec0.Values[i] = .15 * (2*rand.Float32() - 1)
+            rvec1.Values[i] = .15 * (2*rand.Float32() - 1)
 
         tst = ss.TstTrlLog
         nr = tst.Rows
@@ -513,8 +514,8 @@ class Sim(object):
             gend = 0.5*tst.CellTensorFloat1D("Gender", r, 0) + -0.5*tst.CellTensorFloat1D("Gender", r, 1)
             gend += .1 * (2*rand.Float64() - 1) # some jitter so labels are readable
             input = etensor.Float32(tst.CellTensor("Input", r))
-            rprjn0 = metric.InnerProduct32(rvec0, input.Values)
-            rprjn1 = metric.InnerProduct32(rvec1, input.Values)
+            rprjn0 = metric.InnerProduct32(rvec0.Values, input.Values)
+            rprjn1 = metric.InnerProduct32(rvec1.Values, input.Values)
             dt.SetCellFloat("Trial", r, tst.CellFloat("Trial", r))
             dt.SetCellString("TrialName", r, tst.CellString("TrialName", r))
             dt.SetCellFloat("GendPrjn", r, gend)
