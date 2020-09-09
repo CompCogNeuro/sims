@@ -1,8 +1,11 @@
 issues:
 
 * cats_dogs: sch.append in for loop
-* plots not displaying on tab -- isvisible check not good probably
 
+* plots not displaying on tab -- isvisible check not good probably
+  still an issue without invisible check
+
+* err_driven_hidden etc: enums with chooser -- need a py for that.
 
 go:
 * %v -> %s / %d
