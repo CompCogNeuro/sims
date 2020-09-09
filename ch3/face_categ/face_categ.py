@@ -96,6 +96,7 @@ def ClusterPlotCB(recv, send, sig, data):
 def DefaultsCB(recv, send, sig, data):
     TheSim.Defaults()
     TheSim.Init()
+    TheSim.ClassView.Update()
     TheSim.vp.SetNeedsFullRender()
 
 def ReadmeCB(recv, send, sig, data):
@@ -679,7 +680,7 @@ class Sim(object):
         tv.AddTab(plt, "TstTrlPlot")
         ss.TstTrlPlot = ss.ConfigTstTrlPlot(plt, ss.TstTrlLog)
 
-        split.SetSplitsList(go.Slice_float32([.3, .7]))
+        split.SetSplitsList(go.Slice_float32([.2, .8]))
 
         recv = win.This()
         

@@ -49,20 +49,15 @@ def TestTrialCB(recv, send, sig, data):
         TheSim.ClassView.Update()
         TheSim.vp.SetNeedsFullRender()
 
-def TestAllCB(recv, send, sig, data):
-    if not TheSim.IsRunning:
-        TheSim.IsRunning = True
-        TheSim.ToolBar.UpdateActions()
-        TheSim.RunTestAll()
-
 def ConfigPatsCB(recv, send, sig, data):
-    if not ss.IsRunning:
-        ss.ConfigPats()
-        vp.SetNeedsFullRender()
+    if not TheSim.IsRunning:
+        TheSim.ConfigPats()
+        TheSim.vp.SetNeedsFullRender()
 
 def DefaultsCB(recv, send, sig, data):
     TheSim.Defaults()
     TheSim.Init()
+    TheSim.ClassView.Update()
     TheSim.vp.SetNeedsFullRender()
 
 def ReadmeCB(recv, send, sig, data):
@@ -548,7 +543,7 @@ class Sim(object):
         tv.AddTab(plt, "TstCycPlot")
         ss.TstCycPlot = ss.ConfigTstCycPlot(plt, ss.TstCycLog)
 
-        split.SetSplitsList(go.Slice_float32([.3, .7]))
+        split.SetSplitsList(go.Slice_float32([.2, .8]))
 
         recv = win.This()
         
@@ -558,8 +553,6 @@ class Sim(object):
         
         tbar.AddAction(gi.ActOpts(Label="Test Trial", Icon="step-fwd", Tooltip="Runs the next testing trial.", UpdateFunc=UpdtFuncNotRunning), recv, TestTrialCB)
         
-        tbar.AddAction(gi.ActOpts(Label="Test All", Icon="fast-fwd", Tooltip="Tests all of the testing trials.", UpdateFunc=UpdtFuncNotRunning), recv, TestAllCB)
-
         tbar.AddSeparator("log")
         
         tbar.AddAction(gi.ActOpts(Label= "Config Pats", Icon= "update", Tooltip= "Generates a new input pattern based on current InputPct amount.", UpdateFunc=UpdtFuncNotRunning), recv, ConfigPatsCB)

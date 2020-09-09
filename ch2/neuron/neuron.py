@@ -64,6 +64,7 @@ def SpikeVsRateCB(recv, send, sig, data):
 def DefaultsCB(recv, send, sig, data):
     TheSim.Defaults()
     TheSim.Init()
+    TheSim.ClassView.Update()
     TheSim.vp.SetNeedsFullRender()
 
 def ReadmeCB(recv, send, sig, data):
@@ -142,6 +143,7 @@ class Sim(object):
         """
         Defaults sets default params
         """
+        ss.SpikeParams.Defaults()
         ss.UpdtInterval = 10
         ss.Cycle = 0
         ss.Spike = True
@@ -213,7 +215,7 @@ class Sim(object):
         ss.Net.InitActs()
         ss.SetParams("", False)
         ly = leabra.Layer(ss.Net.LayerByName("Neuron"))
-        nrn = leabra.Neuron(ly.Neurons[0])
+        nrn = ly.Neurons[0]
         inputOn = False
         for cyc in range(ss.NCycles):
             if ss.Win != 0:
@@ -277,6 +279,7 @@ class Sim(object):
         row = 0
         nsamp = 100
 
+        # todo:
         for gbarE in range(1): # range(0.1: 0.7: 0.025):
             ss.GbarE = float(gbarE)
             spike = float(0)
@@ -501,7 +504,7 @@ class Sim(object):
         tv.AddTab(plt, "SpikeVsRatePlot")
         ss.SpikeVsRatePlot = ss.ConfigSpikeVsRatePlot(plt, ss.SpikeVsRateLog)
 
-        split.SetSplitsList(go.Slice_float32([.3, .7]))
+        split.SetSplitsList(go.Slice_float32([.2, .8]))
 
         recv = win.This()
         

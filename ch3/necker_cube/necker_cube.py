@@ -57,6 +57,7 @@ def TestTrialCB(recv, send, sig, data):
 def DefaultsCB(recv, send, sig, data):
     TheSim.Defaults()
     TheSim.Init()
+    TheSim.ClassView.Update()
     TheSim.vp.SetNeedsFullRender()
 
 def ReadmeCB(recv, send, sig, data):
@@ -334,8 +335,7 @@ class Sim(object):
                 continue
             for nrni in ly.Neurons:
                 nrn = leabra.Neuron(handle=nrni)
-                # todo: this call is failling b/c nrn is not a ptr
-                # harm += nrn.Ge * nrn.Act
+                harm += nrn.Ge * nrn.Act
                 nu += 1
         if nu > 0:
             harm /= float(nu)
@@ -451,7 +451,7 @@ class Sim(object):
         tv.AddTab(plt, "TstCycPlot")
         ss.TstCycPlot = ss.ConfigTstCycPlot(plt, ss.TstCycLog)
 
-        split.SetSplitsList(go.Slice_float32([.3, .7]))
+        split.SetSplitsList(go.Slice_float32([.2, .8]))
 
         recv = win.This()
         

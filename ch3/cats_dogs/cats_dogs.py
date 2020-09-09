@@ -82,6 +82,7 @@ def TestAllCB(recv, send, sig, data):
 def DefaultsCB(recv, send, sig, data):
     TheSim.Defaults()
     TheSim.Init()
+    TheSim.ClassView.Update()
     TheSim.vp.SetNeedsFullRender()
 
 def ReadmeCB(recv, send, sig, data):
@@ -434,7 +435,7 @@ class Sim(object):
 
     def OpenPats(ss):
         ss.Pats.SetMetaData("name", "CatAndDogPats")
-        ss.Pats.SetMetaData("desc", "Testing patterns"))
+        ss.Pats.SetMetaData("desc", "Testing patterns")
         ss.Pats.OpenCSV("cats_dogs_pats.tsv", etable.Tab)
 
     def Harmony(ss, nt):
@@ -449,8 +450,7 @@ class Sim(object):
                 continue
             for nrni in ly.Neurons:
                 nrn = leabra.Neuron(handle=nrni)
-                # todo: this call is failling b/c nrn is not a ptr
-                # harm += nrn.Ge * nrn.Act
+                harm += nrn.Ge * nrn.Act
                 nu += 1
         if nu > 0:
             harm /= float(nu)
@@ -492,10 +492,8 @@ class Sim(object):
         
         for lnm in ss.TstRecLays:
             ly = leabra.Layer(ss.Net.LayerByName(lnm))
-            sch.append(etable.Column(lnm, etensor.FLOAT64, ly.Shp.Shp, nilStrs))
-            print(lnm)
+            sch.append(etable.Column(lnm, etensor.FLOAT64, ly.Shp.Shp, nilStrs))
         dt.SetFromSchema(sch, nt)
-        print(sch)
 
     def ConfigTstCycPlot(ss, plt, dt):
         plt.Params.Title = "CatsAndDogs Test Cycle Plot"
@@ -508,7 +506,7 @@ class Sim(object):
 
         for lnm in ss.TstRecLays:
             cp = plt.SetColParams(lnm, eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
-            # cp.TensorIdx = -1
+            cp.TensorIdx = -1
         return plt
 
     def ConfigNetView(ss, nv):
@@ -576,7 +574,7 @@ class Sim(object):
         tv.AddTab(plt, "TstCycPlot")
         ss.TstCycPlot = ss.ConfigTstCycPlot(plt, ss.TstCycLog)
 
-        split.SetSplitsList(go.Slice_float32([.3, .7]))
+        split.SetSplitsList(go.Slice_float32([.2, .8]))
 
         recv = win.This()
         
