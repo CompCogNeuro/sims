@@ -1,0 +1,71 @@
+[
+  {
+    "Name": "Base",
+    "Desc": "these are the best params",
+    "Sheets": {
+      "Network": [
+        {
+          "Sel": "Prjn",
+          "Desc": "no extra learning factors",
+          "Params": {
+            "Prjn.Learn.Momentum.On": "false",
+            "Prjn.Learn.Norm.On": "false",
+            "Prjn.Learn.WtBal.On": "false"
+          }
+        },
+        {
+          "Sel": "Layer",
+          "Desc": "needs some special inhibition and learning params",
+          "Params": {
+            "Layer.Act.Gbar.L": "0.1",
+            "Layer.Inhib.ActAvg.Fixed": "true",
+            "Layer.Inhib.ActAvg.Init": "0.5",
+            "Layer.Inhib.Layer.Gi": "1.3",
+            "Layer.Learn.AvgL.Gain": "1.5"
+          }
+        },
+        {
+          "Sel": ".Back",
+          "Desc": "top-down back-projections MUST have lower relative weight scale, otherwise network hallucinates",
+          "Params": {
+            "Prjn.WtScale.Rel": "0.3"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "Name": "Hebbian",
+    "Desc": "Hebbian-only learning params",
+    "Sheets": {
+      "Network": [
+        {
+          "Sel": "Prjn",
+          "Desc": "",
+          "Params": {
+            "Prjn.Learn.XCal.LLrn": "1",
+            "Prjn.Learn.XCal.MLrn": "0",
+            "Prjn.Learn.XCal.SetLLrn": "true"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "Name": "ErrorDriven",
+    "Desc": "Error-driven-only learning params",
+    "Sheets": {
+      "Network": [
+        {
+          "Sel": "Prjn",
+          "Desc": "",
+          "Params": {
+            "Prjn.Learn.XCal.LLrn": "0",
+            "Prjn.Learn.XCal.MLrn": "1",
+            "Prjn.Learn.XCal.SetLLrn": "true"
+          }
+        }
+      ]
+    }
+  }
+]

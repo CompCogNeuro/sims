@@ -559,7 +559,7 @@ class Sim(object):
         split.Dim = mat32.X
         split.SetStretchMax()
 
-        ss.ClassView = epygiv.ClassView("ra25sv", ss.Tags)
+        ss.ClassView = epygiv.ClassView("sv", ss.Tags)
         ss.ClassView.AddFrame(split)
         ss.ClassView.SetClass(ss)
 
@@ -617,6 +617,7 @@ TheSim = Sim()
 def main(argv):
     TheSim.Config()
     TheSim.ConfigGui()
+    TheSim.Init()
     
 main(sys.argv[1:])
 
