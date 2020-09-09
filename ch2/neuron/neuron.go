@@ -516,7 +516,7 @@ See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch2/neuron/README.
 	plt = tv.AddNewTab(eplot.KiT_Plot2D, "SpikeVsRatePlot").(*eplot.Plot2D)
 	ss.SpikeVsRatePlot = ss.ConfigSpikeVsRatePlot(plt, ss.SpikeVsRateLog)
 
-	split.SetSplits(.3, .7)
+	split.SetSplits(.2, .8)
 
 	tbar.AddAction(gi.ActOpts{Label: "Init", Icon: "update", Tooltip: "Initialize everything including network weights, and start over.  Also applies current params.", UpdateFunc: func(act *gi.Action) {
 		act.SetActiveStateUpdt(!ss.IsRunning)
