@@ -18,6 +18,8 @@ import importlib as il
 import io, sys, getopt
 from datetime import datetime, timezone
 
+import numpy
+
 # this will become Sim later.. 
 TheSim = 1
 
@@ -279,8 +281,7 @@ class Sim(object):
         row = 0
         nsamp = 100
 
-        # todo:
-        for gbarE in range(1): # range(0.1: 0.7: 0.025):
+        for gbarE in numpy.arange(0.1, 0.7, 0.025):
             ss.GbarE = float(gbarE)
             spike = float(0)
             ss.Noise = 0.1

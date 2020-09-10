@@ -1,0 +1,64 @@
+[
+  {
+    "Name": "Base",
+    "Desc": "these are the best params",
+    "Sheets": {
+      "Network": [
+        {
+          "Sel": "Prjn",
+          "Desc": "no extra learning factors",
+          "Params": {
+            "Prjn.Learn.Momentum.On": "false",
+            "Prjn.Learn.Norm.On": "false",
+            "Prjn.Learn.WtBal.On": "false"
+          }
+        },
+        {
+          "Sel": "Layer",
+          "Desc": "needs some special inhibition and learning params",
+          "Params": {
+            "Layer.Inhib.ActAvg.Fixed": "true",
+            "Layer.Inhib.ActAvg.Init": "0.5",
+            "Layer.Inhib.Layer.FB": "0.5",
+            "Layer.Inhib.Layer.Gi": "1.4",
+            "Layer.Learn.AvgL.Gain": "1.5"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "Name": "Hebbian",
+    "Desc": "Hebbian-only learning params",
+    "Sheets": {
+      "Network": [
+        {
+          "Sel": "Prjn",
+          "Desc": "",
+          "Params": {
+            "Prjn.Learn.XCal.LLrn": "1",
+            "Prjn.Learn.XCal.MLrn": "0",
+            "Prjn.Learn.XCal.SetLLrn": "true"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "Name": "ErrorDriven",
+    "Desc": "Error-driven-only learning params",
+    "Sheets": {
+      "Network": [
+        {
+          "Sel": "Prjn",
+          "Desc": "",
+          "Params": {
+            "Prjn.Learn.XCal.LLrn": "0",
+            "Prjn.Learn.XCal.MLrn": "1",
+            "Prjn.Learn.XCal.SetLLrn": "true"
+          }
+        }
+      ]
+    }
+  }
+]

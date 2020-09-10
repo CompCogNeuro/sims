@@ -8,11 +8,9 @@
 # just type file name to run, or:
 # pyleabra -i <file>.py 
 
-# err_driven_hidden shows how XCal error driven learning can
-# train a hidden layer to solve problems that are otherwise 
-# impossible for a simple two layer network (as we saw in the 
-# Pattern Associator exploration, which should be completed 
-# first before doing this one).
+# pat_assoc illustrates how error-driven and hebbian learning can
+# operate within a simple task-driven learning context, with no hidden
+# layers.
 
 from leabra import go, leabra, emer, relpos, eplot, env, agg, patgen, prjn, etable, efile, split, etensor, params, netview, rand, erand, gi, giv, epygiv, mat32
 
@@ -115,7 +113,7 @@ def NewRndSeedCB(recv, send, sig, data):
     TheSim.NewRndSeed()
 
 def ReadmeCB(recv, send, sig, data):
-    gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch4/err_driven_hidden/README.md")
+    gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch4/hebberr_combo/README.md")
 
 def UpdtFuncNotRunning(act):
     act.SetActiveStateUpdt(not TheSim.IsRunning)
@@ -130,10 +128,12 @@ class PatsType(Enum):
     Easy = 0
     Hard = 1
     Impossible = 2
+    Lines2 = 3
     
 class LearnType(Enum):
     Hebbian = 0
     ErrorDriven = 1
+    ErrorHebbIn = 2
     
 #####################################################    
 #     Sim
@@ -148,11 +148,12 @@ class Sim(object):
     """
     def __init__(ss):
         ss.Net = leabra.Network()
-        ss.Learn    = LearnType.ErrorDriven
-        ss.Pats     = PatsType.Impossible
+        ss.Learn    = LearnType.Hebbian
+        ss.Pats     = PatsType.Easy
         ss.Easy  = etable.Table()
         ss.Hard  = etable.Table()
         ss.Impossible = etable.Table()
+        ss.Lines2 = etable.Table()
         ss.TrnEpcLog = etable.Table()
         ss.TstEpcLog = etable.Table()
         ss.TstTrlLog = etable.Table()
@@ -162,8 +163,8 @@ class Sim(object):
         ss.Params    = params.Sets()
         ss.ParamSet = ""
         ss.MaxRuns  = 10
-        ss.MaxEpcs  = 500
-        ss.NZeroStop = 5
+        ss.MaxEpcs  = 100
+        ss.NZeroStop = 20
         ss.TrainEnv = env.FixedTable()
         ss.TestEnv  = env.FixedTable()
         ss.Time     = leabra.Time()
@@ -262,7 +263,7 @@ class Sim(object):
         Sets the default set of parameters -- Base is always applied, and others can be optionally
         selected to apply on top of that
         """
-        ss.Params.OpenJSON("err_driven_hidden.params")
+        ss.Params.OpenJSON("hebberr_combo.params")
 
     def Config(ss):
         """
@@ -281,8 +282,8 @@ class Sim(object):
         if ss.MaxRuns == 0:
             ss.MaxRuns = 10
         if ss.MaxEpcs == 0: # allow user override
-            ss.MaxEpcs = 500
-            ss.NZeroStop = 5
+            ss.MaxEpcs = 100
+            ss.NZeroStop = 20
 
         ss.TrainEnv.Nm = "TrainEnv"
         ss.TrainEnv.Dsc = "training params and state"
@@ -309,15 +310,24 @@ class Sim(object):
         elif ss.Pats == PatsType.Impossible:
             ss.TrainEnv.Table = etable.NewIdxView(ss.Impossible)
             ss.TestEnv.Table = etable.NewIdxView(ss.Impossible)
+        elif ss.Pats == PatsType.Lines2:
+            all = etable.NewIdxView(ss.Lines2)
+            splits, _ = split.Permuted(all, go.Slice_float32([.9, .1]), go.Slice_string(["Train", "Test"]))
+            ss.TrainEnv.Table = splits.Splits[0]
+            ss.TestEnv.Table = splits.Splits[1]
 
     def ConfigNet(ss, net):
         net.InitName(net, "PatAssoc")
-        inp = net.AddLayer2D("Input", 1, 4, emer.Input)
-        hid = net.AddLayer2D("Hidden", 1, 4, emer.Hidden)
-        out = net.AddLayer2D("Output", 1, 2, emer.Target)
+        inp = net.AddLayer2D("Input", 5, 5, emer.Input)
+        hid = net.AddLayer2D("Hidden", 6, 5, emer.Hidden)
+        out = net.AddLayer2D("Output", 5, 2, emer.Target)
+        out.SetClass("Output")
 
         full = prjn.NewFull()
-        net.ConnectLayers(inp, hid, full, emer.Forward)
+
+        inhid = net.ConnectLayers(inp, hid, full, emer.Forward)
+        inhid.SetClass("InputToHidden")
+
         net.BidirConnectLayersPy(hid, out, full)
 
         hid.SetRelPos(relpos.Rel(Rel= relpos.Above, Other= "Input", YAlign= relpos.Front, XAlign= relpos.Left, YOffset= 1))
@@ -394,13 +404,13 @@ class Sim(object):
                     if viewUpdt == leabra.Cycle:
                         if cyc != ss.Time.CycPerQtr-1: # will be updated by quarter
                             ss.UpdateView(train)
-                    if viewUpdt == leabra.FastSpike:
+                    elif viewUpdt == leabra.FastSpike:
                         if (cyc+1)%10 == 0:
                             ss.UpdateView(train)
             ss.Net.QuarterFinal(ss.Time)
             ss.Time.QuarterInc()
             if ss.ViewOn:
-                if viewUpdt <= leabra.Quarter:
+                if viewUpdt == leabra.Quarter:
                     ss.UpdateView(train)
                 if viewUpdt == leabra.Phase:
                     if qtr >= 2:
@@ -478,6 +488,7 @@ class Sim(object):
         for the new run value
         """
         run = ss.TrainEnv.Run.Cur
+        ss.UpdateEnv()
         ss.TrainEnv.Init(run)
         ss.TestEnv.Init(run)
         ss.Time.Reset()
@@ -486,6 +497,7 @@ class Sim(object):
         ss.TrnEpcLog.SetNumRows(0)
         ss.TstEpcLog.SetNumRows(0)
         ss.NeedsNewRun = False
+        ss.TrainEnv.Run.Max = ss.MaxRuns
 
     def InitStats(ss):
         """
@@ -493,10 +505,10 @@ class Sim(object):
         cumulative epoch stats -- called at start of new run
         """
 
-        ss.SumErr = 0
         ss.SumSSE = 0
         ss.SumAvgSSE = 0
         ss.SumCosDiff = 0
+        ss.SumErr = 0
         ss.FirstZero = -1
         ss.NZero = 0
 
@@ -662,6 +674,8 @@ class Sim(object):
             ss.SetParamsSet("Hebbian", sheet, setMsg)
         elif ss.Learn == LearnType.ErrorDriven:
             ss.SetParamsSet("ErrorDriven", sheet, setMsg)
+        elif ss.Learn == LearnType.ErrorHebbIn:
+            ss.SetParamsSet("ErrorHebbIn", sheet, setMsg)
 
     def SetParamsSet(ss, setNm, sheet, setMsg):
         """
@@ -693,6 +707,10 @@ class Sim(object):
         ss.Impossible.SetMetaData("name", "Impossible")
         ss.Impossible.SetMetaData("desc", "Impossible Training patterns")
         ss.Impossible.OpenCSV("impossible.tsv", etable.Tab)
+
+        ss.Lines2.SetMetaData("name", "Lines2")
+        ss.Lines2.SetMetaData("desc", "Lines2 Training patterns")
+        ss.Lines2.OpenCSV("lines2out1.tsv", etable.Tab)
 
     def ValsTsr(ss, name):
         """
@@ -863,7 +881,7 @@ class Sim(object):
         plt.SetColParams("Epoch", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
         plt.SetColParams("Trial", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
         plt.SetColParams("TrialName", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
-        plt.SetColParams("Err", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
+        plt.SetColParams("Err", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
         plt.SetColParams("SSE", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0) # default plot
         plt.SetColParams("AvgSSE", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
         plt.SetColParams("CosDiff", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
@@ -921,10 +939,10 @@ class Sim(object):
         # order of params: on, fixMin, min, fixMax, max
         plt.SetColParams("Run", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
         plt.SetColParams("Epoch", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
-        plt.SetColParams("SSE", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0) # default plot
+        plt.SetColParams("SSE", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0) # default plot
         plt.SetColParams("AvgSSE", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
         plt.SetColParams("PctErr", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
-        plt.SetColParams("PctCor", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
+        plt.SetColParams("PctCor", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
         plt.SetColParams("CosDiff", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
         return plt
 
@@ -936,7 +954,7 @@ class Sim(object):
         row = dt.Rows
         dt.SetNumRows(row + 1)
 
-        epclog = ss.TrnEpcLog
+        epclog = ss.TstEpcLog
         epcix = etable.NewIdxView(epclog)
         # compute mean over last N epochs for run level
         nlast = 5
@@ -959,6 +977,7 @@ class Sim(object):
         spl = split.GroupBy(runix, go.Slice_string(["Params"]))
         split.Desc(spl, "FirstZero")
         split.Desc(spl, "PctCor")
+        split.Desc(spl, "SSE")
         ss.RunStats = spl.AggsToTable(etable.AddAggName)
 
         # note: essential to use Go version of update when called from another goroutine
@@ -993,10 +1012,10 @@ class Sim(object):
         # order of params: on, fixMin, min, fixMax, max
         plt.SetColParams("Run", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
         plt.SetColParams("FirstZero", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0) # default plot
-        plt.SetColParams("SSE", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0)
+        plt.SetColParams("SSE", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
         plt.SetColParams("AvgSSE", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
         plt.SetColParams("PctErr", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
-        plt.SetColParams("PctCor", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
+        plt.SetColParams("PctCor", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
         plt.SetColParams("CosDiff", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
         return plt
 
@@ -1012,10 +1031,10 @@ class Sim(object):
         width = 1600
         height = 1200
 
-        gi.SetAppName("err_driven_hidden")
-        gi.SetAppAbout('shows how XCal error driven learning can train a hidden layer to solve problems that are otherwise impossible for a simple two layer network (as we saw in the Pattern Associator exploration, which should be completed first before doing this one). See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch4/err_driven_hidden/README.md">README.md on GitHub</a>.</p>')
+        gi.SetAppName("hebberr_combo")
+        gi.SetAppAbout('shows how XCal hebbian learning in shallower layers of a network can aid an error driven learning network to generalize to unseen combinations of patterns. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch4/hebberr_combo/README.md">README.md on GitHub</a>.</p>')
 
-        win = gi.NewMainWindow("err_driven_hidden", "Error Driven Hidden Layer Learning", width, height)
+        win = gi.NewMainWindow("hebberr_combo", "Hebbian+Error Driven Learning", width, height)
         ss.Win = win
 
         vp = win.WinViewport2D()
@@ -1030,7 +1049,8 @@ class Sim(object):
 
         split = gi.AddNewSplitView(mfr, "split")
         split.Dim = mat32.X
-        split.SetStretchMax()
+        split.SetStretchMaxWidth()
+        split.SetStretchMaxHeight()
 
         ss.ClassView = epygiv.ClassView("ra25sv", ss.Tags)
         ss.ClassView.AddFrame(split)
