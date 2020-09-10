@@ -1,11 +1,8 @@
 issues:
 
-* plots not displaying on tab -- isvisible check not good probably
-  still an issue without invisible check
+* NewRndSeed needs the int time
 
-* err_driven_hidden etc: enums with chooser -- need a py for that.
-
-* neuron.go:  for gbarE in range(1): # range(0.1: 0.7: 0.025):
+* pip install numpy
 
 
 go:
