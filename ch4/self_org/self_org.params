@@ -1,0 +1,70 @@
+[
+  {
+    "Name": "Base",
+    "Desc": "these are the best params",
+    "Sheets": {
+      "Network": [
+        {
+          "Sel": "Prjn",
+          "Desc": "no extra learning factors",
+          "Params": {
+            "Prjn.Learn.Lrate": "0.02",
+            "Prjn.Learn.Momentum.On": "false",
+            "Prjn.Learn.Norm.On": "false",
+            "Prjn.Learn.WtBal.On": "true",
+            "Prjn.Learn.XCal.LLrn": "1",
+            "Prjn.Learn.XCal.MLrn": "0",
+            "Prjn.Learn.XCal.SetLLrn": "true"
+          }
+        },
+        {
+          "Sel": "Layer",
+          "Desc": "pretty much defaults",
+          "Params": {
+            "Layer.Inhib.ActAvg.Fixed": "true",
+            "Layer.Inhib.ActAvg.Init": "0.2",
+            "Layer.Inhib.Layer.Gi": "1.8",
+            "Layer.Learn.AvgL.Gain": "2.5"
+          }
+        },
+        {
+          "Sel": "#Input",
+          "Desc": "higher activity",
+          "Params": {
+            "Layer.Inhib.ActAvg.Init": "0.4"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "Name": "Hidden2Act",
+    "Desc": "hidden layer with ~2 units active",
+    "Sheets": {
+      "Network": [
+        {
+          "Sel": "#Hidden",
+          "Desc": "std inhib -- note: overwritten by TrainGi param!",
+          "Params": {
+            "Layer.Inhib.Layer.Gi": "1.8"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "Name": "Hidden1Act",
+    "Desc": "hidden layer with ~1 unit active",
+    "Sheets": {
+      "Network": [
+        {
+          "Sel": "#Hidden",
+          "Desc": "higher inhib because fewer units should be active -- note: overwritten by TestGi param!",
+          "Params": {
+            "Layer.Inhib.Layer.Gi": "2.5"
+          }
+        }
+      ]
+    }
+  }
+]

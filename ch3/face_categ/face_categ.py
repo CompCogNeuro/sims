@@ -26,12 +26,6 @@ from datetime import datetime, timezone
 # this will become Sim later.. 
 TheSim = 1
 
-# use this for e.g., etable.Column construction args where nil would be passed
-nilInts = go.Slice_int()
-
-# use this for e.g., etable.Column construction args where nil would be passed
-nilStrs = go.Slice_string()
-
 # LogPrec is precision for saving float values in logs
 LogPrec = 4
 
@@ -555,12 +549,12 @@ class Sim(object):
 
         nt = ss.TestEnv.Table.Len() # number in view
         sch = etable.Schema()
-        sch.append(etable.Column("Trial", etensor.INT64, nilInts, nilStrs))
-        sch.append(etable.Column("TrialName", etensor.STRING, nilInts, nilStrs))
-        sch.append(etable.Column("GendPrjn", etensor.FLOAT64, nilInts, nilStrs))
-        sch.append(etable.Column("EmotePrjn", etensor.FLOAT64, nilInts, nilStrs))
-        sch.append(etable.Column("RndPrjn0", etensor.FLOAT64, nilInts, nilStrs))
-        sch.append(etable.Column("RndPrjn1", etensor.FLOAT64, nilInts, nilStrs))
+        sch.append(etable.Column("Trial", etensor.INT64, go.nil, go.nil))
+        sch.append(etable.Column("TrialName", etensor.STRING, go.nil, go.nil))
+        sch.append(etable.Column("GendPrjn", etensor.FLOAT64, go.nil, go.nil))
+        sch.append(etable.Column("EmotePrjn", etensor.FLOAT64, go.nil, go.nil))
+        sch.append(etable.Column("RndPrjn0", etensor.FLOAT64, go.nil, go.nil))
+        sch.append(etable.Column("RndPrjn1", etensor.FLOAT64, go.nil, go.nil))
         dt.SetFromSchema(sch, nt)
 
     def LogTstTrl(ss, dt):
@@ -592,11 +586,11 @@ class Sim(object):
 
         nt = ss.TestEnv.Table.Len() # number in view
         sch = etable.Schema()
-        sch.append(etable.Column("Trial", etensor.INT64, nilInts, nilStrs))
-        sch.append(etable.Column("TrialName", etensor.STRING, nilInts, nilStrs))
+        sch.append(etable.Column("Trial", etensor.INT64, go.nil, go.nil))
+        sch.append(etable.Column("TrialName", etensor.STRING, go.nil, go.nil))
         for lnm in ss.TstRecLays:
             ly = leabra.LeabraLayer(ss.Net.LayerByName(lnm)).AsLeabra()
-            sch.append(etable.Column(lnm, etensor.FLOAT32, ly.Shp.Shp, nilStrs))
+            sch.append(etable.Column(lnm, etensor.FLOAT32, ly.Shp.Shp, go.nil))
         dt.SetFromSchema(sch, nt)
 
     def ConfigTstTrlPlot(ss, plt, dt):

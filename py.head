@@ -1,8 +1,14 @@
 issues:
 
+* gotopy: else if -> elif
+
+* fix neuron spike params
+
+* desc tooltip comments, defaults, min / max, etc in classview
+
 * NewRndSeed needs the int time
 
-* pip install numpy
+* docs: pip install numpy
 
 
 go:

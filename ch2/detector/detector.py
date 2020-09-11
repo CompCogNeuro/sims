@@ -22,12 +22,6 @@ from datetime import datetime, timezone
 # this will become Sim later.. 
 TheSim = 1
 
-# use this for e.g., etable.Column construction args where nil would be passed
-nilInts = go.Slice_int()
-
-# use this for e.g., etable.Column construction args where nil would be passed
-nilStrs = go.Slice_string()
-
 # LogPrec is precision for saving float values in logs
 LogPrec = 4
 
@@ -438,11 +432,11 @@ class Sim(object):
 
         nt = ss.TestEnv.Table.Len()
         sch = etable.Schema()
-        sch.append(etable.Column("Trial", etensor.INT64, nilInts, nilStrs))
-        sch.append(etable.Column("TrialName", etensor.STRING, nilInts, nilStrs))
-        sch.append(etable.Column("Input", etensor.FLOAT64, inp.Shp.Shp, nilStrs))
-        sch.append(etable.Column("Ge", etensor.FLOAT64, recv.Shp.Shp, nilStrs))
-        sch.append(etable.Column("Act", etensor.FLOAT64, recv.Shp.Shp, nilStrs))
+        sch.append(etable.Column("Trial", etensor.INT64, go.nil, go.nil))
+        sch.append(etable.Column("TrialName", etensor.STRING, go.nil, go.nil))
+        sch.append(etable.Column("Input", etensor.FLOAT64, inp.Shp.Shp, go.nil))
+        sch.append(etable.Column("Ge", etensor.FLOAT64, recv.Shp.Shp, go.nil))
+        sch.append(etable.Column("Act", etensor.FLOAT64, recv.Shp.Shp, go.nil))
 
         dt.SetFromSchema(sch, nt)
 

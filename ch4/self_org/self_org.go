@@ -262,9 +262,9 @@ func (ss *Sim) NewRndSeed() {
 // and add a few tabs at the end to allow for expansion..
 func (ss *Sim) Counters(train bool) string {
 	if train {
-		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TrainEnv.Trial.Cur, ss.Time.Cycle, ss.TrainEnv.TrialName.Cur)
+		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%s\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TrainEnv.Trial.Cur, ss.Time.Cycle, ss.TrainEnv.TrialName.Cur)
 	} else {
-		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TestEnv.Trial.Cur, ss.Time.Cycle, ss.TestEnv.TrialName.Cur)
+		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%s\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TestEnv.Trial.Cur, ss.Time.Cycle, ss.TestEnv.TrialName.Cur)
 	}
 }
 
@@ -888,10 +888,10 @@ func (ss *Sim) LogRun(dt *etable.Table) {
 
 	params := "Std"
 	if ss.AvgLGain != 2.5 {
-		params += fmt.Sprintf("_AvgLGain=%v", ss.AvgLGain)
+		params += fmt.Sprintf("_AvgLGain=%s", ss.AvgLGain)
 	}
 	if ss.InputNoise != 0 {
-		params += fmt.Sprintf("_InVar=%v", ss.InputNoise)
+		params += fmt.Sprintf("_InVar=%s", ss.InputNoise)
 	}
 
 	dt.SetCellFloat("Run", row, float64(run))
@@ -1071,7 +1071,7 @@ inhibitory competition, rich-get-richer Hebbian learning, and homeostasis (negat
 					} else {
 						if !ss.IsRunning {
 							ss.IsRunning = true
-							fmt.Printf("testing index: %v\n", idxs[0])
+							fmt.Printf("testing index: %d\n", idxs[0])
 							ss.TestItem(idxs[0])
 							ss.IsRunning = false
 							vp.SetNeedsFullRender()

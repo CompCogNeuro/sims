@@ -8,11 +8,11 @@
 # just type file name to run, or:
 # pyleabra -i <file>.py 
 
-# pat_assoc illustrates how error-driven and hebbian learning can
-# operate within a simple task-driven learning context, with no hidden
-# layers.
+# self_org illustrates how self-organizing learning emerges from
+# the interactions between inhibitory competition, rich-get-richer
+# Hebbian learning, and homeostasis (negative feedback).
 
-from leabra import go, leabra, emer, relpos, eplot, env, agg, patgen, prjn, etable, efile, split, etensor, params, netview, rand, erand, gi, giv, epygiv, mat32
+from leabra import go, leabra, emer, relpos, eplot, env, agg, patgen, prjn, etable, efile, split, etensor, params, netview, rand, erand, gi, giv, epygiv, mat32, simat, etview, norm, metric
 
 import importlib as il
 import io, sys, getopt
@@ -107,7 +107,7 @@ def NewRndSeedCB(recv, send, sig, data):
     TheSim.NewRndSeed()
 
 def ReadmeCB(recv, send, sig, data):
-    gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch4/pat_assoc/README.md")
+    gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch4/self_org/README.md")
 
 def UpdtFuncNotRunning(act):
     act.SetActiveStateUpdt(not TheSim.IsRunning)
@@ -115,18 +115,6 @@ def UpdtFuncNotRunning(act):
 def UpdtFuncRunning(act):
     act.SetActiveStateUpdt(TheSim.IsRunning)
 
-############################################
-# Enums -- note: must start at 0 for GUI
-
-class PatsType(Enum):
-    Easy = 0
-    Hard = 1
-    Impossible = 2
-    
-class LearnType(Enum):
-    Hebbian = 0
-    ErrorDriven = 1
-    
 #####################################################    
 #     Sim
 
@@ -139,58 +127,45 @@ class Sim(object):
     for the fields which provide hints to how things should be displayed).
     """
     def __init__(ss):
+        ss.AvgLGain   = 2.5
+        ss.InputNoise = 0.0
+        ss.TrainGi    = 1.8
+        ss.TestGi     = 2.5
         ss.Net = leabra.Network()
-        ss.Learn    = LearnType.Hebbian
-        ss.Pats     = PatsType.Easy
-        ss.Easy  = etable.Table()
-        ss.Hard  = etable.Table()
-        ss.Impossible = etable.Table()
+        ss.Lines2     = etable.Table()
+        ss.Lines1     = etable.Table()
         ss.TrnEpcLog = etable.Table()
         ss.TstEpcLog = etable.Table()
         ss.TstTrlLog = etable.Table()
+        ss.HidFmInputWts = etensor.Float32()
         ss.RunLog = etable.Table()
         ss.RunStats = etable.Table()
+        ss.SimMat   = simat.SimMat()
         ss.Params    = params.Sets()
         ss.ParamSet = ""
-        ss.MaxRuns  = 10
-        ss.MaxEpcs  = 40
-        ss.NZeroStop = 5
+        ss.MaxRuns  = 8
+        ss.MaxEpcs  = 30
         ss.TrainEnv = env.FixedTable()
         ss.TestEnv  = env.FixedTable()
         ss.Time     = leabra.Time()
         ss.ViewOn   = True
         ss.TrainUpdt = leabra.AlphaCycle
         ss.TestUpdt = leabra.Cycle
-        ss.TestInterval = 5
-        ss.LayStatNms  = go.Slice_string(["Input", "Output"])
+        ss.TestInterval = 1
+        ss.TstRecLays  = go.Slice_string(["Input", "Hidden"])
         
         # statistics
-        ss.TrlErr     = 0.0
-        ss.TrlSSE     = 0.0
-        ss.TrlAvgSSE  = 0.0
-        ss.TrlCosDiff = 0.0
-        ss.EpcSSE     = 0.0
-        ss.EpcAvgSSE  = 0.0
-        ss.EpcPctErr  = 0.0
-        ss.EpcPctCor  = 0.0
-        ss.EpcCosDiff = 0.0
-        ss.FirstZero  = -1
-        ss.NZero      = 0
+        ss.UniqPats   = 0.0
         
         # internal state - view:"-"
-        ss.SumErr     = 0.0
-        ss.SumSSE     = 0.0
-        ss.SumAvgSSE  = 0.0
-        ss.SumCosDiff = 0.0
-        ss.CntErr     = 0.0
         ss.Win        = 0
         ss.vp         = 0
         ss.ToolBar    = 0
         ss.NetView    = 0
+        ss.WtsGrid    = 0
         ss.TrnEpcPlot = 0
         ss.TstEpcPlot = 0
         ss.TstTrlPlot = 0
-        ss.TstCycPlot = 0
         ss.RunPlot    = 0
         ss.TrnEpcFile = 0
         ss.RunFile    = 0
@@ -209,22 +184,7 @@ class Sim(object):
         # ClassView tags for controlling display of fields
         ss.Tags = {
             'ParamSet': 'view:"-"',
-            'TrlErr': 'inactive:"+"',
-            'TrlSSE': 'inactive:"+"',
-            'TrlAvgSSE': 'inactive:"+"',
-            'TrlCosDiff': 'inactive:"+"',
-            'EpcSSE': 'inactive:"+"',
-            'EpcAvgSSE': 'inactive:"+"',
-            'EpcPctErr': 'inactive:"+"',
-            'EpcPctCor': 'inactive:"+"',
-            'EpcCosDiff': 'inactive:"+"',
-            'FirstZero': 'inactive:"+"',
-            'NZero': 'inactive:"+"',
-            'SumErr': 'view:"-"',
-            'SumSSE': 'view:"-"',
-            'SumAvgSSE': 'view:"-"',
-            'SumCosDiff': 'view:"-"',
-            'CntErr': 'view:"-"',
+            'UniqPats': 'inactive:"+"',
             'Win': 'view:"-"',
             'vp': 'view:"-"',
             'ToolBar': 'view:"-"',
@@ -232,13 +192,11 @@ class Sim(object):
             'TrnEpcPlot': 'view:"-"',
             'TstEpcPlot': 'view:"-"',
             'TstTrlPlot': 'view:"-"',
-            'TstCycPlot': 'view:"-"',
             'RunPlot': 'view:"-"',
             'TrnEpcFile': 'view:"-"',
             'RunFile': 'view:"-"',
             'SaveWts': 'view:"-"',
             'NoGui': 'view:"-"',
-            'LogSetParams': 'view:"-"',
             'IsRunning': 'view:"-"',
             'StopNow': 'view:"-"',
             'RndSeed': 'view:"-"',
@@ -253,13 +211,20 @@ class Sim(object):
         Sets the default set of parameters -- Base is always applied, and others can be optionally
         selected to apply on top of that
         """
-        ss.Params.OpenJSON("pat_assoc.params")
+        ss.Params.OpenJSON("self_org.params")
+
+    def Defaults(ss):
+        ss.AvgLGain = 2.5
+        ss.InputNoise = 0
+        ss.TrainGi = 1.8
+        ss.TestGi = 2.5
 
     def Config(ss):
         """
         Config configures all the elements using the standard functions
         """
         ss.InitParams()
+        ss.Defaults()
         ss.OpenPats()
         ss.ConfigEnv()
         ss.ConfigNet(ss.Net)
@@ -270,43 +235,31 @@ class Sim(object):
 
     def ConfigEnv(ss):
         if ss.MaxRuns == 0:
-            ss.MaxRuns = 10
+            ss.MaxRuns = 8
         if ss.MaxEpcs == 0: # allow user override
-            ss.MaxEpcs = 40
-            ss.NZeroStop = 5
+            ss.MaxEpcs = 30
 
         ss.TrainEnv.Nm = "TrainEnv"
         ss.TrainEnv.Dsc = "training params and state"
-        ss.TrainEnv.Table = etable.NewIdxView(ss.Easy)
+        ss.TrainEnv.Table = etable.NewIdxView(ss.Lines2)
         ss.TrainEnv.Validate()
         ss.TrainEnv.Run.Max = ss.MaxRuns # note: we are not setting epoch max -- do that manually
 
         ss.TestEnv.Nm = "TestEnv"
         ss.TestEnv.Dsc = "testing params and state"
-        ss.TestEnv.Table = etable.NewIdxView(ss.Easy)
+        ss.TestEnv.Table = etable.NewIdxView(ss.Lines1)
         ss.TestEnv.Sequential = True
         ss.TestEnv.Validate()
 
         ss.TrainEnv.Init(0)
         ss.TestEnv.Init(0)
 
-    def UpdateEnv(ss):
-        if ss.Pats == PatsType.Easy:
-            ss.TrainEnv.Table = etable.NewIdxView(ss.Easy)
-            ss.TestEnv.Table = etable.NewIdxView(ss.Easy)
-        elif ss.Pats == PatsType.Hard:
-            ss.TrainEnv.Table = etable.NewIdxView(ss.Hard)
-            ss.TestEnv.Table = etable.NewIdxView(ss.Hard)
-        elif ss.Pats == PatsType.Impossible:
-            ss.TrainEnv.Table = etable.NewIdxView(ss.Impossible)
-            ss.TestEnv.Table = etable.NewIdxView(ss.Impossible)
-
     def ConfigNet(ss, net):
-        net.InitName(net, "PatAssoc")
-        inp = net.AddLayer2D("Input", 1, 4, emer.Input)
-        out = net.AddLayer2D("Output", 1, 2, emer.Target)
+        net.InitName(net, "SelfOrg")
+        inp = net.AddLayer2D("Input", 5, 5, emer.Input)
+        hid = net.AddLayer2D("Hidden", 4, 5, emer.Hidden)
 
-        net.ConnectLayers(inp, out, prjn.NewFull(), emer.Forward)
+        net.ConnectLayers(inp, hid, prjn.NewFull(), emer.Forward)
 
         net.Defaults()
         ss.SetParams("Network", False) # only set Network params
@@ -316,10 +269,11 @@ class Sim(object):
     def Init(ss):
         """
         Init restarts the run, and initializes everything, including network weights
+
+        # all sheets
         and resets the epoch log table
         """
         rand.Seed(ss.RndSeed)
-        ss.UpdateEnv()
         ss.StopNow = False
         ss.SetParams("", False)
         ss.NewRun()
@@ -408,12 +362,13 @@ class Sim(object):
         """
         ss.Net.InitExt()
 
-        lays = ["Input", "Output"]
-        for lnm in lays :
+        lays = go.Slice_string(["Input"])
+        for lnm in lays:
             ly = leabra.Layer(ss.Net.LayerByName(lnm))
             pats = en.State(ly.Nm)
-            if pats != 0:
-                ly.ApplyExt(pats)
+            if pats == 0:
+                continue
+            ly.ApplyExt(pats)
 
     def TrainTrial(ss):
         """
@@ -431,12 +386,12 @@ class Sim(object):
         chg = env.CounterChg(ss.TrainEnv, env.Epoch)
 
         if chg:
-            ss.LogTrnEpc(ss.TrnEpcLog)
             if ss.ViewOn and ss.TrainUpdt > leabra.AlphaCycle:
                 ss.UpdateView(True)
-            if ss.TestInterval > 0 and epc%ss.TestInterval == 0: # note: epc is *next* so won't trigger first time
+            if epc%ss.TestInterval == 0: # note: epc is *next* so won't trigger first time
                 ss.TestAll()
-            if epc >= ss.MaxEpcs or (ss.NZeroStop > 0 and ss.NZero >= ss.NZeroStop):
+            ss.LogTrnEpc(ss.TrnEpcLog)
+            if epc >= ss.MaxEpcs:
                 # done with training..
                 ss.RunEnd()
                 if ss.TrainEnv.Run.Incr(): # we are done!
@@ -446,8 +401,7 @@ class Sim(object):
                     ss.NeedsNewRun = True
                     return
 
-        # note: type must be in place before apply inputs
-        ss.Net.LayerByName("Output").SetType(emer.Target)
+        ss.SetParamsSet("Hidden2Act", "Network", False) # 2 units active for training
         ss.ApplyInputs(ss.TrainEnv)
         ss.AlphaCyc(True)   # train
         ss.TrialStats(True) # accumulate
@@ -478,44 +432,33 @@ class Sim(object):
         InitStats initializes all the statistics, especially important for the
         cumulative epoch stats -- called at start of new run
         """
-
-        ss.SumSSE = 0
-        ss.SumAvgSSE = 0
-        ss.SumCosDiff = 0
-        ss.SumErr = 0
-        ss.FirstZero = -1
-        ss.NZero = 0
-
-        ss.TrlErr = 0
-        ss.TrlSSE = 0
-        ss.TrlAvgSSE = 0
-        ss.EpcSSE = 0
-        ss.EpcAvgSSE = 0
-        ss.EpcPctErr = 0
-        ss.EpcCosDiff = 0
+        pass
 
     def TrialStats(ss, accum):
+        pass
+
+    def UniquePatStat(ss, dt):
         """
-        TrialStats computes the trial-level statistics and adds them to the epoch accumulators if
-        accum is true.  Note that we're accumulating stats here on the Sim side so the
-        core algorithm side remains as simple as possible, and doesn't need to worry about
-        different time-scales over which stats could be accumulated etc.
-        You can also aggregate directly from log data, as is done for testing stats
+        UniquePatStat analyzes the hidden activity patterns for the single-line test inputs
+        to determine how many such lines have a distinct hidden pattern, as computed
+        from the similarity matrix across patterns
         """
-        out = leabra.Layer(ss.Net.LayerByName("Output"))
-        ss.TrlCosDiff = float(out.CosDiff.Cos)
-        ss.TrlSSE = out.SSE(0.5) # 0.5 = per-unit tolerance -- right side of .5
-        ss.TrlAvgSSE = ss.TrlSSE / len(out.Neurons)
-        if ss.TrlSSE > 0:
-            ss.TrlErr = 1
-        else:
-            ss.TrlErr = 0
-        if accum:
-            ss.SumErr += ss.TrlErr
-            ss.SumSSE += ss.TrlSSE
-            ss.SumAvgSSE += ss.TrlAvgSSE
-            ss.SumCosDiff += ss.TrlCosDiff
-        return
+        hc = etensor.Float64(dt.ColByName("Hidden"))
+        norm.Binarize64(hc.Values, .5, 1, 0)
+        ix = etable.NewIdxView(dt)
+        ss.SimMat.TableColStd(ix, "Hidden", "TrialName", False, metric.SumSquares)
+        dm = ss.SimMat.Mat
+        nrow = dm.Dim(0)
+        uniq = 0
+        for row in range(nrow):
+            tsr = etensor.Float64(dm.SubSpace(go.Slice_int([row])))
+            nzero = 0
+            for vl in tsr.Values:
+                if vl == 0:
+                    nzero += 1
+            if nzero == 1:
+                uniq += 1
+        return float(uniq)
 
     def TrainEpoch(ss):
         """
@@ -590,8 +533,8 @@ class Sim(object):
             ss.LogTstEpc(ss.TstEpcLog)
             if returnOnChg:
                 return
+        ss.SetParamsSet("Hidden1Act", "Network", False)
 
-        ss.Net.LayerByName("Output").SetType(emer.Compare)
         ss.ApplyInputs(ss.TestEnv)
         ss.AlphaCyc(False)
         ss.TrialStats(False)
@@ -604,8 +547,7 @@ class Sim(object):
         cur = ss.TestEnv.Trial.Cur
         ss.TestEnv.Trial.Cur = idx
         ss.TestEnv.SetTrialName()
-
-        ss.Net.LayerByName("Output").SetType(emer.Compare)
+        ss.SetParamsSet("Hidden1Act", "Network", False)
         ss.ApplyInputs(ss.TestEnv)
         ss.AlphaCyc(False)
         ss.TrialStats(False)
@@ -621,6 +563,7 @@ class Sim(object):
             chg = env.CounterChg(ss.TestEnv, env.Epoch)
             if chg or ss.StopNow:
                 break
+        ss.UniqPats = ss.UniquePatStat(ss.TstTrlLog)
 
     def RunTestAll(ss):
         """
@@ -644,10 +587,15 @@ class Sim(object):
             sps = ss.ParamSet.split()
             for ps in sps:
                 ss.SetParamsSet(ps, sheet, setMsg)
-        if ss.Learn == LearnType.Hebbian:
-            ss.SetParamsSet("Hebbian", sheet, setMsg)
-        elif ss.Learn == LearnType.ErrorDriven:
-            ss.SetParamsSet("ErrorDriven", sheet, setMsg)
+        ly = leabra.Layer(ss.Net.LayerByName("Hidden"))
+        ly.Learn.AvgL.Gain = ss.AvgLGain
+        inp = leabra.Layer(ss.Net.LayerByName("Input"))
+        if ss.InputNoise == 0:
+            inp.Act.Noise.Var = 0
+            inp.Act.Noise.Type = leabra.NoNoise
+        else:
+            inp.Act.Noise.Var = float(ss.InputNoise)
+            inp.Act.Noise.Type = leabra.ActNoise
 
     def SetParamsSet(ss, setNm, sheet, setMsg):
         """
@@ -668,17 +616,13 @@ class Sim(object):
                 epygiv.ApplyParams(ss, simp, setMsg)
 
     def OpenPats(ss):
-        ss.Easy.SetMetaData("name", "Easy")
-        ss.Easy.SetMetaData("desc", "Easy Training patterns")
-        ss.Easy.OpenCSV("easy.tsv", etable.Tab)
+        ss.Lines2.SetMetaData("name", "Lines2")
+        ss.Lines2.SetMetaData("desc", "Lines2 Training patterns")
+        ss.Lines2.OpenCSV("lines_5x5x2.tsv", etable.Tab)
 
-        ss.Hard.SetMetaData("name", "Hard")
-        ss.Hard.SetMetaData("desc", "Hard Training patterns")
-        ss.Hard.OpenCSV("hard.tsv", etable.Tab)
-
-        ss.Impossible.SetMetaData("name", "Impossible")
-        ss.Impossible.SetMetaData("desc", "Impossible Training patterns")
-        ss.Impossible.OpenCSV("impossible.tsv", etable.Tab)
+        ss.Lines1.SetMetaData("name", "Lines1")
+        ss.Lines1.SetMetaData("desc", "Lines1 Training patterns")
+        ss.Lines1.OpenCSV("lines_5x5x1.tsv", etable.Tab)
 
     def ValsTsr(ss, name):
         """
@@ -694,42 +638,21 @@ class Sim(object):
         """
         LogTrnEpc adds data from current epoch to the TrnEpcLog table.
         computes epoch averages prior to logging.
-
-        # this is triggered by increment so use previous value
         """
         row = dt.Rows
         dt.SetNumRows(row + 1)
 
         epc = ss.TrainEnv.Epoch.Prv
-        nt = float(ss.TrainEnv.Table.Len()) # number of trials in view
+        # nt := float(ss.TrainEnv.Table.Len()) // number of trials in view
 
-        ss.EpcSSE = ss.SumSSE / nt
-        ss.SumSSE = 0
-        ss.EpcAvgSSE = ss.SumAvgSSE / nt
-        ss.SumAvgSSE = 0
-        ss.EpcPctErr = float(ss.SumErr) / nt
-        ss.SumErr = 0
-        ss.EpcPctCor = 1 - ss.EpcPctErr
-        ss.EpcCosDiff = ss.SumCosDiff / nt
-        ss.SumCosDiff = 0
-        if ss.FirstZero < 0 and ss.EpcPctErr == 0:
-            ss.FirstZero = epc
-        if ss.EpcPctErr == 0:
-            ss.NZero += 1
-        else:
-            ss.NZero = 0
+        ss.HidFmInput(ss.HidFmInputWts)
+        if ss.WtsGrid != 0:
+            ss.WtsGrid.UpdateSig()
 
         dt.SetCellFloat("Run", row, float(ss.TrainEnv.Run.Cur))
         dt.SetCellFloat("Epoch", row, float(epc))
-        dt.SetCellFloat("SSE", row, ss.EpcSSE)
-        dt.SetCellFloat("AvgSSE", row, ss.EpcAvgSSE)
-        dt.SetCellFloat("PctErr", row, ss.EpcPctErr)
-        dt.SetCellFloat("PctCor", row, ss.EpcPctCor)
-        dt.SetCellFloat("CosDiff", row, ss.EpcCosDiff)
-
-        for lnm in ss.LayStatNms:
-            ly = leabra.Layer(ss.Net.LayerByName(lnm))
-            dt.SetCellFloat(ly.Nm+" ActAvg", row, float(ly.Pool(0).ActAvg.ActPAvgEff))
+        dt.SetCellFloat("UniqPats", row, ss.UniqPats)
+        dt.SetCellTensor("HidFmInputWts", row, ss.HidFmInputWts)
 
         # note: essential to use Go version of update when called from another goroutine
         ss.TrnEpcPlot.GoUpdate()
@@ -747,31 +670,39 @@ class Sim(object):
         sch = etable.Schema()
         sch.append(etable.Column("Run", etensor.INT64, go.nil, go.nil))
         sch.append(etable.Column("Epoch", etensor.INT64, go.nil, go.nil))
-        sch.append(etable.Column("SSE", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("AvgSSE", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("PctErr", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("PctCor", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("CosDiff", etensor.FLOAT64, go.nil, go.nil))
-        for lnm in ss.LayStatNms:
-            sch.append(etable.Column(lnm + " ActAvg", etensor.FLOAT64, go.nil, go.nil))
+        sch.append(etable.Column("UniqPats", etensor.FLOAT64, go.nil, go.nil))
+        sch.append(etable.Column("HidFmInputWts", etensor.FLOAT32, go.Slice_int([4, 5, 5, 5]), go.nil))
         dt.SetFromSchema(sch, 0)
+        ss.ConfigHidFmInput(ss.HidFmInputWts)
 
     def ConfigTrnEpcPlot(ss, plt, dt):
-        plt.Params.Title = "Pattern Associator Epoch Plot"
+        plt.Params.Title = "Self Organizing Epoch Plot"
         plt.Params.XAxisCol = "Epoch"
         plt.SetTable(dt)
         # order of params: on, fixMin, min, fixMax, max
         plt.SetColParams("Run", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
         plt.SetColParams("Epoch", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
-        plt.SetColParams("SSE", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0) # default plot
-        plt.SetColParams("AvgSSE", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
-        plt.SetColParams("PctErr", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
-        plt.SetColParams("PctCor", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
-        plt.SetColParams("CosDiff", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
+        plt.SetColParams("UniqPats", eplot.On, eplot.FixMin, 0, eplot.FixMax, 10)
+        plt.SetColParams("HidFmInputWts", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
 
-        for lnm in ss.LayStatNms:
-            plt.SetColParams(lnm+" ActAvg", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 0.5)
         return plt
+
+    def HidFmInput(ss, dt):
+        vals = dt.Values
+        inp = leabra.Layer(ss.Net.LayerByName("Input"))
+        isz = inp.Shape().Len()
+        hid = leabra.Layer(ss.Net.LayerByName("Hidden"))
+        ysz = hid.Shape().Dim(0)
+        xsz = hid.Shape().Dim(1)
+        for y in range(ysz):
+            for x in range(xsz):
+                ui = (y*xsz + x)
+                ust = ui * isz
+                vls = vals[ust : ust+isz]
+                inp.SendPrjnVals(vls, "Wt", hid, ui, "")
+
+    def ConfigHidFmInput(ss, dt):
+        dt.SetShape(go.Slice_int([4, 5, 5, 5]), go.nil, go.nil)
 
     def LogTstTrl(ss, dt):
         """
@@ -780,8 +711,6 @@ class Sim(object):
         log always contains number of testing items
         """
         epc = ss.TrainEnv.Epoch.Prv
-        inp = leabra.Layer(ss.Net.LayerByName("Input"))
-        out = leabra.Layer(ss.Net.LayerByName("Output"))
 
         trl = ss.TestEnv.Trial.Cur
         row = trl
@@ -793,30 +722,17 @@ class Sim(object):
         dt.SetCellFloat("Epoch", row, float(epc))
         dt.SetCellFloat("Trial", row, float(trl))
         dt.SetCellString("TrialName", row, ss.TestEnv.TrialName.Cur)
-        dt.SetCellFloat("Err", row, ss.TrlErr)
-        dt.SetCellFloat("SSE", row, ss.TrlSSE)
-        dt.SetCellFloat("AvgSSE", row, ss.TrlAvgSSE)
-        dt.SetCellFloat("CosDiff", row, ss.TrlCosDiff)
 
-        for lnm in ss.LayStatNms:
+        for lnm in ss.TstRecLays:
+            tsr = ss.ValsTsr(lnm)
             ly = leabra.Layer(ss.Net.LayerByName(lnm))
-            dt.SetCellFloat(ly.Nm+" ActM.Avg", row, float(ly.Pool(0).ActM.Avg))
-        ivt = ss.ValsTsr("Input")
-        ovt = ss.ValsTsr("Output")
-        inp.UnitValsTensor(ivt, "Act")
-        dt.SetCellTensor("InAct", row, ivt)
-        out.UnitValsTensor(ovt, "ActM")
-        dt.SetCellTensor("OutActM", row, ovt)
-        out.UnitValsTensor(ovt, "Targ")
-        dt.SetCellTensor("OutTarg", row, ovt)
+            ly.UnitValsTensor(tsr, "Act")
+            dt.SetCellTensor(lnm, row, tsr)
 
         # note: essential to use Go version of update when called from another goroutine
         ss.TstTrlPlot.GoUpdate()
 
     def ConfigTstTrlLog(ss, dt):
-        inp = leabra.Layer(ss.Net.LayerByName("Input"))
-        out = leabra.Layer(ss.Net.LayerByName("Output"))
-
         dt.SetMetaData("name", "TstTrlLog")
         dt.SetMetaData("desc", "Record of testing per input pattern")
         dt.SetMetaData("read-only", "true")
@@ -828,20 +744,13 @@ class Sim(object):
         sch.append(etable.Column("Epoch", etensor.INT64, go.nil, go.nil))
         sch.append(etable.Column("Trial", etensor.INT64, go.nil, go.nil))
         sch.append(etable.Column("TrialName", etensor.STRING, go.nil, go.nil))
-        sch.append(etable.Column("Err", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("SSE", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("AvgSSE", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("CosDiff", etensor.FLOAT64, go.nil, go.nil))
-        for lnm in ss.LayStatNms:
-            sch.append(etable.Column(lnm + " ActM.Avg", etensor.FLOAT64, go.nil, go.nil))
-            
-        sch.append(etable.Column("InAct", etensor.FLOAT64, inp.Shp.Shp, go.nil))
-        sch.append(etable.Column("OutActM", etensor.FLOAT64, out.Shp.Shp, go.nil))
-        sch.append(etable.Column("OutTarg", etensor.FLOAT64, out.Shp.Shp, go.nil))
+        for lnm in ss.TstRecLays:
+            ly = leabra.Layer(ss.Net.LayerByName(lnm))
+            sch.append(etable.Column(lnm, etensor.FLOAT64, ly.Shp.Shp, go.nil))
         dt.SetFromSchema(sch, nt)
 
     def ConfigTstTrlPlot(ss, plt, dt):
-        plt.Params.Title = "Pattern Associator Test Trial Plot"
+        plt.Params.Title = "Self Organizing Test Trial Plot"
         plt.Params.XAxisCol = "Trial"
         plt.SetTable(dt)
         # order of params: on, fixMin, min, fixMax, max
@@ -849,36 +758,23 @@ class Sim(object):
         plt.SetColParams("Epoch", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
         plt.SetColParams("Trial", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
         plt.SetColParams("TrialName", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
-        plt.SetColParams("Err", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
-        plt.SetColParams("SSE", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0) # default plot
-        plt.SetColParams("AvgSSE", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
-        plt.SetColParams("CosDiff", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
 
-        for lnm in ss.LayStatNms:
-            plt.SetColParams(lnm+" ActM.Avg", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 0.5)
-
-        plt.SetColParams("InAct", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
-        plt.SetColParams("OutActM", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
-        plt.SetColParams("OutTarg", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
+        for lnm in ss.TstRecLays:
+            plt.SetColParams(lnm, eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
         return plt
 
     def LogTstEpc(ss, dt):
         row = dt.Rows
         dt.SetNumRows(row + 1)
 
-        trl = ss.TstTrlLog
-        tix = etable.NewIdxView(trl)
+        # trl := ss.TstTrlLog
+        # tix := etable.NewIdxView(trl)
         epc = ss.TrainEnv.Epoch.Prv # ?
 
         # note: this shows how to use agg methods to compute summary data from another
         # data table, instead of incrementing on the Sim
         dt.SetCellFloat("Run", row, float(ss.TrainEnv.Run.Cur))
         dt.SetCellFloat("Epoch", row, float(epc))
-        dt.SetCellFloat("SSE", row, agg.Sum(tix, "SSE")[0])
-        dt.SetCellFloat("AvgSSE", row, agg.Mean(tix, "AvgSSE")[0])
-        dt.SetCellFloat("PctErr", row, agg.Mean(tix, "Err")[0])
-        dt.SetCellFloat("PctCor", row, 1-agg.Mean(tix, "Err")[0])
-        dt.SetCellFloat("CosDiff", row, agg.Mean(tix, "CosDiff")[0])
 
         # note: essential to use Go version of update when called from another goroutine
         if ss.TstEpcPlot != 0:
@@ -893,25 +789,15 @@ class Sim(object):
         sch = etable.Schema()
         sch.append(etable.Column("Run", etensor.INT64, go.nil, go.nil))
         sch.append(etable.Column("Epoch", etensor.INT64, go.nil, go.nil))
-        sch.append(etable.Column("SSE", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("AvgSSE", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("PctErr", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("PctCor", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("CosDiff", etensor.FLOAT64, go.nil, go.nil))
         dt.SetFromSchema(sch, 0)
-
+        
     def ConfigTstEpcPlot(ss, plt, dt):
-        plt.Params.Title = "Pattern Associator Testing Epoch Plot"
+        plt.Params.Title = "Self Organizing Testing Epoch Plot"
         plt.Params.XAxisCol = "Epoch"
         plt.SetTable(dt)
         # order of params: on, fixMin, min, fixMax, max
         plt.SetColParams("Run", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
         plt.SetColParams("Epoch", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
-        plt.SetColParams("SSE", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0) # default plot
-        plt.SetColParams("AvgSSE", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
-        plt.SetColParams("PctErr", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
-        plt.SetColParams("PctCor", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
-        plt.SetColParams("CosDiff", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
         return plt
 
     def LogRun(ss, dt):
@@ -925,35 +811,28 @@ class Sim(object):
         epclog = ss.TrnEpcLog
         epcix = etable.NewIdxView(epclog)
         # compute mean over last N epochs for run level
-        nlast = 5
+        nlast = 1
         if nlast > epcix.Len()-1:
             nlast = epcix.Len() - 1
-        epcix.Idxs = go.Slice_int(epcix.Idxs[epcix.Len()-nlast:])
+        epcix.Idxs = epcix.Idxs[epcix.Len()-nlast-1:]
 
-        params = ss.Learn.name + "_" + ss.Pats.name
+        params = "Std"
+        if ss.AvgLGain != 2.5:
+            params += "_AvgLGain=%s" % (ss.AvgLGain)
+        if ss.InputNoise != 0:
+            params += "_InVar=%s" % (ss.InputNoise)
 
         dt.SetCellFloat("Run", row, float(run))
         dt.SetCellString("Params", row, params)
-        dt.SetCellFloat("FirstZero", row, float(ss.FirstZero))
-        dt.SetCellFloat("SSE", row, agg.Mean(epcix, "SSE")[0])
-        dt.SetCellFloat("AvgSSE", row, agg.Mean(epcix, "AvgSSE")[0])
-        dt.SetCellFloat("PctErr", row, agg.Mean(epcix, "PctErr")[0])
-        dt.SetCellFloat("PctCor", row, agg.Mean(epcix, "PctCor")[0])
-        dt.SetCellFloat("CosDiff", row, agg.Mean(epcix, "CosDiff")[0])
+        dt.SetCellFloat("UniqPats", row, agg.Mean(epcix, "UniqPats")[0])
 
         runix = etable.NewIdxView(dt)
         spl = split.GroupBy(runix, go.Slice_string(["Params"]))
-        split.Desc(spl, "FirstZero")
-        split.Desc(spl, "PctCor")
+        split.Desc(spl, "UniqPats")
         ss.RunStats = spl.AggsToTable(etable.AddAggName)
 
         # note: essential to use Go version of update when called from another goroutine
-        if ss.RunPlot != 0:
-            ss.RunPlot.GoUpdate()
-        if ss.RunFile != 0:
-            if row == 0:
-                dt.WriteCSVHeaders(ss.RunFile, etable.Tab)
-            dt.WriteCSVRow(ss.RunFile, row, etable.Tab)
+        ss.RunPlot.GoUpdate()
 
     def ConfigRunLog(ss, dt):
         dt.SetMetaData("name", "RunLog")
@@ -964,32 +843,17 @@ class Sim(object):
         sch = etable.Schema()
         sch.append(etable.Column("Run", etensor.INT64, go.nil, go.nil))
         sch.append(etable.Column("Params", etensor.STRING, go.nil, go.nil))
-        sch.append(etable.Column("FirstZero", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("SSE", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("AvgSSE", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("PctErr", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("PctCor", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("CosDiff", etensor.FLOAT64, go.nil, go.nil))
+        sch.append(etable.Column("UniqPats", etensor.FLOAT64, go.nil, go.nil))
         dt.SetFromSchema(sch, 0)
 
     def ConfigRunPlot(ss, plt, dt):
-        plt.Params.Title = "Pattern Associator Run Plot"
+        plt.Params.Title = "Self Organizing Run Plot"
         plt.Params.XAxisCol = "Run"
         plt.SetTable(dt)
         # order of params: on, fixMin, min, fixMax, max
         plt.SetColParams("Run", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
-        plt.SetColParams("FirstZero", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0) # default plot
-        plt.SetColParams("SSE", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0)
-        plt.SetColParams("AvgSSE", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
-        plt.SetColParams("PctErr", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
-        plt.SetColParams("PctCor", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
-        plt.SetColParams("CosDiff", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
+        plt.SetColParams("UniqPats", eplot.On, eplot.FixMin, 0, eplot.FixMax, 10)
         return plt
-
-    def ConfigNetView(ss, nv):
-        nv.ViewDefaults()
-        nv.Scene().Camera.Pose.Pos.Set(0.1, 1.5, 4)
-        nv.Scene().Camera.LookAt(mat32.Vec3(0.1, 0.1, 0), mat32.Vec3(0, 1, 0))
 
     def ConfigGui(ss):
         """
@@ -998,10 +862,10 @@ class Sim(object):
         width = 1600
         height = 1200
 
-        gi.SetAppName("pat_assoc")
-        gi.SetAppAbout('illustrates how error-driven and hebbian learning can operate within a simple task-driven learning context, with no hidden layers. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch4/pat_assoc/README.md">README.md on GitHub</a>.</p>')
+        gi.SetAppName("self_org")
+        gi.SetAppAbout('illustrates how self-organizing learning emerges from the interactions between inhibitory competition, rich-get-richer Hebbian learning, and homeostasis (negative feedback). See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch4/self_org/README.md">README.md on GitHub</a>.</p>')
 
-        win = gi.NewMainWindow("pat_assoc", "Pattern Associator", width, height)
+        win = gi.NewMainWindow("self_org", "Self Organizing", width, height)
         ss.Win = win
 
         vp = win.WinViewport2D()
@@ -1018,7 +882,7 @@ class Sim(object):
         split.Dim = mat32.X
         split.SetStretchMax()
 
-        ss.ClassView = epygiv.ClassView("sv", ss.Tags)
+        ss.ClassView = epygiv.ClassView("ra25sv", ss.Tags)
         ss.ClassView.AddFrame(split)
         ss.ClassView.SetClass(ss)
 
@@ -1029,11 +893,16 @@ class Sim(object):
         nv.Var = "Act"
         nv.SetNet(ss.Net)
         ss.NetView = nv
-        ss.ConfigNetView(nv)
 
         plt = eplot.Plot2D()
         tv.AddTab(plt, "TrnEpcPlot")
         ss.TrnEpcPlot = ss.ConfigTrnEpcPlot(plt, ss.TrnEpcLog)
+
+        tg = etview.TensorGrid()
+        tv.AddTab(tg, "Weights")
+        tg.SetStretchMax()
+        ss.WtsGrid = tg
+        tg.SetTensor(ss.HidFmInputWts)
 
         plt = eplot.Plot2D()
         tv.AddTab(plt, "TstTrlPlot")
@@ -1105,4 +974,5 @@ def main(argv):
     TheSim.Init()
     
 main(sys.argv[1:])
+
 
