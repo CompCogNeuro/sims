@@ -22,12 +22,6 @@ from datetime import datetime, timezone
 # this will become Sim later.. 
 TheSim = 1
 
-# use this for e.g., etable.Column construction args where nil would be passed
-nilInts = go.Slice_int()
-
-# use this for e.g., etable.Column construction args where nil would be passed
-nilStrs = go.Slice_string()
-
 # LogPrec is precision for saving float values in logs
 LogPrec = 4
 
@@ -235,7 +229,7 @@ class Sim(object):
 
         ly = leabra.Layer(ss.Net.LayerByName("NeckerCube"))
         tsr = ss.ValsTsr("Inputs")
-        tsr.SetShape(go.Slice_int([16]), nilInts, nilStrs)
+        tsr.SetShape(go.Slice_int([16]), go.nil, go.nil)
         if tsr.FloatVal1D(0) != 1.0:
             for i in range(16):
                 tsr.SetFloat1D(i, 1)
@@ -375,16 +369,16 @@ class Sim(object):
 
         nt = 100
         sch = etable.Schema()
-        sch.append(etable.Column("Cycle", etensor.INT64, nilInts, nilStrs))
-        sch.append(etable.Column("TrialName", etensor.STRING, nilInts, nilStrs))
-        sch.append(etable.Column("Harmony", etensor.FLOAT64, nilInts, nilStrs))
-        sch.append(etable.Column("GknaFast", etensor.FLOAT64, nilInts, nilStrs))
-        sch.append(etable.Column("GknaMed", etensor.FLOAT64, nilInts, nilStrs))
-        sch.append(etable.Column("GknaSlow", etensor.FLOAT64, nilInts, nilStrs))
+        sch.append(etable.Column("Cycle", etensor.INT64, go.nil, go.nil))
+        sch.append(etable.Column("TrialName", etensor.STRING, go.nil, go.nil))
+        sch.append(etable.Column("Harmony", etensor.FLOAT64, go.nil, go.nil))
+        sch.append(etable.Column("GknaFast", etensor.FLOAT64, go.nil, go.nil))
+        sch.append(etable.Column("GknaMed", etensor.FLOAT64, go.nil, go.nil))
+        sch.append(etable.Column("GknaSlow", etensor.FLOAT64, go.nil, go.nil))
 
         for lnm in ss.TstRecLays:
             ly = leabra.LeabraLayer(ss.Net.LayerByName(lnm)).AsLeabra()
-            sch.append(etable.Column(lnm, etensor.FLOAT64, ly.Shp.Shp, nilStrs))
+            sch.append(etable.Column(lnm, etensor.FLOAT64, ly.Shp.Shp, go.nil))
         dt.SetFromSchema(sch, nt)
 
     def ConfigTstCycPlot(ss, plt, dt):

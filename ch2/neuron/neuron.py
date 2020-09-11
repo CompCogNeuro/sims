@@ -23,12 +23,6 @@ import numpy
 # this will become Sim later.. 
 TheSim = 1
 
-# use this for e.g., etable.Column construction args where nil would be passed
-nilInts = go.Slice_int()
-
-# use this for e.g., etable.Column construction args where nil would be passed
-nilStrs = go.Slice_string()
-
 # LogPrec is precision for saving float values in logs
 LogPrec = 4
 
@@ -388,15 +382,15 @@ class Sim(object):
 
         nt = ss.NCycles # max cycles
         sch = etable.Schema()
-        sch.append(etable.Column("Cycle", etensor.INT64, nilInts, nilStrs))
-        sch.append(etable.Column("Ge", etensor.FLOAT64, nilInts, nilStrs))
-        sch.append(etable.Column("Inet", etensor.FLOAT64, nilInts, nilStrs))
-        sch.append(etable.Column("Vm", etensor.FLOAT64, nilInts, nilStrs))
-        sch.append(etable.Column("Act", etensor.FLOAT64, nilInts, nilStrs))
-        sch.append(etable.Column("Spike", etensor.FLOAT64, nilInts, nilStrs))
-        sch.append(etable.Column("Gk", etensor.FLOAT64, nilInts, nilStrs))
-        sch.append(etable.Column("ISI", etensor.FLOAT64, nilInts, nilStrs))
-        sch.append(etable.Column("AvgISI", etensor.FLOAT64, nilInts, nilStrs))
+        sch.append(etable.Column("Cycle", etensor.INT64, go.nil, go.nil))
+        sch.append(etable.Column("Ge", etensor.FLOAT64, go.nil, go.nil))
+        sch.append(etable.Column("Inet", etensor.FLOAT64, go.nil, go.nil))
+        sch.append(etable.Column("Vm", etensor.FLOAT64, go.nil, go.nil))
+        sch.append(etable.Column("Act", etensor.FLOAT64, go.nil, go.nil))
+        sch.append(etable.Column("Spike", etensor.FLOAT64, go.nil, go.nil))
+        sch.append(etable.Column("Gk", etensor.FLOAT64, go.nil, go.nil))
+        sch.append(etable.Column("ISI", etensor.FLOAT64, go.nil, go.nil))
+        sch.append(etable.Column("AvgISI", etensor.FLOAT64, go.nil, go.nil))
 
         dt.SetFromSchema(sch, nt)
 
@@ -438,9 +432,9 @@ class Sim(object):
 
         nt = 24 # typical number
         sch = etable.Schema()
-        sch.append(etable.Column("GBarE", etensor.FLOAT64, nilInts, nilStrs))
-        sch.append(etable.Column("Spike", etensor.FLOAT64, nilInts, nilStrs))
-        sch.append(etable.Column("Rate", etensor.FLOAT64, nilInts, nilStrs))
+        sch.append(etable.Column("GBarE", etensor.FLOAT64, go.nil, go.nil))
+        sch.append(etable.Column("Spike", etensor.FLOAT64, go.nil, go.nil))
+        sch.append(etable.Column("Rate", etensor.FLOAT64, go.nil, go.nil))
         dt.SetFromSchema(sch, nt)
 
     def ConfigSpikeVsRatePlot(ss, plt, dt):

@@ -21,12 +21,6 @@ from datetime import datetime, timezone
 # this will become Sim later.. 
 TheSim = 1
 
-# use this for e.g., etable.Column construction args where nil would be passed
-nilInts = go.Slice_int()
-
-# use this for e.g., etable.Column construction args where nil would be passed
-nilStrs = go.Slice_string()
-
 # LogPrec is precision for saving float values in logs
 LogPrec = 4
 
@@ -236,7 +230,7 @@ class Sim(object):
         dt.SetMetaData("name", "TrainPats")
         dt.SetMetaData("desc", "Training patterns")
         sch = etable.Schema()
-        sch.append(etable.Column("Name", etensor.STRING, nilInts, nilStrs))
+        sch.append(etable.Column("Name", etensor.STRING, go.nil, go.nil))
         sch.append(etable.Column("Input", etensor.FLOAT32, go.Slice_int([10, 10]), go.Slice_string(["Y", "X"])))
         dt.SetFromSchema(sch, 1)
         patgen.PermutedBinaryRows(dt.Cols[1], int(ss.InputPct), 1, 0)
@@ -475,9 +469,9 @@ class Sim(object):
 
         ncy = 200 # max cycles
         sch = etable.Schema()
-        sch.append(etable.Column("Cycle", etensor.INT64, nilInts, nilStrs))
+        sch.append(etable.Column("Cycle", etensor.INT64, go.nil, go.nil))
         for lnm in ss.TstRecLays:
-            sch.append(etable.Column(lnm + "ActAvg", etensor.FLOAT64, nilInts, nilStrs))
+            sch.append(etable.Column(lnm + "ActAvg", etensor.FLOAT64, go.nil, go.nil))
         dt.SetFromSchema(sch, ncy)
 
     def ConfigTstCycPlot(ss, plt, dt):
