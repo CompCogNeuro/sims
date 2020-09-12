@@ -229,9 +229,10 @@ class Sim(object):
         dt = ss.Pats
         dt.SetMetaData("name", "TrainPats")
         dt.SetMetaData("desc", "Training patterns")
-        sch = etable.Schema()
-        sch.append(etable.Column("Name", etensor.STRING, go.nil, go.nil))
-        sch.append(etable.Column("Input", etensor.FLOAT32, go.Slice_int([10, 10]), go.Slice_string(["Y", "X"])))
+        sch = etable.Schema(
+            [etable.Column("Name", etensor.STRING, go.nil, go.nil),
+            etable.Column("Input", etensor.FLOAT32, go.Slice_int([10, 10]), go.Slice_string(["Y", "X"]))]
+        )
         dt.SetFromSchema(sch, 1)
         patgen.PermutedBinaryRows(dt.Cols[1], int(ss.InputPct), 1, 0)
 
@@ -468,8 +469,9 @@ class Sim(object):
         dt.SetMetaData("precision", str(LogPrec))
 
         ncy = 200 # max cycles
-        sch = etable.Schema()
-        sch.append(etable.Column("Cycle", etensor.INT64, go.nil, go.nil))
+        sch = etable.Schema(
+            [etable.Column("Cycle", etensor.INT64, go.nil, go.nil)]
+        )
         for lnm in ss.TstRecLays:
             sch.append(etable.Column(lnm + "ActAvg", etensor.FLOAT64, go.nil, go.nil))
         dt.SetFromSchema(sch, ncy)

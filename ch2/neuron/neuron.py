@@ -257,7 +257,7 @@ class Sim(object):
         which is just computed directly as spiking is not yet implemented in main codebase
         """
         ly = leabra.Layer(ss.Net.LayerByName("Neuron"))
-        nrn = leabra.Neuron(ly.Neurons[0])
+        nrn = ly.Neurons[0]
         ss.SpikeParams.SpikeVmFmG(nrn)
         ss.SpikeParams.SpikeActFmVm(nrn)
         nrn.Ge = nrn.Ge * ly.Act.Gbar.E
@@ -328,8 +328,7 @@ class Sim(object):
         ly.Act.Noise.Var = float(ss.Noise)
         ly.Act.KNa.On = ss.KNaAdapt
         ly.Act.Update()
-        ss.SpikeParams.ActParams = ly.Act # keep sync'd
-        ss.SpikeParams.KNa.On = ss.KNaAdapt
+        ss.SpikeParams.CopyFromAct(ly.Act) # keep sync'd
 
     def SetParamsSet(ss, setNm, sheet, setMsg):
         """
@@ -381,16 +380,17 @@ class Sim(object):
         dt.SetMetaData("precision", str(LogPrec))
 
         nt = ss.NCycles # max cycles
-        sch = etable.Schema()
-        sch.append(etable.Column("Cycle", etensor.INT64, go.nil, go.nil))
-        sch.append(etable.Column("Ge", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("Inet", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("Vm", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("Act", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("Spike", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("Gk", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("ISI", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("AvgISI", etensor.FLOAT64, go.nil, go.nil))
+        sch = etable.Schema(
+            [etable.Column("Cycle", etensor.INT64, go.nil, go.nil),
+            etable.Column("Ge", etensor.FLOAT64, go.nil, go.nil),
+            etable.Column("Inet", etensor.FLOAT64, go.nil, go.nil),
+            etable.Column("Vm", etensor.FLOAT64, go.nil, go.nil),
+            etable.Column("Act", etensor.FLOAT64, go.nil, go.nil),
+            etable.Column("Spike", etensor.FLOAT64, go.nil, go.nil),
+            etable.Column("Gk", etensor.FLOAT64, go.nil, go.nil),
+            etable.Column("ISI", etensor.FLOAT64, go.nil, go.nil),
+            etable.Column("AvgISI", etensor.FLOAT64, go.nil, go.nil)]
+        )
 
         dt.SetFromSchema(sch, nt)
 
@@ -431,10 +431,11 @@ class Sim(object):
         dt.SetMetaData("precision", str(LogPrec))
 
         nt = 24 # typical number
-        sch = etable.Schema()
-        sch.append(etable.Column("GBarE", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("Spike", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("Rate", etensor.FLOAT64, go.nil, go.nil))
+        sch = etable.Schema(
+            [etable.Column("GBarE", etensor.FLOAT64, go.nil, go.nil),
+            etable.Column("Spike", etensor.FLOAT64, go.nil, go.nil),
+            etable.Column("Rate", etensor.FLOAT64, go.nil, go.nil)]
+        )
         dt.SetFromSchema(sch, nt)
 
     def ConfigSpikeVsRatePlot(ss, plt, dt):

@@ -431,13 +431,13 @@ class Sim(object):
         dt.SetMetaData("precision", str(LogPrec))
 
         nt = ss.TestEnv.Table.Len()
-        sch = etable.Schema()
-        sch.append(etable.Column("Trial", etensor.INT64, go.nil, go.nil))
-        sch.append(etable.Column("TrialName", etensor.STRING, go.nil, go.nil))
-        sch.append(etable.Column("Input", etensor.FLOAT64, inp.Shp.Shp, go.nil))
-        sch.append(etable.Column("Ge", etensor.FLOAT64, recv.Shp.Shp, go.nil))
-        sch.append(etable.Column("Act", etensor.FLOAT64, recv.Shp.Shp, go.nil))
-
+        sch = etable.Schema(
+            [etable.Column("Trial", etensor.INT64, go.nil, go.nil),
+            etable.Column("TrialName", etensor.STRING, go.nil, go.nil),
+            etable.Column("Input", etensor.FLOAT64, inp.Shp.Shp, go.nil),
+            etable.Column("Ge", etensor.FLOAT64, recv.Shp.Shp, go.nil),
+            etable.Column("Act", etensor.FLOAT64, recv.Shp.Shp, go.nil)]
+        )
         dt.SetFromSchema(sch, nt)
 
     def ConfigTstTrlPlot(ss, plt, dt):

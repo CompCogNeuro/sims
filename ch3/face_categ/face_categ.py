@@ -17,7 +17,7 @@
 # including the ability to dynamically iterate both bottom-up and
 # top-down to cleanup partial inputs (partially occluded face images).
 
-from leabra import go, leabra, emer, relpos, eplot, env, agg, patgen, prjn, etable, efile, split, etensor, params, netview, rand, erand, gi, giv, epygiv, mat32, simat, metric
+from leabra import go, leabra, emer, relpos, eplot, env, agg, patgen, prjn, etable, efile, split, etensor, params, netview, rand, erand, gi, giv, epygiv, mat32, simat, metric, clust
 
 import importlib as il
 import io, sys, getopt
@@ -76,12 +76,26 @@ def TestAllCB(recv, send, sig, data):
         TheSim.IsRunning = True
         TheSim.ToolBar.UpdateActions()
         TheSim.RunTestAll()
-        
+
+def SetInputCB2(recv, send, sig, data):
+    if sig == 0:
+        TheSim.SetInput(False)
+    else:
+        TheSim.SetInput(True)
+
 def SetInputCB(recv, send, sig, data):
-    giv.CallMethod(TheSim, "SetInput", TheSim.vp)
+    win = gi.Window(handle=recv)
+    gi.ChoiceDialog(win.WinViewport2D(), gi.DlgOpts(Title="Set Input", Prompt="Set whether the input to the network comes in bottom-up (Input layer) or top-down (Higher-level category layers)"), go.Slice_string(["Bottom-up", "Top-down"]), win, SetInputCB2)
+
+def SetPatsCB2(recv, send, sig, data):
+    if sig == 0:
+        TheSim.SetPats(False)
+    else:
+        TheSim.SetPats(True)
 
 def SetPatsCB(recv, send, sig, data):
-    giv.CallMethod(TheSim, "SetPats", TheSim.vp)
+    win = gi.Window(handle=recv)
+    gi.ChoiceDialog(win.WinViewport2D(), gi.DlgOpts(Title="Set Pats", Prompt="Set which set of patterns to present -- full or partial faces"), go.Slice_string(["Full Faces", "Partial Faces"]), win, SetPatsCB2)
 
 def ClusterPlotCB(recv, send, sig, data):
     TheSim.ClusterPlots()
@@ -132,12 +146,12 @@ class Sim(object):
         ss.ToolBar    = 0
         ss.NetView    = 0
         ss.TstTrlPlot = 0
-        ss.ClustFaces = 0
-        ss.ClustEmote = 0
-        ss.ClustGend = 0
-        ss.ClustIdent = 0
-        ss.PrjnRandom = 0
-        ss.PrjnEmoteGend = 0
+        ss.ClustFaces = eplot.Plot2D()
+        ss.ClustEmote = eplot.Plot2D()
+        ss.ClustGend = eplot.Plot2D()
+        ss.ClustIdent = eplot.Plot2D()
+        ss.PrjnRandom = eplot.Plot2D()
+        ss.PrjnEmoteGend = eplot.Plot2D()
         ss.IsRunning    = False
         ss.StopNow    = False
         ss.ValsTsrs   = {}
@@ -473,9 +487,9 @@ class Sim(object):
         """
         ix = etable.NewIdxView(dt)
         smat = simat.SimMat()
-        smat.TableCol(ix, colNm, "Name", False, metric.Euclidean64)
+        smat.TableColStd(ix, colNm, "Name", False, metric.Euclidean)
         pt = etable.Table()
-        clust.Plot(pt, clust.Glom(smat, clust.MinDist), smat)
+        clust.Plot(pt, clust.GlomStd(smat, clust.Min), smat)
         plt.InitName(plt, colNm)
         plt.Params.Title = "Cluster Plot of Faces " + colNm
         plt.Params.XAxisCol = "X"
@@ -490,8 +504,8 @@ class Sim(object):
 
         rvec0 = ss.ValsTsr("rvec0")
         rvec1 = ss.ValsTsr("rvec1")
-        rvec0.SetShape(go.Slice_int([256]), nilInt, nilStr)
-        rvec1.SetShape(go.Slice_int([256]), nilInt, nilStr)
+        rvec0.SetShape(go.Slice_int([256]), go.nil, go.nil)
+        rvec1.SetShape(go.Slice_int([256]), go.nil, go.nil)
         for i in range(256):
             rvec0.Values[i] = .15 * (2*rand.Float32() - 1)
             rvec1.Values[i] = .15 * (2*rand.Float32() - 1)
@@ -548,13 +562,14 @@ class Sim(object):
         dt.SetMetaData("precision", str(LogPrec))
 
         nt = ss.TestEnv.Table.Len() # number in view
-        sch = etable.Schema()
-        sch.append(etable.Column("Trial", etensor.INT64, go.nil, go.nil))
-        sch.append(etable.Column("TrialName", etensor.STRING, go.nil, go.nil))
-        sch.append(etable.Column("GendPrjn", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("EmotePrjn", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("RndPrjn0", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("RndPrjn1", etensor.FLOAT64, go.nil, go.nil))
+        sch = etable.Schema(
+            [etable.Column("Trial", etensor.INT64, go.nil, go.nil),
+            etable.Column("TrialName", etensor.STRING, go.nil, go.nil),
+            etable.Column("GendPrjn", etensor.FLOAT64, go.nil, go.nil),
+            etable.Column("EmotePrjn", etensor.FLOAT64, go.nil, go.nil),
+            etable.Column("RndPrjn0", etensor.FLOAT64, go.nil, go.nil),
+            etable.Column("RndPrjn1", etensor.FLOAT64, go.nil, go.nil)]
+        )
         dt.SetFromSchema(sch, nt)
 
     def LogTstTrl(ss, dt):
@@ -585,9 +600,10 @@ class Sim(object):
         dt.SetMetaData("precision", str(LogPrec))
 
         nt = ss.TestEnv.Table.Len() # number in view
-        sch = etable.Schema()
-        sch.append(etable.Column("Trial", etensor.INT64, go.nil, go.nil))
-        sch.append(etable.Column("TrialName", etensor.STRING, go.nil, go.nil))
+        sch = etable.Schema(
+            [etable.Column("Trial", etensor.INT64, go.nil, go.nil),
+            etable.Column("TrialName", etensor.STRING, go.nil, go.nil)]
+        )
         for lnm in ss.TstRecLays:
             ly = leabra.LeabraLayer(ss.Net.LayerByName(lnm)).AsLeabra()
             sch.append(etable.Column(lnm, etensor.FLOAT32, ly.Shp.Shp, go.nil))

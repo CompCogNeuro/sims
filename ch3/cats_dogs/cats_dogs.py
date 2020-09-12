@@ -479,10 +479,11 @@ class Sim(object):
         dt.SetMetaData("precision", str(LogPrec))
 
         nt = 100
-        sch = etable.Schema()
-        sch.append(etable.Column("Cycle", etensor.INT64, go.nil, go.nil))
-        sch.append(etable.Column("TrialName", etensor.STRING, go.nil, go.nil))
-        sch.append(etable.Column("Harmony", etensor.FLOAT64, go.nil, go.nil))
+        sch = etable.Schema(
+            [etable.Column("Cycle", etensor.INT64, go.nil, go.nil),
+            etable.Column("TrialName", etensor.STRING, go.nil, go.nil),
+            etable.Column("Harmony", etensor.FLOAT64, go.nil, go.nil)]
+        )
         
         for lnm in ss.TstRecLays:
             ly = leabra.Layer(ss.Net.LayerByName(lnm))

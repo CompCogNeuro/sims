@@ -744,14 +744,15 @@ class Sim(object):
         dt.SetMetaData("read-only", "true")
         dt.SetMetaData("precision", str(LogPrec))
 
-        sch = etable.Schema()
-        sch.append(etable.Column("Run", etensor.INT64, go.nil, go.nil))
-        sch.append(etable.Column("Epoch", etensor.INT64, go.nil, go.nil))
-        sch.append(etable.Column("SSE", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("AvgSSE", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("PctErr", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("PctCor", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("CosDiff", etensor.FLOAT64, go.nil, go.nil))
+        sch = etable.Schema(
+            [etable.Column("Run", etensor.INT64, go.nil, go.nil),
+            etable.Column("Epoch", etensor.INT64, go.nil, go.nil),
+            etable.Column("SSE", etensor.FLOAT64, go.nil, go.nil),
+            etable.Column("AvgSSE", etensor.FLOAT64, go.nil, go.nil),
+            etable.Column("PctErr", etensor.FLOAT64, go.nil, go.nil),
+            etable.Column("PctCor", etensor.FLOAT64, go.nil, go.nil),
+            etable.Column("CosDiff", etensor.FLOAT64, go.nil, go.nil)]
+        )
         for lnm in ss.LayStatNms:
             sch.append(etable.Column(lnm + " ActAvg", etensor.FLOAT64, go.nil, go.nil))
         dt.SetFromSchema(sch, 0)
@@ -823,15 +824,16 @@ class Sim(object):
         dt.SetMetaData("precision", str(LogPrec))
 
         nt = ss.TestEnv.Table.Len() # number in view
-        sch = etable.Schema()
-        sch.append(etable.Column("Run", etensor.INT64, go.nil, go.nil))
-        sch.append(etable.Column("Epoch", etensor.INT64, go.nil, go.nil))
-        sch.append(etable.Column("Trial", etensor.INT64, go.nil, go.nil))
-        sch.append(etable.Column("TrialName", etensor.STRING, go.nil, go.nil))
-        sch.append(etable.Column("Err", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("SSE", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("AvgSSE", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("CosDiff", etensor.FLOAT64, go.nil, go.nil))
+        sch = etable.Schema(
+            [etable.Column("Run", etensor.INT64, go.nil, go.nil),
+            etable.Column("Epoch", etensor.INT64, go.nil, go.nil),
+            etable.Column("Trial", etensor.INT64, go.nil, go.nil),
+            etable.Column("TrialName", etensor.STRING, go.nil, go.nil),
+            etable.Column("Err", etensor.FLOAT64, go.nil, go.nil),
+            etable.Column("SSE", etensor.FLOAT64, go.nil, go.nil),
+            etable.Column("AvgSSE", etensor.FLOAT64, go.nil, go.nil),
+            etable.Column("CosDiff", etensor.FLOAT64, go.nil, go.nil)]
+        )
         for lnm in ss.LayStatNms:
             sch.append(etable.Column(lnm + " ActM.Avg", etensor.FLOAT64, go.nil, go.nil))
             
@@ -890,14 +892,15 @@ class Sim(object):
         dt.SetMetaData("read-only", "true")
         dt.SetMetaData("precision", str(LogPrec))
 
-        sch = etable.Schema()
-        sch.append(etable.Column("Run", etensor.INT64, go.nil, go.nil))
-        sch.append(etable.Column("Epoch", etensor.INT64, go.nil, go.nil))
-        sch.append(etable.Column("SSE", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("AvgSSE", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("PctErr", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("PctCor", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("CosDiff", etensor.FLOAT64, go.nil, go.nil))
+        sch = etable.Schema(
+            [etable.Column("Run", etensor.INT64, go.nil, go.nil),
+            etable.Column("Epoch", etensor.INT64, go.nil, go.nil),
+            etable.Column("SSE", etensor.FLOAT64, go.nil, go.nil),
+            etable.Column("AvgSSE", etensor.FLOAT64, go.nil, go.nil),
+            etable.Column("PctErr", etensor.FLOAT64, go.nil, go.nil),
+            etable.Column("PctCor", etensor.FLOAT64, go.nil, go.nil),
+            etable.Column("CosDiff", etensor.FLOAT64, go.nil, go.nil)]
+        )
         dt.SetFromSchema(sch, 0)
 
     def ConfigTstEpcPlot(ss, plt, dt):
@@ -961,15 +964,16 @@ class Sim(object):
         dt.SetMetaData("read-only", "true")
         dt.SetMetaData("precision", str(LogPrec))
 
-        sch = etable.Schema()
-        sch.append(etable.Column("Run", etensor.INT64, go.nil, go.nil))
-        sch.append(etable.Column("Params", etensor.STRING, go.nil, go.nil))
-        sch.append(etable.Column("FirstZero", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("SSE", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("AvgSSE", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("PctErr", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("PctCor", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("CosDiff", etensor.FLOAT64, go.nil, go.nil))
+        sch = etable.Schema(
+            [etable.Column("Run", etensor.INT64, go.nil, go.nil),
+            etable.Column("Params", etensor.STRING, go.nil, go.nil),
+            etable.Column("FirstZero", etensor.FLOAT64, go.nil, go.nil),
+            etable.Column("SSE", etensor.FLOAT64, go.nil, go.nil),
+            etable.Column("AvgSSE", etensor.FLOAT64, go.nil, go.nil),
+            etable.Column("PctErr", etensor.FLOAT64, go.nil, go.nil),
+            etable.Column("PctCor", etensor.FLOAT64, go.nil, go.nil),
+            etable.Column("CosDiff", etensor.FLOAT64, go.nil, go.nil)]
+        )
         dt.SetFromSchema(sch, 0)
 
     def ConfigRunPlot(ss, plt, dt):
