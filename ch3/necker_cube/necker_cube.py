@@ -368,17 +368,19 @@ class Sim(object):
         dt.SetMetaData("precision", str(LogPrec))
 
         nt = 100
-        sch = etable.Schema()
-        sch.append(etable.Column("Cycle", etensor.INT64, go.nil, go.nil))
-        sch.append(etable.Column("TrialName", etensor.STRING, go.nil, go.nil))
-        sch.append(etable.Column("Harmony", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("GknaFast", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("GknaMed", etensor.FLOAT64, go.nil, go.nil))
-        sch.append(etable.Column("GknaSlow", etensor.FLOAT64, go.nil, go.nil))
+        sch = etable.Schema(
+            [etable.Column("Cycle", etensor.INT64, go.nil, go.nil),
+            etable.Column("TrialName", etensor.STRING, go.nil, go.nil),
+            etable.Column("Harmony", etensor.FLOAT64, go.nil, go.nil),
+            etable.Column("GknaFast", etensor.FLOAT64, go.nil, go.nil),
+            etable.Column("GknaMed", etensor.FLOAT64, go.nil, go.nil),
+            etable.Column("GknaSlow", etensor.FLOAT64, go.nil, go.nil)]
+        )
 
         for lnm in ss.TstRecLays:
             ly = leabra.LeabraLayer(ss.Net.LayerByName(lnm)).AsLeabra()
             sch.append(etable.Column(lnm, etensor.FLOAT64, ly.Shp.Shp, go.nil))
+            
         dt.SetFromSchema(sch, nt)
 
     def ConfigTstCycPlot(ss, plt, dt):
