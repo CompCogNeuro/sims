@@ -495,7 +495,7 @@ func (ss *Sim) Counters() string {
 	if ss.TestEnv.TrialName.Cur != nm {
 		nm += ": " + ss.TestEnv.TrialName.Cur
 	}
-	return fmt.Sprintf("Trial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TestEnv.Trial.Cur, ss.Time.Cycle, nm)
+	return fmt.Sprintf("Trial:\t%d\tCycle:\t%d\tName:\t%s\t\t\t", ss.TestEnv.Trial.Cur, ss.Time.Cycle, nm)
 }
 
 func (ss *Sim) UpdateView() {
@@ -914,7 +914,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	plt := tv.AddNewTab(eplot.KiT_Plot2D, "TstTrlPlot").(*eplot.Plot2D)
 	ss.TstTrlPlot = ss.ConfigTstTrlPlot(plt, ss.TstTrlLog)
 
-	split.SetSplits(.3, .7)
+	split.SetSplits(.2, .8)
 
 	tbar.AddAction(gi.ActOpts{Label: "Init", Icon: "update", Tooltip: "Initialize everything including network weights, and start over.  Also applies current params.", UpdateFunc: func(act *gi.Action) {
 		act.SetActiveStateUpdt(!ss.IsRunning)
