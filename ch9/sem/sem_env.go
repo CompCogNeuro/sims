@@ -180,7 +180,7 @@ func (ev *SemEnv) CheckWords(wrds []string) error {
 		}
 	}
 	if missing != "" {
-		return fmt.Errorf("CheckWords: these words were not found: %v", missing)
+		return fmt.Errorf("CheckWords: these words were not found: %s", missing)
 	}
 	return nil
 }

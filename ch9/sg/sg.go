@@ -506,9 +506,9 @@ func (ss *Sim) NewRndSeed() {
 // and add a few tabs at the end to allow for expansion..
 func (ss *Sim) Counters(train bool) string {
 	if train {
-		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tSeq:\t%d\tTick:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TrainEnv.Seq.Cur, ss.TrainEnv.Tick.Cur, ss.TrainEnv.Trial.Cur, ss.Time.Cycle, ss.TrainEnv.String())
+		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tSeq:\t%d\tTick:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%s\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TrainEnv.Seq.Cur, ss.TrainEnv.Tick.Cur, ss.TrainEnv.Trial.Cur, ss.Time.Cycle, ss.TrainEnv.String())
 	} else {
-		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tSeq:\t%d\tTick:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TestEnv.Seq.Cur, ss.TestEnv.Tick.Cur, ss.TestEnv.Trial.Cur, ss.Time.Cycle, ss.TestEnv.String())
+		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tSeq:\t%d\tTick:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%s\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TestEnv.Seq.Cur, ss.TestEnv.Tick.Cur, ss.TestEnv.Trial.Cur, ss.Time.Cycle, ss.TestEnv.String())
 	}
 }
 
@@ -627,7 +627,7 @@ func (ss *Sim) RunEnd() {
 	ss.LogRun(ss.RunLog)
 	if ss.SaveWts {
 		fnm := ss.WeightsFileName()
-		fmt.Printf("Saving Weights to: %v\n", fnm)
+		fmt.Printf("Saving Weights to: %s\n", fnm)
 		ss.Net.SaveWtsJSON(gi.FileName(fnm))
 	}
 }
@@ -2156,7 +2156,7 @@ func (ss *Sim) CmdArgs() {
 			log.Println(err)
 			ss.TrnEpcFile = nil
 		} else {
-			fmt.Printf("Saving epoch log to: %v\n", fnm)
+			fmt.Printf("Saving epoch log to: %s\n", fnm)
 			defer ss.TrnEpcFile.Close()
 		}
 	}
@@ -2168,7 +2168,7 @@ func (ss *Sim) CmdArgs() {
 			log.Println(err)
 			ss.RunFile = nil
 		} else {
-			fmt.Printf("Saving run log to: %v\n", fnm)
+			fmt.Printf("Saving run log to: %s\n", fnm)
 			defer ss.RunFile.Close()
 		}
 	}

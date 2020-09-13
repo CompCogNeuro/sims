@@ -367,9 +367,9 @@ func (ss *Sim) NewRndSeed() {
 // and add a few tabs at the end to allow for expansion..
 func (ss *Sim) Counters(train bool) string {
 	if train {
-		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TrainEnv.Trial.Cur, ss.Time.Cycle, ss.TrainEnv.TrialName.Cur)
+		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%s\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TrainEnv.Trial.Cur, ss.Time.Cycle, ss.TrainEnv.TrialName.Cur)
 	} else {
-		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TestEnv.Trial.Cur, ss.Time.Cycle, ss.TestEnv.GroupName.Cur+": "+ss.TestEnv.TrialName.Cur)
+		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%s\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TestEnv.Trial.Cur, ss.Time.Cycle, ss.TestEnv.GroupName.Cur+": "+ss.TestEnv.TrialName.Cur)
 	}
 }
 
@@ -519,7 +519,7 @@ func (ss *Sim) RunEnd() {
 	ss.LogRun(ss.RunLog)
 	if ss.SaveWts {
 		fnm := ss.WeightsFileName()
-		fmt.Printf("Saving Weights to: %v\n", fnm)
+		fmt.Printf("Saving Weights to: %s\n", fnm)
 		ss.Net.SaveWtsJSON(gi.FileName(fnm))
 	}
 }
@@ -1343,7 +1343,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	plt = tv.AddNewTab(eplot.KiT_Plot2D, "RunPlot").(*eplot.Plot2D)
 	ss.RunPlot = ss.ConfigRunPlot(plt, ss.RunLog)
 
-	split.SetSplits(.3, .7)
+	split.SetSplits(.2, .8)
 
 	tbar.AddAction(gi.ActOpts{Label: "Init", Icon: "update", Tooltip: "Initialize everything including network weights, and start over.  Also applies current params.", UpdateFunc: func(act *gi.Action) {
 		act.SetActiveStateUpdt(!ss.IsRunning)
@@ -1600,7 +1600,7 @@ func (ss *Sim) CmdArgs() {
 			log.Println(err)
 			ss.TrnEpcFile = nil
 		} else {
-			fmt.Printf("Saving epoch log to: %v\n", fnm)
+			fmt.Printf("Saving epoch log to: %s\n", fnm)
 			defer ss.TrnEpcFile.Close()
 		}
 	}
@@ -1612,7 +1612,7 @@ func (ss *Sim) CmdArgs() {
 			log.Println(err)
 			ss.RunFile = nil
 		} else {
-			fmt.Printf("Saving run log to: %v\n", fnm)
+			fmt.Printf("Saving run log to: %s\n", fnm)
 			defer ss.RunFile.Close()
 		}
 	}

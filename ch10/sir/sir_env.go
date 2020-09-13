@@ -64,7 +64,7 @@ func (ev *SIREnv) SetNStim(n int) {
 
 func (ev *SIREnv) Validate() error {
 	if ev.NStim <= 0 {
-		return fmt.Errorf("SIREnv: %v NStim == 0 -- must set with SetNStim call", ev.Nm)
+		return fmt.Errorf("SIREnv: %s NStim == 0 -- must set with SetNStim call", ev.Nm)
 	}
 	return nil
 }
@@ -105,7 +105,7 @@ func (ev *SIREnv) StimStr(stim int) string {
 
 // String returns the current state as a string
 func (ev *SIREnv) String() string {
-	return fmt.Sprintf("%v_%v_mnt_%v_rew_%v", ev.Act, ev.StimStr(ev.Stim), ev.StimStr(ev.Maint), ev.Reward.Values[0])
+	return fmt.Sprintf("%s_%s_mnt_%s_rew_%s", ev.Act, ev.StimStr(ev.Stim), ev.StimStr(ev.Maint), ev.Reward.Values[0])
 }
 
 func (ev *SIREnv) Init(run int) {

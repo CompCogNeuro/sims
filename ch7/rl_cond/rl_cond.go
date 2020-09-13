@@ -240,7 +240,7 @@ func (ss *Sim) NewRndSeed() {
 // use tabs to achieve a reasonable formatting overall
 // and add a few tabs at the end to allow for expansion..
 func (ss *Sim) Counters(train bool) string {
-	return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tEvent:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TrainEnv.Trial.Cur, ss.TrainEnv.Event.Cur, ss.Time.Cycle, ss.TrainEnv.String())
+	return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tEvent:\t%d\tCycle:\t%d\tName:\t%s\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TrainEnv.Trial.Cur, ss.TrainEnv.Event.Cur, ss.Time.Cycle, ss.TrainEnv.String())
 }
 
 func (ss *Sim) UpdateView(train bool) {
@@ -752,7 +752,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	plt = tv.AddNewTab(eplot.KiT_Plot2D, "TrnEpcPlot").(*eplot.Plot2D)
 	ss.TrnEpcPlot = ss.ConfigTrnEpcPlot(plt, ss.TrnEpcLog)
 
-	split.SetSplits(.3, .7)
+	split.SetSplits(.2, .8)
 
 	tbar.AddAction(gi.ActOpts{Label: "Init", Icon: "update", Tooltip: "Initialize everything including network weights, and start over.  Also applies current params.", UpdateFunc: func(act *gi.Action) {
 		act.SetActiveStateUpdt(!ss.IsRunning)

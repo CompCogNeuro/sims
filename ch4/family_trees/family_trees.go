@@ -412,9 +412,9 @@ func (ss *Sim) NewRndSeed() {
 // and add a few tabs at the end to allow for expansion..
 func (ss *Sim) Counters(train bool) string {
 	if train {
-		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TrainEnv.Trial.Cur, ss.Time.Cycle, ss.TrainEnv.TrialName.Cur)
+		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%s\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TrainEnv.Trial.Cur, ss.Time.Cycle, ss.TrainEnv.TrialName.Cur)
 	} else {
-		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%v\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.GenTestEnv.Trial.Cur, ss.Time.Cycle, ss.GenTestEnv.TrialName.Cur)
+		return fmt.Sprintf("Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%s\t\t\t", ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.GenTestEnv.Trial.Cur, ss.Time.Cycle, ss.GenTestEnv.TrialName.Cur)
 	}
 }
 
@@ -551,7 +551,7 @@ func (ss *Sim) RunEnd() {
 	ss.LogRun(ss.RunLog)
 	if ss.SaveWts {
 		fnm := ss.WeightsFileName()
-		fmt.Printf("Saving Weights to: %v\n", fnm)
+		fmt.Printf("Saving Weights to: %s\n", fnm)
 		ss.Net.SaveWtsJSON(gi.FileName(fnm))
 	}
 }
@@ -783,7 +783,7 @@ func (ss *Sim) RepsAnalysis() {
 	ss.HiddenRel.SimMat.TableCol(rels, "Hidden", "TrialName", true, metric.Correlation64)
 	ss.HiddenRel.PCA.TableCol(rels, "Hidden", metric.Covariance64)
 	ss.HiddenRel.PCA.ProjectColToTable(ss.HiddenRel.PCAPrjn, rels, "Hidden", "TrialName", []int{0, 1})
-	ss.ConfigPCAPlot(ss.HiddenRel.PCAPlot, ss.HiddenRel.PCAPrjn)
+	ss.ConfigPCAPlot(ss.HiddenRel.PCAPlot, ss.HiddenRel.PCAPrjn, "Hidden Rel")
 	ss.ClustPlot(ss.HiddenRel.ClustPlot, rels, "Hidden")
 
 	// replace name with just agent
@@ -796,7 +796,7 @@ func (ss *Sim) RepsAnalysis() {
 	ss.HiddenAgent.SimMat.TableCol(ags, "Hidden", "TrialName", true, metric.Correlation64)
 	ss.HiddenAgent.PCA.TableCol(ags, "Hidden", metric.Covariance64)
 	ss.HiddenAgent.PCA.ProjectColToTable(ss.HiddenAgent.PCAPrjn, ags, "Hidden", "TrialName", []int{2, 3})
-	ss.ConfigPCAPlot(ss.HiddenAgent.PCAPlot, ss.HiddenAgent.PCAPrjn)
+	ss.ConfigPCAPlot(ss.HiddenAgent.PCAPlot, ss.HiddenAgent.PCAPrjn, "Hidden Agent")
 	ss.HiddenAgent.PCAPlot.SetColParams("Prjn3", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0)
 	ss.HiddenAgent.PCAPlot.Params.XAxisCol = "Prjn2"
 	ss.ClustPlot(ss.HiddenAgent.ClustPlot, ags, "Hidden")
@@ -804,15 +804,14 @@ func (ss *Sim) RepsAnalysis() {
 	ss.AgentAgent.SimMat.TableCol(ags, "AgentCode", "TrialName", true, metric.Correlation64)
 	ss.AgentAgent.PCA.TableCol(ags, "AgentCode", metric.Covariance64)
 	ss.AgentAgent.PCA.ProjectColToTable(ss.AgentAgent.PCAPrjn, ags, "AgentCode", "TrialName", []int{0, 1})
-	ss.ConfigPCAPlot(ss.AgentAgent.PCAPlot, ss.AgentAgent.PCAPrjn)
+	ss.ConfigPCAPlot(ss.AgentAgent.PCAPlot, ss.AgentAgent.PCAPrjn, "AgentCode")
 	ss.ClustPlot(ss.AgentAgent.ClustPlot, ags, "AgentCode")
 
 	copy(nmtsr.Values, names) // restore
 	ss.Stopped()
 }
 
-func (ss *Sim) ConfigPCAPlot(plt *eplot.Plot2D, dt *etable.Table) {
-	nm, _ := dt.MetaData["name"]
+func (ss *Sim) ConfigPCAPlot(plt *eplot.Plot2D, dt *etable.Table, nm string) {
 	plt.Params.Title = "Family Trees PCA Plot: " + nm
 	plt.Params.XAxisCol = "Prjn0"
 	plt.SetTable(dt)
@@ -1578,7 +1577,7 @@ func (ss *Sim) CmdArgs() {
 			log.Println(err)
 			ss.TrnEpcFile = nil
 		} else {
-			fmt.Printf("Saving epoch log to: %v\n", fnm)
+			fmt.Printf("Saving epoch log to: %s\n", fnm)
 			defer ss.TrnEpcFile.Close()
 		}
 	}
@@ -1590,7 +1589,7 @@ func (ss *Sim) CmdArgs() {
 			log.Println(err)
 			ss.RunFile = nil
 		} else {
-			fmt.Printf("Saving run log to: %v\n", fnm)
+			fmt.Printf("Saving run log to: %s\n", fnm)
 			defer ss.RunFile.Close()
 		}
 	}
