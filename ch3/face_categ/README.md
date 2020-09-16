@@ -18,7 +18,7 @@ Let's first examine the network, shown in the tab in the right 3D panel.  It has
 
 * `Identity` with 6 labeled units with the names given to the different faces in the input (Alberto, Betty, Lisa, Mark, Wendy, Zane) -- the network can categorize the individual despite differences in emotional expression. Four additional units are available if you want to explore further by adding new faces.
 
-* Select the `r.Wt` variable to view in the `NetView` network view, and click on each of the different output category neurons in the network. This will display the weight values going into each neuron. 
+* Select the `r.Wt` variable to view in the `NetView` network view, and click on each of the different output category neurons in the network. This will display the weight values going into each neuron.
 
 These weights were learned in a way that makes their representations particularly obvious by looking at these weights, so you can hopefully see sensible-looking patterns for each unit. To further understand how this network works, we can look at the input face patterns and corresponding categorization values that it was trained on (this learning process is explained in the chapter on *Learning* in the textbook).
 
@@ -30,7 +30,7 @@ The next step in understanding the basics of the network is to see it respond to
 
 * Select the `Act` value to view the neuron activities in the NetView, and then do `Test Trial` to see the network respond to the first face, `Alberto_happy`, with the view being updated for each of 20 cycles of neural updating.  You can use the VCR buttons in the lower-right of the NetView, after the `Time` label, to review how the network responded cycle-by-cycle -- use the fast-reverse to skip back to the start and then single-step forward in time to see things unfolding cycle-by-cycle.
 
-You should see the network process the face input and activate the appropriate output categories for it (e.g., for the first pattern, it will activate `happy`, `male`, and `Alberto`). 
+You should see the network process the face input and activate the appropriate output categories for it (e.g., for the first pattern, it will activate `happy`, `male`, and `Alberto`).
 
 * Continue to `Test Trial` through the remainder of the face input patterns, and verify that it correctly categorizes each input.
 
@@ -42,7 +42,9 @@ A [ClusterPlot](https://github.com/CompCogNeuro/sims/blob/master/ch3/face_categ/
 
 * Press the `Cluster Plots` button in the toolbar, and then click on the `eplot.Plot2D` button next to the `ClustFaces` line in the control panel on the left.  This will pull up a cluster plot run on the face `Input` layer images.
 
-> **Question 3.1:** Given what you know about how a Cluster Plot works (see above link), explain the similarity structure among the different face inputs. Describe which items are most similar to each other, and next-most similar, etc.  Specifically, list the ordering of the Emotion, Gender, and Identity factors in terms of how similar items are -- i.e., are different versions of the same Identity more similar to each other than faces with the same Emotion?
+> **Question 3.1a:** Given what you know about how a Cluster Plot works (see above link), describe how the three features (gender, emotion, and identity) relate to the clustering of images by similarity.
+
+> **Question 3.1b:** Explain your answer to 3.1a in terms of the relationship between image pixels and the three features (again, gender, emotion, and identity).
 
 Now, let's see how this input similarity structure is transformed by the different types of categorization.
 
@@ -65,7 +67,7 @@ Having multiple different ways of categorizing the same input in effect at the s
 
 In this section, we use the same face categorization network to explore bidirectional top-down and bottom-up processing through the bidirectional connections present in the network. First, let's see these bidirectional connections.
 
-* In the NetView, select the `s.Wt` (sending weights) variable and click on the various category output units -- you can click back and forth between `r.Wt` and `s.Wt` to compare the receiving and sending weights for a given unit -- in general they should have a similar pattern with somewhat different overall magnitudes. 
+* In the NetView, select the `s.Wt` (sending weights) variable and click on the various category output units -- you can click back and forth between `r.Wt` and `s.Wt` to compare the receiving and sending weights for a given unit -- in general they should have a similar pattern with somewhat different overall magnitudes.
 
 Thus, as we discussed in the *Networks* Chapter, the network has roughly symmetric bidirectional connectivity, so that information can flow in both directions and works to develop a consistent overall interpretation of the inputs that satisfies all the relevant constraints at each level (*multiple constraint satisfaction*).
 
@@ -85,7 +87,9 @@ Next, let's try a more challenging test of bidirectional connectivity, where we 
 
 You should observe the initial partial activation pattern, followed by activation of the category-level units, and then the missing elements of the face image gradually get filled in (definitely use the Time VCR buttons to see this unfold cycle-by-cycle).
 
-> **Question 3.3:** Across multiple different such partial faces, what is the order in which the category units get active? How does this relate to the timing of when the missing features in the input face start to get filled in?
+> **Question 3.3a:** Across multiple different such partial faces, what is the order in which the *correct* category units get active (there may be transient activity in incorrect units)?
+
+> **Question 3.3b:** How does this relate to the timing of when the missing features in the input face start to get filled in?
 
 
 Another way of thinking about the behavior of this network is in terms of **attractor dynamics**, where each specific face and associated category values represents a coordinated attractor, and the process of activation updating over cycles results in the network settling into a specific attractor from a partial input pattern that neverthelss lies within its overall attractor basin.

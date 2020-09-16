@@ -19,7 +19,7 @@ Here is a quick overview of each of the variables -- we'll go through them indiv
 
 * `Inet` (red line) = net current (sum of individual excitation and leak    currents), which is excitatory (upward) when the excitatory input comes on, and then oscillates as the action potential spikes fire. In general this reflects the net balance between the excitatory net input and the constant leak current (plus inhibition, which is not present in this simulation).
 
-* `Vm` (blue line) = membrane potential, which represents integration of all inputs into neuron. This starts out at the resting potential of .3 (= -70mV in biological units), and then increases with the excitatory input. As you can see, the net current (Inet) shows the *rate of change* of the membrane potential. When Vm gets above about .5, a spike is fired, and Vm is then reset back to .3, starting the cycle over again.
+* `Vm` (blue line) = membrane potential, which represents integration of all inputs into neuron. This starts out at the resting potential of .3 (= -70mV in biological units), and then increases with the excitatory input. As you can see, the net current (Inet) shows the *rate of change* of the membrane potential while it is elevated prior to spiking. When Vm gets above about .5, a spike is fired, and Vm is then reset back to .3, starting the cycle over again.
 
 * `Act` (green line) = activation. This shows the amount of activation (rate of firing) -- by default the model is set to discrete spiking, so this value is computed from the running-average measured inter-spike-interval (*ISI*).  It is first computed after the *second* spike, as that is the only point when the ISI is available.  If you turn the `Spike` setting to off, then the Act value is computed directly.
 
@@ -45,11 +45,15 @@ Now we will use some of the parameters in the control panel to explore the prope
 
 First, we will focus on `GbarE`, which controls the amount of excitatory conductance. In general, we are interested in seeing how the neuron membrane potential reflects a balance of the different inputs coming into it (here just excitation and leak), and how the spiking rate responds to the resulting membrane potential.
 
-* Increase `GbarE` from .3 to .4 (and then do `Run Cycles` to see the effects). Then observe the effects of decreasing GbarE to .2 and all the way down to .1. 
+* Increase `GbarE` from .3 to .4 (and then do `Run Cycles` to see the effects). Then observe the effects of decreasing GbarE to .2 and all the way down to .1.
 
 > **Question 2.1:** Describe the effects on the rate of neural spiking of increasing `GbarE` to .4, and of decreasing it to .2, compared to the initial value of .3 (this is should have a simple answer).
 
-> **Question 2.2:** Is there a qualitative difference in the neural spiking when `GbarE` is decreased to .1, compared to the higher values -- what important aspect of the neuron's behavior does this reveal?
+> **Question 2.2a:** Is there a qualitative difference in the neural spiking when `GbarE` is decreased to .1, compared to the higher values?
+
+> **Question 2.2b:** Draw a qualitative graph of firing rate as a function of input current. This is called an f-I curve.
+
+> **Question 2.2c:** Are there input currents this neuron ignores, as far as any postsynaptic partners could tell?
 
 By systematically searching the parameter range for `GbarE` between .1 and .2, you should be able to locate the point at which the membrane potential just reaches threshold.
 
@@ -57,13 +61,13 @@ By systematically searching the parameter range for `GbarE` between .1 and .2, y
 
 * Note: If you want to see the precise numbers for the values in the graph, click on the `TstCycLog`.  Be sure to press `UpdtView` if you run again, to update to current results.  You don't need these yet but may want to look at them anyway -- the precise numbers you need here are for the `GbarE` parameter, but it might be useful to see the underlying Vm values.
 
-> **Question 2.4 (advanced):** Using the equation for the equilibrium membrane potential from the Neuron chapter, compute the exact value of excitatory input required to just reach threshold, showing your math (note that: Gl is a constant = .3; Ge is 1 when the input is on; inhibition is not present here and can be ignored) -- this should agree with your empirically determined value.
+> **Question 2.4 (advanced):** Using one of the equations for the equilibrium membrane potential from the Neuron chapter, compute the exact value of excitatory input conductance required to keep Vm in equilibrium at the spiking threshold. Show your math. This means rearranging the equation to have excitatory conductance on one side, then substituting in known values. (note that: Gl is a constant = .3; Ge is 1 when the input is on; inhibition is not present here and can be ignored) -- this should agree with your empirically determined value.
 
 ## Leak
 
 You can also manipulate the value of the leak conductance, , which controls the size of the leak current -- recall that this pulls the opposite direction as the excitatory conductance in the neural tug-of-war.
 
-* Press the Defaults button on the control panel to restore the default parameters, then manipulate the GbarL parameter in .1 increments (.4, .5, .2 etc) and observe the effects on neural spiking. 
+* Press the Defaults button on the control panel to restore the default parameters, then manipulate the GbarL parameter in .1 increments (.4, .5, .2 etc) and observe the effects on neural spiking.
 
 > **Question 2.5:** What value of GbarL just prevents the neuron from being able to spike (in .1 increments) -- explain this result in terms of the tug-of-war model relative to the GbarE excitatory conductance.
 
@@ -72,7 +76,7 @@ You can also manipulate the value of the leak conductance, , which controls the 
 
 ## Driving / Reversal Potentials
 
-* Press `Defaults` in the toolbar to restore the default parameters. Then manipulate the `ErevE` and `ErevL` parameters and observe their effects on the spiking rate. 
+* Press `Defaults` in the toolbar to restore the default parameters. Then manipulate the `ErevE` and `ErevL` parameters and observe their effects on the spiking rate.
 
 You should see that decreasing `ErevE` reduces the spiking rate, because it makes the excitatory input pull less strongly up on the membrane potential. Increasing `ErevL` produces greater spiking by making leak pull less strongly down.
 
@@ -80,7 +84,7 @@ You should see that decreasing `ErevE` reduces the spiking rate, because it make
 
 Next, we'll see how the discrete spiking behavior of the neuron can be approximated by a continuous rate-coded value. The green `Act` line in the graphs has been tracking the actual rate of spiking to this point, based on the inverse of the ISI.  The *Noisy X-over-X-plus-1* activation function can directly compute a rate-code activation value for the neuron, instead of just measuring the observed rate of spiking. As explained in the Neuron chapter, this rate code activation has several advantages (and a few disadvantages) for use in neural simulations, and is what we typically use.
 
-* Press `Defaults` to start out with default parameters, then turn off the `Spike` parameter, and `Run Cycles` with the various parameter manipulations that you explored above. 
+* Press `Defaults` to start out with default parameters, then turn off the `Spike` parameter, and `Run Cycles` with the various parameter manipulations that you explored above.
 
 You should see that the green line in the graph now rises up and then decreases slowly due to accommodation, without the discrete spiking values observed before. Similarly, the blue membrane potential value rises up and decreases slowly as well, instead of being reset after spiking.
 
