@@ -13,6 +13,7 @@ import (
 	"math/rand"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/emer/emergent/emer"
@@ -106,6 +107,7 @@ type Sim struct {
 	RewPredInputWts etensor.Tensor    `view:"no-inline" desc:"weights from input to hidden layer"`
 	SimMat          *simat.SimMat     `view:"no-inline" desc:"similarity matrix"`
 	Params          params.Sets       `view:"no-inline" desc:"full collection of param sets"`
+	ParamSet        string            `view:"-" desc:"which set of *additional* parameters to use -- always applies Base and optionaly this next if set -- can use multiple names separated by spaces (don't put spaces in ParamSet names!)"`
 	MaxRuns         int               `desc:"maximum number of model runs to perform"`
 	MaxEpcs         int               `desc:"maximum number of epochs to run per model run"`
 	MaxTrls         int               `desc:"maximum number of training trials per epoch"`
@@ -492,6 +494,12 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 		ss.Params.ValidateSheets([]string{"Network", "Sim"})
 	}
 	err := ss.SetParamsSet("Base", sheet, setMsg)
+	if ss.ParamSet != "" && ss.ParamSet != "Base" {
+		sps := strings.Fields(ss.ParamSet)
+		for _, ps := range sps {
+			err = ss.SetParamsSet(ps, sheet, setMsg)
+		}
+	}
 
 	ri := ss.Net.LayerByName("RewInteg").(*rl.TDRewIntegLayer)
 	ri.RewInteg.Discount = ss.Discount

@@ -17,7 +17,7 @@
 # including the ability to dynamically iterate both bottom-up and
 # top-down to cleanup partial inputs (partially occluded face images).
 
-from leabra import go, leabra, emer, relpos, eplot, env, agg, patgen, prjn, etable, efile, split, etensor, params, netview, rand, erand, gi, giv, epygiv, mat32, simat, metric, clust
+from leabra import go, leabra, emer, relpos, eplot, env, agg, patgen, prjn, etable, efile, split, etensor, params, netview, rand, erand, gi, giv, pygiv, pyparams, mat32, simat, metric, clust
 
 import importlib as il
 import io, sys, getopt
@@ -34,7 +34,7 @@ LogPrec = 4
 
 def InitCB(recv, send, sig, data):
     TheSim.Init()
-    TheSim.ClassView.Update()
+    TheSim.UpdateClassView()
     TheSim.vp.SetNeedsFullRender()
 
 def StopCB(recv, send, sig, data):
@@ -45,7 +45,7 @@ def TestTrialCB(recv, send, sig, data):
         TheSim.IsRunning = True
         TheSim.TestTrial()
         TheSim.IsRunning = False
-        TheSim.ClassView.Update()
+        TheSim.UpdateClassView()
         TheSim.vp.SetNeedsFullRender()
 
 def TestItemCB2(recv, send, sig, data):
@@ -104,7 +104,7 @@ def ClusterPlotCB(recv, send, sig, data):
 def DefaultsCB(recv, send, sig, data):
     TheSim.Defaults()
     TheSim.Init()
-    TheSim.ClassView.Update()
+    TheSim.UpdateClassView()
     TheSim.vp.SetNeedsFullRender()
 
 def ReadmeCB(recv, send, sig, data):
@@ -120,7 +120,7 @@ def UpdtFuncRunning(act):
 #####################################################    
 #     Sim
 
-class Sim(object):
+class Sim(pygiv.ClassViewObj):
     """
     Sim encapsulates the entire simulation model, and we define all the
     functionality as methods on this struct.  This structure keeps all relevant
@@ -128,49 +128,61 @@ class Sim(object):
     as arguments to methods, and provides the core GUI interface (note the view tags
     for the fields which provide hints to how things should be displayed).
     """
-    def __init__(ss):
-        ss.Net = leabra.Network()
-        ss.Pats     = etable.Table()
-        ss.PartPats  = etable.Table()
-        ss.TstTrlLog = etable.Table()
-        ss.PrjnTable = etable.Table()
-        ss.Params    = params.Sets()
-        ss.ParamSet = ""
-        ss.TestEnv  = env.FixedTable()
-        ss.Time     = leabra.Time()
-        ss.ViewUpdt = leabra.Cycle
-        ss.TstRecLays = go.Slice_string(["Input", "Emotion", "Gender", "Identity"])
-        
-        ss.Win        = 0
-        ss.vp         = 0
-        ss.ToolBar    = 0
-        ss.NetView    = 0
-        ss.TstTrlPlot = 0
-        ss.ClustFaces = eplot.Plot2D()
-        ss.ClustEmote = eplot.Plot2D()
-        ss.ClustGend = eplot.Plot2D()
-        ss.ClustIdent = eplot.Plot2D()
-        ss.PrjnRandom = eplot.Plot2D()
-        ss.PrjnEmoteGend = eplot.Plot2D()
-        ss.IsRunning    = False
-        ss.StopNow    = False
-        ss.ValsTsrs   = {}
+    def __init__(self):
+        super(Sim, self).__init__()
+        self.Net = leabra.Network()
+        self.SetTags("Net", 'view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"')
+        self.Pats = etable.Table()
+        self.SetTags("Pats", 'view:"no-inline" desc:"click to see the full face testing input patterns to use"')
+        self.PartPats = etable.Table()
+        self.SetTags("PartPats", 'view:"no-inline" desc:"click to see the partial face testing input patterns to use"')
+        self.TstTrlLog = etable.Table()
+        self.SetTags("TstTrlLog", 'view:"no-inline" desc:"testing trial-level log data -- click to see record of network\'s response to each input"')
+        self.PrjnTable = etable.Table()
+        self.SetTags("PrjnTable", 'view:"no-inline" desc:"projection of testing data"')
+        self.Params = params.Sets()
+        self.SetTags("Params", 'view:"no-inline" desc:"full collection of param sets -- not really interesting for this model"')
+        self.ParamSet = str()
+        self.SetTags("ParamSet", 'view:"-" desc:"which set of *additional* parameters to use -- always applies Base and optionaly this next if set -- can use multiple names separated by spaces (don\'t put spaces in ParamSet names!)"')
+        self.TestEnv = env.FixedTable()
+        self.SetTags("TestEnv", 'desc:"Testing environment -- manages iterating over testing"')
+        self.Time = leabra.Time()
+        self.SetTags("Time", 'desc:"leabra timing parameters and state"')
+        self.ViewUpdt = leabra.TimeScales.Cycle
+        self.SetTags("ViewUpdt", 'desc:"at what time scale to update the display during testing?  Change to AlphaCyc to make display updating go faster"')
+        self.TstRecLays = go.Slice_string(["Input", "Emotion", "Gender", "Identity"])
+        self.SetTags("TstRecLays", 'desc:"names of layers to record activations etc of during testing"')
+        self.ClustFaces = eplot.Plot2D()
+        self.SetTags("ClustFaces", 'view:"no-inline" desc:"cluster plot of faces"')
+        self.ClustEmote = eplot.Plot2D()
+        self.SetTags("ClustEmote", 'view:"no-inline" desc:"cluster plot of emotions"')
+        self.ClustGend = eplot.Plot2D()
+        self.SetTags("ClustGend", 'view:"no-inline" desc:"cluster plot of genders"')
+        self.ClustIdent = eplot.Plot2D()
+        self.SetTags("ClustIdent", 'view:"no-inline" desc:"cluster plot of identity"')
+        self.PrjnRandom = eplot.Plot2D()
+        self.SetTags("PrjnRandom", 'view:"no-inline" desc:"random projection plot"')
+        self.PrjnEmoteGend = eplot.Plot2D()
+        self.SetTags("PrjnEmoteGend", 'view:"no-inline" desc:"projection plot of emotions & gender"')
+
+        # internal state - view:"-"
+        self.Win = 0
+        self.SetTags("Win", 'view:"-" desc:"main GUI window"')
+        self.NetView = 0
+        self.SetTags("NetView", 'view:"-" desc:"the network viewer"')
+        self.ToolBar = 0
+        self.SetTags("ToolBar", 'view:"-" desc:"the master toolbar"')
+        self.TstTrlPlot = 0
+        self.SetTags("TstTrlPlot", 'view:"-" desc:"the test-trial plot"')
+        self.ValsTsrs = {}
+        self.SetTags("ValsTsrs", 'view:"-" desc:"for holding layer values"')
+        self.IsRunning = False
+        self.SetTags("IsRunning", 'view:"-" desc:"true if sim is running"')
+        self.StopNow = False
+        self.SetTags("StopNow", 'view:"-" desc:"flag to stop running"')
+        self.vp  = 0 
+        self.SetTags("vp", 'view:"-" desc:"viewport"')
        
-        # ClassView tags for controlling display of fields
-        ss.Tags = {
-            'ParamSet': 'view:"-"',
-            'Win': 'view:"-"',
-            'vp': 'view:"-"',
-            'ToolBar': 'view:"-"',
-            'NetView': 'view:"-"',
-            'TstTrlPlot': 'view:"-"',
-            'IsRunning': 'view:"-"',
-            'StopNow': 'view:"-"',
-            'ValsTsrs': 'view:"-"',
-            'ClassView': 'view:"-"',
-            'Tags': 'view:"-"',
-        }
-    
     def InitParams(ss):
         """
         Sets the default set of parameters -- Base is always applied, and others can be optionally
@@ -271,7 +283,7 @@ class Sim(object):
 
         if ss.Win != 0:
             ss.Win.PollEvents() # this is essential for GUI responsiveness while running
-        viewUpdt = ss.ViewUpdt
+        viewUpdt = ss.ViewUpdt.value
 
         ss.Net.AlphaCycInit()
         ss.Time.AlphaCycStart()
@@ -330,7 +342,7 @@ class Sim(object):
             if ss.ToolBar != 0:
                 ss.ToolBar.UpdateActions()
             vp.SetNeedsFullRender()
-            ss.ClassView.Update()
+            ss.UpdateClassView()
 
     def SaveWeights(ss, filename):
         """
@@ -347,7 +359,7 @@ class Sim(object):
 
         chg = env.CounterChg(ss.TestEnv, env.Epoch)
         if chg:
-            if ss.ViewUpdt > leabra.AlphaCycle:
+            if ss.ViewUpdt.value > leabra.AlphaCycle:
                 ss.UpdateView()
             return
 
@@ -416,7 +428,7 @@ class Sim(object):
         if sheet == "" or sheet == "Sim":
             if "Sim" in pset.Sheets:
                 simp= pset.SheetByNameTry("Sim")
-                epygiv.ApplyParams(ss, simp, setMsg)
+                pyparams.ApplyParams(ss, simp, setMsg)
 				
     def ValsTsr(ss, name):
         """
@@ -673,9 +685,9 @@ class Sim(object):
         split.Dim = mat32.X
         split.SetStretchMax()
 
-        ss.ClassView = epygiv.ClassView("sv", ss.Tags)
-        ss.ClassView.AddFrame(split)
-        ss.ClassView.SetClass(ss)
+        cv = ss.NewClassView("sv")
+        cv.AddFrame(split)
+        cv.Config()
 
         tv = gi.AddNewTabView(split, "tv")
 

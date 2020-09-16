@@ -19,6 +19,7 @@ import (
 	"math/rand"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/emer/emergent/emer"
@@ -33,7 +34,7 @@ import (
 	"github.com/emer/etable/etview" // include to get gui views
 	"github.com/emer/etable/simat"
 	"github.com/emer/leabra/leabra"
-	pbwm "github.com/emer/leabra/pbwm1"
+	"github.com/emer/leabra/pbwm"
 	"github.com/emer/leabra/rl"
 	"github.com/goki/gi/gi"
 	"github.com/goki/gi/gimain"
@@ -150,6 +151,7 @@ type Sim struct {
 	RunStats    *etable.Table     `view:"no-inline" desc:"aggregate stats on all runs"`
 	SimMat      *simat.SimMat     `view:"no-inline" desc:"similarity matrix"`
 	Params      params.Sets       `view:"no-inline" desc:"full collection of param sets"`
+	ParamSet    string            `view:"-" desc:"which set of *additional* parameters to use -- always applies Base and optionaly this next if set -- can use multiple names separated by spaces (don't put spaces in ParamSet names!)"`
 	MaxRuns     int               `desc:"maximum number of model runs to perform"`
 	MaxEpcs     int               `desc:"maximum number of epochs to run per model run"`
 	MaxTrls     int               `desc:"maximum number of training trials per epoch"`
@@ -249,7 +251,7 @@ func (ss *Sim) ConfigEnv() {
 
 func (ss *Sim) ConfigNet(net *pbwm.Network) {
 	net.InitName(net, "BG")
-	snc := rl.AddClampDaLayer(&net.Network.Network, "SNc")
+	snc := rl.AddClampDaLayer(&net.Network, "SNc")
 	inp := net.AddLayer2D("Input", 1, 6, emer.Input)
 	inp.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "SNc", YAlign: relpos.Front, XAlign: relpos.Left})
 
@@ -582,6 +584,12 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 		ss.Params.ValidateSheets([]string{"Network", "Sim"})
 	}
 	err := ss.SetParamsSet("Base", sheet, setMsg)
+	if ss.ParamSet != "" && ss.ParamSet != "Base" {
+		sps := strings.Fields(ss.ParamSet)
+		for _, ps := range sps {
+			err = ss.SetParamsSet(ps, sheet, setMsg)
+		}
+	}
 
 	// gpi := ss.Net.LayerByName("GPiThal").(*pbwm.GPiThalLayer)
 	// gpi.Gate.Thr = 0.5 // todo: these are not taking in params

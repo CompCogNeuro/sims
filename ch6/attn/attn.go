@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 
 	"github.com/emer/emergent/emer"
 	"github.com/emer/emergent/env"
@@ -222,6 +223,7 @@ type Sim struct {
 	TstTrlLog     *etable.Table     `view:"no-inline" desc:"testing trial-level log data -- click to see record of network's response to each input"`
 	TstStats      *etable.Table     `view:"no-inline" desc:"aggregate stats on testing data"`
 	Params        params.Sets       `view:"no-inline" desc:"full collection of param sets -- not really interesting for this model"`
+	ParamSet      string            `view:"-" desc:"which set of *additional* parameters to use -- always applies Base and optionaly this next if set -- can use multiple names separated by spaces (don't put spaces in ParamSet names!)"`
 	TestEnv       env.FixedTable    `desc:"Testing environment -- manages iterating over testing"`
 	Time          leabra.Time       `desc:"leabra timing parameters and state"`
 	ViewUpdt      leabra.TimeScales `desc:"at what time scale to update the display during testing?  Change to AlphaCyc to make display updating go faster"`
@@ -713,6 +715,12 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 	vsp.Params.SetParamByName("Prjn.WtScale.Rel", fmt.Sprintf("%g", ss.V1ToSpat1))
 
 	err := ss.SetParamsSet("Base", sheet, setMsg)
+	if ss.ParamSet != "" && ss.ParamSet != "Base" {
+		sps := strings.Fields(ss.ParamSet)
+		for _, ps := range sps {
+			err = ss.SetParamsSet(ps, sheet, setMsg)
+		}
+	}
 
 	if ss.KNaAdapt {
 		err = ss.SetParamsSet("KNaAdapt", sheet, setMsg)

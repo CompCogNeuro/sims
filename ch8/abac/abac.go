@@ -16,6 +16,7 @@ import (
 	"math/rand"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/emer/emergent/emer"
@@ -123,6 +124,7 @@ type Sim struct {
 	RunStats      *etable.Table     `view:"no-inline" desc:"aggregate stats on all runs"`
 	TstStats      *etable.Table     `view:"no-inline" desc:"testing stats"`
 	Params        params.Sets       `view:"no-inline" desc:"full collection of param sets"`
+	ParamSet      string            `view:"-" desc:"which set of *additional* parameters to use -- always applies Base and optionaly this next if set -- can use multiple names separated by spaces (don't put spaces in ParamSet names!)"`
 	MaxRuns       int               `desc:"maximum number of model runs to perform"`
 	MaxEpcs       int               `desc:"maximum number of epochs to run per model run"`
 	NZeroStop     int               `desc:"if a positive number, training will stop after this many epochs with zero SSE"`
@@ -698,6 +700,12 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 	spo.Params.SetParamByName("Prjn.Learn.Lrate", fmt.Sprintf("%g", ss.Lrate))
 
 	err := ss.SetParamsSet("Base", sheet, setMsg)
+	if ss.ParamSet != "" && ss.ParamSet != "Base" {
+		sps := strings.Fields(ss.ParamSet)
+		for _, ps := range sps {
+			err = ss.SetParamsSet(ps, sheet, setMsg)
+		}
+	}
 
 	hid := ss.Net.LayerByName("Hidden").(leabra.LeabraLayer).AsLeabra()
 	hid.Inhib.Layer.Gi = ss.HiddenInhibGi

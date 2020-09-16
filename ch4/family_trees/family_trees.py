@@ -12,7 +12,7 @@
 # no similarity structure into a hidden layer that captures
 # the *functional* similarity structure of the items.
 
-from leabra import go, leabra, emer, relpos, eplot, env, agg, patgen, prjn, etable, efile, split, etensor, params, netview, rand, erand, gi, giv, epygiv, mat32, metric, simat, pca, clust
+from leabra import go, leabra, emer, relpos, eplot, env, agg, patgen, prjn, etable, efile, split, etensor, params, netview, rand, erand, gi, giv, pygiv, pyparams, mat32, metric, simat, pca, clust
 
 import importlib as il
 import io, sys, getopt
@@ -30,7 +30,7 @@ LogPrec = 4
 
 def InitCB(recv, send, sig, data):
     TheSim.Init()
-    TheSim.ClassView.Update()
+    TheSim.UpdateClassView()
     TheSim.vp.SetNeedsFullRender()
 
 def TrainCB(recv, send, sig, data):
@@ -47,7 +47,7 @@ def StepTrialCB(recv, send, sig, data):
         TheSim.IsRunning = True
         TheSim.TrainTrial()
         TheSim.IsRunning = False
-        TheSim.ClassView.Update()
+        TheSim.UpdateClassView()
         TheSim.vp.SetNeedsFullRender()
 
 def StepEpochCB(recv, send, sig, data):
@@ -67,7 +67,7 @@ def GenTestTrialCB(recv, send, sig, data):
         TheSim.IsRunning = True
         TheSim.GenTestTrial(False)
         TheSim.IsRunning = False
-        TheSim.ClassView.Update()
+        TheSim.UpdateClassView()
         TheSim.vp.SetNeedsFullRender()
 
 def AllTestTrialCB(recv, send, sig, data):
@@ -75,7 +75,7 @@ def AllTestTrialCB(recv, send, sig, data):
         TheSim.IsRunning = True
         TheSim.AllTestTrial(False)
         TheSim.IsRunning = False
-        TheSim.ClassView.Update()
+        TheSim.UpdateClassView()
         TheSim.vp.SetNeedsFullRender()
 
 def GenTestAllCB(recv, send, sig, data):
@@ -126,26 +126,32 @@ class LearnType(Enum):
     HebbError = 2
 
     
-class Reps(epygiv.ClassViewObj):
+class Reps(pygiv.ClassViewObj):
     """
     Reps contains standard analysis of representations
     """
-    def __init__(rp):
-        rp.SimMat = simat.SimMat()
-        rp.SimMat.Init()
-        rp.PCA = pca.PCA()
-        rp.PCA.Init()
-        rp.PCAPrjn = etable.Table()
-        rp.PCAPlot = eplot.Plot2D()
-        rp.PCAPlot.InitName(rp.PCAPlot, "PCAPlot") # any Ki obj needs this
-        rp.ClustPlot = eplot.Plot2D()
-        rp.ClustPlot.InitName(rp.ClustPlot, "ClustPlot") # any Ki obj needs this
-
+    
+    def __init__(self):
+        super(Reps, self).__init__()
+        self.SimMat = simat.SimMat()
+        self.SimMat.Init()
+        self.SetTags("SimMat", 'view:"no-inline" desc:"similarity matrix"')
+        self.PCAPlot = eplot.Plot2D()
+        self.PCAPlot.InitName(self.PCAPlot, "PCAPlot") # any Ki obj needs this
+        self.SetTags("PCAPlot", 'view:"no-inline" desc:"plot of pca data"')
+        self.ClustPlot = eplot.Plot2D()
+        self.ClustPlot.InitName(self.ClustPlot, "ClustPlot") # any Ki obj needs this
+        self.SetTags("ClustPlot", 'view:"no-inline" desc:"cluster plot"')
+        self.PCA = pca.PCA()
+        self.PCA.Init()
+        self.SetTags("PCA", 'view:"-" desc:"pca results"')
+        self.PCAPrjn = etable.Table()
+        self.SetTags("PCAPrjn", 'view:"-" desc:"pca projections onto eigenvectors"')
 
 #####################################################    
 #     Sim
 
-class Sim(object):
+class Sim(pygiv.ClassViewObj):
     """
     Sim encapsulates the entire simulation model, and we define all the
     functionality as methods on this struct.  This structure keeps all relevant
@@ -153,122 +159,136 @@ class Sim(object):
     as arguments to methods, and provides the core GUI interface (note the view tags
     for the fields which provide hints to how things should be displayed).
     """
-    def __init__(ss):
-        ss.Net = leabra.Network()
-        ss.Learn   = LearnType.HebbError
-        ss.Pats  = etable.Table()
-        ss.TrnEpcLog = etable.Table()
-        ss.TstEpcLog = etable.Table()
-        ss.TstTrlLog = etable.Table()
-        ss.RunLog = etable.Table()
-        ss.RunStats = etable.Table()
-        ss.Params    = params.Sets()
-        ss.ParamSet = ""
-        ss.Tag      = ""
-        ss.MaxRuns  = 10
-        ss.MaxEpcs  = 500
-        ss.NZeroStop = 1
-        ss.TrainEnv = env.FixedTable()
-        ss.GenTestEnv  = env.FixedTable()
-        ss.AllTestEnv  = env.FixedTable()
-        ss.Time     = leabra.Time()
-        ss.ViewOn   = True
-        ss.TrainUpdt = leabra.AlphaCycle
-        ss.TestUpdt = leabra.Cycle
-        ss.TestInterval = 5
-        ss.TstRecLays  = go.Slice_string(["Hidden", "AgentCode"])
-        ss.HiddenRel  = Reps()
-        ss.HiddenAgent = Reps()
-        ss.AgentAgent  = Reps()
-        
-        # statistics
-        ss.TrlErr     = 0.0
-        ss.TrlSSE     = 0.0
-        ss.TrlAvgSSE  = 0.0
-        ss.TrlCosDiff = 0.0
-        ss.EpcSSE     = 0.0
-        ss.EpcAvgSSE  = 0.0
-        ss.EpcPctErr  = 0.0
-        ss.EpcPctCor  = 0.0
-        ss.EpcCosDiff = 0.0
-        ss.FirstZero  = -1
-        ss.NZero      = 0
-        
-        # internal state - view:"-"
-        ss.SumErr     = 0.0
-        ss.SumSSE     = 0.0
-        ss.SumAvgSSE  = 0.0
-        ss.SumCosDiff = 0.0
-        ss.CntErr     = 0.0
-        ss.Win        = 0
-        ss.vp         = 0
-        ss.ToolBar    = 0
-        ss.NetView    = 0
-        ss.TrnEpcPlot = 0
-        ss.TstEpcPlot = 0
-        ss.TstTrlPlot = 0
-        ss.TstCycPlot = 0
-        ss.RunPlot    = 0
-        ss.TrnEpcFile = 0
-        ss.RunFile    = 0
-
-        ss.Win        = 0
-        ss.vp         = 0
-        ss.ToolBar    = 0
-        ss.NetView    = 0
-        ss.TstTrlPlot = 0
-        ss.IsRunning    = False
-        ss.StopNow    = False
-        ss.NeedsNewRun = False
-        ss.SaveWts = False
-        ss.RndSeed    = 0
-        ss.ValsTsrs   = {}
-       
-        # ClassView tags for controlling display of fields
-        ss.Tags = {
-            'ParamSet': 'view:"-"',
-            'HiddenRel': 'view:"inline"',
-            'HiddenAgent': 'view:"inline"',
-            'AgentAgent': 'view:"inline"',
-            'TrlErr': 'inactive:"+"',
-            'TrlSSE': 'inactive:"+"',
-            'TrlAvgSSE': 'inactive:"+"',
-            'TrlCosDiff': 'inactive:"+"',
-            'EpcSSE': 'inactive:"+"',
-            'EpcAvgSSE': 'inactive:"+"',
-            'EpcPctErr': 'inactive:"+"',
-            'EpcPctCor': 'inactive:"+"',
-            'EpcCosDiff': 'inactive:"+"',
-            'FirstZero': 'inactive:"+"',
-            'NZero': 'inactive:"+"',
-            'SumErr': 'view:"-"',
-            'SumSSE': 'view:"-"',
-            'SumAvgSSE': 'view:"-"',
-            'SumCosDiff': 'view:"-"',
-            'CntErr': 'view:"-"',
-            'Win': 'view:"-"',
-            'vp': 'view:"-"',
-            'ToolBar': 'view:"-"',
-            'NetView': 'view:"-"',
-            'TrnEpcPlot': 'view:"-"',
-            'TstEpcPlot': 'view:"-"',
-            'TstTrlPlot': 'view:"-"',
-            'TstCycPlot': 'view:"-"',
-            'RunPlot': 'view:"-"',
-            'TrnEpcFile': 'view:"-"',
-            'RunFile': 'view:"-"',
-            'SaveWts': 'view:"-"',
-            'NoGui': 'view:"-"',
-            'LogSetParams': 'view:"-"',
-            'IsRunning': 'view:"-"',
-            'StopNow': 'view:"-"',
-            'RndSeed': 'view:"-"',
-            'NeedsNewRun': 'view:"-"',
-            'ValsTsrs': 'view:"-"',
-            'ClassView': 'view:"-"',
-            'Tags': 'view:"-"',
-        }
     
+    def __init__(self):
+        super(Sim, self).__init__()
+        self.Net = leabra.Network()
+        self.SetTags("Net", 'view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"')
+        self.Learn = LearnType.HebbError
+        self.SetTags("Learn", 'desc:"select which type of learning to use"')
+        self.Pats = etable.Table()
+        self.SetTags("Pats", 'view:"no-inline" desc:"training patterns"')
+        self.TrnEpcLog = etable.Table()
+        self.SetTags("TrnEpcLog", 'view:"no-inline" desc:"training epoch-level log data"')
+        self.TstEpcLog = etable.Table()
+        self.SetTags("TstEpcLog", 'view:"no-inline" desc:"testing epoch-level log data"')
+        self.TstTrlLog = etable.Table()
+        self.SetTags("TstTrlLog", 'view:"no-inline" desc:"testing trial-level log data"')
+        self.RunLog = etable.Table()
+        self.SetTags("RunLog", 'view:"no-inline" desc:"summary log of each run"')
+        self.RunStats = etable.Table()
+        self.SetTags("RunStats", 'view:"no-inline" desc:"aggregate stats on all runs"')
+        self.Params = params.Sets()
+        self.SetTags("Params", 'view:"no-inline" desc:"full collection of param sets"')
+        self.ParamSet = str()
+        self.SetTags("ParamSet", 'desc:"which set of *additional* parameters to use -- always applies Base and optionaly this next if set"')
+        self.Tag = str()
+        self.SetTags("Tag", 'desc:"extra tag string to add to any file names output from sim (e.g., weights files, log files, params for run)"')
+        self.MaxRuns = int(10)
+        self.SetTags("MaxRuns", 'desc:"maximum number of model runs to perform"')
+        self.MaxEpcs = int(500)
+        self.SetTags("MaxEpcs", 'desc:"maximum number of epochs to run per model run"')
+        self.NZeroStop = int(1)
+        self.SetTags("NZeroStop", 'desc:"if a positive number, training will stop after this many epochs with zero SSE"')
+        self.TrainEnv = env.FixedTable()
+        self.SetTags("TrainEnv", 'desc:"Training environment -- contains everything about iterating over input / output patterns over training"')
+        self.GenTestEnv = env.FixedTable()
+        self.SetTags("GenTestEnv", 'desc:"Generalization Testing environment (4 held-out items not trained -- not enough training data to really drive generalization here) -- manages iterating over testing"')
+        self.AllTestEnv = env.FixedTable()
+        self.SetTags("AllTestEnv", 'desc:"Test all items -- manages iterating over testing"')
+        self.Time = leabra.Time()
+        self.SetTags("Time", 'desc:"leabra timing parameters and state"')
+        self.ViewOn = True
+        self.SetTags("ViewOn", 'desc:"whether to update the network view while running"')
+        self.TrainUpdt = leabra.TimeScales.AlphaCycle
+        self.SetTags("TrainUpdt", 'desc:"at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model"')
+        self.TestUpdt = leabra.TimeScales.Cycle
+        self.SetTags("TestUpdt", 'desc:"at what time scale to update the display during testing?  Anything longer than Epoch updates at Epoch in this model"')
+        self.TestInterval = int(5)
+        self.SetTags("TestInterval", 'desc:"how often to run through all the test patterns, in terms of training epochs -- can use 0 or -1 for no testing"')
+        self.TstRecLays = go.Slice_string(["Hidden", "AgentCode"])
+        self.SetTags("TstRecLays", 'desc:"names of layers to record activations etc of during testing"')
+        self.HiddenRel = Reps()
+        self.SetTags("HiddenRel", 'view:"inline" desc:"representational analysis of Hidden layer, sorted by relationship"')
+        self.HiddenAgent = Reps()
+        self.SetTags("HiddenAgent", 'view:"inline" desc:"representational analysis of Hidden layer, sorted by agent"')
+        self.AgentAgent = Reps()
+        self.SetTags("AgentAgent", 'view:"inline" desc:"representational analysis of AgentCode layer, sorted by agent"')
+
+        # statistics: note use float64 as that is best for etable.Table
+        self.TrlErr = float(0)
+        self.SetTags("TrlErr", 'inactive:"+" desc:"1 if trial was error, 0 if correct -- based on SSE = 0 (subject to .5 unit-wise tolerance)"')
+        self.TrlSSE = float(0)
+        self.SetTags("TrlSSE", 'inactive:"+" desc:"current trial\'s sum squared error"')
+        self.TrlAvgSSE = float(0)
+        self.SetTags("TrlAvgSSE", 'inactive:"+" desc:"current trial\'s average sum squared error"')
+        self.TrlCosDiff = float(0)
+        self.SetTags("TrlCosDiff", 'inactive:"+" desc:"current trial\'s cosine difference"')
+        self.EpcSSE = float(0)
+        self.SetTags("EpcSSE", 'inactive:"+" desc:"last epoch\'s total sum squared error"')
+        self.EpcAvgSSE = float(0)
+        self.SetTags("EpcAvgSSE", 'inactive:"+" desc:"last epoch\'s average sum squared error (average over trials, and over units within layer)"')
+        self.EpcPctErr = float(0)
+        self.SetTags("EpcPctErr", 'inactive:"+" desc:"last epoch\'s percent of trials that had SSE > 0 (subject to .5 unit-wise tolerance)"')
+        self.EpcPctCor = float(0)
+        self.SetTags("EpcPctCor", 'inactive:"+" desc:"last epoch\'s percent of trials that had SSE == 0 (subject to .5 unit-wise tolerance)"')
+        self.EpcCosDiff = float(0)
+        self.SetTags("EpcCosDiff", 'inactive:"+" desc:"last epoch\'s average cosine difference for output layer (a normalized error measure, maximum of 1 when the minus phase exactly matches the plus)"')
+        self.EpcPerTrlMSec = float(0)
+        self.SetTags("EpcPerTrlMSec", 'inactive:"+" desc:"how long did the epoch take per trial in wall-clock milliseconds"')
+        self.FirstZero = int(-1)
+        self.SetTags("FirstZero", 'inactive:"+" desc:"epoch at when SSE first went to zero"')
+        self.NZero = int(0)
+        self.SetTags("NZero", 'inactive:"+" desc:"number of epochs in a row with zero SSE"')
+
+        # internal state - view:"-"
+        self.SumErr = float(0)
+        self.SetTags("SumErr", 'view:"-" inactive:"+" desc:"sum to increment as we go through epoch"')
+        self.SumSSE = float(0)
+        self.SetTags("SumSSE", 'view:"-" inactive:"+" desc:"sum to increment as we go through epoch"')
+        self.SumAvgSSE = float(0)
+        self.SetTags("SumAvgSSE", 'view:"-" inactive:"+" desc:"sum to increment as we go through epoch"')
+        self.SumCosDiff = float(0)
+        self.SetTags("SumCosDiff", 'view:"-" inactive:"+" desc:"sum to increment as we go through epoch"')
+        self.Win = 0
+        self.SetTags("Win", 'view:"-" desc:"main GUI window"')
+        self.NetView = 0
+        self.SetTags("NetView", 'view:"-" desc:"the network viewer"')
+        self.ToolBar = 0
+        self.SetTags("ToolBar", 'view:"-" desc:"the master toolbar"')
+        self.TrnEpcPlot = 0
+        self.SetTags("TrnEpcPlot", 'view:"-" desc:"the training epoch plot"')
+        self.TstEpcPlot = 0
+        self.SetTags("TstEpcPlot", 'view:"-" desc:"the testing epoch plot"')
+        self.TstTrlPlot = 0
+        self.SetTags("TstTrlPlot", 'view:"-" desc:"the test-trial plot"')
+        self.RunPlot = 0
+        self.SetTags("RunPlot", 'view:"-" desc:"the run plot"')
+        self.TrnEpcFile = 0
+        self.SetTags("TrnEpcFile", 'view:"-" desc:"log file"')
+        self.RunFile = 0
+        self.SetTags("RunFile", 'view:"-" desc:"log file"')
+        self.ValsTsrs = {}
+        self.SetTags("ValsTsrs", 'view:"-" desc:"for holding layer values"')
+        self.SaveWts = False
+        self.SetTags("SaveWts", 'view:"-" desc:"for command-line run only, auto-save final weights after each run"')
+        self.NoGui = False
+        self.SetTags("NoGui", 'view:"-" desc:"if true, runing in no GUI mode"')
+        self.LogSetParams = False
+        self.SetTags("LogSetParams", 'view:"-" desc:"if true, print message for all params that are set"')
+        self.IsRunning = False
+        self.SetTags("IsRunning", 'view:"-" desc:"true if sim is running"')
+        self.StopNow = False
+        self.SetTags("StopNow", 'view:"-" desc:"flag to stop running"')
+        self.NeedsNewRun = False
+        self.SetTags("NeedsNewRun", 'view:"-" desc:"flag to initialize NewRun if last one finished"')
+        self.RndSeed = int(1)
+        self.SetTags("RndSeed", 'view:"-" desc:"the current random seed"')
+        self.LastEpcTime = int(0)
+        self.SetTags("LastEpcTime", 'view:"-" desc:"timer for last epoch"')
+        self.vp  = 0 
+        self.SetTags("vp", 'view:"-" desc:"viewport"')
+        
     def InitParams(ss):
         """
         Sets the default set of parameters -- Base is always applied, and others can be optionally
@@ -424,9 +444,9 @@ class Sim(object):
 
         if ss.Win != 0:
             ss.Win.PollEvents() # this is essential for GUI responsiveness while running
-        viewUpdt = ss.TrainUpdt
+        viewUpdt = ss.TrainUpdt.value
         if not train:
-            viewUpdt = ss.TestUpdt
+            viewUpdt = ss.TestUpdt.value
 
         # update prior weight changes at start, so any DWt values remain visible at end
         # you might want to do this less frequently to achieve a mini-batch update
@@ -466,8 +486,6 @@ class Sim(object):
         """
         ApplyInputs applies input patterns from given envirbonment.
         It is good practice to have this be a separate method with appropriate
-
-        # going to the same layers, but good practice and cheap anyway
         args so that it can be used for various different contexts
         (training, testing, etc).
         """
@@ -497,7 +515,7 @@ class Sim(object):
 
         if chg:
             ss.LogTrnEpc(ss.TrnEpcLog)
-            if ss.ViewOn and ss.TrainUpdt > leabra.AlphaCycle:
+            if ss.ViewOn and ss.TrainUpdt.value > leabra.AlphaCycle:
                 ss.UpdateView(True)
             if ss.TestInterval > 0 and epc%ss.TestInterval == 0: # note: epc is *next* so won't trigger first time
                 ss.GenTestAll()
@@ -636,7 +654,7 @@ class Sim(object):
             if ss.ToolBar != 0:
                 ss.ToolBar.UpdateActions()
             vp.SetNeedsFullRender()
-            ss.ClassView.Update()
+            ss.UpdateClassView()
 
     def SaveWeights(ss, filename):
         """
@@ -653,7 +671,7 @@ class Sim(object):
 
         chg = env.CounterChg(ss.GenTestEnv, env.Epoch)
         if chg:
-            if ss.ViewOn and ss.TestUpdt > leabra.AlphaCycle:
+            if ss.ViewOn and ss.TestUpdt.value > leabra.AlphaCycle:
                 ss.UpdateView(False)
             ss.LogTstEpc(ss.TstEpcLog)
             if returnOnChg:
@@ -691,7 +709,7 @@ class Sim(object):
 
         chg = env.CounterChg(ss.AllTestEnv, env.Epoch)
         if chg:
-            if ss.ViewOn and ss.TestUpdt > leabra.AlphaCycle:
+            if ss.ViewOn and ss.TestUpdt.value > leabra.AlphaCycle:
                 ss.UpdateView(False)
             ss.LogTstEpc(ss.TstEpcLog)
             if returnOnChg:
@@ -842,7 +860,7 @@ class Sim(object):
         if sheet == "" or sheet == "Sim":
             if "Sim" in pset.Sheets:
                 simp= pset.SheetByNameTry("Sim")
-                epygiv.ApplyParams(ss, simp, setMsg)
+                pyparams.ApplyParams(ss, simp, setMsg)
 
     def OpenPats(ss):
         ss.Pats.SetMetaData("name", "Family Trees")
@@ -1184,9 +1202,9 @@ class Sim(object):
         split.Dim = mat32.X
         split.SetStretchMax()
 
-        ss.ClassView = epygiv.ClassView("sv", ss.Tags)
-        ss.ClassView.AddFrame(split)
-        ss.ClassView.SetClass(ss)
+        cv = ss.NewClassView("sv")
+        cv.AddFrame(split)
+        cv.Config()
 
         tv = gi.AddNewTabView(split, "tv")
 
