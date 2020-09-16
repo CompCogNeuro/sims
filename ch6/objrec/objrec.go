@@ -137,7 +137,7 @@ type Sim struct {
 	RunLog        *etable.Table     `view:"no-inline" desc:"summary log of each run"`
 	RunStats      *etable.Table     `view:"no-inline" desc:"aggregate stats on all runs"`
 	Params        params.Sets       `view:"no-inline" desc:"full collection of param sets"`
-	ParamSet      string            `desc:"which set of *additional* parameters to use -- always applies Base and optionaly this next if set"`
+	ParamSet      string            `desc:"which set of *additional* parameters to use -- always applies Base and optionaly this next if set -- can use multiple names separated by spaces (don't put spaces in ParamSet names!)"`
 	Tag           string            `desc:"extra tag string to add to any file names output from sim (e.g., weights files, log files, params for run)"`
 	V1V4Prjn      *prjn.PoolTile    `view:"projection from V1 to V4 which is tiled 4x4 skip 2 with topo scale values"`
 	MaxRuns       int               `desc:"maximum number of model runs to perform"`
@@ -801,7 +801,10 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 	}
 	err := ss.SetParamsSet("Base", sheet, setMsg)
 	if ss.ParamSet != "" && ss.ParamSet != "Base" {
-		err = ss.SetParamsSet(ss.ParamSet, sheet, setMsg)
+		sps := strings.Fields(ss.ParamSet)
+		for _, ps := range sps {
+			err = ss.SetParamsSet(ps, sheet, setMsg)
+		}
 	}
 	return err
 }

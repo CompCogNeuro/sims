@@ -18,6 +18,7 @@ import (
 	"math/rand"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/emer/emergent/emer"
@@ -117,6 +118,7 @@ type Sim struct {
 	RunLog            *etable.Table     `view:"no-inline" desc:"summary log of each run"`
 	RunStats          *etable.Table     `view:"no-inline" desc:"aggregate stats on all runs"`
 	Params            params.Sets       `view:"no-inline" desc:"full collection of param sets"`
+	ParamSet          string            `view:"-" desc:"which set of *additional* parameters to use -- always applies Base and optionaly this next if set -- can use multiple names separated by spaces (don't put spaces in ParamSet names!)"`
 	V1onWts           *etensor.Float32  `view:"-" desc:"weights from input to V1 layer"`
 	V1offWts          *etensor.Float32  `view:"-" desc:"weights from input to V1 layer"`
 	V1Wts             *etensor.Float32  `view:"no-inline" desc:"net on - off weights from input to V1 layer"`
@@ -642,6 +644,12 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 		ss.Params.ValidateSheets([]string{"Network", "Sim"})
 	}
 	err := ss.SetParamsSet("Base", sheet, setMsg)
+	if ss.ParamSet != "" && ss.ParamSet != "Base" {
+		sps := strings.Fields(ss.ParamSet)
+		for _, ps := range sps {
+			err = ss.SetParamsSet(ps, sheet, setMsg)
+		}
+	}
 
 	nt := ss.Net
 	v1 := nt.LayerByName("V1").(leabra.LeabraLayer).AsLeabra()

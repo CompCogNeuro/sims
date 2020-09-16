@@ -13,7 +13,7 @@
 # will use is the *Necker cube*, which and can be viewed as a
 # cube in one of two orientations, where people flip back and forth.
 
-from leabra import go, leabra, emer, relpos, eplot, env, agg, patgen, prjn, etable, efile, split, etensor, params, netview, rand, erand, gi, giv, epygiv, mat32
+from leabra import go, leabra, emer, relpos, eplot, env, agg, patgen, prjn, etable, efile, split, etensor, params, netview, rand, erand, gi, giv, pygiv, pyparams, mat32
 
 import importlib as il
 import io, sys, getopt
@@ -30,7 +30,7 @@ LogPrec = 4
 
 def InitCB(recv, send, sig, data):
     TheSim.Init()
-    TheSim.ClassView.Update()
+    TheSim.UpdateClassView()
     TheSim.vp.SetNeedsFullRender()
 
 def StopCB(recv, send, sig, data):
@@ -45,13 +45,13 @@ def TestTrialCB(recv, send, sig, data):
         #     go TheSim.TestTrial() # fast..
         TheSim.TestTrial()
         TheSim.IsRunning = False
-        TheSim.ClassView.Update()
+        TheSim.UpdateClassView()
         TheSim.vp.SetNeedsFullRender()
 
 def DefaultsCB(recv, send, sig, data):
     TheSim.Defaults()
     TheSim.Init()
-    TheSim.ClassView.Update()
+    TheSim.UpdateClassView()
     TheSim.vp.SetNeedsFullRender()
 
 def ReadmeCB(recv, send, sig, data):
@@ -67,7 +67,7 @@ def UpdtFuncRunning(act):
 #####################################################    
 #     Sim
 
-class Sim(object):
+class Sim(pygiv.ClassViewObj):
     """
     Sim encapsulates the entire simulation model, and we define all the
     functionality as methods on this struct.  This structure keeps all relevant
@@ -75,45 +75,48 @@ class Sim(object):
     as arguments to methods, and provides the core GUI interface (note the view tags
     for the fields which provide hints to how things should be displayed).
     """
-    def __init__(ss):
-        ss.Noise = 0.01
-        ss.KNaAdapt = False
-        ss.CycPerQtr = 25
-        
-        ss.Net = leabra.Network()
-        ss.TstCycLog   = etable.Table()
-        ss.Params     = params.Sets()
-        ss.ParamSet = ""
-        ss.TestEnv  = env.FixedTable()
-        ss.Time     = leabra.Time()
-        ss.ViewUpdt = leabra.Cycle
-        ss.TstRecLays = go.Slice_string(["NeckerCube"])
-
-        ss.Win        = 0
-        ss.vp         = 0
-        ss.ToolBar    = 0
-        ss.NetViewFF  = 0
-        ss.NetViewBidir  = 0
-        ss.TstCycPlot = 0
-        ss.IsRunning    = False
-        ss.StopNow    = False
-        ss.ValsTsrs   = {}
-       
-        # ClassView tags for controlling display of fields
-        ss.Tags = {
-            'ParamSet': 'view:"-"',
-            'Win': 'view:"-"',
-            'vp': 'view:"-"',
-            'ToolBar': 'view:"-"',
-            'NetView': 'view:"-"',
-            'TstCycPlot': 'view:"-"',
-            'IsRunning': 'view:"-"',
-            'StopNow': 'view:"-"',
-            'ValsTsrs': 'view:"-"',
-            'ClassView': 'view:"-"',
-            'Tags': 'view:"-"',
-        }
     
+    def __init__(self):
+        super(Sim, self).__init__()
+        self.Noise = float(0.01)
+        self.SetTags("Noise", 'min:"0" step:"0.01" desc:"the variance parameter for Gaussian noise added to unit activations on every cycle"')
+        self.KNaAdapt = False
+        self.SetTags("KNaAdapt", 'desc:"apply sodium-gated potassium adaptation mechanisms that cause the neuron to reduce spiking over time"')
+        self.CycPerQtr = int(25)
+        self.SetTags("CycPerQtr", 'def:"25,250" desc:"total number of cycles per quarter to run -- increase to 250 when testing adaptation"')
+        self.Net = leabra.Network()
+        self.SetTags("Net", 'view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"')
+        self.TstCycLog = etable.Table()
+        self.SetTags("TstCycLog", 'view:"no-inline" desc:"testing trial-level log data -- click to see record of network\'s response to each input"')
+        self.Params = params.Sets()
+        self.SetTags("Params", 'view:"no-inline" desc:"full collection of param sets -- not really interesting for this model"')
+        self.ParamSet = str()
+        self.SetTags("ParamSet", 'view:"-" desc:"which set of *additional* parameters to use -- always applies Base and optionaly this next if set -- can use multiple names separated by spaces (don\'t put spaces in ParamSet names!)"')
+        self.Time = leabra.Time()
+        self.SetTags("Time", 'desc:"leabra timing parameters and state"')
+        self.ViewUpdt = leabra.TimeScales.Cycle
+        self.SetTags("ViewUpdt", 'desc:"at what time scale to update the display during testing?  Change to AlphaCyc to make display updating go faster"')
+        self.TstRecLays = go.Slice_string(["NeckerCube"])
+        self.SetTags("TstRecLays", 'desc:"names of layers to record activations etc of during testing"')
+
+        # internal state - view:"-"
+        self.Win = 0
+        self.SetTags("Win", 'view:"-" desc:"main GUI window"')
+        self.NetView = 0
+        self.SetTags("NetView", 'view:"-" desc:"the network viewer"')
+        self.ToolBar = 0
+        self.SetTags("ToolBar", 'view:"-" desc:"the master toolbar"')
+        self.TstCycPlot = 0
+        self.SetTags("TstCycPlot", 'view:"-" desc:"the test-trial plot"')
+        self.ValsTsrs = {}
+        self.SetTags("ValsTsrs", 'view:"-" desc:"for holding layer values"')
+        self.IsRunning = False
+        self.SetTags("IsRunning", 'view:"-" desc:"true if sim is running"')
+        self.StopNow = False
+        self.SetTags("StopNow", 'view:"-" desc:"flag to stop running"')
+        self.vp  = 0 
+        self.SetTags("vp", 'view:"-" desc:"viewport"')
+        
     def InitParams(ss):
         """
         Sets the default set of parameters -- Base is always applied, and others can be optionally
@@ -192,7 +195,7 @@ class Sim(object):
 
         if ss.Win != 0:
             ss.Win.PollEvents() # this is essential for GUI responsiveness while running
-        viewUpdt = ss.ViewUpdt
+        viewUpdt = ss.ViewUpdt.value
 
         ss.Net.AlphaCycInit()
         ss.Time.AlphaCycStart()
@@ -251,7 +254,7 @@ class Sim(object):
             if ss.ToolBar != 0:
                 ss.ToolBar.UpdateActions()
             vp.SetNeedsFullRender()
-            ss.ClassView.Update()
+            ss.UpdateClassView()
 
     def SaveWeights(ss, filename):
         """
@@ -305,7 +308,7 @@ class Sim(object):
         if sheet == "" or sheet == "Sim":
             if "Sim" in pset.Sheets:
                 simp= pset.SheetByNameTry("Sim")
-                epygiv.ApplyParams(ss, simp, setMsg)
+                pyparams.ApplyParams(ss, simp, setMsg)
 
     def ValsTsr(ss, name):
         """
@@ -429,9 +432,9 @@ class Sim(object):
         split.Dim = mat32.X
         split.SetStretchMax()
 
-        ss.ClassView = epygiv.ClassView("sv", ss.Tags)
-        ss.ClassView.AddFrame(split)
-        ss.ClassView.SetClass(ss)
+        cv = ss.NewClassView("sv")
+        cv.AddFrame(split)
+        cv.Config()
 
         tv = gi.AddNewTabView(split, "tv")
 

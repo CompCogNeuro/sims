@@ -12,7 +12,7 @@
 # control overall activity levels within the network, by providing both
 # feedforward and feedback inhibition to excitatory pyramidal neurons.
 
-from leabra import go, leabra, emer, relpos, eplot, env, agg, patgen, prjn, etable, efile, split, etensor, params, netview, rand, erand, gi, giv, epygiv, mat32
+from leabra import go, leabra, emer, relpos, eplot, env, agg, patgen, prjn, etable, efile, split, etensor, params, netview, rand, erand, gi, giv, pygiv, pyparams, mat32
 
 import importlib as il
 import io, sys, getopt
@@ -29,7 +29,7 @@ LogPrec = 4
 
 def InitCB(recv, send, sig, data):
     TheSim.Init()
-    TheSim.ClassView.Update()
+    TheSim.UpdateClassView()
     TheSim.vp.SetNeedsFullRender()
 
 def StopCB(recv, send, sig, data):
@@ -40,7 +40,7 @@ def TestTrialCB(recv, send, sig, data):
         TheSim.IsRunning = True
         TheSim.TestTrial()
         TheSim.IsRunning = False
-        TheSim.ClassView.Update()
+        TheSim.UpdateClassView()
         TheSim.vp.SetNeedsFullRender()
 
 def ConfigPatsCB(recv, send, sig, data):
@@ -51,7 +51,7 @@ def ConfigPatsCB(recv, send, sig, data):
 def DefaultsCB(recv, send, sig, data):
     TheSim.Defaults()
     TheSim.Init()
-    TheSim.ClassView.Update()
+    TheSim.UpdateClassView()
     TheSim.vp.SetNeedsFullRender()
 
 def ReadmeCB(recv, send, sig, data):
@@ -67,7 +67,7 @@ def UpdtFuncRunning(act):
 #####################################################    
 #     Sim
 
-class Sim(object):
+class Sim(pygiv.ClassViewObj):
     """
     Sim encapsulates the entire simulation model, and we define all the
     functionality as methods on this struct.  This structure keeps all relevant
@@ -75,54 +75,72 @@ class Sim(object):
     as arguments to methods, and provides the core GUI interface (note the view tags
     for the fields which provide hints to how things should be displayed).
     """
-    def __init__(ss):
-        ss.BidirNet = False
-        ss.TrainedWts = False
-        ss.InputPct = 20.0
-        ss.FFFBinhib = False
-        ss.HiddenGbarI = 0.4
-        ss.InhibGbarI = 0.75
-        ss.FFinhibWtScale = 1.0
-        ss.FBinhibWtScale = 1.0
-        ss.HiddenGTau = 40.0
-        ss.InhibGTau = 20.0
-        ss.FmInhibWtScaleAbs = 1.0
-        
-        ss.NetFF = leabra.Network()
-        ss.NetBidir = leabra.Network()
-        ss.Pats     = etable.Table()
-        ss.TstCycLog   = etable.Table()
-        ss.Params     = params.Sets()
-        ss.ParamSet = ""
-        ss.Time     = leabra.Time()
-        ss.ViewUpdt = leabra.Cycle
-        ss.TstRecLays = go.Slice_string(["Hidden", "Inhib"])
-
-        ss.Win        = 0
-        ss.vp         = 0
-        ss.ToolBar    = 0
-        ss.NetViewFF  = 0
-        ss.NetViewBidir  = 0
-        ss.TstCycPlot = 0
-        ss.IsRunning    = False
-        ss.StopNow    = False
-        ss.ValsTsrs   = {}
-       
-        # ClassView tags for controlling display of fields
-        ss.Tags = {
-            'ParamSet': 'view:"-"',
-            'Win': 'view:"-"',
-            'vp': 'view:"-"',
-            'ToolBar': 'view:"-"',
-            'NetView': 'view:"-"',
-            'TstCycPlot': 'view:"-"',
-            'IsRunning': 'view:"-"',
-            'StopNow': 'view:"-"',
-            'ValsTsrs': 'view:"-"',
-            'ClassView': 'view:"-"',
-            'Tags': 'view:"-"',
-        }
     
+    def __init__(self):
+        super(Sim, self).__init__()
+        self.BidirNet = False
+        self.SetTags("BidirNet", 'desc:"if true, use the bidirectionally-connected network -- otherwise use the simpler feedforward network"')
+        self.TrainedWts = False
+        self.SetTags("TrainedWts", 'desc:"simulate trained weights by having higher variance and Gaussian distributed weight values -- otherwise lower variance, uniform"')
+        self.InputPct = float(20)
+        self.SetTags("InputPct", 'def:"20" min:"5" max:"50" step:"1" desc:"percent of active units in input layer (literally number of active units, because input has 100 units total)"')
+        self.FFFBInhib = False
+        self.SetTags("FFFBInhib", 'def:"false" desc:"use feedforward, feedback (FFFB) computed inhibition instead of unit-level inhibition"')
+
+        self.HiddenGbarI = float(0.4)
+        self.SetTags("HiddenGbarI", 'def:"0.4" min:"0" step:"0.05" desc:"inhibitory conductance strength for inhibition into Hidden layer"')
+        self.InhibGbarI = float(0.75)
+        self.SetTags("InhibGbarI", 'def:"0.75" min:"0" step:"0.05" desc:"inhibitory conductance strength for inhibition into Inhib layer (self-inhibition -- tricky!)"')
+        self.FFinhibWtScale = float(1.0)
+        self.SetTags("FFinhibWtScale", 'def:"1" min:"0" step:"0.1" desc:"feedforward (FF) inhibition relative strength: for FF projections into Inhib neurons"')
+        self.FBinhibWtScale = float(1.0)
+        self.SetTags("FBinhibWtScale", 'def:"1" min:"0" step:"0.1" desc:"feedback (FB) inhibition relative strength: for projections into Inhib neurons"')
+        self.HiddenGTau = float(40)
+        self.SetTags("HiddenGTau", 'def:"40" min:"1" step:"1" desc:"time constant (tau) for updating G conductances into Hidden neurons -- much slower than std default of 1.4"')
+        self.InhibGTau = float(20)
+        self.SetTags("InhibGTau", 'def:"20" min:"1" step:"1" desc:"time constant (tau) for updating G conductances into Inhib neurons -- much slower than std default of 1.4, but 2x faster than Hidden"')
+        self.FmInhibWtScaleAbs = float(1)
+        self.SetTags("FmInhibWtScaleAbs", 'def:"1" desc:"absolute weight scaling of projections from inhibition onto hidden and inhib layers -- this must be set to 0 to turn off the connection-based inhibition when using the FFFBInhib computed inbhition"')
+
+        self.NetFF = leabra.Network()
+        self.SetTags("NetFF", 'view:"no-inline" desc:"the feedforward network -- click to view / edit parameters for layers, prjns, etc"')
+        self.NetBidir = leabra.Network()
+        self.SetTags("NetBidir", 'view:"no-inline" desc:"the bidirectional network -- click to view / edit parameters for layers, prjns, etc"')
+        self.TstCycLog = etable.Table()
+        self.SetTags("TstCycLog", 'view:"no-inline" desc:"testing trial-level log data -- click to see record of network\'s response to each input"')
+        self.Params = params.Sets()
+        self.SetTags("Params", 'view:"no-inline" desc:"full collection of param sets -- not really interesting for this model"')
+        self.ParamSet = str()
+        self.SetTags("ParamSet", 'view:"-" desc:"which set of *additional* parameters to use -- always applies Base and optionaly this next if set -- can use multiple names separated by spaces (don\'t put spaces in ParamSet names!)"')
+        self.Time = leabra.Time()
+        self.SetTags("Time", 'desc:"leabra timing parameters and state"')
+        self.ViewUpdt = leabra.TimeScales.Cycle
+        self.SetTags("ViewUpdt", 'desc:"at what time scale to update the display during testing?  Change to AlphaCyc to make display updating go faster"')
+        self.TstRecLays = go.Slice_string(["Hidden", "Inhib"])
+        self.SetTags("TstRecLays", 'desc:"names of layers to record activations etc of during testing"')
+        self.Pats = etable.Table()
+        self.SetTags("Pats", 'view:"no-inline" desc:"the input patterns to use -- randomly generated"')
+
+        # internal state - view:"-"
+        self.Win = 0
+        self.SetTags("Win", 'view:"-" desc:"main GUI window"')
+        self.NetViewFF = 0
+        self.SetTags("NetViewFF", 'view:"-" desc:"the network viewer"')
+        self.NetViewBidir = 0
+        self.SetTags("NetViewBidir", 'view:"-" desc:"the network viewer"')
+        self.ToolBar = 0
+        self.SetTags("ToolBar", 'view:"-" desc:"the master toolbar"')
+        self.TstCycPlot = 0
+        self.SetTags("TstCycPlot", 'view:"-" desc:"the test-trial plot"')
+        self.ValsTsrs = {}
+        self.SetTags("ValsTsrs", 'view:"-" desc:"for holding layer values"')
+        self.IsRunning = False
+        self.SetTags("IsRunning", 'view:"-" desc:"true if sim is running"')
+        self.StopNow = False
+        self.SetTags("StopNow", 'view:"-" desc:"flag to stop running"')
+        self.vp  = 0 
+        self.SetTags("vp", 'view:"-" desc:"viewport"')
+        
     def InitParams(ss):
         """
         Sets the default set of parameters -- Base is always applied, and others can be optionally
@@ -283,7 +301,7 @@ class Sim(object):
 
         if ss.Win != 0:
             ss.Win.PollEvents() # this is essential for GUI responsiveness while running
-        viewUpdt = ss.ViewUpdt
+        viewUpdt = ss.ViewUpdt.value
 
         nt = ss.Net()
 
@@ -341,7 +359,7 @@ class Sim(object):
             if ss.ToolBar != 0:
                 ss.ToolBar.UpdateActions()
             vp.SetNeedsFullRender()
-            ss.ClassView.Update()
+            ss.UpdateClassView()
 
     def TestTrial(ss):
         """
@@ -430,7 +448,7 @@ class Sim(object):
         if sheet == "" or sheet == "Sim":
             if "Sim" in pset.Sheets:
                 simp= pset.SheetByNameTry("Sim")
-                epygiv.ApplyParams(ss, simp, setMsg)
+                pyparams.ApplyParams(ss, simp, setMsg)
 
     def ValsTsr(ss, name):
         """
@@ -514,9 +532,9 @@ class Sim(object):
         split.Dim = mat32.X
         split.SetStretchMax()
 
-        ss.ClassView = epygiv.ClassView("sv", ss.Tags)
-        ss.ClassView.AddFrame(split)
-        ss.ClassView.SetClass(ss)
+        cv = ss.NewClassView("sv")
+        cv.AddFrame(split)
+        cv.Config()
 
         tv = gi.AddNewTabView(split, "tv")
 

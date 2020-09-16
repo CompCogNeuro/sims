@@ -72,16 +72,16 @@ var ParamSets = params.Sets{
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
 	Spike          bool            `desc:"use discrete spiking equations -- otherwise use Noisy X-over-X-plus-1 rate code activation function"`
-	GbarE          float32         `def:"0.3" desc:"excitatory conductance multiplier -- determines overall value of Ge which drives neuron to be more excited -- pushes up over threshold to fire if strong enough"`
-	GbarL          float32         `def:"0.3" desc:"leak conductance -- determines overall value of Gl which drives neuron to be less excited (inhibited) -- pushes back to resting membrane potential"`
-	ErevE          float32         `def:"1" desc:"excitatory reversal (driving) potential -- determines where excitation pushes Vm up to"`
-	ErevL          float32         `def:"0.3" desc:"leak reversal (driving) potential -- determines where excitation pulls Vm down to"`
+	GbarE          float32         `min:"0" step:"0.01" def:"0.3" desc:"excitatory conductance multiplier -- determines overall value of Ge which drives neuron to be more excited -- pushes up over threshold to fire if strong enough"`
+	GbarL          float32         `min:"0" step:"0.01" def:"0.3" desc:"leak conductance -- determines overall value of Gl which drives neuron to be less excited (inhibited) -- pushes back to resting membrane potential"`
+	ErevE          float32         `min:"0" max:"1" step:"0.01" def:"1" desc:"excitatory reversal (driving) potential -- determines where excitation pushes Vm up to"`
+	ErevL          float32         `min:"0" max:"1" step:"0.01" def:"0.3" desc:"leak reversal (driving) potential -- determines where excitation pulls Vm down to"`
 	Noise          float32         `min:"0" step:"0.01" desc:"the variance parameter for Gaussian noise added to unit activations on every cycle"`
 	KNaAdapt       bool            `desc:"apply sodium-gated potassium adaptation mechanisms that cause the neuron to reduce spiking over time"`
-	NCycles        int             `def:"200" desc:"total number of cycles to run"`
-	OnCycle        int             `def:"10" desc:"when does excitatory input into neuron come on?"`
-	OffCycle       int             `def:"160" desc:"when does excitatory input into neuron go off?"`
-	UpdtInterval   int             `def:"10"  desc:"how often to update display (in cycles)"`
+	NCycles        int             `min:"10" def:"200" desc:"total number of cycles to run"`
+	OnCycle        int             `min:"0" def:"10" desc:"when does excitatory input into neuron come on?"`
+	OffCycle       int             `min:"0" def:"160" desc:"when does excitatory input into neuron go off?"`
+	UpdtInterval   int             `min:"1" def:"10"  desc:"how often to update display (in cycles)"`
 	Net            *leabra.Network `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
 	SpikeParams    spike.ActParams `view:"no-inline" desc:"parameters for spiking funcion"`
 	TstCycLog      *etable.Table   `view:"no-inline" desc:"testing trial-level log data -- click to see record of network's response to each input"`

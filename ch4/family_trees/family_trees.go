@@ -190,8 +190,8 @@ type Sim struct {
 	RunLog       *etable.Table     `view:"no-inline" desc:"summary log of each run"`
 	RunStats     *etable.Table     `view:"no-inline" desc:"aggregate stats on all runs"`
 	Params       params.Sets       `view:"no-inline" desc:"full collection of param sets"`
-	ParamSet     string            `desc:"which set of *additional* parameters to use -- always applies Base and optionaly this next if set"`
-	Tag          string            `desc:"extra tag string to add to any file names output from sim (e.g., weights files, log files, params for run)"`
+	ParamSet     string            `view:"-" desc:"which set of *additional* parameters to use -- always applies Base and optionaly this next if set -- can use multiple names separated by spaces (don't put spaces in ParamSet names!)"`
+	Tag          string            `view:"-" desc:"extra tag string to add to any file names output from sim (e.g., weights files, log files, params for run)"`
 	MaxRuns      int               `desc:"maximum number of model runs to perform"`
 	MaxEpcs      int               `desc:"maximum number of epochs to run per model run"`
 	NZeroStop    int               `desc:"if a positive number, training will stop after this many epochs with zero SSE"`

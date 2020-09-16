@@ -12,7 +12,7 @@
 # rate-code activation, reflecting a balance of excitatory and inhibitory
 # influences (including leak and synaptic inhibition).
 
-from leabra import go, leabra, emer, relpos, eplot, env, agg, patgen, prjn, etable, efile, split, etensor, params, netview, rand, erand, gi, giv, epygiv, mat32, spike
+from leabra import go, leabra, emer, relpos, eplot, env, agg, patgen, prjn, etable, efile, split, etensor, params, netview, rand, erand, gi, giv, pygiv, pyparams, mat32, spike
 
 import importlib as il
 import io, sys, getopt
@@ -31,7 +31,7 @@ LogPrec = 4
 
 def InitCB(recv, send, sig, data):
     TheSim.Init()
-    TheSim.ClassView.Update()
+    TheSim.UpdateClassView()
     TheSim.vp.SetNeedsFullRender()
 
 def StopCB(recv, send, sig, data):
@@ -42,7 +42,7 @@ def RunCyclesCB(recv, send, sig, data):
         TheSim.IsRunning = True
         TheSim.RunCycles()
         TheSim.IsRunning = False
-        TheSim.ClassView.Update()
+        TheSim.UpdateClassView()
         TheSim.vp.SetNeedsFullRender()
 
 def ResetPlotCB(recv, send, sig, data):
@@ -54,13 +54,13 @@ def SpikeVsRateCB(recv, send, sig, data):
         TheSim.IsRunning = True
         TheSim.SpikeVsRate()
         TheSim.IsRunning = False
-        TheSim.ClassView.Update()
+        TheSim.UpdateClassView()
         TheSim.vp.SetNeedsFullRender()
 
 def DefaultsCB(recv, send, sig, data):
     TheSim.Defaults()
     TheSim.Init()
-    TheSim.ClassView.Update()
+    TheSim.UpdateClassView()
     TheSim.vp.SetNeedsFullRender()
 
 def ReadmeCB(recv, send, sig, data):
@@ -76,7 +76,7 @@ def UpdtFuncRunning(act):
 #####################################################    
 #     Sim
 
-class Sim(object):
+class Sim(pygiv.ClassViewObj):
     """
     Sim encapsulates the entire simulation model, and we define all the
     functionality as methods on this struct.  This structure keeps all relevant
@@ -84,50 +84,64 @@ class Sim(object):
     as arguments to methods, and provides the core GUI interface (note the view tags
     for the fields which provide hints to how things should be displayed).
     """
-    def __init__(ss):
-        ss.Spike = True
-        ss.GbarE = 0.3
-        ss.GbarL = 0.3
-        ss.ErevE = 1
-        ss.ErevL = 0.3
-        ss.Noise = 0
-        ss.KNaAdapt = True
-        ss.NCycles = 200
-        ss.OnCycle = 10
-        ss.OffCycle = 160
-        ss.UpdtInterval = 10
-        ss.Net = leabra.Network()
-        ss.SpikeParams = spike.ActParams()
-        ss.TstCycLog   = etable.Table()
-        ss.SpikeVsRateLog   = etable.Table()
-        ss.Params     = params.Sets()
-        ss.ParamSet = ""
-        ss.Cycle     = 0
-        
-        ss.Win        = 0
-        ss.vp         = 0
-        ss.ToolBar    = 0
-        ss.NetView    = 0
-        ss.TstCycPlot = 0
-        ss.SpikeVsRatePlot = 0
-        ss.IsRunning    = False
-        ss.StopNow    = False
-       
-        # ClassView tags for controlling display of fields
-        ss.Tags = {
-            'Cycle': 'inactive:"+"',
-            'ParamSet': 'view:"-"',
-            'Win': 'view:"-"',
-            'vp': 'view:"-"',
-            'ToolBar': 'view:"-"',
-            'NetView': 'view:"-"',
-            'TstCycPlot': 'view:"-"',
-            'IsRunning': 'view:"-"',
-            'StopNow': 'view:"-"',
-            'ClassView': 'view:"-"',
-            'Tags': 'view:"-"',
-        }
-    
+    def __init__(self):
+        super(Sim, self).__init__()
+        self.Spike = True
+        self.SetTags("Spike", 'desc:"use discrete spiking equations -- otherwise use Noisy X-over-X-plus-1 rate code activation function"')
+        self.GbarE = float(0.3)
+        self.SetTags("GbarE", 'min:"0" step:"0.01" def:"0.3" desc:"excitatory conductance multiplier -- determines overall value of Ge which drives neuron to be more excited -- pushes up over threshold to fire if strong enough"')
+        self.GbarL = float(0.3)
+        self.SetTags("GbarL", 'min:"0" step:"0.01" def:"0.3" desc:"leak conductance -- determines overall value of Gl which drives neuron to be less excited (inhibited) -- pushes back to resting membrane potential"')
+        self.ErevE = float(1)
+        self.SetTags("ErevE", 'min:"0" max:"1" step:"0.01" def:"1" desc:"excitatory reversal (driving) potential -- determines where excitation pushes Vm up to"')
+        self.ErevL = float(0.3)
+        self.SetTags("ErevL", 'min:"0" max:"1" step:"0.01" def:"0.3" desc:"leak reversal (driving) potential -- determines where excitation pulls Vm down to"')
+        self.Noise = float(0.0)
+        self.SetTags("Noise", 'min:"0" step:"0.01" desc:"the variance parameter for Gaussian noise added to unit activations on every cycle"')
+        self.KNaAdapt = True
+        self.SetTags("KNaAdapt", 'desc:"apply sodium-gated potassium adaptation mechanisms that cause the neuron to reduce spiking over time"')
+        self.NCycles = int(200)
+        self.SetTags("NCycles", 'min:"10" def:"200" desc:"total number of cycles to run"')
+        self.OnCycle = int(10)
+        self.SetTags("OnCycle", 'min:"0" def:"10" desc:"when does excitatory input into neuron come on?"')
+        self.OffCycle = int(160)
+        self.SetTags("OffCycle", 'min:"0" def:"160" desc:"when does excitatory input into neuron go off?"')
+        self.UpdtInterval = int(10)
+        self.SetTags("UpdtInterval", 'min:"1" def:"10"  desc:"how often to update display (in cycles)"')
+        self.Net = leabra.Network()
+        self.SetTags("Net", 'view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"')
+        self.SpikeParams = spike.ActParams()
+        self.SetTags("SpikeParams", 'view:"no-inline" desc:"parameters for spiking funcion"')
+        self.TstCycLog = etable.Table()
+        self.SetTags("TstCycLog", 'view:"no-inline" desc:"testing trial-level log data -- click to see record of network\'s response to each input"')
+        self.SpikeVsRateLog = etable.Table()
+        self.SetTags("SpikeVsRateLog", 'view:"no-inline" desc:"plot of measured spike rate vs. noisy X/X+1 rate function"')
+        self.Params = params.Sets()
+        self.SetTags("Params", 'view:"no-inline" desc:"full collection of param sets -- not really interesting for this model"')
+        self.ParamSet = str()
+        self.SetTags("ParamSet", 'view:"-" desc:"which set of *additional* parameters to use -- always applies Base and optionaly this next if set -- can use multiple names separated by spaces (don\'t put spaces in ParamSet names!)"')
+
+        self.Cycle = int()
+        self.SetTags("Cycle", 'inactive:"+" desc:"current cycle of updating"')
+
+        # internal state - view:"-"
+        self.Win = 0
+        self.SetTags("Win", 'view:"-" desc:"main GUI window"')
+        self.NetView = 0
+        self.SetTags("NetView", 'view:"-" desc:"the network viewer"')
+        self.ToolBar = 0
+        self.SetTags("ToolBar", 'view:"-" desc:"the master toolbar"')
+        self.TstCycPlot = 0
+        self.SetTags("TstCycPlot", 'view:"-" desc:"the test-trial plot"')
+        self.SpikeVsRatePlot = 0
+        self.SetTags("SpikeVsRatePlot", 'view:"-" desc:"the spike vs. rate plot"')
+        self.IsRunning = False
+        self.SetTags("IsRunning", 'view:"-" desc:"true if sim is running"')
+        self.StopNow = False
+        self.SetTags("StopNow", 'view:"-" desc:"flag to stop running"')
+        self.vp  = 0 
+        self.SetTags("vp", 'view:"-" desc:"viewport"')
+   
     def InitParams(ss):
         """
         Sets the default set of parameters -- Base is always applied, and others can be optionally
@@ -346,7 +360,7 @@ class Sim(object):
         if sheet == "" or sheet == "Sim":
             if "Sim" in pset.Sheets:
                 simp= pset.SheetByNameTry("Sim")
-                epygiv.ApplyParams(ss, simp, setMsg)
+                pyparams.ApplyParams(ss, simp, setMsg)
 
     def LogTstCyc(ss, dt, cyc):
         """
@@ -479,9 +493,9 @@ class Sim(object):
         split.SetStretchMaxWidth()
         split.SetStretchMaxHeight()
 
-        ss.ClassView = epygiv.ClassView("sv", ss.Tags)
-        ss.ClassView.AddFrame(split)
-        ss.ClassView.SetClass(ss)
+        cv = ss.NewClassView("sv")
+        cv.AddFrame(split)
+        cv.Config()
 
         tv = gi.AddNewTabView(split, "tv")
 
