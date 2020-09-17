@@ -40,7 +40,7 @@ You should see 6 rows, 3 for word reading and 3 for color naming. In the first 3
 
 Now, we can actually test the network.
 
-* Click on `TstTrlPlot` and do `Test All` (do *not* press `Init` here or in any of the cases below -- otherwise you will have to retrain the network).
+* Click on `TstTrlPlot`, hit `Reset TstTrlLog` to clean it up, and do `Test All` (do *not* press `Init` here or in any of the cases below -- otherwise you will have to retrain the network!)
 
 You will see the response times (cycles of settling) plotted in the graph, labeled with the Control (Ctrl), Conflict (Conf), and Congruent (Cong) conditions, respectively.
 
@@ -82,11 +82,7 @@ Another important set of data for the model to account for are the effects of di
 
 * To run the SOA test, first view `SOATrlPLot` and then do `SOA Test All` in the toolbar.
 
-The plot should display the response time (Cylce) as a function of SOA on the X axis. The lines from top to bottom are:
-
-* top: color naming conflict
-* middle: color naming congruent
-* bottom: word reading (both conflict and congruent are superimposed)
+The plot should display the response time (Cylce) as a function of SOA on the X axis, for the different conditions as shown.  Note that both conflict and congruent are superimposed for the Word reading case.
 
 By comparing the simulation data with the human data shown in the adjacent figure, you can see that the model's performance shows both commonalities and contrasts with the behavioral data. We first consider the commonalities. The model simulates several important features of the behavioral data. Most importantly, the model shows that word reading is relatively impervious to color conditions (conflict vs. congruent), even when the colors precede the word inputs, as indicated by the similarity of the two dotted lines in the graph. Thus, the dominant effect in the model is a strength-based competition -- the word reading pathway is sufficiently strong that even when it comes on later, it is relatively unaffected by competition from the weaker color naming pathway.
 

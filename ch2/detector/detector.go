@@ -70,7 +70,7 @@ var ParamSets = params.Sets{
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
-	GbarL     float32           `def:"2" min:"0" max:"4" step:"0.1" desc:"the leak conductance, which pulls against the excitatory input conductance to determine how hard it is to activate the receiving unit"`
+	GbarL     float32           `def:"2" min:"0" max:"4" step:"0.05" desc:"the leak conductance, which pulls against the excitatory input conductance to determine how hard it is to activate the receiving unit"`
 	Net       *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
 	Pats      *etable.Table     `view:"no-inline" desc:"click to see the testing input patterns to use (digits)"`
 	TstTrlLog *etable.Table     `view:"no-inline" desc:"testing trial-level log data -- click to see record of network's response to each input"`

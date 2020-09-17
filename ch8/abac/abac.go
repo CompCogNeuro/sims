@@ -112,7 +112,7 @@ type Sim struct {
 	HiddenInhibGi float32           `def:"1.8" desc:"hidden layer inhibition -- increase to make sparser"`
 	WtInitVar     float32           `def:"0.25" desc:"random initial weight variance -- increase to make more random"`
 	FmContext     float32           `def:"1" desc:"relative WtScale.Rel from Context layer"`
-	XCalLLrn      float32           `def:"0.0003" desc:"amount of Hebbian BCM learning based on AvgL long-term average activity -- increase to increase amount of hebbian"`
+	XCalLLrn      float32           `min:"0" step:"0.0001" def:"0.0003" desc:"amount of Hebbian BCM learning based on AvgL long-term average activity -- increase to increase amount of hebbian"`
 	Lrate         float32           `def:"0.04" desc:"learning rate"`
 	Net           *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
 	ABPats        *etable.Table     `view:"no-inline" desc:"AB paired associate training patterns"`
@@ -194,7 +194,7 @@ func (ss *Sim) New() {
 	ss.RunLog = &etable.Table{}
 	ss.RunStats = &etable.Table{}
 	ss.Params = ParamSets
-	ss.RndSeed = 1
+	ss.RndSeed = 10
 	ss.ViewOn = true
 	ss.TrainUpdt = leabra.Quarter
 	ss.TestUpdt = leabra.Quarter
@@ -256,7 +256,7 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 	net.InitName(net, "ABAC")
 	inp := net.AddLayer2D("Input", 5, 5, emer.Input)
 	ctx := net.AddLayer2D("Context", 5, 5, emer.Input)
-	hid := net.AddLayer2D("Hidden", 5, 10, emer.Hidden)
+	hid := net.AddLayer2D("Hidden", 10, 15, emer.Hidden)
 	out := net.AddLayer2D("Output", 5, 5, emer.Target)
 
 	full := prjn.NewFull()

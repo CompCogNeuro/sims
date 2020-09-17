@@ -24,7 +24,7 @@ Now, let's see how well the network performs on this task.
 
 You will see the plot updated as the network is trained, initially on the AB list, and then it automatically switches over to the AC list once error goes to 0. The `PctErr` line shows the error expressed as the number of list items incorrectly produced, with the criterion for correct performance being all units on the right side of .5. 
 
-* Click on `TstEpcPlot`, which shows the testing results, which are run at the end of every epoch.  Both the AB and AC items are always tested (unlike in people, we can prevent any learning from taking place during testing, so there is no impact on learning from this testing).  You should see the AB testing error go down, but then jump quickly back up, at the point when training switched over to AC, in agreement with the [McCloskey & Cohen (1989)](#references) results.  This is indicates that learning on the AC list (which gradually gets better) has interfered catastrophically with the prior learning on the AB list. Let's collect some statistics by running a batch of several training runs.
+* Click on `TstEpcPlot`, which shows the testing results, which are run at the end of every epoch.  Both the AB and AC items are always tested (unlike in people, we can prevent any learning from taking place during testing, so there is no impact on learning from this testing).  You should see the AB testing error go down, but then jump quickly back up, at the point when training switched over to AC, in general agreement with the [McCloskey & Cohen (1989)](#references) results.  This is indicates that learning on the AC list (which gradually gets better) has interfered catastrophically with the prior learning on the AB list.  Due to the use of inhibition and sparse representations, and a reasonably-sized hidden layer, this model sometimes manages to retain some amount of the AB list, but its performance is highly variable and on average not as good as the human data.  Let's collect some statistics by running a batch of several training runs.
 
 * Hit `Train` to complete a run of 10 "subjects", and click on the `RunPlot` to monitor results.
 
@@ -50,15 +50,11 @@ This increased inhibition will make each activity pattern in the hidden layer sm
 
 > **Question 8.2:** Click the `RunStats` and report the resulting `AB Err:Mean` and `Min` statistics -- did this reduce the amount of AB interference?
 
-The network may not have performed as well as expected because nothing was done to encourage it to use *different* sets of units to represent the different associates. One way we can encourage this is to increase the variance of the initial random weights, making each unit have a more quirky pattern of responses that should encourage different units to encode the different associates.
-
-* Change `WtInitVar` from .25 to .4.
-
 Another thing we can do to improve performance is to enhance the contribution of the `Context` layer inputs relative to the A stimulus, because this list context disambiguates the two different associates.
 
 * Do this by changing the `FmContext` parameter from 1 to 1.5.
 
-This increases the weight scaling for Context inputs (i.e., by increasing the r_k (`WtScale.Rel`) parameter (see NetInput Detail section in the textbook). We might imagine that strategic focusing of attention by the subject accomplishes something like this.
+This increases the weight scaling for Context inputs (i.e., by increasing the `WtScale.Rel` parameter (see [Input Scaling](https://github.com/emer/leabra#input-scaling) for details). We might imagine that strategic focusing of attention by the subject accomplishes something like this.
 
 Finally, increased amounts of self-organizing learning might contribute to better performance because of the strong correlation of all items on a given list with the associated list context representation, which should be emphasized by Hebbian learning. This could lead to different subsets of hidden units representing the items on the two lists because of the different context representations.
 
@@ -70,11 +66,17 @@ Now let's see if performance is improved by making these three parameter adjustm
 
 > **Question 8.3:** Click the `RunStats` and report the resulting `AB Err:Mean` and `Min` statistics -- did these parameters reduce the amount of AB interference?  Informal testing has shown that this is close to the best performance that can be obtained in this network with these parameters -- is it now a good model of human performance?
 
-Although the final level of interference on the AB list remains relatively high, you can go back and observe the `TstEpcPlot` during training to see that these manipulations have at least slowed the onset of the interference somewhat. Thus, we have some indication that these manipulations are having an effect in the right direction, providing some support for the principle of using sparse, non-overlapping representations to avoid interference. 
+The final level of interference on the AB list tends to be quite variable.  You can go back and observe the `TstEpcPlot` during training to see that these manipulations have also slowed the onset of the interference somewhat. Thus, we have some indication that these manipulations are having an effect in the right direction, providing some support for the principle of using sparse, non-overlapping representations to avoid interference. 
 
-A final, highly impactful manipulation is to increase the Hidden layer size significantly, and increase the inhibition a bit more, which gives a much sparser representation and also gives it more "room" to spread out across the larger population of neurons.
+Another parameter that theortically should be important, is the variance of the initial weights, which can encourage it to use *different* sets of units to represent the different associates.  You can increase this variance to explore its effects:
 
-* In the NetView, click on the `Hidden` layer name, which pulls up an editor of the layer properties -- change the `Shp` size from 5 x 10 to 20 x 20 (i.e., an 8-fold increase in size).  Then hit the `Build Net` button in the toolbar, increase `HiddenInhibGi` to 2.6, and do `Init`, `Train` (switch back to `RunPlot`).  You should observe that there are finally cases where the model retains around 40% or so of its AB knowledge after training on AC. 
+* Change `WtInitVar` from .25 to .4.
+
+While this might produce some good results, it also does increase variability overall, and may not produce a net benefit.
+
+A final, highly impactful manipulation is to increase the Hidden layer size significantly, and increase the inhibition a bit more, which gives a much sparser representation and also gives it more "room" to spread out across the larger population of neurons.  We have already made the Hidden layer relatively large (150 neurons) compared to the other layer sizes, but increasing it even further has increasing benefits.
+
+* In the NetView, click on the `Hidden` layer name, which pulls up an editor of the layer properties -- change the `Shp` size from 10 x 15 to 20 x 20 or 20 x 30, etc.  Then hit the `Build Net` button in the toolbar, increase `HiddenInhibGi` to 2.6 (you can't get away with this high of inhibition in a smaller hidden layer -- too few neurons are active and it fails to learn), and do `Init`, `Train` (switch back to `RunPlot`).  You should observe that there are finally cases where the model retains around 40% or so of its AB knowledge after training on AC. 
 
 One important dimension that we have not yet emphasized is the speed with which the network learns -- it is clearly not learning as fast (in terms of number of exposures to the list items) as human subjects do. Further, the manipulations we have made to improve interference performance have resulted in even longer training times (you can see this if you don't clear the graph view between runs with default and these new parameters). Thus, we could play with the `Lrate` parameter to see if we can speed up learning in the network. 
 

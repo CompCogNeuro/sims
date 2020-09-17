@@ -28,6 +28,8 @@ As something of an aside, it should be noted that the ability to learn this one-
 
 # Weight-Based Priming
 
+**IMPORTANT** after this point, try to remember not to press `Init`, which will initialize the weights.  If you do, you can just press `Open Trained Wts` to open a set of pretrained weights.
+
 Having trained the network with the appropriate *semantic* background knowledge, we are now ready to assess its performance on the priming task. 
 
 We will first see if we can prime the `B` outputs by a single training trial on each of them, using the same slow learning rate that is used in all of our cortical simulations -- e.g., the `objrec` model which learned to recognize objects from visual inputs.
@@ -62,7 +64,7 @@ You can optionally explore turning the `Lrate` parameter down to .01 or even low
 
 Next, we can see to what extent residual activation from one trial to the next can bias processing.  To set up this test, we want the network to have a weight-based bias to respond with the `b` output:
 
-* Click `Env` and select `TrainB`, and do `Step Epoch`, followed by `Test All`, to ensure that it generally responds `b` (if you experimented with learning rate, or did a lot of tests with the weight-based case, it might be better to start fresh with `Init`, `Train` and then the `TrainB` etc.)
+* Click `Env` and select `TrainB`, and do `Step Epoch`, followed by `Test All`, to ensure that it generally responds `b` (if you experimented with learning rate, or did a lot of tests with the weight-based case, it might be better to start fresh with `Init`, `Open Trained Wts` and then the `TrainB` etc -- and don't forget to avoid hitting `Init` from this point on!)
 
 Next, we will use the `TrainAll` patterns for testing, because they alternate between the `a` and `b` versions of each input when presented sequentially -- we will test for the extent to which the residual activation from the `a` item can bias processing on the subsequent `b` case.  Note that we are recording the response of the network in the *minus* phase, and then the specific `Output` is clamped in the plus phase (even during testing), so we can observe the effects of e.g., the `0_a` `Output` activation (with the `a` pattern) on the tendency to bias the network to produce an `a` response again for the 0 input, despite the weights being biased in favor of producing the `b` output.
 
