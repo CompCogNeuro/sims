@@ -630,6 +630,16 @@ func (ss *Sim) SaveWeights(filename gi.FileName) {
 	ss.Net.SaveWtsJSON(filename)
 }
 
+// OpenTrainedWts opens trained weights
+func (ss *Sim) OpenTrainedWts() {
+	ab, err := Asset("trained.wts") // embedded in executable
+	if err != nil {
+		log.Println(err)
+	}
+	ss.Net.ReadWtsJSON(bytes.NewBuffer(ab))
+	// ss.Net.OpenWtsJSON("trained.wts")
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////
 // Testing
 
@@ -1312,6 +1322,13 @@ func (ss *Sim) ConfigGui() *gi.Window {
 			giv.CallMethod(ss, "SetEnv", vp)
 			vp.SetNeedsFullRender()
 		})
+
+	tbar.AddAction(gi.ActOpts{Label: "Open Trained Wts", Icon: "update", Tooltip: "open weights trained for 250 epochs with default params", UpdateFunc: func(act *gi.Action) {
+		act.SetActiveStateUpdt(!ss.IsRunning)
+	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+		ss.OpenTrainedWts()
+		vp.SetNeedsFullRender()
+	})
 
 	tbar.AddAction(gi.ActOpts{Label: "Reset RunLog", Icon: "update", Tooltip: "Reset the accumulated log of all Runs, which are tagged with the ParamSet used"}, win.This(),
 		func(recv, send ki.Ki, sig int64, data interface{}) {

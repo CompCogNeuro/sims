@@ -103,7 +103,7 @@ class Sim(pygiv.ClassViewObj):
     def __init__(self):
         super(Sim, self).__init__()
         self.GbarL = float(2.0)
-        self.SetTags("GbarL", 'def:"2" min:"0" max:"4" step:"0.1" desc:"the leak conductance, which pulls against the excitatory input conductance to determine how hard it is to activate the receiving unit"')
+        self.SetTags("GbarL", 'def:"2" min:"0" max:"4" step:"0.05" desc:"the leak conductance, which pulls against the excitatory input conductance to determine how hard it is to activate the receiving unit"')
         self.Net = leabra.Network()
         self.SetTags("Net", 'view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"')
         self.Pats = etable.Table()

@@ -1,7 +1,7 @@
 # Makefile for CCN sims projects
 
 # important: update these for each app
-ASSETS=twout_all.tsv twout_a.tsv twout_b.tsv
+ASSETS=twout_all.tsv twout_a.tsv twout_b.tsv trained.wts
 
 # default package install 
 PKGDIR=$(HOME)/ccnsimpkg

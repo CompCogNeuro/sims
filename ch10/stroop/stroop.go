@@ -783,12 +783,11 @@ func (ss *Sim) SOATestTrial(returnOnChg bool) {
 	if !islate || ss.SOA == 0 {
 		ss.Net.InitActs()
 	}
-
 	ss.ApplyInputs(&ss.SOATestEnv)
 	ss.AlphaCycTestCyc(ss.SOAMaxCyc)
 	if strings.Contains(ss.SOATestEnv.TrialName.Cur, "latestim") {
 		ss.TrialStats(false) // !accumulate
-		ss.LogSOATrl(ss.SOATrlLog, ss.SOATestEnv.Trial.Cur, ss.SOATestEnv.TrialName.Cur)
+		ss.LogSOATrl(ss.SOATrlLog, ss.SOATestEnv.Trial.Cur)
 	}
 }
 
@@ -1075,7 +1074,7 @@ func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 
 // LogSOATrl adds data from current trial to the SOATrlLog table.
 // log always contains number of testing items
-func (ss *Sim) LogSOATrl(dt *etable.Table, trl int, trlnm string) {
+func (ss *Sim) LogSOATrl(dt *etable.Table, trl int) {
 	epc := ss.TrainEnv.Epoch.Prv // this is triggered by increment so use previous value
 
 	row := dt.Rows
@@ -1083,11 +1082,13 @@ func (ss *Sim) LogSOATrl(dt *etable.Table, trl int, trlnm string) {
 		dt.SetNumRows(row + 1)
 	}
 
+	conds := []string{"Color_Conf", "Color_Cong", "Word_Conf", "Word_Cong"}
+
 	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
 	dt.SetCellFloat("Epoch", row, float64(epc))
 	dt.SetCellFloat("Trial", row, float64(ss.SOATrlTyp))
 	dt.SetCellFloat("SOA", row, float64(ss.SOA))
-	dt.SetCellString("TrialName", row, trlnm)
+	dt.SetCellString("TrialName", row, conds[ss.SOATrlTyp])
 	dt.SetCellFloat("Cycle", row, float64(ss.Time.Cycle))
 	dt.SetCellFloat("Err", row, ss.TrlErr)
 	dt.SetCellFloat("SSE", row, ss.TrlSSE)
@@ -1134,6 +1135,7 @@ func (ss *Sim) ConfigSOATrlLog(dt *etable.Table) {
 func (ss *Sim) ConfigSOATrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
 	plt.Params.Title = "Stroop SOA Test Trial Plot"
 	plt.Params.XAxisCol = "SOA"
+	plt.Params.LegendCol = "TrialName"
 	plt.SetTable(dt)
 	plt.Params.Points = true
 	// order of params: on, fixMin, min, fixMax, max

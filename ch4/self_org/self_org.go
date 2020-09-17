@@ -15,6 +15,7 @@ import (
 	"math/rand"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/emer/emergent/emer"
@@ -102,10 +103,10 @@ var ParamSets = params.Sets{
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
-	AvgLGain      float32           `def:"2.5" desc:"key BCM hebbian learning parameter, that determines how high the floating threshold goes -- higher = more homeostatic pressure against rich-get-richer feedback loops"`
-	InputNoise    float32           `def:"0" desc:"variance on gaussian noise to add to inputs"`
-	TrainGi       float32           `def:"1.8" desc:"strength of inhibition during training with two lines present in input"`
-	TestGi        float32           `def:"2.5" desc:"strength of inhibition during testing with one line present in input -- higher because fewer neurons should be active"`
+	AvgLGain      float32           `min:"0.1" step:"0.5" def:"2.5" desc:"key BCM hebbian learning parameter, that determines how high the floating threshold goes -- higher = more homeostatic pressure against rich-get-richer feedback loops"`
+	InputNoise    float32           `min:"0" def:"0" desc:"variance on gaussian noise to add to inputs"`
+	TrainGi       float32           `min:"0" step:"0.1" def:"1.8" desc:"strength of inhibition during training with two lines present in input"`
+	TestGi        float32           `min:"0" step:"0.1" def:"2.5" desc:"strength of inhibition during testing with one line present in input -- higher because fewer neurons should be active"`
 	Net           *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
 	Lines2        *etable.Table     `view:"no-inline" desc:"easy training patterns -- can be learned with Hebbian"`
 	Lines1        *etable.Table     `view:"no-inline" desc:"hard training patterns -- require error-driven"`
@@ -117,6 +118,7 @@ type Sim struct {
 	RunStats      *etable.Table     `view:"no-inline" desc:"aggregate stats on all runs"`
 	SimMat        *simat.SimMat     `view:"no-inline" desc:"similarity matrix"`
 	Params        params.Sets       `view:"no-inline" desc:"full collection of param sets"`
+	ParamSet      string            `view:"-" desc:"which set of *additional* parameters to use -- always applies Base and optionaly this next if set -- can use multiple names separated by spaces (don't put spaces in ParamSet names!)"`
 	MaxRuns       int               `desc:"maximum number of model runs to perform"`
 	MaxEpcs       int               `desc:"maximum number of epochs to run per model run"`
 	TrainEnv      env.FixedTable    `desc:"Training environment -- contains everything about iterating over input / output patterns over training"`
@@ -583,6 +585,13 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 		ss.Params.ValidateSheets([]string{"Network", "Sim"})
 	}
 	err := ss.SetParamsSet("Base", sheet, setMsg)
+	if ss.ParamSet != "" && ss.ParamSet != "Base" {
+		sps := strings.Fields(ss.ParamSet)
+		for _, ps := range sps {
+			err = ss.SetParamsSet(ps, sheet, setMsg)
+		}
+	}
+
 	ly := ss.Net.LayerByName("Hidden").(leabra.LeabraLayer).AsLeabra()
 	ly.Learn.AvgL.Gain = ss.AvgLGain
 	inp := ss.Net.LayerByName("Input").(leabra.LeabraLayer).AsLeabra()

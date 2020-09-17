@@ -116,7 +116,7 @@ Having seen that the network behaves reasonably (if not perfectly), we can explo
 
 After a short delay, the cluster plot for the nouns will show up.  This cluster plot shows some sensible pairings of words such as "schoolgirl" and "daintiness" and "crackers" and "jelly".  However, these results are limited because the words were just presented outside of any sentence context, which the model never experienced.
 
-* Click the `SentProbeClustPlot` tab to see the sentence probe cluster plot -- you will need to hit the `Update` button a couple of times within that view to get it to render properly.
+* Click the `SentProbeClustPlot` tab to see the sentence probe cluster plot.
 
 These probe sentences systematically vary the agents, verbs, and patients to reveal how the Gestalt layer encodes these factors.  Agents: `bu` = busdriver, `te` = teacher, `pi` = pitcher, `sc` = schoolgirl; Verbs: `dr` = drank, `st` = stirred, `at` = ate; Patients: `ic` = icedtea, `ko` = koolaid, `so` = soup,  `st` = steak.
 
