@@ -2,15 +2,17 @@
 
 This repository contains the neural network simulation models for the [CCN Textbook](https://github.com/CompCogNeuro/ed4) (now on github!).
 
-These models are implemented in the new *Go* (golang) version of [emergent](https://github.com/emer/emergent), with Python versions available as well (note: not yet!).  This github repository contains the full source code and you can build and run the models by cloning the repository and building / running the individual projects as described in the emergent Wiki help page: [Wiki Install](https://github.com/emer/emergent/wiki/Install) -- see [Build From Source](#build-from-source) section below for specific step-by-step instructions.
+These models are implemented in the new *Go* (golang) version of [emergent](https://github.com/emer/emergent), with Python versions available as well (note: up through ch4 so far!).  This github repository contains the full source code and you can build and run the models by cloning the repository and building / running the individual projects as described in the emergent Wiki help page: [Wiki Install](https://github.com/emer/emergent/wiki/Install) -- see [Build From Source](#build-from-source) section below for specific step-by-step instructions.
 
 The simplest way to run the simulations is by downloading a `zip` (or `tar.gz` for linux) file of all of the built models for your platform.  These are fully self-contained executable files and should "just work" on each platform.
 
+You can now also start working with the [Python](#python) version -- see instructions at that link for how to install (only recommended for mac or linux platforms).
+
 * The full set of files are in the [Releases](https://github.com/CompCogNeuro/sims/releases) directory -- look under `Assets` for files of the form `ccn_sims_<version>_<platform>.zip` where `<version>` is the version string (higher generally better), and `<platform>` is `mac`, `linux`, or `windows`.  Here are links (based on last time this README was updated)
 
-    + [ccn_sims_v1.0.4_mac.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.0.4/ccn_sims_v1.0.4_mac.zip)
-    + [ccn_sims_v1.0.4_windows.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.0.4/ccn_sims_v1.0.4_windows.zip)
-    + [ccn_sims_v1.0.4_linux.tar.gz](https://github.com/CompCogNeuro/sims/releases/download/v1.0.4/ccn_sims_v1.0.4_linux.tar.gz)
+    + [ccn_sims_v1.1.1_mac.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.1.1/ccn_sims_v1.1.1_mac.zip)
+    + [ccn_sims_v1.1.1_windows.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.1.1/ccn_sims_v1.1.1_windows.zip)
+    + [ccn_sims_v1.1.1_linux.tar.gz](https://github.com/CompCogNeuro/sims/releases/download/v1.1.1/ccn_sims_v1.1.1_linux.tar.gz)
 
 # Usage
 
@@ -29,6 +31,8 @@ You can always access more detailed parameters by clicking on the button to the 
 If double-clicking on the program doesn't work, you may have to do a "right mouse click" (e.g., Ctrl + click) to open the executables in the `.zip` version -- it may be easier to just open the `Terminal` app, `cd` to the directory, and run the files from the command line directly.
 
 # Status
+
+* **9/18/2020**: Version 1.1.1 release: a number of bug fixes, and first half of the python version models.
 
 * **4/21/2020**: Version 1.0.4 release: fixes `face_categ` cluster plot window display on Windows, adds few optional things to ch2/3 sims too.
 
@@ -111,6 +115,10 @@ Note: no sims for chapter 5
 * `a_not_b`: Development of PFC active maintenance and the A-not-B task (Questions **10.4 -- 10.6**)
 
 * `sir`: Store/Ignore/Recall Task - Updating and Maintenance in more complex PFC model (Questions **10.7 -- 10.8**)
+
+# Python
+
+This section will have instructions for how to run the python version.
 
 # Build From Source
 
