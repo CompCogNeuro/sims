@@ -124,8 +124,8 @@ Because it is built with a specific version of python3 baked in, you may want to
 
 To use our released version, download the `py` version from the releases page for your OS, e.g.,:
 
-    + [ccn_py_sims_v1.1.1_mac.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.1.1/ccn_py_sims_v1.1.1_mac.zip)
-    + [ccn_py_sims_v1.1.1_linux.tar.gz](https://github.com/CompCogNeuro/sims/releases/download/v1.1.1/ccn_py_sims_v1.1.1_linux.tar.gz)
+*  [ccn_py_sims_v1.1.1_mac.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.1.1/ccn_py_sims_v1.1.1_mac.zip)
+*  [ccn_py_sims_v1.1.1_linux.tar.gz](https://github.com/CompCogNeuro/sims/releases/download/v1.1.1/ccn_py_sims_v1.1.1_linux.tar.gz)
 
 unzip that file (e.g., using unzip command or your desktop interface), and `cd` in a terminal to that directory.
 
