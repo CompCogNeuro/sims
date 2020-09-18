@@ -31,7 +31,6 @@ import (
 	"github.com/emer/etable/etview" // include to get gui views
 	"github.com/emer/etable/simat"
 	"github.com/emer/etable/split"
-	"github.com/emer/leabra/deep"
 	"github.com/emer/leabra/leabra"
 	"github.com/emer/leabra/pbwm"
 	"github.com/emer/leabra/rl"
@@ -76,8 +75,10 @@ var ParamSets = params.Sets{
 					"Prjn.Learn.Momentum.On": "false",
 					"Prjn.Learn.WtBal.On":    "false",
 				}},
-			{Sel: "Layer", Desc: "no special params",
-				Params: params.Params{}},
+			{Sel: "Layer", Desc: "no decay",
+				Params: params.Params{
+					"Layer.Act.Init.Decay": "0", // key for all layers not otherwise done automatically
+				}},
 			{Sel: ".Back", Desc: "top-down back-projections MUST have lower relative weight scale, otherwise network hallucinates",
 				Params: params.Params{
 					"Prjn.WtScale.Rel": "0.2",
@@ -100,12 +101,6 @@ var ParamSets = params.Sets{
 				Params: params.Params{
 					"Layer.Act.Clamp.Range.Min": "-1",
 					"Layer.Act.Clamp.Range.Max": "1",
-				}},
-			{Sel: ".PFCToDeep", Desc: "PFC -> Deep consistent wt",
-				Params: params.Params{
-					"Prjn.WtInit.Mean": "0.8",
-					"Prjn.WtInit.Var":  "0",
-					"Prjn.WtInit.Sym":  "false",
 				}},
 			{Sel: ".PFCFmDeep", Desc: "PFC Deep -> PFC fixed",
 				Params: params.Params{
@@ -134,8 +129,13 @@ var ParamSets = params.Sets{
 				}},
 			{Sel: ".MatrixPrjn", Desc: "Matrix learning",
 				Params: params.Params{
-					"Prjn.Learn.Lrate": "0.04",
-					"Prjn.WtInit.Var":  "0.1",
+					"Prjn.Learn.Lrate":         "0.04", // .04 > .1
+					"Prjn.WtInit.Var":          "0.1",
+					"Prjn.Trace.GateNoGoPosLR": "0.1",  // 0.1 default
+					"Prjn.Trace.NotGatedLR":    "0.7",  // 0.7 default
+					"Prjn.Trace.Decay":         "1.0",  // 1.0 default
+					"Prjn.Trace.AChDecay":      "0.0",  // not useful even at .1, surprising..
+					"Prjn.Trace.Deriv":         "true", // true default, better than false
 				}},
 			{Sel: "MatrixLayer", Desc: "exploring these options",
 				Params: params.Params{
@@ -158,12 +158,13 @@ var ParamSets = params.Sets{
 					"Layer.Inhib.ActAvg.Init":  ".2",
 					"Layer.Inhib.ActAvg.Fixed": "true",
 					"Layer.Act.Dt.GTau":        "3",
+					"Layer.Gate.GeGain":        "3",
 					"Layer.Gate.NoGo":          "1",
 					"Layer.Gate.Thr":           "0.2",
 				}},
 			{Sel: "#GPeNoGo", Desc: "GPe is a regular layer -- needs special params",
 				Params: params.Params{
-					"Layer.Inhib.Layer.Gi":     "2.2",
+					"Layer.Inhib.Layer.Gi":     "2.4", // 2.4 > 2.2 > 1.8
 					"Layer.Inhib.Layer.FB":     "0.5",
 					"Layer.Inhib.Layer.FBTau":  "3", // otherwise a bit jumpy
 					"Layer.Inhib.Pool.On":      "false",
@@ -204,6 +205,11 @@ var ParamSets = params.Sets{
 				Params: params.Params{
 					"Layer.Act.Clamp.Range.Min": "-1",
 					"Layer.Act.Clamp.Range.Max": "1",
+				}},
+			{Sel: "#RWPred", Desc: "keep it guessing",
+				Params: params.Params{
+					"Layer.PredRange.Min": "0.01",
+					"Layer.PredRange.Max": "0.99",
 				}},
 		},
 	}},
@@ -366,7 +372,7 @@ func (ss *Sim) ConfigEnv() {
 
 func (ss *Sim) ConfigNet(net *pbwm.Network) {
 	net.InitName(net, "SIR")
-	rew, rp, da := rl.AddRWLayers(&net.Network.Network, "", relpos.Behind, 2)
+	rew, rp, da := rl.AddRWLayers(&net.Network, "", relpos.Behind, 2)
 	snc := da.(*rl.RWDaLayer)
 	snc.SetName("SNc")
 
@@ -380,12 +386,15 @@ func (ss *Sim) ConfigNet(net *pbwm.Network) {
 	hid.SetRelPos(relpos.Rel{Rel: relpos.Behind, Other: "CtrlInput", XAlign: relpos.Left, Space: 2})
 
 	// args: nY, nMaint, nOut, nNeurBgY, nNeurBgX, nNeurPfcY, nNeurPfcX
-	mtxGo, mtxNoGo, gpe, gpi, pfcMnt, pfcMntD, pfcOut, pfcOutD := net.AddPBWM("", 2, 2, 2, 1, 3, 1, 7)
+	mtxGo, mtxNoGo, gpe, gpi, cini, pfcMnt, pfcMntD, pfcOut, pfcOutD := net.AddPBWM("", 2, 2, 2, 1, 3, 1, 7)
 	_ = gpe
 	_ = gpi
 	_ = pfcMnt
 	_ = pfcMntD
 	_ = pfcOut
+
+	cin := cini.(*pbwm.CINLayer)
+	cin.RewLays.Add(rew.Name(), rp.Name())
 
 	mtxGo.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "Rew", YAlign: relpos.Front, Space: 14})
 
@@ -396,7 +405,7 @@ func (ss *Sim) ConfigNet(net *pbwm.Network) {
 	fmin.Wrap = true
 
 	net.ConnectLayersPrjn(inp, rp, full, emer.Forward, &rl.RWPrjn{})
-	net.ConnectLayersPrjn(pfcMntD, rp, full, emer.Forward, &rl.RWPrjn{})
+	// net.ConnectLayersPrjn(pfcMntD, rp, full, emer.Forward, &rl.RWPrjn{})
 
 	pj := net.ConnectLayersPrjn(ctrl, mtxGo, fmin, emer.Forward, &pbwm.MatrixTracePrjn{})
 	pj.SetClass("MatrixPrjn")
@@ -540,14 +549,14 @@ func (ss *Sim) ApplyInputs(en env.Env) {
 
 	lays := []string{"Input", "Output"}
 	for _, lnm := range lays {
-		ly := ss.Net.LayerByName(lnm).(deep.DeepLayer).AsDeep()
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		pats := en.State(ly.Nm)
 		if pats == nil {
 			continue
 		}
 		ly.ApplyExt(pats)
 		if lnm == "Input" {
-			ly = ss.Net.LayerByName("CtrlInput").(deep.DeepLayer).AsDeep()
+			ly = ss.Net.LayerByName("CtrlInput").(leabra.LeabraLayer).AsLeabra()
 			ly.ApplyExt(pats)
 		}
 	}
@@ -565,7 +574,7 @@ func (ss *Sim) ApplyReward(train bool) {
 	if en.Act != Recall { // only reward on recall trials!
 		return
 	}
-	out := ss.Net.LayerByName("Output").(deep.DeepLayer).AsDeep()
+	out := ss.Net.LayerByName("Output").(leabra.LeabraLayer).AsLeabra()
 	mxi := out.Pools[0].Inhib.Act.MaxIdx
 	en.SetReward(mxi)
 	pats := en.State("Reward")
@@ -1042,7 +1051,7 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 
 	for _, lnm := range ss.TstRecLays {
 		tsr := ss.ValsTsr(lnm)
-		ly := ss.Net.LayerByName(lnm).(deep.DeepLayer).AsDeep()
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		ly.UnitValsTensor(tsr, "ActM")
 		dt.SetCellTensor(lnm, row, tsr)
 	}
@@ -1072,7 +1081,7 @@ func (ss *Sim) ConfigTstTrlLog(dt *etable.Table) {
 		{"RewPred", etensor.FLOAT64, nil, nil},
 	}
 	for _, lnm := range ss.TstRecLays {
-		ly := ss.Net.LayerByName(lnm).(deep.DeepLayer).AsDeep()
+		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		sch = append(sch, etable.Column{lnm, etensor.FLOAT64, ly.Shp.Shp, nil})
 	}
 	dt.SetFromSchema(sch, nt)
@@ -1161,13 +1170,7 @@ func (ss *Sim) LogRun(dt *etable.Table) {
 	}
 	epcix.Idxs = epcix.Idxs[epcix.Len()-nlast:]
 
-	params := "Std"
-	// if ss.AvgLGain != 2.5 {
-	// 	params += fmt.Sprintf("_AvgLGain=%s", ss.AvgLGain)
-	// }
-	// if ss.InputNoise != 0 {
-	// 	params += fmt.Sprintf("_InVar=%v", ss.InputNoise)
-	// }
+	params := ss.RunName()
 
 	dt.SetCellFloat("Run", row, float64(run))
 	dt.SetCellString("Params", row, params)

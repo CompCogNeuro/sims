@@ -140,8 +140,8 @@ var ParamSets = params.Sets{
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
-	BurstDaGain float32           `desc:"strength of dopamine bursts: 1 default -- reduce for PD OFF, increase for PD ON"`
-	DipDaGain   float32           `desc:"strength of dopamine dips: 1 default -- reduce to siulate D2 agonists"`
+	BurstDaGain float32           `min:"0" step:"0.1" desc:"strength of dopamine bursts: 1 default -- reduce for PD OFF, increase for PD ON"`
+	DipDaGain   float32           `min:"0" step:"0.1" desc:"strength of dopamine dips: 1 default -- reduce to siulate D2 agonists"`
 	Net         *pbwm.Network     `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
 	TrnEpcLog   *etable.Table     `view:"no-inline" desc:"training epoch-level log data"`
 	TstEpcLog   *etable.Table     `view:"no-inline" desc:"testing epoch-level log data"`
@@ -256,12 +256,13 @@ func (ss *Sim) ConfigNet(net *pbwm.Network) {
 	inp.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "SNc", YAlign: relpos.Front, XAlign: relpos.Left})
 
 	// args: nY, nMaint, nOut, nNeurBgY, nNeurBgX, nNeurPfcY, nNeurPfcX
-	mtxGo, mtxNoGo, gpe, gpi, pfcMnt, pfcMntD, pfcOut, pfcOutD := net.AddPBWM("", 1, 0, 1, 1, 6, 1, 6)
+	mtxGo, mtxNoGo, gpe, gpi, cini, pfcMnt, pfcMntD, pfcOut, pfcOutD := net.AddPBWM("", 1, 0, 1, 1, 6, 1, 6)
 	_ = gpe
 	_ = gpi
 	_ = pfcMnt  // nil
 	_ = pfcMntD // nil
 	_ = pfcOutD
+	_ = cini
 
 	onetoone := prjn.NewOneToOne()
 	pj := net.ConnectLayersPrjn(inp, mtxGo, onetoone, emer.Forward, &pbwm.DaHebbPrjn{})

@@ -19,7 +19,7 @@ Here is a quick overview of each of the variables -- we'll go through them indiv
 
 * `Inet` (red line) = net current (sum of individual excitation and leak    currents), which is excitatory (upward) when the excitatory input comes on, and then oscillates as the action potential spikes fire. In general this reflects the net balance between the excitatory net input and the constant leak current (plus inhibition, which is not present in this simulation).
 
-* `Vm` (blue line) = membrane potential, which represents integration of all inputs into neuron. This starts out at the resting potential of .3 (= -70mV in biological units), and then increases with the excitatory input. As you can see, the net current (Inet) shows the *rate of change* of the membrane potential. When Vm gets above about .5, a spike is fired, and Vm is then reset back to .3, starting the cycle over again.
+* `Vm` (blue line) = membrane potential, which represents integration of all inputs into neuron. This starts out at the resting potential of .3 (= -70mV in biological units), and then increases with the excitatory input. As you can see, the net current (Inet) shows the *rate of change* of the membrane potential while it is elevated prior to spiking. When Vm gets above about .5, a spike is fired, and Vm is then reset back to .3, starting the cycle over again.
 
 * `Act` (green line) = activation. This shows the amount of activation (rate of firing) -- by default the model is set to discrete spiking, so this value is computed from the running-average measured inter-spike-interval (*ISI*).  It is first computed after the *second* spike, as that is the only point when the ISI is available.  If you turn the `Spike` setting to off, then the Act value is computed directly.
 
@@ -57,7 +57,7 @@ By systematically searching the parameter range for `GbarE` between .1 and .2, y
 
 * Note: If you want to see the precise numbers for the values in the graph, click on the `TstCycLog`.  Be sure to press `UpdtView` if you run again, to update to current results.  You don't need these yet but may want to look at them anyway -- the precise numbers you need here are for the `GbarE` parameter, but it might be useful to see the underlying Vm values.
 
-> **Question 2.4 (advanced):** Using the equation for the equilibrium membrane potential from the Neuron chapter, compute the exact value of excitatory input required to just reach threshold, showing your math (note that: Gl is a constant = .3; Ge is 1 when the input is on; inhibition is not present here and can be ignored) -- this should agree with your empirically determined value.
+> **Question 2.4 (advanced):** Using one of the equations for the equilibrium membrane potential from the Neuron chapter, compute the exact value of excitatory input conductance required to keep Vm in equilibrium at the spiking threshold. Show your math. This means rearranging the equation to have excitatory conductance on one side, then substituting in known values. (note that: Gl is a constant = .3; Ge is 1 when the input is on; inhibition is not present here and can be ignored) -- this should agree with your empirically determined value.
 
 ## Leak
 
