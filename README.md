@@ -118,7 +118,53 @@ Note: no sims for chapter 5
 
 # Python
 
-This section will have instructions for how to run the python version.
+Running the sims under Python uses a compiled version of the underlying Go-based simulation infrastructure (i.e., all of [emer](https://github.com/emer) and all of [GoGi](https://github.com/goki/gi) ) that links in a specific version of Python, in the form of an executable file named `pyleabra`.  The pyleabra executable is just like a `python3` executable in all other respects.
+
+Because it is built with a specific version of python3 baked in, you may want to build your own version of this executable based on the version of python that you use for your other work, in which case see the instructions at: [leabra python](https://github.com/emer/leabra/tree/master/python).
+
+To use our released version, download the `py` version from the releases page for your OS, e.g.,:
+
+    + [ccn_py_sims_v1.1.1_mac.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.1.1/ccn_py_sims_v1.1.1_mac.zip)
+    + [ccn_py_sims_v1.1.1_linux.tar.gz](https://github.com/CompCogNeuro/sims/releases/download/v1.1.1/ccn_py_sims_v1.1.1_linux.tar.gz)
+
+unzip that file (e.g., using unzip command or your desktop interface), and `cd` in a terminal to that directory.
+
+To install manually, type:
+
+```bash
+$ ./pyleabra -m pip install emergent*.tar.gz
+````
+
+and then copy `pyleabra` executable to `/usr/local/bin`:
+
+```bash
+$ cp pyleabra /usr/local/bin
+```
+
+Or you can also just type: `make install` to run these commands using the provided `Makefile`
+
+Then, download the sims using `git` -- will show up as sims dir so you might want to make a subdir, e.g.:
+
+```bash
+$ mkdir ~/ccnsims
+$ cd ~/ccnsims
+$ git clone https://gtihub.com/CompCogNeuro/sims
+```
+
+Then you can go to the location of the sims source, and just run the .py executables, e.g.,
+
+```bash
+$ cd ~/ccnsims/sims/ch2/neuron
+$ ./neuron.py
+```
+
+## Installing other python packages
+
+As noted above, `pyleabra` is built with a specific version of python (e.g., 3.8.3 -- you can check by just running pyleabra and looking at the startup message), so you may need to install other packages you typically use for this version, if your typical usage is with a different version of python.  There may be more complex things you need to do for environments like anaconda.  e.g., here's how you would install numpy and pandas:
+
+```bash
+$ pyleabra -m pip install numpy pandas
+```
 
 # Build From Source
 
