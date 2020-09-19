@@ -133,6 +133,7 @@ To install manually, type:
 
 ```bash
 $ ./pyleabra -m pip install emergent*.tar.gz
+$ ./pyleabra -m pip install numpy pandas  # numpy is needed, pandas might be
 ````
 
 and then copy `pyleabra` executable to `/usr/local/bin`:
