@@ -123,7 +123,7 @@ You should run this section after having read the *FFFB Inhibition Function* sec
 
 * Reset the parameters to their default values using the `Defaults` button, click the `BidirNet` on to use that, and then Test to get the initial state of the network. This should reproduce the standard activation graph for the case with actual inhibitory neurons.
 
-* Now, set `FFFBInhib` on to use the FFFB function described in the main text. Also set the `HiddenGbarI` and `InhibGbarI` parameters to 1 (otherwise the computed inhibition will be inaccurate), and the rate constant parameters to their defaults for normal (non unit inhib) operation, which is `HiddenGTau` and `InhibGTau` both to 1.4. Finally, you need to turn off the inhibitory projections (when present, these will contribute in addition to whatever is computed by FFFB - but we want to see how FFFB can do on its own): set FmInhibWtScaleAbs to 0 (this sets the absolute scaling factor of the connections from inhibitory neurons to 0, effectively nullifying these connections).  
+* Now, set `FFFBInhib` on to use the FFFB function described in the main text. Also set the `HiddenGbarI` and `InhibGbarI` parameters to 1 (otherwise the computed inhibition will be inaccurate), and the rate constant parameters to their defaults for normal (non unit inhib) operation, which is `HiddenGTau` and `InhibGTau` both to 1.4. Finally, you need to turn off the inhibitory projections (when present, these will contribute in addition to whatever is computed by FFFB - but we want to see how FFFB can do on its own): set `FmInhibWtScaleAbs` to 0 (this sets the absolute scaling factor of the connections from inhibitory neurons to 0, effectively nullifying these connections).  
 
 * Press `Test Trial`.
 
