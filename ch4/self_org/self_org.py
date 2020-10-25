@@ -296,7 +296,7 @@ class Sim(pygiv.ClassViewObj):
         NewRndSeed gets a new random seed based on current time -- otherwise uses
         the same random seed for every run
         """
-        ss.RndSeed = datetime.now(timezone.utc)
+        ss.RndSeed = int(datetime.now(timezone.utc).timestamp())
 
     def Counters(ss, train):
         """

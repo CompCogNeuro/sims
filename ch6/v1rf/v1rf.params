@@ -1,0 +1,67 @@
+[
+  {
+    "Name": "Base",
+    "Desc": "these are the best params",
+    "Sheets": {
+      "Network": [
+        {
+          "Sel": "Prjn",
+          "Desc": "no extra learning factors, hebbian learning",
+          "Params": {
+            "Prjn.Learn.Momentum.On": "false",
+            "Prjn.Learn.Norm.On": "false",
+            "Prjn.Learn.WtBal.On": "false",
+            "Prjn.Learn.WtSig.Gain": "1",
+            "Prjn.Learn.XCal.LLrn": "1",
+            "Prjn.Learn.XCal.MLrn": "0",
+            "Prjn.Learn.XCal.SetLLrn": "true"
+          }
+        },
+        {
+          "Sel": "Layer",
+          "Desc": "needs some special inhibition and learning params",
+          "Params": {
+            "Layer.Act.Gbar.L": "0.1",
+            "Layer.Act.Noise.Dist": "Gaussian",
+            "Layer.Act.Noise.Fixed": "false",
+            "Layer.Act.Noise.Type": "GeNoise",
+            "Layer.Act.Noise.Var": "0.02",
+            "Layer.Inhib.ActAvg.Init": "0.2",
+            "Layer.Inhib.Layer.FBTau": "3",
+            "Layer.Inhib.Layer.Gi": "2",
+            "Layer.Learn.AvgL.Gain": "1",
+            "Layer.Learn.AvgL.Init": "0.2",
+            "Layer.Learn.AvgL.Min": "0.01"
+          }
+        },
+        {
+          "Sel": ".Back",
+          "Desc": "top-down back-projections MUST have lower relative weight scale, otherwise network hallucinates",
+          "Params": {
+            "Prjn.WtScale.Rel": "0.2"
+          }
+        },
+        {
+          "Sel": ".ExciteLateral",
+          "Desc": "lateral excitatory connection",
+          "Params": {
+            "Prjn.WtInit.Mean": ".5",
+            "Prjn.WtInit.Sym": "false",
+            "Prjn.WtInit.Var": "0",
+            "Prjn.WtScale.Rel": "0.2"
+          }
+        },
+        {
+          "Sel": ".InhibLateral",
+          "Desc": "lateral inhibitory connection",
+          "Params": {
+            "Prjn.WtInit.Mean": "0",
+            "Prjn.WtInit.Sym": "false",
+            "Prjn.WtInit.Var": "0",
+            "Prjn.WtScale.Abs": "0.2"
+          }
+        }
+      ]
+    }
+  }
+]
