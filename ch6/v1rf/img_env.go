@@ -181,11 +181,7 @@ func (ev *ImgEnv) OpenImages() error {
 			lsterr = err
 			continue
 		}
-		if rg, ok := img.(*image.RGBA); ok {
-			ev.Images[i] = rg
-		} else {
-			ev.Images[i] = clone.AsRGBA(img)
-		}
+		ev.Images[i] = gi.ImageToRGBA(img)
 	}
 	return lsterr
 }

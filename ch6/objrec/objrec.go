@@ -324,12 +324,7 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 
 func (ss *Sim) InitWts(net *leabra.Network) {
 	// set scales after building but before InitWts
-	v1 := net.LayerByName("V1")
-	v4 := net.LayerByName("V4")
-	v1v4 := v4.RecvPrjns().SendName("V1").(*leabra.Prjn)
-	scales := &etensor.Float32{}
-	ss.V1V4Prjn.TopoWts(v1.Shape(), v4.Shape(), scales)
-	v1v4.SetScalesRPool(scales)
+	net.InitScalesFmPoolTile() //  sets all wt scales
 	net.InitWts()
 	net.LrateMult(1) // restore initial learning rate value
 }
