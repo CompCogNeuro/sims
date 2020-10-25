@@ -68,7 +68,7 @@ Also, for most runs, if you use the lower level of inhibition used during traini
 
 The performance of the model on any given run can be quite variable, depending on the random initial weights. Almost always the uniq_pats statistic is above 5, and often it is a perfect 10, and typically it climbs up over training. Because of this variability, we need to run multiple batches of training to get a better sense of how well the network learns in general.
 
-* Hit `Train` to run, and switch to viewing the `RunPlot` to see a record of the `UniqPats` statistic for each of the 8 runs. 
+* Hit `New Seed` and `Train` to run, and switch to viewing the `RunPlot` to see a record of the `UniqPats` statistic for each of the 8 runs. 
 
 After the 8 training runs, you can click on the `RunStats` button to view summary statistics about the average (mean), maximum, minimum, etc of the `UniqPats` statistic at the end of each network training run.  Hover the mouse over the header labels to see the full name of the field.
 
@@ -81,7 +81,7 @@ Now, let's explore the effects of some of the parameters in the control panel.
 
 One thing that is a bit unrealistic about this model is the lack of any activity at all in the units that are off. In the real brain, inactive neurons always have some low level of activity. This can affect the extent to which weights decrease to the less active inputs, potentially leading to cleaner overall patterns of weights.
 
-* To add some noise activity in the input, set the InputNoise to .2, and `Init` and `Train` (you can `Step Trial` to see the noise in the input).  
+* To add some noise activity in the input, set the InputNoise to .2, and do `New Seed` and then `Init` and `Train` (you can `Step Trial` to see the noise in the input).  
 
 > **Question 4.2:** Now what did you get for the `UniqPats` stats in the `RunStats`? Is this an improvement over the no-noise case?
 
