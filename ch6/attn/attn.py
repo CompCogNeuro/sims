@@ -378,9 +378,7 @@ class Sim(pygiv.ClassViewObj):
         ui = etensor.Prjn2DIdx(lay.Shape(), False, uny, unx)
         rpj = lay.RecvPrjns()
         for pji in rpj:
-            pj = leabra.Prjn(pji)
-            if len(pj.RConN) < ui:
-                continue
+            pj = leabra.Prjn(handle=pji)  # todo: not clear why handle needed here?
             nc = int(pj.RConN[ui])
             st = int(pj.RConIdxSt[ui])
             for ci in range(nc):
