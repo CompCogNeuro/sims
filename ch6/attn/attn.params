@@ -1,0 +1,159 @@
+[
+  {
+    "Name": "Base",
+    "Desc": "these are the best params",
+    "Sheets": {
+      "Network": [
+        {
+          "Sel": "Prjn",
+          "Desc": "no learning",
+          "Params": {
+            "Prjn.Learn.Learn": "false",
+            "Prjn.WtInit.Mean": "0.5",
+            "Prjn.WtInit.Sym": "false",
+            "Prjn.WtInit.Var": "0"
+          }
+        },
+        {
+          "Sel": "Layer",
+          "Desc": "fix expected activity levels, reduce leak",
+          "Params": {
+            "Layer.Act.Dt.GTau": "3",
+            "Layer.Act.Dt.VmTau": "7",
+            "Layer.Act.Gbar.L": "0.1",
+            "Layer.Act.Init.Decay": "0",
+            "Layer.Act.KNa.On": "false",
+            "Layer.Act.Noise.Dist": "Gaussian",
+            "Layer.Act.Noise.Fixed": "false",
+            "Layer.Act.Noise.Type": "GeNoise",
+            "Layer.Act.Noise.Var": "0.001",
+            "Layer.Inhib.ActAvg.Fixed": "true",
+            "Layer.Inhib.ActAvg.Init": "0.05",
+            "Layer.Inhib.Layer.FBTau": "3"
+          }
+        },
+        {
+          "Sel": "#Input",
+          "Desc": "no noise",
+          "Params": {
+            "Layer.Act.Noise.Type": "NoNoise",
+            "Layer.Inhib.ActAvg.Init": "0.07",
+            "Layer.Inhib.Layer.Gi": "2.0"
+          }
+        },
+        {
+          "Sel": "#V1",
+          "Desc": "specific inhibition",
+          "Params": {
+            "Layer.Inhib.Layer.Gi": "2.0"
+          }
+        },
+        {
+          "Sel": ".Object",
+          "Desc": "specific inhbition",
+          "Params": {
+            "Layer.Inhib.ActAvg.Init": "0.1",
+            "Layer.Inhib.Layer.Gi": "0.85",
+            "Layer.Inhib.Pool.FB": "0.5",
+            "Layer.Inhib.Pool.Gi": "1",
+            "Layer.Inhib.Pool.On": "true"
+          }
+        },
+        {
+          "Sel": ".Spatial",
+          "Desc": "specific inhbition",
+          "Params": {
+            "Layer.Inhib.ActAvg.Init": "0.4",
+            "Layer.Inhib.Layer.Gi": "1"
+          }
+        },
+        {
+          "Sel": "#Spat2",
+          "Desc": "specific inhbition",
+          "Params": {
+            "Layer.Inhib.ActAvg.Init": "0.6667"
+          }
+        },
+        {
+          "Sel": "#Output",
+          "Desc": "specific inhbition",
+          "Params": {
+            "Layer.Inhib.ActAvg.Init": "0.5",
+            "Layer.Inhib.Layer.Gi": "1.8"
+          }
+        },
+        {
+          "Sel": ".Back",
+          "Desc": "all top-downs",
+          "Params": {
+            "Prjn.WtScale.Rel": "0.25"
+          }
+        },
+        {
+          "Sel": ".Lateral",
+          "Desc": "spatial self",
+          "Params": {
+            "Prjn.WtScale.Abs": "0.4"
+          }
+        },
+        {
+          "Sel": ".SpatToObj",
+          "Desc": "spatial to obj",
+          "Params": {
+            "Prjn.WtScale.Rel": "2"
+          }
+        },
+        {
+          "Sel": ".ObjToSpat",
+          "Desc": "obj to spatial",
+          "Params": {
+            "Prjn.WtScale.Rel": "0.5"
+          }
+        },
+        {
+          "Sel": "#InputToV1",
+          "Desc": "wt scale",
+          "Params": {
+            "Prjn.WtScale.Rel": "3"
+          }
+        },
+        {
+          "Sel": "#V1ToSpat1",
+          "Desc": "wt scale",
+          "Params": {
+            "Prjn.WtScale.Rel": "0.6"
+          }
+        },
+        {
+          "Sel": "#Spat1ToV1",
+          "Desc": "stronger spatial top-down wt scale -- key param for invalid effect",
+          "Params": {
+            "Prjn.WtScale.Rel": "0.4"
+          }
+        },
+        {
+          "Sel": "#Spat2ToSpat1",
+          "Desc": "stronger spatial top-down wt scale -- key param for invalid effect",
+          "Params": {
+            "Prjn.WtScale.Rel": "0.4"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "Name": "KNaAdapt",
+    "Desc": "Turn on KNa adaptation",
+    "Sheets": {
+      "Network": [
+        {
+          "Sel": "Layer",
+          "Desc": "KNa adapt on",
+          "Params": {
+            "Layer.Act.KNa.On": "true"
+          }
+        }
+      ]
+    }
+  }
+]
