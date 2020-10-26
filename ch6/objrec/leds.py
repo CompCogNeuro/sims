@@ -2,16 +2,54 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
-package main
+from leabra import go, pygiv, gi, image
+from enum import Enum
 
-import "image"
+Bottom = 0
+Left = 1
+Right = 2
+Top = 3
+CenterH = 4
+CenterV = 5
+LEDSegsN = 6
 
-"github.com/goki/gi/gi"
+class LEDSegs(Enum):
+    Bottom = 0
+    Left = 1
+    Right = 2
+    Top = 3
+    CenterH = 4
+    CenterV = 5
+    LEDSegsN = 6
+
+# These are the 20 different LED figures
+LEData = (
+    (CenterH, CenterV, Right),
+    (Top, CenterV, Bottom),
+    (Top, Right, Bottom),
+    (Bottom, CenterV, Right),
+    (Left, CenterH, Right),
+
+    (Left, CenterV, CenterH),
+    (Left, CenterV, Right),
+    (Left, CenterV, Bottom),
+    (Left, CenterH, Top),
+    (Left, CenterH, Bottom),
+
+    (Top, CenterV, Right),
+    (Bottom, CenterV, CenterH),
+    (Right, CenterH, Bottom),
+    (Top, CenterH, Bottom),
+    (Left, Top, Right),
+
+    (Top, CenterH, Right),
+    (Left, CenterV, Top),
+    (Top, Left, Bottom),
+    (Left, Bottom, Right),
+    (Top, CenterV, CenterH),
+    )
 
 class LEDraw(pygiv.ClassViewObj):
-# LEDraw renders old-school "LED" style "letters" composed of a set of horizontal
-# and vertical elements.  All possible such combinations of 3 out of 6 line segments are created.
-# Renders using SVG.
     """
     LEDraw renders old-school "LED" style "letters" composed of a set of horizontal
     and vertical elements.  All possible such combinations of 3 out of 6 line segments are created.
@@ -19,14 +57,14 @@ class LEDraw(pygiv.ClassViewObj):
     """
 
     def __init__(self):
-        super(Sim, self).__init__()
-        self.Width = float()
+        super(LEDraw, self).__init__()
+        self.Width = float(4)
         self.SetTags("Width", 'def:"4" desc:"line width of LEDraw as percent of display size"')
-        self.Size = float()
+        self.Size = float(0.6)
         self.SetTags("Size", 'def:"0.6" desc:"size of overall LED as proportion of overall image size"')
-        self.LineColor = gi.ColorName()
+        self.LineColor = "white"
         self.SetTags("LineColor", 'desc:"color name for drawing lines"')
-        self.BgColor = gi.ColorName()
+        self.BgColor = "black"
         self.SetTags("BgColor", 'desc:"color name for background"')
         self.ImgSize = image.Point()
         self.SetTags("ImgSize", 'desc:"size of image to render"')
@@ -50,11 +88,11 @@ class LEDraw(pygiv.ClassViewObj):
         """
         if ld.ImgSize.X == 0 or ld.ImgSize.Y == 0:
             ld.Defaults()
-        if ld.Image != go.nil:
+        if ld.Image != 0:
             cs = ld.Image.Bounds().Size()
             if cs != ld.ImgSize:
-                ld.Image = go.nil
-        if ld.Image == go.nil:
+                ld.Image = 0
+        if ld.Image == 0:
             ld.Image = image.NewRGBA(image.Rectangle(Max= ld.ImgSize))
         ld.Render.Init(ld.ImgSize.X, ld.ImgSize.Y, ld.Image)
         ld.Paint.Defaults()
@@ -67,7 +105,7 @@ class LEDraw(pygiv.ClassViewObj):
         """
         Clear clears the image with BgColor
         """
-        if ld.Image == go.nil:
+        if ld.Image == 0:
             ld.Init()
         ld.Paint.Clear(ld.Render)
 
@@ -81,18 +119,17 @@ class LEDraw(pygiv.ClassViewObj):
         szX = ctrX * ld.Size
         szY = ctrY * ld.Size
 
-        switch seg:
-        if Bottom.Bottom:
+        if seg == Bottom:
             ld.Paint.DrawLine(rs, ctrX-szX, ctrY+szY, ctrX+szX, ctrY+szY)
-        if Left.Left:
+        if seg == Left:
             ld.Paint.DrawLine(rs, ctrX-szX, ctrY-szY, ctrX-szX, ctrY+szY)
-        if Right.Right:
+        if seg == Right:
             ld.Paint.DrawLine(rs, ctrX+szX, ctrY-szY, ctrX+szX, ctrY+szY)
-        if Top.Top:
+        if seg == Top:
             ld.Paint.DrawLine(rs, ctrX-szX, ctrY-szY, ctrX+szX, ctrY-szY)
-        if CenterH.CenterH:
+        if seg == CenterH:
             ld.Paint.DrawLine(rs, ctrX-szX, ctrY, ctrX+szX, ctrY)
-        if CenterV.CenterV:
+        if seg == CenterV:
             ld.Paint.DrawLine(rs, ctrX, ctrY-szY, ctrX, ctrY+szY)
         ld.Paint.Stroke(rs)
 
@@ -101,45 +138,7 @@ class LEDraw(pygiv.ClassViewObj):
         DrawLED draws one LED of given number, based on LEDdata
         """
         led = LEData[num]
-        for _, seg in led :
+        for seg in led:
             ld.DrawSeg(seg)
 
 
-
-
-class LEDSegs(pygiv.ClassViewObj):
-
-
-Bottom.Bottom LEDSegs = iota
-Left.Left
-Right.Right
-Top.Top
-CenterH.CenterH
-CenterV.CenterV
-LEDSegsN.LEDSegsN
-
-LEData = [][3]LEDSegs(
-    (CenterH.CenterH, CenterV.CenterV, Right.Right),
-    (Top.Top, CenterV.CenterV, Bottom.Bottom),
-    (Top.Top, Right.Right, Bottom.Bottom),
-    (Bottom.Bottom, CenterV.CenterV, Right.Right),
-    (Left.Left, CenterH.CenterH, Right.Right),
-
-    (Left.Left, CenterV.CenterV, CenterH.CenterH),
-    (Left.Left, CenterV.CenterV, Right.Right),
-    (Left.Left, CenterV.CenterV, Bottom.Bottom),
-    (Left.Left, CenterH.CenterH, Top.Top),
-    (Left.Left, CenterH.CenterH, Bottom.Bottom),
-
-    (Top.Top, CenterV.CenterV, Right.Right),
-    (Bottom.Bottom, CenterV.CenterV, CenterH.CenterH),
-    (Right.Right, CenterH.CenterH, Bottom.Bottom),
-    (Top.Top, CenterH.CenterH, Bottom.Bottom),
-    (Left.Left, Top.Top, Right.Right),
-
-    (Top.Top, CenterH.CenterH, Right.Right),
-    (Left.Left, CenterV.CenterV, Top.Top),
-    (Top.Top, Left.Left, Bottom.Bottom),
-    (Left.Left, Bottom.Bottom, Right.Right),
-    (Top.Top, CenterV.CenterV, CenterH.CenterH),
-)

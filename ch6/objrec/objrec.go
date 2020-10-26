@@ -323,8 +323,7 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 }
 
 func (ss *Sim) InitWts(net *leabra.Network) {
-	// set scales after building but before InitWts
-	net.InitScalesFmPoolTile() //  sets all wt scales
+	net.InitTopoScales() //  sets all wt scales
 	net.InitWts()
 	net.LrateMult(1) // restore initial learning rate value
 }

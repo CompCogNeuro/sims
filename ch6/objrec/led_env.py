@@ -2,15 +2,10 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
-package main
+from leabra import go, pygiv, rand, env, etensor, vfilter, vxform
 
-import "fmt"
-"math/rand"
-
-"github.com/emer/emergent/env"
-"github.com/emer/etable/etensor"
-"github.com/emer/vision/vfilter"
-"github.com/emer/vision/vxform"
+from leds import LEDraw
+from v1filter import Vis
 
 class LEDEnv(pygiv.ClassViewObj):
     """
@@ -20,7 +15,7 @@ class LEDEnv(pygiv.ClassViewObj):
     """
 
     def __init__(self):
-        super(Sim, self).__init__()
+        super(LEDEnv, self).__init__()
         self.Nm = str()
         self.SetTags("Nm", 'desc:"name of this environment"')
         self.Dsc = str()
@@ -59,34 +54,16 @@ class LEDEnv(pygiv.ClassViewObj):
         return ev.Dsc
 
     def Validate(ev):
-        return go.nil
-
-    def Counters(ev):
-        return []env.TimeScales(env.Run, env.Epoch, env.Sequence, env.Trial)
-
-    def States(ev):
-        isz = ev.Draw.ImgSize
-        sz = ev.Vis.V1AllTsr.Shapes()
-        nms = ev.Vis.V1AllTsr.DimNames()
-        els = env.Elements(
-            ("Image", go.Slice_int([isz.Y, isz.X]), []str("Y", "X")),
-            ("V1", sz, nms),
-            ("Output", go.Slice_int([4, 5]), []str("Y", "X")),
-        )
-        return els
+        return 0
 
     def State(ev, element):
-        switch element:
-        if "Image":
+        if element == "Image":
             vfilter.RGBToGrey(ev.Draw.Image, ev.OrigImg, 0, False) # pad for filt, bot zero
             return ev.OrigImg
-        if "V1":
+        if element == "V1":
             return ev.Vis.V1AllTsr
-        if "Output":
+        if element == "Output":
             return ev.Output
-        return go.nil
-
-    def Actions(ev):
         return go.nil
 
     def Defaults(ev):
@@ -107,7 +84,7 @@ class LEDEnv(pygiv.ClassViewObj):
         ev.Trial.Init()
         ev.Run.Cur = run
         ev.Trial.Cur = -1 # init state -- key so that first Step() = 0
-        ev.Output.SetShape(go.Slice_int([4, 5]), go.nil, []str("Y", "X"))
+        ev.Output.SetShape(go.Slice_int([4, 5]), go.nil, go.Slice_string(["Y", "X"]))
 
     def Step(ev):
         ev.Epoch.Same()     # good idea to just reset all non-inner-most counters at start
@@ -126,17 +103,32 @@ class LEDEnv(pygiv.ClassViewObj):
         ev.DrawLED(objno)
         ev.FilterImg()
 
-    def Action(ev, element, input):
+    def CounterCur(ev, scale):
+        if scale == env.Run:
+            return ev.Run.Cur
+        if scale == env.Epoch:
+            return ev.Epoch.Cur
+        if scale == env.Trial:
+            return ev.Trial.Cur
+        return -1
 
-    def Counter(ev, scale):
-        switch scale:
-        if env.Run:
-            return ev.Run.Query()
-        if env.Epoch:
-            return ev.Epoch.Query()
-        if env.Trial:
-            return ev.Trial.Query()
-        return -1, -1, False
+    def CounterPrv(ev, scale):
+        if scale == env.Run:
+            return ev.Run.Prv
+        if scale == env.Epoch:
+            return ev.Epoch.Prv
+        if scale == env.Trial:
+            return ev.Trial.Prv
+        return -1
+
+    def CounterChg(ev, scale):
+        if scale == env.Run:
+            return ev.Run.Chg
+        if scale == env.Epoch:
+            return ev.Epoch.Chg
+        if scale == env.Trial:
+            return ev.Trial.Chg
+        return -1
 
     def String(ev):
         """
@@ -177,18 +169,4 @@ class LEDEnv(pygiv.ClassViewObj):
         img = ev.XForm.Image(ev.Draw.Image)
         ev.Vis.Filter(img)
 
-
-
-
-
-
-
-
-
-
-
-
-
-# Compile-time check that implements Env interface
-_ = (*LEDEnv)(go.nil)
 
