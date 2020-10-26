@@ -288,6 +288,7 @@ class Sim(pygiv.ClassViewObj):
         net.ConnectLayers(lgnOff, v1, full, emer.Forward)
 
         circ = prjn.NewCircle()
+        circ.TopoWts = True
         circ.Radius = 4
         circ.Sigma = .75
 
@@ -306,11 +307,7 @@ class Sim(pygiv.ClassViewObj):
         ss.InitWts(net)
 
     def InitWts(ss, net):
-        # set scales after building but before InitWts
-        v1 = net.LayerByName("V1")
-        v1v1 = leabra.Prjn(v1.RecvPrjns().SendName("V1")) # first one is excite
-        pat = prjn.Circle(v1v1.Pattern())
-        # v1v1.SetScalesFunc(pat.GaussWts)
+        net.InitTopoScales() # needed for gaussian topo Circle wts
         net.InitWts()
 
     def Init(ss):

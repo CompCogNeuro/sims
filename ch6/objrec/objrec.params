@@ -1,0 +1,90 @@
+[
+  {
+    "Name": "Base",
+    "Desc": "these are the best params",
+    "Sheets": {
+      "Network": [
+        {
+          "Sel": "Prjn",
+          "Desc": "yes extra learning factors",
+          "Params": {
+            "Prjn.Learn.Lrate": "0.04",
+            "Prjn.Learn.Momentum.On": "true",
+            "Prjn.Learn.Norm.On": "true",
+            "Prjn.Learn.WtBal.On": "false"
+          }
+        },
+        {
+          "Sel": "Layer",
+          "Desc": "needs some special inhibition and learning params",
+          "Params": {
+            "Layer.Act.Gbar.L": "0.1",
+            "Layer.Learn.AvgL.Gain": "2.5"
+          }
+        },
+        {
+          "Sel": ".Back",
+          "Desc": "top-down back-projections MUST have lower relative weight scale, otherwise network hallucinates -- smaller as network gets bigger",
+          "Params": {
+            "Prjn.WtScale.Rel": "0.1"
+          }
+        },
+        {
+          "Sel": "#V1",
+          "Desc": "pool inhib (not used), initial activity",
+          "Params": {
+            "Layer.Inhib.ActAvg.Init": "0.1",
+            "Layer.Inhib.Pool.On": "true"
+          }
+        },
+        {
+          "Sel": "#V4",
+          "Desc": "pool inhib, sparse activity",
+          "Params": {
+            "Layer.Inhib.ActAvg.Init": "0.05",
+            "Layer.Inhib.Pool.On": "true"
+          }
+        },
+        {
+          "Sel": "#IT",
+          "Desc": "initial activity",
+          "Params": {
+            "Layer.Inhib.ActAvg.Init": "0.1"
+          }
+        },
+        {
+          "Sel": "#Output",
+          "Desc": "high inhib for one-hot output",
+          "Params": {
+            "Layer.Inhib.ActAvg.Init": "0.05",
+            "Layer.Inhib.Layer.Gi": "2.8"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "Name": "NovelLearn",
+    "Desc": "learning for novel objects case -- IT, Output connections learn",
+    "Sheets": {
+      "Network": [
+        {
+          "Sel": "Prjn",
+          "Desc": "lr = 0",
+          "Params": {
+            "Prjn.Learn.Lrate": "0",
+            "Prjn.Learn.LrateInit": "0"
+          }
+        },
+        {
+          "Sel": ".NovLearn",
+          "Desc": "lr = 0.04",
+          "Params": {
+            "Prjn.Learn.Lrate": "0.04",
+            "Prjn.Learn.LrateInit": "0.04"
+          }
+        }
+      ]
+    }
+  }
+]

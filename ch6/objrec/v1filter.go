@@ -37,7 +37,7 @@ type Vis struct {
 	V1cLenSumTsr  etensor.Float32 `view:"no-inline" desc:"V1 complex length sum filter output tensor"`
 	V1cEndStopTsr etensor.Float32 `view:"no-inline" desc:"V1 complex end stop filter output tensor"`
 	V1AllTsr      etensor.Float32 `view:"no-inline" desc:"Combined V1 output tensor with V1s simple as first two rows, then length sum, then end stops = 5 rows total"`
-	V1sInhibs     []fffb.Inhib    `view:"no-inline" desc:"inhibition values for V1s KWTA"`
+	V1sInhibs     fffb.Inhibs     `view:"no-inline" desc:"inhibition values for V1s KWTA"`
 }
 
 var KiT_Vis = kit.Types.AddType(&Vis{}, nil)
