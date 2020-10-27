@@ -451,9 +451,7 @@ class Sim(pygiv.ClassViewObj):
     def UpdateView(ss):
         if ss.NetView != 0 and ss.NetView.IsVisible():
             ss.NetView.Record(ss.Counters())
-
             ss.NetView.GoUpdate() # note: using counters is significantly slower..
-
 
     def AlphaCyc(ss):
         """
