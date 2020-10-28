@@ -47,7 +47,7 @@ func (ev *BanditEnv) SetN(n int) {
 
 func (ev *BanditEnv) Validate() error {
 	if ev.N <= 0 {
-		return fmt.Errorf("BanditEnv: %v N == 0 -- must set with SetN call", ev.Nm)
+		return fmt.Errorf("BanditEnv: %s N == 0 -- must set with SetN call", ev.Nm)
 	}
 	return nil
 }
@@ -80,7 +80,7 @@ func (ev *BanditEnv) Actions() env.Elements {
 
 // String returns the current state as a string
 func (ev *BanditEnv) String() string {
-	return fmt.Sprintf("S_%d_%v", ev.Option.Cur, ev.Reward.Values[0])
+	return fmt.Sprintf("S_%d_%g", ev.Option.Cur, ev.Reward.Values[0])
 }
 
 func (ev *BanditEnv) Init(run int) {
