@@ -32,7 +32,6 @@ import (
 	"github.com/emer/etable/etable"
 	"github.com/emer/etable/etensor"
 	"github.com/emer/etable/etview" // include to get gui views
-	"github.com/emer/etable/simat"
 	"github.com/emer/leabra/leabra"
 	"github.com/emer/leabra/pbwm"
 	"github.com/emer/leabra/rl"
@@ -149,7 +148,6 @@ type Sim struct {
 	MtxInputWts etensor.Tensor    `view:"no-inline" desc:"weights from input to hidden layer"`
 	RunLog      *etable.Table     `view:"no-inline" desc:"summary log of each run"`
 	RunStats    *etable.Table     `view:"no-inline" desc:"aggregate stats on all runs"`
-	SimMat      *simat.SimMat     `view:"no-inline" desc:"similarity matrix"`
 	Params      params.Sets       `view:"no-inline" desc:"full collection of param sets"`
 	ParamSet    string            `view:"-" desc:"which set of *additional* parameters to use -- always applies Base and optionaly this next if set -- can use multiple names separated by spaces (don't put spaces in ParamSet names!)"`
 	MaxRuns     int               `desc:"maximum number of model runs to perform"`
@@ -196,7 +194,6 @@ func (ss *Sim) New() {
 	ss.MtxInputWts = &etensor.Float32{}
 	ss.RunLog = &etable.Table{}
 	ss.RunStats = &etable.Table{}
-	ss.SimMat = &simat.SimMat{}
 	ss.Params = ParamSets
 	ss.RndSeed = 1
 	ss.ViewOn = true
