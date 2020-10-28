@@ -113,7 +113,7 @@ func (ev *CondEnv) Actions() env.Elements {
 
 // String returns the current state as a string
 func (ev *CondEnv) String() string {
-	return fmt.Sprintf("S_%d_%v", ev.Event.Cur, ev.Reward.Values[0])
+	return fmt.Sprintf("S_%d_%g", ev.Event.Cur, ev.Reward.Values[0])
 }
 
 func (ev *CondEnv) Init(run int) {
