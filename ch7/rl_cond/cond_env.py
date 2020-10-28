@@ -120,7 +120,7 @@ class CondEnv(pygiv.ClassViewObj):
         """
         String returns the current state as a string
         """
-        return "S_%d_%v" % (ev.Event.Cur, ev.Reward.Values[0])
+        return "S_%d_%g" % (ev.Event.Cur, ev.Reward.Values[0])
 
     def Init(ev, run):
         ev.Input.SetShape(go.Slice_int([3, ev.TotTime]), go.nil, go.Slice_string(["3", "TotTime"]))

@@ -13,7 +13,7 @@
 # effects, and accurately capture the effects of brain damage to the
 # spatial pathway.
 
-from leabra import go, leabra, emer, relpos, eplot, env, agg, patgen, prjn, etable, efile, split, etensor, params, netview, rand, erand, gi, giv, pygiv, pyparams, mat32, simat, metric, clust, rl
+from leabra import go, leabra, emer, relpos, eplot, env, agg, patgen, prjn, etable, efile, split, etensor, params, netview, rand, erand, gi, giv, pygiv, pyparams, mat32, simat, metric, clust, rl, etview
 
 import importlib as il
 import io, sys, getopt
@@ -35,6 +35,12 @@ def InitCB(recv, send, sig, data):
     TheSim.Init()
     TheSim.UpdateClassView()
     TheSim.vp.SetNeedsFullRender()
+
+def TrainCB(recv, send, sig, data):
+    if not TheSim.IsRunning:
+        TheSim.IsRunning = True
+        TheSim.ToolBar.UpdateActions()
+        TheSim.Train()
 
 def StopCB(recv, send, sig, data):
     TheSim.Stop()
@@ -118,10 +124,8 @@ class Sim(pygiv.ClassViewObj):
         self.SetTags("TrnEpcLog", 'view:"no-inline" desc:"training epoch-level log data"')
         self.TrnTrlLog = etable.Table()
         self.SetTags("TrnTrlLog", 'view:"no-inline" desc:"testing trial-level log data"')
-        self.RewPredInputWts = etensor.Tensor()
+        self.RewPredInputWts = etensor.Float32()
         self.SetTags("RewPredInputWts", 'view:"no-inline" desc:"weights from input to hidden layer"')
-        self.SimMat = simat.SimMat()
-        self.SetTags("SimMat", 'view:"no-inline" desc:"similarity matrix"')
         self.Params = params.Sets()
         self.SetTags("Params", 'view:"no-inline" desc:"full collection of param sets"')
         self.ParamSet = str()
@@ -341,7 +345,7 @@ class Sim(pygiv.ClassViewObj):
 
         ss.TrainEnv.Step()
 
-        _, _, tchg = ss.TrainEnv.Counter(env.Trial)
+        tchg = ss.TrainEnv.CounterChg(env.Trial)
         if tchg and ss.TrnTrlPlot != 0:
             ss.TrnTrlPlot.GoUpdate()
 
@@ -705,8 +709,14 @@ class Sim(pygiv.ClassViewObj):
         ss.WtsGrid = tg
         tg.SetTensor(ss.RewPredInputWts)
 
-        split.SetSplits(.2, .8)
+        plt = eplot.Plot2D()
+        tv.AddTab(plt, "TrnEpcPlot")
+        ss.TrnEpcPlot = ss.ConfigTrnEpcPlot(plt, ss.TrnEpcLog)
+        
+        split.SetSplitsList(go.Slice_float32([.2, .8]))
 
+        recv = win.This()
+        
         tbar.AddAction(gi.ActOpts(Label="Init", Icon="update", Tooltip="Initialize everything including network weights, and start over.  Also applies current params.", UpdateFunc=UpdtFuncNotRunning), recv, InitCB)
 
         tbar.AddAction(gi.ActOpts(Label="Train", Icon="run", Tooltip="Starts the network training, picking up from wherever it may have left off.  If not stopped, training will complete the specified number of Runs through the full number of Epochs of training, with testing automatically occuring at the specified interval.", UpdateFunc=UpdtFuncNotRunning), recv, TrainCB)
