@@ -1,0 +1,158 @@
+[
+  {
+    "Name": "Base",
+    "Desc": "these are the best params",
+    "Sheets": {
+      "Network": [
+        {
+          "Sel": "Prjn",
+          "Desc": "keeping default params for generic prjns",
+          "Params": {
+            "Prjn.Learn.Momentum.On": "true",
+            "Prjn.Learn.Norm.On": "true",
+            "Prjn.Learn.WtBal.On": "false"
+          }
+        },
+        {
+          "Sel": ".EcCa1Prjn",
+          "Desc": "encoder projections -- no norm, moment",
+          "Params": {
+            "Prjn.Learn.Lrate": "0.04",
+            "Prjn.Learn.Momentum.On": "false",
+            "Prjn.Learn.Norm.On": "false",
+            "Prjn.Learn.WtBal.On": "true",
+            "Prjn.Learn.XCal.SetLLrn": "false"
+          }
+        },
+        {
+          "Sel": ".HippoCHL",
+          "Desc": "hippo CHL projections -- no norm, moment, but YES wtbal = sig better",
+          "Params": {
+            "Prjn.CHL.Hebb": "0.05",
+            "Prjn.Learn.Lrate": "0.2",
+            "Prjn.Learn.Momentum.On": "false",
+            "Prjn.Learn.Norm.On": "false",
+            "Prjn.Learn.WtBal.On": "true"
+          }
+        },
+        {
+          "Sel": ".PPath",
+          "Desc": "perforant path, new Dg error-driven EcCa1Prjn prjns",
+          "Params": {
+            "Prjn.Learn.Lrate": "0.15",
+            "Prjn.Learn.Momentum.On": "false",
+            "Prjn.Learn.Norm.On": "false",
+            "Prjn.Learn.WtBal.On": "true"
+          }
+        },
+        {
+          "Sel": "#CA1ToECout",
+          "Desc": "extra strong from CA1 to ECout",
+          "Params": {
+            "Prjn.WtScale.Abs": "4.0"
+          }
+        },
+        {
+          "Sel": "#InputToECin",
+          "Desc": "one-to-one input to EC",
+          "Params": {
+            "Prjn.Learn.Learn": "false",
+            "Prjn.WtInit.Mean": "0.8",
+            "Prjn.WtInit.Var": "0.0"
+          }
+        },
+        {
+          "Sel": "#ECoutToECin",
+          "Desc": "one-to-one out to in",
+          "Params": {
+            "Prjn.Learn.Learn": "false",
+            "Prjn.WtInit.Mean": "0.9",
+            "Prjn.WtInit.Var": "0.01",
+            "Prjn.WtScale.Rel": "0.5"
+          }
+        },
+        {
+          "Sel": "#DGToCA3",
+          "Desc": "Mossy fibers: strong, non-learning",
+          "Params": {
+            "Prjn.Learn.Learn": "false",
+            "Prjn.WtInit.Mean": "0.9",
+            "Prjn.WtInit.Var": "0.01",
+            "Prjn.WtScale.Rel": "4"
+          }
+        },
+        {
+          "Sel": "#CA3ToCA3",
+          "Desc": "CA3 recurrent cons",
+          "Params": {
+            "Prjn.Learn.Lrate": "0.1",
+            "Prjn.WtScale.Rel": "0.1"
+          }
+        },
+        {
+          "Sel": "#ECinToDG",
+          "Desc": "DG learning is surprisingly critical: maxed out fast, hebbian works best",
+          "Params": {
+            "Prjn.CHL.Hebb": ".5",
+            "Prjn.CHL.MinusQ1": "true",
+            "Prjn.CHL.SAvgCor": "0.1",
+            "Prjn.Learn.Learn": "true",
+            "Prjn.Learn.Lrate": "0.4",
+            "Prjn.Learn.Momentum.On": "false",
+            "Prjn.Learn.Norm.On": "false",
+            "Prjn.Learn.WtBal.On": "true"
+          }
+        },
+        {
+          "Sel": "#CA3ToCA1",
+          "Desc": "Schaffer collaterals -- slower, less hebb",
+          "Params": {
+            "Prjn.CHL.Hebb": "0.01",
+            "Prjn.CHL.SAvgCor": "0.4",
+            "Prjn.Learn.Lrate": "0.1",
+            "Prjn.Learn.Momentum.On": "false",
+            "Prjn.Learn.Norm.On": "false",
+            "Prjn.Learn.WtBal.On": "true"
+          }
+        },
+        {
+          "Sel": ".EC",
+          "Desc": "all EC layers: only pools, no layer-level",
+          "Params": {
+            "Layer.Act.Gbar.L": ".1",
+            "Layer.Inhib.ActAvg.Init": "0.2",
+            "Layer.Inhib.Layer.On": "false",
+            "Layer.Inhib.Pool.Gi": "2.0",
+            "Layer.Inhib.Pool.On": "true"
+          }
+        },
+        {
+          "Sel": "#DG",
+          "Desc": "very sparse = high inibhition",
+          "Params": {
+            "Layer.Inhib.ActAvg.Init": "0.01",
+            "Layer.Inhib.Layer.Gi": "3.8"
+          }
+        },
+        {
+          "Sel": "#CA3",
+          "Desc": "sparse = high inibhition",
+          "Params": {
+            "Layer.Inhib.ActAvg.Init": "0.02",
+            "Layer.Inhib.Layer.Gi": "2.8"
+          }
+        },
+        {
+          "Sel": "#CA1",
+          "Desc": "CA1 only Pools",
+          "Params": {
+            "Layer.Inhib.ActAvg.Init": "0.1",
+            "Layer.Inhib.Layer.On": "false",
+            "Layer.Inhib.Pool.Gi": "2.4",
+            "Layer.Inhib.Pool.On": "true"
+          }
+        }
+      ]
+    }
+  }
+]

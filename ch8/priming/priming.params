@@ -1,0 +1,44 @@
+[
+  {
+    "Name": "Base",
+    "Desc": "these are the best params",
+    "Sheets": {
+      "Network": [
+        {
+          "Sel": "Prjn",
+          "Desc": "no extra learning factors",
+          "Params": {
+            "Prjn.Learn.Lrate": "0.04",
+            "Prjn.Learn.Momentum.On": "false",
+            "Prjn.Learn.Norm.On": "false",
+            "Prjn.Learn.WtBal.On": "false"
+          }
+        },
+        {
+          "Sel": "Layer",
+          "Desc": "less inhib for smaller in / out layers",
+          "Params": {
+            "Layer.Act.Gbar.L": "0.1",
+            "Layer.Act.Init.Decay": "1",
+            "Layer.Inhib.ActAvg.Init": "0.25",
+            "Layer.Inhib.Layer.Gi": "1.5"
+          }
+        },
+        {
+          "Sel": "#Hidden",
+          "Desc": "slightly less inhib",
+          "Params": {
+            "Layer.Inhib.Layer.Gi": "1.6"
+          }
+        },
+        {
+          "Sel": ".Back",
+          "Desc": "top-down back-projections MUST have lower relative weight scale, otherwise network hallucinates",
+          "Params": {
+            "Prjn.WtScale.Rel": "0.1"
+          }
+        }
+      ]
+    }
+  }
+]

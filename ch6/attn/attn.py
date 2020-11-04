@@ -126,11 +126,6 @@ def LesionDialog(vp, obj, name, tags, opts):
     cv.Frame = gi.Frame(frame.InsertNewChild(gi.KiT_Frame(), prIdx+1, "cv-frame"))
     cv.Config()
     
-    # sv.Viewport = dlg.Embed(gi.KiT_Viewport2D).(*gi.Viewport2D)
-    # if opts.Inactive {
-    #     sv.SetInactive()
-    # }
-
     dlg.UpdateEndNoSig(True)
     dlg.DialogSig.Connect(dlg, LesionCB2)
     dlg.Open(0, 0, vp, go.nil)
