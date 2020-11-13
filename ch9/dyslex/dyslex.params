@@ -1,0 +1,73 @@
+[
+  {
+    "Name": "Base",
+    "Desc": "these are the best params",
+    "Sheets": {
+      "Network": [
+        {
+          "Sel": "Prjn",
+          "Desc": "no extra learning factors",
+          "Params": {
+            "Prjn.Learn.Lrate": "0.04",
+            "Prjn.Learn.Momentum.On": "false",
+            "Prjn.Learn.Norm.On": "false",
+            "Prjn.Learn.WtBal.On": "false"
+          }
+        },
+        {
+          "Sel": "Layer",
+          "Desc": "FB 0.5 apparently required",
+          "Params": {
+            "Layer.Inhib.ActAvg.Fixed": "true",
+            "Layer.Inhib.ActAvg.Init": "0.2",
+            "Layer.Inhib.Layer.FB": "0.5",
+            "Layer.Inhib.Layer.Gi": "2.1"
+          }
+        },
+        {
+          "Sel": "#Orthography",
+          "Desc": "higher inhib",
+          "Params": {
+            "Layer.Inhib.ActAvg.Init": "0.08",
+            "Layer.Inhib.Layer.FB": "0.5",
+            "Layer.Inhib.Layer.Gi": "2.4"
+          }
+        },
+        {
+          "Sel": "#Semantics",
+          "Desc": "higher inhib",
+          "Params": {
+            "Layer.Inhib.ActAvg.Init": "0.2",
+            "Layer.Inhib.Layer.FB": "0.5",
+            "Layer.Inhib.Layer.Gi": "2.2"
+          }
+        },
+        {
+          "Sel": "#Phonology",
+          "Desc": "pool-only inhib",
+          "Params": {
+            "Layer.Inhib.ActAvg.Init": "0.07",
+            "Layer.Inhib.Layer.On": "false",
+            "Layer.Inhib.Pool.FB": "0.5",
+            "Layer.Inhib.Pool.Gi": "2.8",
+            "Layer.Inhib.Pool.On": "true"
+          }
+        },
+        {
+          "Sel": ".Back",
+          "Desc": "there is no back / forward direction here..",
+          "Params": {
+            "Prjn.WtScale.Rel": "1"
+          }
+        },
+        {
+          "Sel": ".Lateral",
+          "Desc": "self cons are weaker",
+          "Params": {
+            "Prjn.WtScale.Rel": "0.3"
+          }
+        }
+      ]
+    }
+  }
+]
