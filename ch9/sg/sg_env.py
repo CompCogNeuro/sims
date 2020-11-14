@@ -246,7 +246,9 @@ class SentGenEnv(pygiv.ClassViewObj):
         """
         ev.NewInputs()
         ev.AddRawInput("start", "Action", "None", "curq")
-        mod = ev.Rules.States["Mod"]
+        mod = ""
+        if "Mod" in ev.Rules.States:
+            mod = ev.Rules.States["Mod"]
         seq = ["Agent", "Action", "Patient", mod]
         for si in range(3):
             sq = seq[si]
@@ -266,7 +268,7 @@ class SentGenEnv(pygiv.ClassViewObj):
         ri = rand.Intn(3)
         if "FinalQ" in ev.Rules.States:
             fq = ev.Rules.States["FinalQ"]
-            for i in seq :
+            for i, s in enumerate(seq):
                 if seq[i] == fq:
                     ri = i
                     break

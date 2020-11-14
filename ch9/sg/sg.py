@@ -1299,7 +1299,6 @@ class Sim(pygiv.ClassViewObj):
     def LogTstTrl(ss, dt):
         """
         LogTstTrl adds data from current trial to the TstTrlLog table.
-    # this is triggered by increment so use previous value
         log always contains number of testing items
         """
         epc = ss.TrainEnv.Epoch.Prv
@@ -1312,9 +1311,9 @@ class Sim(pygiv.ClassViewObj):
         cur = ss.TestEnv.CurInputs()
 
         st = ""
-        for n, _ in ss.TestEnv.Rules.Fired :
-            if n != "Sentences":
-                st = n
+        for n in ss.TestEnv.Rules.Fired:
+            if n[0] != "Sentences":
+                st = n[0]
 
         dt.SetCellFloat("Run", row, float(ss.TrainEnv.Run.Cur))
         dt.SetCellFloat("Epoch", row, float(epc))
@@ -1331,7 +1330,7 @@ class Sim(pygiv.ClassViewObj):
         dt.SetCellString("QType", row, cur[3])
         dt.SetCellFloat("AmbigVerb", row, float(ss.TestEnv.NAmbigVerbs))
         dt.SetCellFloat("AmbigNouns", row, min(float(ss.TestEnv.NAmbigNouns), 1))
-        for li, lnm in ss.StatNms :
+        for li, lnm in enumerate(ss.StatNms):
             dt.SetCellFloat(lnm+"Err", row, ss.TrlErr[li])
             dt.SetCellFloat(lnm+"SSE", row, ss.TrlSSE[li])
             dt.SetCellFloat(lnm+"AvgSSE", row, ss.TrlAvgSSE[li])
@@ -1589,22 +1588,22 @@ class Sim(pygiv.ClassViewObj):
         """
         stix = etable.NewIdxView(ss.SentProbeTrlLog)
         stix.Filter(FilterTickEq5)
-        ss.ClustPlot(ss.SentProbeClustPlot, stix, "Gestalt", "SentType", clust.ContrastDist)
+        ss.ClustPlot(ss.SentProbeClustPlot, stix, "Gestalt", "SentType", clust.Contrast)
         ss.SentProbeClustPlot.Update()
 
         ntix = etable.NewIdxView(ss.NounProbeTrlLog)
-        ss.ClustPlot(ss.NounProbeClustPlot, ntix, "Gestalt", "TrialName", clust.MaxDist)
+        ss.ClustPlot(ss.NounProbeClustPlot, ntix, "Gestalt", "TrialName", clust.Max)
         ss.NounProbeClustPlot.Update()
 
     def ClustPlot(ss, plt, ix, colNm, lblNm, dfunc):
         """
         ClustPlot does one cluster plot on given table column
         """
-        nm, _ = ix.Table.MetaData["name"]
+        nm = ix.Table.MetaData["name"]
         smat = simat.SimMat()
-        smat.TableCol(ix, colNm, lblNm, False, metric.Euclidean64)
+        smat.TableColStd(ix, colNm, lblNm, False, metric.Euclidean)
         pt = etable.Table()
-        clust.Plot(pt, clust.Glom(smat, dfunc), smat)
+        clust.Plot(pt, clust.GlomStd(smat, dfunc), smat)
         plt.InitName(plt, colNm)
         plt.Params.Title = "Cluster Plot of: " + nm + " " + colNm
         plt.Params.XAxisCol = "X"
