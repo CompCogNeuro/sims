@@ -2,14 +2,16 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// sg is the sentence gestalt model, which learns to encode both
-// syntax and semantics of sentences in an integrated "gestalt"
-// hidden layer. The sentences have simple agent-verb-patient
-// structure with optional prepositional or adverb modifier
-// phrase at the end, and can be either in the active or passive
-// form (80% active, 20% passive). There are ambiguous terms that
-// need to be resolved via context, showing a key interaction
-// between syntax and semantics.
+/*
+sg is the sentence gestalt model, which learns to encode both
+syntax and semantics of sentences in an integrated "gestalt"
+hidden layer. The sentences have simple agent-verb-patient
+structure with optional prepositional or adverb modifier
+phrase at the end, and can be either in the active or passive
+form (80% active, 20% passive). There are ambiguous terms that
+need to be resolved via context, showing a key interaction
+between syntax and semantics.
+*/
 package main
 
 import (

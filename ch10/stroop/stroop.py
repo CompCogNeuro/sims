@@ -9,9 +9,8 @@
 # to run in gui interactive mode from the command line (or pyleabra, import ra25)
 # see main function at the end for startup args
 
-# abac explores the classic paired associates learning task in a
-# cortical-like network, which exhibits catastrophic levels of
-# interference.
+# stroop illustrates how the PFC can produce top-down biasing for executive control,
+# in the context of the widely-studied Stroop task.
 
 from leabra import go, leabra, emer, relpos, eplot, env, agg, patgen, prjn, etable, efile, split, etensor, params, netview, rand, erand, gi, giv, pygiv, pyparams, mat32, metric, simat, pca, clust
 

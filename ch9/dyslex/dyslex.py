@@ -9,9 +9,11 @@
 # to run in gui interactive mode from the command line (or pyleabra, import ra25)
 # see main function at the end for startup args
 
-# abac explores the classic paired associates learning task in a
-# cortical-like network, which exhibits catastrophic levels of
-# interference.
+# dyslex simulates normal and disordered (dyslexic) reading performance in terms
+# of a distributed representation of word-level knowledge across 
+# Orthography, Semantics, and Phonology. It is based on a model by
+# Plaut and Shallice (1993). Note that this form of dyslexia is *aquired*
+# (via brain lesions such as stroke) and not the more prevalent developmental variety.
 
 from leabra import go, leabra, emer, relpos, eplot, env, agg, patgen, prjn, etable, efile, split, etensor, params, netview, rand, erand, gi, giv, pygiv, pyparams, mat32, metric, simat, pca, clust
 
@@ -1394,6 +1396,8 @@ class Sim(pygiv.ClassViewObj):
         tbar.AddSeparator("test")
         
         tbar.AddAction(gi.ActOpts(Label="Test Trial", Icon="step-fwd", Tooltip="Runs the next testing trial.", UpdateFunc=UpdtFuncNotRunning), recv, TestTrialCB)
+        
+        tbar.AddAction(gi.ActOpts(Label="Test Item", Icon="step-fwd", Tooltip="Prompts for a specific input pattern name to run, and runs it in testing mode.", UpdateFunc=UpdtFuncNotRunning), recv, TestItemCB)
         
         tbar.AddAction(gi.ActOpts(Label="Test All", Icon="fast-fwd", Tooltip="Tests all of the testing trials.", UpdateFunc=UpdtFuncNotRunning), recv, TestAllCB)
 
