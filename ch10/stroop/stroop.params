@@ -1,0 +1,137 @@
+[
+  {
+    "Name": "Base",
+    "Desc": "these are the best params",
+    "Sheets": {
+      "Network": [
+        {
+          "Sel": "Prjn",
+          "Desc": "lower lrate, uniform init",
+          "Params": {
+            "Prjn.Learn.Lrate": "0.04",
+            "Prjn.Learn.Momentum.On": "false",
+            "Prjn.Learn.Norm.On": "false",
+            "Prjn.Learn.WtBal.On": "false",
+            "Prjn.WtInit.Mean": "0.25",
+            "Prjn.WtInit.Var": "0"
+          }
+        },
+        {
+          "Sel": "Layer",
+          "Desc": "high inhibition, layer act avg",
+          "Params": {
+            "Layer.Act.XX1.Gain": "40",
+            "Layer.Inhib.ActAvg.Fixed": "true",
+            "Layer.Inhib.ActAvg.Init": "0.4",
+            "Layer.Inhib.Layer.FB": "0.5",
+            "Layer.Inhib.Layer.Gi": "2.1",
+            "Layer.Learn.AvgL.Gain": "1",
+            "Layer.Learn.AvgL.Init": "0.2",
+            "Layer.Learn.AvgL.LrnMax": "0.05",
+            "Layer.Learn.AvgL.LrnMin": "0.05",
+            "Layer.Learn.AvgL.Min": "0.05"
+          }
+        },
+        {
+          "Sel": "#Hidden",
+          "Desc": "higher inhibition",
+          "Params": {
+            "Layer.Inhib.ActAvg.Fixed": "true",
+            "Layer.Inhib.ActAvg.Init": "0.5",
+            "Layer.Inhib.Layer.Gi": "3"
+          }
+        },
+        {
+          "Sel": "#Colors",
+          "Desc": "layer act avg",
+          "Params": {
+            "Layer.Inhib.ActAvg.Init": "0.5"
+          }
+        },
+        {
+          "Sel": "#Words",
+          "Desc": "layer act avg",
+          "Params": {
+            "Layer.Inhib.ActAvg.Init": "0.5"
+          }
+        },
+        {
+          "Sel": "#PFCToHidden",
+          "Desc": "PFC top-down projection",
+          "Params": {
+            "Prjn.Learn.Lrate": "0.01",
+            "Prjn.Learn.XCal.LLrn": "0.1",
+            "Prjn.Learn.XCal.SetLLrn": "true",
+            "Prjn.WtScale.Rel": "0.3"
+          }
+        },
+        {
+          "Sel": "#OutputToHidden",
+          "Desc": "Output top-down projection",
+          "Params": {
+            "Prjn.Learn.Lrate": "0.04",
+            "Prjn.Learn.XCal.LLrn": "0.1",
+            "Prjn.Learn.XCal.SetLLrn": "true",
+            "Prjn.WtScale.Rel": "0.2"
+          }
+        },
+        {
+          "Sel": "#HiddenToOutput",
+          "Desc": "to output",
+          "Params": {
+            "Prjn.Learn.Lrate": "0.08",
+            "Prjn.Learn.XCal.LLrn": "0.1",
+            "Prjn.Learn.XCal.SetLLrn": "true"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "Name": "Training",
+    "Desc": "training parameters",
+    "Sheets": {
+      "Network": [
+        {
+          "Sel": "Layer",
+          "Desc": "faster time constant",
+          "Params": {
+            "Layer.Act.Dt.VmTau": "3.3",
+            "Layer.Act.Init.Decay": "1"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "Name": "Testing",
+    "Desc": "testing parameters",
+    "Sheets": {
+      "Network": [
+        {
+          "Sel": "Layer",
+          "Desc": "slower time constant",
+          "Params": {
+            "Layer.Act.Dt.VmTau": "30",
+            "Layer.Act.Init.Decay": "1"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "Name": "SOATesting",
+    "Desc": "SOA testing parameters",
+    "Sheets": {
+      "Network": [
+        {
+          "Sel": "Layer",
+          "Desc": "no decay",
+          "Params": {
+            "Layer.Act.Init.Decay": "0"
+          }
+        }
+      ]
+    }
+  }
+]
