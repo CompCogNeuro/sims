@@ -9,9 +9,10 @@
 # to run in gui interactive mode from the command line (or pyleabra, import ra25)
 # see main function at the end for startup args
 
-# abac explores the classic paired associates learning task in a
-# cortical-like network, which exhibits catastrophic levels of
-# interference.
+# ss explores the way that regularities and exceptions are learned 
+# in the mapping between spelling (orthography) and sound (phonology),
+# in the context of a "direct pathway" mapping between these two forms
+# of word representations.
 
 from leabra import go, leabra, emer, relpos, eplot, env, agg, patgen, prjn, etable, efile, split, etensor, params, netview, rand, erand, gi, giv, pygiv, pyparams, mat32, metric, simat, pca, clust
 

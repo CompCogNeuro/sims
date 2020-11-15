@@ -8,10 +8,8 @@
 # just type file name to run, or:
 # pyleabra -i <file>.py 
 
-# attn: This simulation illustrates how object recognition (ventral, what) and
-# spatial (dorsal, where) pathways interact to produce spatial attention
-# effects, and accurately capture the effects of brain damage to the
-# spatial pathway.
+# rl_cond explores the temporal differences (TD) reinforcement learning algorithm
+# under some basic Pavlovian conditioning environments.
 
 from leabra import go, leabra, emer, relpos, eplot, env, agg, patgen, prjn, etable, efile, split, etensor, params, netview, rand, erand, gi, giv, pygiv, pyparams, mat32, simat, metric, clust, rl, etview
 

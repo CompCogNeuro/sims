@@ -9,9 +9,13 @@
 # to run in gui interactive mode from the command line (or pyleabra, import ra25)
 # see main function at the end for startup args
 
-# abac explores the classic paired associates learning task in a
-# cortical-like network, which exhibits catastrophic levels of
-# interference.
+# sem is trained using Hebbian learning on paragraphs from an early draft
+# of the *Computational Explorations..* textbook, allowing it to learn about
+# the overall statistics of when different words co-occur with other words,
+# and thereby learning a surprisingly capable (though clearly imperfect)
+# level of semantic knowlege about the topics covered in the textbook.
+# This replicates the key results from the Latent Semantic Analysis
+# research by Landauer and Dumais (1997).
 
 from leabra import go, leabra, emer, relpos, eplot, env, agg, patgen, prjn, etable, efile, split, etensor, params, netview, rand, erand, gi, giv, pygiv, pyparams, mat32, metric, simat, pca, clust
 

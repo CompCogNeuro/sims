@@ -9,9 +9,14 @@
 # to run in gui interactive mode from the command line (or pyleabra, import ra25)
 # see main function at the end for startup args
 
-# abac explores the classic paired associates learning task in a
-# cortical-like network, which exhibits catastrophic levels of
-# interference.
+# sg is the sentence gestalt model, which learns to encode both
+# syntax and semantics of sentences in an integrated "gestalt"
+# hidden layer. The sentences have simple agent-verb-patient
+# structure with optional prepositional or adverb modifier
+# phrase at the end, and can be either in the active or passive
+# form (80% active, 20% passive). There are ambiguous terms that
+# need to be resolved via context, showing a key interaction
+# between syntax and semantics.
 
 from leabra import go, leabra, emer, relpos, eplot, env, agg, patgen, prjn, etable, efile, split, etensor, params, netview, rand, erand, gi, giv, pygiv, pyparams, mat32, metric, simat, pca, clust, deep
 
