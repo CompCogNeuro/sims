@@ -4,7 +4,7 @@
 
 /*
 a_not_b explores how the development of PFC active maintenance abilities can help
-o make behavior more flexible, in the sense that it can rapidly shift with changes
+to make behavior more flexible, in the sense that it can rapidly shift with changes
 in the environment. The development of flexibility has been extensively explored
 in the context of Piaget's famous A-not-B task, where a toy is first hidden several
 times in one hiding location (A), and then hidden in a new location (B). Depending
