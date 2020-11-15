@@ -265,10 +265,11 @@ func (ss *Sim) ConfigPats() {
 	dt := ss.Pats
 	dt.SetMetaData("name", "TrainPats")
 	dt.SetMetaData("desc", "Training patterns")
-	dt.SetFromSchema(etable.Schema{
+	sch := etable.Schema{
 		{"Name", etensor.STRING, nil, nil},
 		{"Input", etensor.FLOAT32, []int{10, 10}, []string{"Y", "X"}},
-	}, 1)
+	}
+	dt.SetFromSchema(sch, 1)
 	patgen.PermutedBinaryRows(dt.Cols[1], int(ss.InputPct), 1, 0)
 }
 
