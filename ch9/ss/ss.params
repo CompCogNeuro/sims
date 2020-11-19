@@ -1,0 +1,73 @@
+[
+  {
+    "Name": "Base",
+    "Desc": "these are the best params",
+    "Sheets": {
+      "Network": [
+        {
+          "Sel": "Prjn",
+          "Desc": "all extra learning factors",
+          "Params": {
+            "Prjn.Learn.Lrate": "0.04",
+            "Prjn.Learn.Momentum.On": "true",
+            "Prjn.Learn.Norm.On": "true",
+            "Prjn.Learn.WtBal.On": "true"
+          }
+        },
+        {
+          "Sel": "Layer",
+          "Desc": "FB 0.5 apparently required",
+          "Params": {
+            "Layer.Act.Dt.GTau": "3",
+            "Layer.Act.XX1.Gain": "250",
+            "Layer.Inhib.ActAvg.Fixed": "false",
+            "Layer.Inhib.ActAvg.Init": "0.1",
+            "Layer.Inhib.Layer.Gi": "1.8"
+          }
+        },
+        {
+          "Sel": "#Ortho",
+          "Desc": "pool inhib",
+          "Params": {
+            "Layer.Inhib.ActAvg.Init": "0.022",
+            "Layer.Inhib.Pool.Gi": "1.8",
+            "Layer.Inhib.Pool.On": "true"
+          }
+        },
+        {
+          "Sel": "#OrthoCode",
+          "Desc": "pool inhib",
+          "Params": {
+            "Layer.Inhib.ActAvg.Init": "0.07",
+            "Layer.Inhib.Pool.Gi": "1.8",
+            "Layer.Inhib.Pool.On": "true"
+          }
+        },
+        {
+          "Sel": "#Phon",
+          "Desc": "pool-only inhib",
+          "Params": {
+            "Layer.Inhib.ActAvg.Init": "0.14",
+            "Layer.Inhib.Layer.On": "false",
+            "Layer.Inhib.Pool.Gi": "1.8",
+            "Layer.Inhib.Pool.On": "true"
+          }
+        },
+        {
+          "Sel": ".Back",
+          "Desc": "weaker top down as usual",
+          "Params": {
+            "Prjn.WtScale.Rel": ".1"
+          }
+        },
+        {
+          "Sel": "#HiddenToOrthoCode",
+          "Desc": "stronger from hidden",
+          "Params": {
+            "Prjn.WtScale.Rel": ".2"
+          }
+        }
+      ]
+    }
+  }
+]

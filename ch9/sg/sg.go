@@ -2,14 +2,16 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// sg is the sentence gestalt model, which learns to encode both
-// syntax and semantics of sentences in an integrated "gestalt"
-// hidden layer. The sentences have simple agent-verb-patient
-// structure with optional prepositional or adverb modifier
-// phrase at the end, and can be either in the active or passive
-// form (80% active, 20% passive). There are ambiguous terms that
-// need to be resolved via context, showing a key interaction
-// between syntax and semantics.
+/*
+sg is the sentence gestalt model, which learns to encode both
+syntax and semantics of sentences in an integrated "gestalt"
+hidden layer. The sentences have simple agent-verb-patient
+structure with optional prepositional or adverb modifier
+phrase at the end, and can be either in the active or passive
+form (80% active, 20% passive). There are ambiguous terms that
+need to be resolved via context, showing a key interaction
+between syntax and semantics.
+*/
 package main
 
 import (
@@ -1804,7 +1806,7 @@ func (ss *Sim) ConfigRunLog(dt *etable.Table) {
 	dt.SetMetaData("read-only", "true")
 	dt.SetMetaData("precision", strconv.Itoa(LogPrec))
 
-	dt.SetFromSchema(etable.Schema{
+	sch := etable.Schema{
 		{"Run", etensor.INT64, nil, nil},
 		{"Params", etensor.STRING, nil, nil},
 		{"FirstZero", etensor.FLOAT64, nil, nil},
@@ -1813,7 +1815,8 @@ func (ss *Sim) ConfigRunLog(dt *etable.Table) {
 		{"PctErr", etensor.FLOAT64, nil, nil},
 		{"PctCor", etensor.FLOAT64, nil, nil},
 		{"CosDiff", etensor.FLOAT64, nil, nil},
-	}, 0)
+	}
+	dt.SetFromSchema(sch, 0)
 }
 
 func (ss *Sim) ConfigRunPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {

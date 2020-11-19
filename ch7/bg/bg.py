@@ -8,10 +8,13 @@
 # just type file name to run, or:
 # pyleabra -i <file>.py 
 
-# attn: This simulation illustrates how object recognition (ventral, what) and
-# spatial (dorsal, where) pathways interact to produce spatial attention
-# effects, and accurately capture the effects of brain damage to the
-# spatial pathway.
+# bg is a simplified basal ganglia (BG) network showing how dopamine bursts can
+# reinforce *Go* (direct pathway) firing for actions that lead to reward,
+# and dopamine dips reinforce *NoGo* (indirect pathway) firing for actions
+# that do not lead to positive outcomes, producing Thorndike's classic
+# *Law of Effect* for instrumental conditioning, and also providing a
+# mechanism to learn and select among actions with different reward
+# probabilities over multiple experiences.
 
 from leabra import go, leabra, emer, relpos, eplot, env, agg, patgen, prjn, etable, efile, split, etensor, params, netview, rand, erand, gi, giv, pygiv, pyparams, mat32, simat, metric, clust, rl, pbwm, etview
 
