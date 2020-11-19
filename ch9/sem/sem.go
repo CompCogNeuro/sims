@@ -273,6 +273,7 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 	net.ConnectLayers(in, hid, full, emer.Forward)
 
 	circ := prjn.NewCircle()
+	circ.TopoWts = true
 	circ.Radius = 4
 	circ.Sigma = .75
 
@@ -293,11 +294,7 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 }
 
 func (ss *Sim) InitWts(net *leabra.Network) {
-	// set scales after building but before InitWts
-	hid := net.LayerByName("Hidden")
-	hider := hid.RecvPrjns().SendName("Hidden").(*leabra.Prjn) // first one is excite
-	pat := hider.Pattern().(*prjn.Circle)
-	hider.SetScalesFunc(pat.GaussWts)
+	net.InitTopoScales() // needed for gaussian topo Circle wts
 	net.InitWts()
 }
 
@@ -1032,12 +1029,13 @@ func (ss *Sim) ConfigTstEpcLog(dt *etable.Table) {
 	dt.SetMetaData("read-only", "true")
 	dt.SetMetaData("precision", strconv.Itoa(LogPrec))
 
-	dt.SetFromSchema(etable.Schema{
+	sch := etable.Schema{
 		{"Run", etensor.INT64, nil, nil},
 		{"Epoch", etensor.INT64, nil, nil},
 		{"Words", etensor.STRING, nil, nil},
 		{"TstWordsCorrel", etensor.FLOAT64, nil, nil},
-	}, 0)
+	}
+	dt.SetFromSchema(sch, 0)
 }
 
 func (ss *Sim) ConfigTstEpcPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
@@ -1116,14 +1114,15 @@ func (ss *Sim) ConfigTstQuizLog(dt *etable.Table) {
 	dt.SetMetaData("read-only", "true")
 	dt.SetMetaData("precision", strconv.Itoa(LogPrec))
 
-	dt.SetFromSchema(etable.Schema{
+	sch := etable.Schema{
 		{"Run", etensor.INT64, nil, nil},
 		{"Epoch", etensor.INT64, nil, nil},
 		{"QNo", etensor.INT64, nil, nil},
 		{"Resp", etensor.STRING, nil, nil},
 		{"Err", etensor.FLOAT64, nil, nil},
 		{"Correls", etensor.FLOAT64, []int{3}, nil},
-	}, 0)
+	}
+	dt.SetFromSchema(sch, 0)
 }
 
 func (ss *Sim) ConfigTstQuizPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {
@@ -1189,10 +1188,11 @@ func (ss *Sim) ConfigRunLog(dt *etable.Table) {
 	dt.SetMetaData("read-only", "true")
 	dt.SetMetaData("precision", strconv.Itoa(LogPrec))
 
-	dt.SetFromSchema(etable.Schema{
+	sch := etable.Schema{
 		{"Run", etensor.INT64, nil, nil},
 		{"Params", etensor.STRING, nil, nil},
-	}, 0)
+	}
+	dt.SetFromSchema(sch, 0)
 }
 
 func (ss *Sim) ConfigRunPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D {

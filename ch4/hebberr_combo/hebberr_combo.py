@@ -8,9 +8,9 @@
 # just type file name to run, or:
 # pyleabra -i <file>.py 
 
-# pat_assoc illustrates how error-driven and hebbian learning can
-# operate within a simple task-driven learning context, with no hidden
-# layers.
+# hebberr_combo shows how XCal hebbian learning in shallower layers
+# of a network can aid an error driven learning network to
+# generalize to unseen combinations of patterns.
 
 from leabra import go, leabra, emer, relpos, eplot, env, agg, patgen, prjn, etable, efile, split, etensor, params, netview, rand, erand, gi, giv, pygiv, pyparams, mat32
 
