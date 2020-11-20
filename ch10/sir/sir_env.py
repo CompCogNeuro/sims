@@ -39,7 +39,9 @@ class SIREnv(pygiv.ClassViewObj):
         self.Maint = int()
         self.SetTags("Maint", 'desc:"current stimulus being maintained"')
         self.Input = etensor.Float64()
-        self.SetTags("Input", 'desc:"input pattern with action + stim"')
+        self.SetTags("Input", 'desc:"input pattern with stim"')
+        self.CtrlInput = etensor.Float64()
+        self.SetTags("CtrlInput", 'desc:"input pattern with action"')
         self.Output = etensor.Float64()
         self.SetTags("Output", 'desc:"output pattern of what to respond"')
         self.Reward = etensor.Float64()
@@ -62,7 +64,8 @@ class SIREnv(pygiv.ClassViewObj):
         SetNStim initializes env for given number of stimuli, init states
         """
         ev.NStim = n
-        ev.Input.SetShape(go.Slice_int([Actions.ActionsN.value + n]), go.nil, go.Slice_string(["N"]))
+        ev.Input.SetShape(go.Slice_int([n]), go.nil, go.Slice_string(["N"]))
+        ev.CtrlInput.SetShape(go.Slice_int([Actions.ActionsN.value]), go.nil, go.Slice_string(["N"]))
         ev.Output.SetShape(go.Slice_int([n]), go.nil, go.Slice_string(["N"]))
         ev.Reward.SetShape(go.Slice_int([1]), go.nil, go.Slice_string(["1"]))
         if ev.RewVal == 0:
@@ -76,9 +79,11 @@ class SIREnv(pygiv.ClassViewObj):
     def State(ev, element):
         if element == "Input":
             return ev.Input
-        if element == "Output":
+        elif element == "CtrlInput":
+            return ev.CtrlInput
+        elif element == "Output":
             return ev.Output
-        if element == "Reward":
+        elif element == "Reward":
             return ev.Reward
         return go.nil
 
@@ -92,7 +97,7 @@ class SIREnv(pygiv.ClassViewObj):
         """
         String returns the current state as a string
         """
-        return "%s_%s_mnt_%s_rew_%s" % (ev.Act, ev.StimStr(ev.Stim), ev.StimStr(ev.Maint), ev.Reward.Values[0])
+        return "%s_%s_mnt_%s_rew_%g" % (ev.Act, ev.StimStr(ev.Stim), ev.StimStr(ev.Maint), ev.Reward.Values[0])
 
     def Init(ev, run):
         ev.Run.Scale = env.Run
@@ -109,10 +114,11 @@ class SIREnv(pygiv.ClassViewObj):
         """
         SetState sets the input, output states
         """
+        ev.CtrlInput.SetZeros()
+        ev.CtrlInput.Values[ev.Act.value] = 1
         ev.Input.SetZeros()
-        ev.Input.Values[ev.Act.value] = 1
         if ev.Act != Actions.Recall:
-            ev.Input.Values[int(Actions.ActionsN.value)+ev.Stim] = 1
+            ev.Input.Values[ev.Stim] = 1
         ev.Output.SetZeros()
         ev.Output.Values[ev.Stim] = 1
 
