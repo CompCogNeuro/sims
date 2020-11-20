@@ -333,7 +333,7 @@ class Sim(pygiv.ClassViewObj):
         snc = rl.RWDaLayer(da)
         snc.SetName("SNc")
 
-        inp = net.AddLayer2D("Input", 1, 7, emer.Input)
+        inp = net.AddLayer2D("Input", 1, 4, emer.Input)
         ctrl = net.AddLayer2D("CtrlInput", 1, 3, emer.Input)
         out = net.AddLayer2D("Output", 1, 4, emer.Target)
         hid = net.AddLayer2D("Hidden", 7, 7, emer.Hidden)
@@ -344,11 +344,12 @@ class Sim(pygiv.ClassViewObj):
 
         # args: nY, nMaint, nOut, nNeurBgY, nNeurBgX, nNeurPfcY, nNeurPfcX
         # returns: mtxGo, mtxNoGo, gpe, gpi, cini, pfcMnt, pfcMntD, pfcOut, pfcOutD = 
-        nl = pbwm.AddPBWMPy(net.AsLeabra(), "", 2, 2, 2, 1, 3, 1, 7)
+        nl = pbwm.AddPBWMPy(net.AsLeabra(), "", 2, 2, 2, 1, 3, 1, 4)
         mtxGo = nl[0]
         mtxNoGo = nl[1]
         cin = pbwm.CINLayer(nl[4])
         pfcMnt = nl[5]
+        pfcMntD = nl[6]
         pfcOutD = nl[8]
 
         cin.RewLays.AddOne(rew.Name(), rp.Name())
@@ -361,8 +362,9 @@ class Sim(pygiv.ClassViewObj):
         fmin.Scale.Set(1, 1)
         fmin.Wrap = True
 
-        net.ConnectLayersPrjn(inp, rp, full, emer.Forward, rl.RWPrjn())
-        # net.ConnectLayersPrjn(pfcMntD, rp, full, emer.Forward, &rl.RWPrjn{})
+        net.ConnectLayersPrjn(ctrl, rp, full, emer.Forward, rl.RWPrjn())
+        net.ConnectLayersPrjn(pfcMntD, rp, full, emer.Forward, rl.RWPrjn())
+        net.ConnectLayersPrjn(pfcOutD, rp, full, emer.Forward, rl.RWPrjn())
 
         pj = net.ConnectLayersPrjn(ctrl, mtxGo, fmin, emer.Forward, pbwm.MatrixTracePrjn())
         pj.SetClass("MatrixPrjn")
@@ -482,16 +484,13 @@ class Sim(pygiv.ClassViewObj):
         """
         ss.Net.InitExt()
 
-        lays = go.Slice_string(["Input", "Output"])
+        lays = go.Slice_string(["Input", "CtrlInput", "Output"])
         for lnm in lays :
             ly = leabra.Layer(ss.Net.LayerByName(lnm))
             pats = en.State(ly.Nm)
             if pats == 0:
                 continue
             ly.ApplyExt(pats)
-            if lnm == "Input":
-                ly = leabra.Layer(ss.Net.LayerByName("CtrlInput"))
-                ly.ApplyExt(pats)
 
     def ApplyReward(ss, train):
         """
@@ -1101,8 +1100,8 @@ class Sim(pygiv.ClassViewObj):
     def ConfigNetView(ss, nv):
         nv.ViewDefaults()
 
-        labs = go.Slice_string(["    S I R A B C D ", "  S I R A B C D   S I R A B C D ", "  S I R A B C D  S I R A B C D",
-            "S I R A B C D  S I R A B C D ", "S I R A B C D  S I R A B C D", "   A B C D ", "    S I R "])
+        labs = go.Slice_string(["  A B C D ", " A B C D", " A B C D",
+		"A B C D", "A B C D", " A B C D ", "  S I R "])
         nv.ConfigLabels(labs)
 
         lays = go.Slice_string(["Input", "PFCmnt", "PFCmntD", "PFCout", "PFCoutD", "Output", "CtrlInput"])

@@ -80,7 +80,7 @@
           "Sel": ".FmPFCOutD",
           "Desc": "PFC OutD needs to be strong b/c avg act says weak",
           "Params": {
-            "Prjn.WtScale.Abs": "4"
+            "Prjn.WtScale.Abs": "1"
           }
         },
         {
@@ -101,7 +101,7 @@
             "Prjn.Trace.AChDecay": "0.0",
             "Prjn.Trace.Decay": "1.0",
             "Prjn.Trace.Deriv": "true",
-            "Prjn.Trace.GateNoGoPosLR": "0.1",
+            "Prjn.Trace.GateNoGoPosLR": "1",
             "Prjn.Trace.NotGatedLR": "0.7",
             "Prjn.WtInit.Var": "0.1"
           }
@@ -132,7 +132,7 @@
             "Layer.Gate.Thr": "0.2",
             "Layer.Inhib.ActAvg.Fixed": "true",
             "Layer.Inhib.ActAvg.Init": ".2",
-            "Layer.Inhib.Layer.FB": "0.5",
+            "Layer.Inhib.Layer.FB": "1",
             "Layer.Inhib.Layer.Gi": "1.8",
             "Layer.Inhib.Pool.On": "false"
           }
