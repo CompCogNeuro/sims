@@ -344,7 +344,7 @@ class Sim(pygiv.ClassViewObj):
 
         # args: nY, nMaint, nOut, nNeurBgY, nNeurBgX, nNeurPfcY, nNeurPfcX
         # returns: mtxGo, mtxNoGo, gpe, gpi, cini, pfcMnt, pfcMntD, pfcOut, pfcOutD = 
-        nl = pbwm.AddPBWMPy(net.AsLeabra(), "", 2, 2, 2, 1, 3, 1, 4)
+        nl = pbwm.AddPBWMPy(net.AsLeabra(), "", 1, 1, 1, 1, 3, 1, 4)
         mtxGo = nl[0]
         mtxNoGo = nl[1]
         cin = pbwm.CINLayer(nl[4])
