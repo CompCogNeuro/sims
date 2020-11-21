@@ -116,9 +116,9 @@ var ParamSets = params.Sets{
 					"Prjn.WtInit.Var":  "0",
 					"Prjn.WtInit.Sym":  "false",
 				}},
-			{Sel: ".FmPFCOutD", Desc: "PFC OutD needs to be strong b/c avg act says weak",
+			{Sel: ".FmPFCOutD", Desc: "If multiple stripes, PFC OutD needs to be strong b/c avg act says weak",
 				Params: params.Params{
-					"Prjn.WtScale.Abs": "1",
+					"Prjn.WtScale.Abs": "1", // increase in proportion to number of stripes
 				}},
 			{Sel: ".PFCFixed", Desc: "Input -> PFC",
 				Params: params.Params{
@@ -208,7 +208,7 @@ var ParamSets = params.Sets{
 				}},
 			{Sel: "#RWPred", Desc: "keep it guessing",
 				Params: params.Params{
-					"Layer.PredRange.Min": "0.01",
+					"Layer.PredRange.Min": "0.01", // increasing to .05, .95 can be useful for harder tasks
 					"Layer.PredRange.Max": "0.99",
 				}},
 		},
