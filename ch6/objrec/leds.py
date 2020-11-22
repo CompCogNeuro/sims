@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
-from leabra import go, pygiv, gi, image
+from leabra import go, pygiv, gi, image, gist, girl
 from enum import Enum
 
 Bottom = 0
@@ -70,9 +70,9 @@ class LEDraw(pygiv.ClassViewObj):
         self.SetTags("ImgSize", 'desc:"size of image to render"')
         self.Image = image.RGBA()
         self.SetTags("Image", 'view:"-" desc:"rendered image"')
-        self.Paint = gi.Paint()
+        self.Paint = girl.Paint()
         self.SetTags("Paint", 'view:"+" desc:"painter object"')
-        self.Render = gi.RenderState()
+        self.Render = girl.State()
         self.SetTags("Render", 'view:"-" desc:"rendering state"')
 
     def Defaults(ld):

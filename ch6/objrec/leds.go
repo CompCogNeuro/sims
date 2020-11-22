@@ -8,20 +8,21 @@ import (
 	"image"
 
 	"github.com/goki/gi/gi"
+	"github.com/goki/gi/girl"
 )
 
 // LEDraw renders old-school "LED" style "letters" composed of a set of horizontal
 // and vertical elements.  All possible such combinations of 3 out of 6 line segments are created.
 // Renders using SVG.
 type LEDraw struct {
-	Width     float32        `def:"4" desc:"line width of LEDraw as percent of display size"`
-	Size      float32        `def:"0.6" desc:"size of overall LED as proportion of overall image size"`
-	LineColor gi.ColorName   `desc:"color name for drawing lines"`
-	BgColor   gi.ColorName   `desc:"color name for background"`
-	ImgSize   image.Point    `desc:"size of image to render"`
-	Image     *image.RGBA    `view:"-" desc:"rendered image"`
-	Paint     gi.Paint       `view:"+" desc:"painter object"`
-	Render    gi.RenderState `view:"-" desc:"rendering state"`
+	Width     float32      `def:"4" desc:"line width of LEDraw as percent of display size"`
+	Size      float32      `def:"0.6" desc:"size of overall LED as proportion of overall image size"`
+	LineColor gi.ColorName `desc:"color name for drawing lines"`
+	BgColor   gi.ColorName `desc:"color name for background"`
+	ImgSize   image.Point  `desc:"size of image to render"`
+	Image     *image.RGBA  `view:"-" desc:"rendered image"`
+	Paint     girl.Paint   `view:"+" desc:"painter object"`
+	Render    girl.State   `view:"-" desc:"rendering state"`
 }
 
 func (ld *LEDraw) Defaults() {
