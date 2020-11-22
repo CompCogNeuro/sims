@@ -156,10 +156,10 @@ class Reps(pygiv.ClassViewObj):
         self.SimMat.Init()
         self.SetTags("SimMat", 'view:"no-inline" desc:"similarity matrix"')
         self.PCAPlot = eplot.Plot2D()
-        self.PCAPlot.InitName(rp.PCAPlot, "PCAPlot") # any Ki obj needs this
+        self.PCAPlot.InitName(self.PCAPlot, "PCAPlot") # any Ki obj needs this
         self.SetTags("PCAPlot", 'view:"no-inline" desc:"plot of pca data"')
         self.ClustPlot = eplot.Plot2D()
-        self.ClustPlot.InitName(rp.ClustPlot, "ClustPlot") # any Ki obj needs this
+        self.ClustPlot.InitName(self.ClustPlot, "ClustPlot") # any Ki obj needs this
         self.SetTags("ClustPlot", 'view:"no-inline" desc:"cluster plot"')
         self.PCA = pca.PCA()
         self.PCA.Init()

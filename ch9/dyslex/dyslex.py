@@ -1303,11 +1303,11 @@ class Sim(pygiv.ClassViewObj):
         """
         ClustPlot does one cluster plot on given table column
         """
-        nm, _ = ix.Table.MetaData["name"]
+        nm = ix.Table.MetaData["name"]
         smat = simat.SimMat()
-        smat.TableCol(ix, colNm, "Name", False, metric.InvCosine64)
+        smat.TableColStd(ix, colNm, "Name", False, metric.InvCosine)
         pt = etable.Table()
-        clust.Plot(pt, clust.Glom(smat, clust.ContrastDist), smat)
+        clust.Plot(pt, clust.GlomStd(smat, clust.Contrast), smat)
         plt.InitName(plt, colNm)
         plt.Params.Title = "Cluster Plot of: " + nm + " " + colNm
         plt.Params.XAxisCol = "X"
