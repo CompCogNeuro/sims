@@ -8,6 +8,16 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"log"
+	"math/rand"
+	"os"
+	_ "reflect"
+	"sort"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/emer/emergent/env"
 	"github.com/emer/emergent/stepper"
 	_ "github.com/emer/etable/agg"
@@ -19,17 +29,7 @@ import (
 	"github.com/goki/gi/giv"
 	"github.com/goki/ki/ints"
 	"github.com/goki/mat32"
-	"log"
-	"math/rand"
-	"os"
-	_ "reflect"
-	"sort"
-	"strconv"
-	"strings"
-	"sync"
-	"time"
 
-	//"github.com/emer/leabra/pbwm"
 	"github.com/goki/ki/ki"
 	"github.com/goki/ki/kit"
 
@@ -591,10 +591,10 @@ func FileViewLoadCemerWts(vp *gi.Viewport2D) {
 func (ss *Sim) ConfigGui() *gi.Window {
 	width := 1600
 	height := 1600
-	gi.SetAppName("BVPVLV")
-	gi.SetAppAbout(`A bi-valent version of the Primary Value Learned Value model of the phasic dopamine signaling system. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch7/pvlv/README.md">README.md on GitHub</a>.</p>`)
+	gi.SetAppName("pvlv")
+	gi.SetAppAbout(`Current version of the Primary Value Learned Value model of the phasic dopamine signaling system. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch7/pvlv/README.md">README.md on GitHub</a>.</p>`)
 
-	win := gi.NewMainWindow("bvpvlv", "BVPVLV", width, height)
+	win := gi.NewMainWindow("pvlv", "PVLV", width, height)
 	ss.Win = win
 
 	vp := win.WinViewport2D()
@@ -817,6 +817,11 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	ss.nStepsBox.SpinBoxSig.Connect(tbar.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		ss.StepsToRun = int(ss.nStepsBox.Value)
 	})
+
+	tbar.AddAction(gi.ActOpts{Label: "README", Icon: "file-markdown", Tooltip: "Opens your browser on the README file that contains instructions for how to run this model."}, win.This(),
+		func(recv, send ki.Ki, sig int64, data interface{}) {
+			gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch7/pvlv/README.md")
+		})
 
 	vp.UpdateEndNoSig(updt)
 
