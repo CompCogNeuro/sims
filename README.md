@@ -10,9 +10,9 @@ You can now also start working with the [Python](#python) version -- see instruc
 
 * The full set of files are in the [Releases](https://github.com/CompCogNeuro/sims/releases) directory -- look under `Assets` for files of the form `ccn_sims_<version>_<platform>.zip` where `<version>` is the version string (higher generally better), and `<platform>` is `mac`, `linux`, or `windows`.  Here are links (based on last time this README was updated)
 
-    + [ccn_sims_v1.1.1_mac.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.1.1/ccn_sims_v1.1.1_mac.zip)
-    + [ccn_sims_v1.1.1_windows.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.1.1/ccn_sims_v1.1.1_windows.zip)
-    + [ccn_sims_v1.1.1_linux.tar.gz](https://github.com/CompCogNeuro/sims/releases/download/v1.1.1/ccn_sims_v1.1.1_linux.tar.gz)
+    + [ccn_sims_v1.2.2_mac.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.2.2/ccn_sims_v1.2.2_mac.zip)
+    + [ccn_sims_v1.2.2_windows.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.2.2/ccn_sims_v1.2.2_windows.zip)
+    + [ccn_sims_v1.2.2_linux.tar.gz](https://github.com/CompCogNeuro/sims/releases/download/v1.2.2/ccn_sims_v1.2.2_linux.tar.gz)
 
 # Usage
 
@@ -31,6 +31,8 @@ You can always access more detailed parameters by clicking on the button to the 
 If double-clicking on the program doesn't work, you may have to do a "right mouse click" (e.g., Ctrl + click) to open the executables in the `.zip` version -- it may be easier to just open the `Terminal` app, `cd` to the directory, and run the files from the command line directly.
 
 # Status
+
+* **11/23/2020**: Version 1.2.2 release: full set of Python versions and the pvlv model.
 
 * **9/18/2020**: Version 1.1.1 release: a number of bug fixes, and first half of the python version models.
 
@@ -86,7 +88,7 @@ Note: no sims for chapter 5
 
 * `rl_cond`: Pavlovian Conditioning using Temporal Differences Reinforcement Learning. (Questions **7.5 -- 7.6**)
 
-* `pvlv`: Pavlovian Conditioning with the PVLV model (Questions **7.7 -- 7.9**)  **NOT YET AVAIL!**
+* `pvlv`: Pavlovian Conditioning with the PVLV model (Questions **7.7 -- 7.9**)
 
 * `cereb`: Cerebellum role in motor learning, learning from errors. (Questions **7.10 -- 7.11**) **NOT YET AVAIL!**
 
@@ -124,29 +126,24 @@ Because it is built with a specific version of python3 baked in, you may want to
 
 To use our released version, download the `py` version from the releases page for your OS, e.g.,:
 
-*  [ccn_py_sims_v1.1.1_mac.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.1.1/ccn_py_sims_v1.1.1_mac.zip)
-*  [ccn_py_sims_v1.1.1_linux.tar.gz](https://github.com/CompCogNeuro/sims/releases/download/v1.1.1/ccn_py_sims_v1.1.1_linux.tar.gz)
+*  [ccn_py_sims_v1.2.2_mac.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.2.2/ccn_py_sims_v1.2.2_mac.zip)
+*  [ccn_py_sims_v1.2.2_linux.tar.gz](https://github.com/CompCogNeuro/sims/releases/download/v1.2.2/ccn_py_sims_v1.2.2_linux.tar.gz)
 
 unzip that file (e.g., using unzip command or your desktop interface), and `cd` in a terminal to that directory.
 
 To install manually, type:
 
-```bash
+```sh
 $ ./pyleabra -m pip install emergent*.tar.gz
-$ ./pyleabra -m pip install numpy pandas  # numpy is needed, pandas might be
-````
-
-and then copy `pyleabra` executable to `/usr/local/bin`:
-
-```bash
-$ cp pyleabra /usr/local/bin
+$ ./pyleabra -m pip install numpy
+$ cp pyleabra /usr/local/bin/
 ```
 
 Or you can also just type: `make install` to run these commands using the provided `Makefile`
 
 Then, download the sims using `git` -- will show up as sims dir so you might want to make a subdir, e.g.:
 
-```bash
+```sh
 $ mkdir ~/ccnsims
 $ cd ~/ccnsims
 $ git clone https://gtihub.com/CompCogNeuro/sims
@@ -154,7 +151,7 @@ $ git clone https://gtihub.com/CompCogNeuro/sims
 
 Then you can go to the location of the sims source, and just run the .py executables, e.g.,
 
-```bash
+```sh
 $ cd ~/ccnsims/sims/ch2/neuron
 $ ./neuron.py
 ```
