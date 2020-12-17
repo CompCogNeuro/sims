@@ -132,7 +132,7 @@ var ParamSets = params.Sets{
 			{Sel: ".GestSelfCtxt", Desc: "yes weight balance",
 				Params: params.Params{
 					"Prjn.Learn.WtBal.On": "true",
-					"Prjn.WtScale.Rel":    "3", // 3 > 2 > 4 (blows up) -- not better to start smaller
+					"Prjn.WtScale.Rel":    "3", // 3 > 2 > 4 -- not better to start smaller
 				}},
 			{Sel: ".EncSelfCtxt", Desc: "yes weight balance",
 				Params: params.Params{
@@ -146,11 +146,11 @@ var ParamSets = params.Sets{
 				}},
 			{Sel: ".EncodePToSuper", Desc: "teaching signal from input pulvinar, to super -- .05 > .2",
 				Params: params.Params{
-					"Prjn.WtScale.Rel": "0.05", // .05 > .2
+					"Prjn.WtScale.Rel": "0.05", // .05 == .02 > .2
 				}},
 			{Sel: ".EncodePToCT", Desc: "critical to make this small so deep context dominates -- .05",
 				Params: params.Params{
-					"Prjn.WtScale.Rel": "0.05",
+					"Prjn.WtScale.Rel": "0.05", // .05 == .02
 				}},
 			{Sel: ".CtxtFmInput", Desc: "making this weaker than 1 causes encodeD to freeze, 1 == 1.5 > lower",
 				Params: params.Params{
