@@ -1,4 +1,4 @@
-module github.com/CompCogNeuro/sims
+module github.com/CompCogNeuro/sg
 
 go 1.13
 
