@@ -72,6 +72,8 @@ func guirun() {
 // LogPrec is precision for saving float values in logs
 const LogPrec = 4
 
+// todo: fm pulv stronger: .1, .2
+
 // ParamSets is the default set of parameters -- Base is always applied, and others can be optionally
 // selected to apply on top of that
 var ParamSets = params.Sets{
@@ -104,6 +106,10 @@ var ParamSets = params.Sets{
 				Params: params.Params{
 					"Layer.Inhib.Layer.Gi": "1.8", // 1.8 > 2.0 > 1.6 > 2.2
 				}},
+			{Sel: "#Encode", Desc: "except encoder needs less",
+				Params: params.Params{
+					"Layer.Inhib.Layer.Gi": "2.0", // 1.8 > 2.0 > 1.6 > 2.2
+				}},
 			{Sel: "#Decode", Desc: "except decoder needs less",
 				Params: params.Params{
 					"Layer.Inhib.Layer.Gi": "1.8", // 1.8 > 2.0+
@@ -126,18 +132,24 @@ var ParamSets = params.Sets{
 				}},
 			{Sel: "CTCtxtPrjn", Desc: "yes weight balance",
 				Params: params.Params{
-					"Prjn.Learn.WtBal.On": "true",
-					"Prjn.WtScale.Rel":    "1", // 1 > 2
+					"Prjn.Learn.WtBal.On": "true", // true > false
+					"Prjn.WtScale.Rel":    "1",    // 1 > 2
+				}},
+			{Sel: ".CTFmSuper", Desc: "from superficial layer",
+				Params: params.Params{
+					"Prjn.WtInit.Mean": "0.5",
 				}},
 			{Sel: ".GestSelfCtxt", Desc: "yes weight balance",
 				Params: params.Params{
-					"Prjn.Learn.WtBal.On": "true",
-					"Prjn.WtScale.Rel":    "3", // 3 > 2 > 4 -- not better to start smaller
+					"Prjn.WtScale.Rel": "3", // 3 > 2 > 4 -- not better to start smaller
 				}},
 			{Sel: ".EncSelfCtxt", Desc: "yes weight balance",
 				Params: params.Params{
-					"Prjn.Learn.WtBal.On": "true",
-					"Prjn.WtScale.Rel":    "5", // 5 > 4 > 3 > 6 -- not better to start smaller
+					"Prjn.WtScale.Rel": "5", // 5 > 4 > 3 > 6 -- not better to start smaller
+				}},
+			{Sel: ".CtxtBack", Desc: "gest CT - > encode CT basically",
+				Params: params.Params{
+					"Prjn.WtScale.Rel": "1",
 				}},
 			{Sel: ".FmInput", Desc: "from localist inputs -- 1 == .3",
 				Params: params.Params{
@@ -159,10 +171,6 @@ var ParamSets = params.Sets{
 			{Sel: "#DecodeToGestaltCT", Desc: "this leaks current role into context directly",
 				Params: params.Params{
 					"Prjn.WtScale.Rel": "0.2", // .2 > .3 > .1 > .05(bad) > .02(vbad)
-				}},
-			{Sel: "#GestaltCTToEncodeCT", Desc: "currently removed",
-				Params: params.Params{
-					"Prjn.WtScale.Rel": "1", // 1 > 0.5 for sure
 				}},
 			{Sel: "#GestaltCTToEncodeP", Desc: "eliminating rescues EncodeD -- trying weaker",
 				Params: params.Params{
@@ -420,6 +428,7 @@ func (ss *Sim) ConfigNet(net *deep.Network) {
 	gestct.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "Gestalt", YAlign: relpos.Front, Space: 2})
 
 	full := prjn.NewFull()
+	full.SelfCon = true
 
 	pj := net.ConnectLayers(in, enc, full, emer.Forward)
 	pj.SetClass("FmInput")
@@ -461,16 +470,15 @@ func (ss *Sim) ConfigNet(net *deep.Network) {
 	net.BidirConnectLayers(dec, fill, full)
 
 	// add extra deep context
-	pj = net.ConnectCtxtToCT(encct, encct, full)
-	pj.SetClass("EncSelfCtxt")
-	pj = net.ConnectCtxtToCT(in, encct, full)
-	pj.SetClass("CtxtFmInput")
+	net.ConnectCtxtToCT(encct, encct, full).SetClass("EncSelfCtxt") // one2one doesn't work
+	net.ConnectCtxtToCT(in, encct, full).SetClass("CtxtFmInput")
+	net.ConnectCtxtToCT(gestct, encct, full).SetClass("CtxtBack")
 
 	// add extra deep context
-	pj = net.ConnectCtxtToCT(gestct, gestct, full)
-	pj.SetClass("GestSelfCtxt")
-	pj = net.ConnectCtxtToCT(in, gestct, full) // yes better
-	pj.SetClass("CtxtFmInput")
+	net.ConnectCtxtToCT(gestct, gestct, full).SetClass("GestSelfCtxt") // full > one2one
+	// net.ConnectCtxtToCT(in, gestct, full).SetClass("CtxtFmInput")
+	// net.ConnectLayers(encp, gestct, full, emer.Back).SetClass("EncodePToCT") // actually bad
+	net.ConnectCtxtToCT(enc, gestct, full).SetClass("CtxtFmInput") // better than direct from in
 
 	net.Defaults()
 	ss.SetParams("Network", ss.LogSetParams) // only set Network params

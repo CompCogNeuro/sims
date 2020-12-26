@@ -435,6 +435,7 @@ class Sim(pygiv.ClassViewObj):
         gestct.SetRelPos(relpos.Rel(Rel= relpos.RightOf, Other= "Gestalt", YAlign= relpos.Front, Space= 2))
 
         full = prjn.NewFull()
+        full.SelfCon = true
 
         pj = net.ConnectLayers(inl, enc, full, emer.Forward)
         pj.SetClass("FmInput")
@@ -476,16 +477,15 @@ class Sim(pygiv.ClassViewObj):
         net.BidirConnectLayersPy(dec, fill, full)
 
         # add extra deep context
-        pj = net.ConnectCtxtToCT(encct, encct, full)
-        pj.SetClass("EncSelfCtxt")
-        pj = net.ConnectCtxtToCT(inl, encct, full)
-        pj.SetClass("CtxtFmInput")
+        net.ConnectCtxtToCT(encct, encct, full).SetClass("EncSelfCtxt")
+        net.ConnectCtxtToCT(inl, encct, full).SetClass("CtxtFmInput")
+        net.ConnectCtxtToCT(gestct, encct, full).SetClass("CtxtBack")
 
         # add extra deep context
-        pj = net.ConnectCtxtToCT(gestct, gestct, full)
-        pj.SetClass("GestSelfCtxt")
-        pj = net.ConnectCtxtToCT(inl, gestct, full) # yes better
-        pj.SetClass("CtxtFmInput")
+        net.ConnectCtxtToCT(gestct, gestct, full).SetClass("GestSelfCtxt")
+        # net.ConnectCtxtToCT(inl, gestct, full).SetClass("CtxtFmInput")
+        # net.ConnectLayers(encp, gestct, full, emer.Back).SetClass("EncodePToCT") // actually bad
+        net.ConnectCtxtToCT(enc, gestct, full).SetClass("CtxtFmInput") # better than direct from in
 
         net.Defaults()
         ss.SetParams("Network", ss.LogSetParams) # only set Network params

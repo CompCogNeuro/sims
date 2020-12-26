@@ -47,6 +47,13 @@
           }
         },
         {
+          "Sel": "#Encode",
+          "Desc": "except encoder needs less",
+          "Params": {
+            "Layer.Inhib.Layer.Gi": "2.0"
+          }
+        },
+        {
           "Sel": "#Decode",
           "Desc": "except decoder needs less",
           "Params": {
@@ -90,10 +97,16 @@
           }
         },
         {
+          "Sel": ".CTFmSuper",
+          "Desc": "from superficial layer",
+          "Params": {
+            "Prjn.WtInit.Mean": "0.5"
+          }
+        },
+        {
           "Sel": ".GestSelfCtxt",
           "Desc": "yes weight balance",
           "Params": {
-            "Prjn.Learn.WtBal.On": "true",
             "Prjn.WtScale.Rel": "3"
           }
         },
@@ -101,8 +114,14 @@
           "Sel": ".EncSelfCtxt",
           "Desc": "yes weight balance",
           "Params": {
-            "Prjn.Learn.WtBal.On": "true",
             "Prjn.WtScale.Rel": "5"
+          }
+        },
+        {
+          "Sel": ".CtxtBack",
+          "Desc": "gest CT - \u003e encode CT basically",
+          "Params": {
+            "Prjn.WtScale.Rel": "1"
           }
         },
         {
@@ -139,13 +158,6 @@
           "Desc": "this leaks current role into context directly",
           "Params": {
             "Prjn.WtScale.Rel": "0.2"
-          }
-        },
-        {
-          "Sel": "#GestaltCTToEncodeCT",
-          "Desc": "currently removed",
-          "Params": {
-            "Prjn.WtScale.Rel": "1"
           }
         },
         {
