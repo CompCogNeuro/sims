@@ -436,10 +436,8 @@ func (ss *Sim) ConfigNet(net *deep.Network) {
 	pj = net.ConnectLayers(in, gest, full, emer.Forward) // this is key -- skip encoder
 	pj.SetClass("FmInput")
 
-	pj = encct.RecvPrjns().SendName("EncodeP")
-	pj.SetClass("EncodePToCT")
-	pj = enc.RecvPrjns().SendName("EncodeP")
-	pj.SetClass("EncodePToSuper")
+	encct.RecvPrjns().SendName("EncodeP").SetClass("EncodePToCT")
+	enc.RecvPrjns().SendName("EncodeP").SetClass("EncodePToSuper")
 
 	// gestd gets error from Filler, this communicates Filler to encd -> corrupts prediction
 	// net.ConnectLayers(gestd, encd, full, emer.Forward)
@@ -455,10 +453,8 @@ func (ss *Sim) ConfigNet(net *deep.Network) {
 	// net.ConnectLayers(gestd, inp, full, emer.Forward) // must be weaker..
 
 	// if gestd not driving inp, then this is bad -- .005 MIGHT be tiny bit beneficial but not worth it
-	// pj = net.ConnectLayers(inp, gestd, full, emer.Back) // these enable prediction
-	// pj.SetClass("EncodePToGestalt")
-	// pj = net.ConnectLayers(inp, gest, full, emer.Back)
-	// pj.SetClass("EncodePToGestalt")
+	// net.ConnectLayers(inp, gestd, full, emer.Back).SetClass("EncodePToGestalt")
+	// net.ConnectLayers(inp, gest, full, emer.Back).SetClass("EncodePToGestalt")
 
 	net.BidirConnectLayers(gest, dec, full)
 	net.BidirConnectLayers(gestct, dec, full) // bidir is essential here to get error signal
