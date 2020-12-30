@@ -10,9 +10,9 @@ You can now also start working with the [Python](#python) version -- see instruc
 
 * The full set of files are in the [Releases](https://github.com/CompCogNeuro/sims/releases) directory -- look under `Assets` for files of the form `ccn_sims_<version>_<platform>.zip` where `<version>` is the version string (higher generally better), and `<platform>` is `mac`, `linux`, or `windows`.  Here are links (based on last time this README was updated)
 
-    + [ccn_sims_v1.2.2_mac.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.2.2/ccn_sims_v1.2.2_mac.zip)
-    + [ccn_sims_v1.2.2_windows.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.2.2/ccn_sims_v1.2.2_windows.zip)
-    + [ccn_sims_v1.2.2_linux.tar.gz](https://github.com/CompCogNeuro/sims/releases/download/v1.2.2/ccn_sims_v1.2.2_linux.tar.gz)
+    + [ccn_sims_v1.2.3_mac.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.2.3/ccn_sims_v1.2.3_mac.zip)
+    + [ccn_sims_v1.2.3_windows.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.2.3/ccn_sims_v1.2.3_windows.zip)
+    + [ccn_sims_v1.2.3_linux.tar.gz](https://github.com/CompCogNeuro/sims/releases/download/v1.2.3/ccn_sims_v1.2.3_linux.tar.gz)
 
     + OLD [C++ emergent (cemer)](https://github.com/emer/cemer) sims project files:  [cecn_8_5_2.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.2.2/cecn_8_5_2.zip) (no longer updated or supported -- recommend transitioning to new ones)
     
@@ -33,6 +33,8 @@ You can always access more detailed parameters by clicking on the button to the 
 If double-clicking on the program doesn't work, you may have to do a "right mouse click" (e.g., Ctrl + click) to open the executables in the `.zip` version -- it may be easier to just open the `Terminal` app, `cd` to the directory, and run the files from the command line directly.
 
 # Status
+
+* **12/30/2020**: Version 1.2.3 release: misc bug fixes and sg update to new deep Leabra version.
 
 * **11/23/2020**: Version 1.2.2 release: full set of Python versions and the pvlv model.
 
