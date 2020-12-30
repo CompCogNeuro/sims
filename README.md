@@ -126,26 +126,18 @@ Note: no sims for chapter 5
 
 Running the sims under Python uses a compiled version of the underlying Go-based simulation infrastructure (i.e., all of [emer](https://github.com/emer) and all of [GoGi](https://github.com/goki/gi) ) that links in a specific version of Python, in the form of an executable file named `pyleabra`.  The pyleabra executable is just like a `python3` executable in all other respects.
 
-Because it is built with a specific version of python3 baked in, you may want to build your own version of this executable based on the version of python that you use for your other work, in which case see the instructions at: [leabra python](https://github.com/emer/leabra/tree/master/python).
+Because it is built with a specific version of python3 baked in, you may want to build your own version of this executable based on the version of python that you use for your other work, in which case see the instructions at: [leabra python](https://github.com/emer/leabra/tree/master/python).  Also, there can be various library path issues for finding the python library that the executable is linked against -- the install process attempts to ensure that your machine has the same version ours was built from.
 
 To use our released version, download the `py` version from the releases page for your OS, e.g.,:
 
-*  [ccn_py_sims_v1.2.2_mac.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.2.2/ccn_py_sims_v1.2.2_mac.zip)
-*  [ccn_py_sims_v1.2.2_linux.tar.gz](https://github.com/CompCogNeuro/sims/releases/download/v1.2.2/ccn_py_sims_v1.2.2_linux.tar.gz)
+*  [ccn_py_sims_v1.2.3_mac.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.2.3/ccn_py_sims_v1.2.3_mac.zip)
+*  [ccn_py_sims_v1.2.3_linux.tar.gz](https://github.com/CompCogNeuro/sims/releases/download/v1.2.3/ccn_py_sims_v1.2.3_linux.tar.gz)
 
-unzip that file (e.g., using unzip command or your desktop interface), and `cd` in a terminal to that directory.
+un-zip / un-tar that file (e.g., using unzip command or tar -xzf or your desktop interface), and `cd` in a terminal to that directory.
 
-To install manually, type:
+The `README.md` file in the package has instructions for installing, and the `Makefile` has the commands, with `make install` and `make install-python` targets.  Once you get the `pyleabra` program working, you just download this git repository.
 
-```sh
-$ ./pyleabra -m pip install emergent*.tar.gz
-$ ./pyleabra -m pip install numpy
-$ cp pyleabra /usr/local/bin/
-```
-
-Or you can also just type: `make install` to run these commands using the provided `Makefile`
-
-Then, download the sims using `git` -- will show up as sims dir so you might want to make a subdir, e.g.:
+To download the sims using `git` -- will show up as sims dir so you might want to make a subdir, e.g.:
 
 ```sh
 $ mkdir ~/ccnsims
@@ -162,7 +154,7 @@ $ ./neuron.py
 
 ## Installing other python packages
 
-As noted above, `pyleabra` is built with a specific version of python (e.g., 3.8.3 -- you can check by just running pyleabra and looking at the startup message), so you may need to install other packages you typically use for this version, if your typical usage is with a different version of python.  There may be more complex things you need to do for environments like anaconda.  e.g., here's how you would install numpy and pandas:
+As noted above, `pyleabra` is built with a specific version of python (e.g., 3.8.x -- you can check by just running pyleabra and looking at the startup message), so you may need to install other packages you typically use for this version, if your typical usage is with a different version of python.  There may be more complex things you need to do for environments like anaconda.  e.g., here's how you would install numpy and pandas:
 
 ```bash
 $ pyleabra -m pip install numpy pandas
