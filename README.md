@@ -2,11 +2,11 @@
 
 This repository contains the neural network simulation models for the [CCN Textbook](https://CompCogNeuro.org), managed on a [GitHub Repository](https://github.com/CompCogNeuro/ed4).
 
-These models are implemented in the new *Go* (golang) version of [emergent](https://github.com/emer/emergent), with Python versions available as well (note: up through ch4 so far!).  This github repository contains the full source code and you can build and run the models by cloning the repository and building / running the individual projects as described in the emergent Wiki help page: [Wiki Install](https://github.com/emer/emergent/wiki/Install) -- see [Build From Source](#build-from-source) section below for specific step-by-step instructions.
+These models are implemented in the new *Go* (golang) version of [emergent](https://github.com/emer/emergent), with [Python](#python) versions available as well.  This github repository contains the full source code and you can build and run the models by cloning the repository and building / running the individual projects as described in the [Build From Source](#build-from-source) section below for specific step-by-step instructions.
 
-The simplest way to run the simulations is by downloading a `zip` (or `tar.gz` for linux) file of all of the built models for your platform.  These are fully self-contained executable files and should "just work" on each platform.
+The simplest, recommended way to run the simulations is by downloading a `zip` (or `tar.gz` for linux) file of all of the built models for your platform.  These are fully self-contained executable files and should "just work" on each platform.
 
-You can now also start working with the [Python](#python) version -- see instructions at that link for how to install (only recommended for mac or linux platforms).
+Alternatively, you can use the [Python](#python) version -- see instructions at that link for how to install (only recommended for mac or linux platforms).
 
 * The full set of files are in the [Releases](https://github.com/CompCogNeuro/sims/releases) directory -- look under `Assets` for files of the form `ccn_sims_<version>_<platform>.zip` where `<version>` is the version string (higher generally better), and `<platform>` is `mac`, `linux`, or `windows`.  Here are links (based on last time this README was updated)
 
@@ -30,7 +30,7 @@ You can always access more detailed parameters by clicking on the button to the 
 
 ## Mac notes
 
-If double-clicking on the program doesn't work, you may have to do a "right mouse click" (e.g., Ctrl + click) to open the executables in the `.zip` version -- it may be easier to just open the `Terminal` app, `cd` to the directory, and run the files from the command line directly.
+If double-clicking on the program doesn't work (error message about unsigned application -- google "mac unsigned application" for more information), you may have to do a "right mouse click" (e.g., Ctrl + click) to open the executables in the `.zip` version -- it may be easier to just open the `Terminal` app, `cd` to the directory, and run the files from the command line directly.
 
 # Status
 
