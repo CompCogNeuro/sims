@@ -655,7 +655,9 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	pltLower.SetStretchMax()
 	tv.AddTab(frm, "TrialTypeBlockFirst")
 	ss.TrialTypeBlockFirst = ss.ConfigTrialTypeBlockFirstPlot(pltLower, ss.TrialTypeBlockFirstLog)
+	ss.TrialTypeBlockFirst.SetStretchMax()
 	ss.TrialTypeBlockFirstCmp = ss.ConfigTrialTypeBlockFirstPlot(pltCmp, ss.TrialTypeBlockFirstLogCmp)
+	ss.TrialTypeBlockFirstCmp.SetStretchMax()
 
 	//plt = tv.AddNewTab(eplot.KiT_Plot2D, "HistoryGraph").(*eplot.Plot2D)
 	//ss.HistoryGraph = ss.ConfigHistoryGraph(plt, ss.HistoryGraphData)
@@ -812,7 +814,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	nLabel.SetProp("font-size", "large")
 	ss.nStepsBox = gi.AddNewSpinBox(tbar, "nStepsSpinbox")
 	stepsProps := ki.Props{"has-min": true, "min": 1, "has-max": false, "step": 1, "pagestep": 10}
-	ss.nStepsBox.SetProps(stepsProps, true)
+	ss.nStepsBox.SetProps(stepsProps)
 	ss.nStepsBox.SetValue(1)
 	ss.nStepsBox.SpinBoxSig.Connect(tbar.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		ss.StepsToRun = int(ss.nStepsBox.Value)
@@ -882,10 +884,10 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	win.MainMenuUpdated()
 
-	ss.UpdateView()
-	vp.SetNeedsFullRender()
-	ss.UpdateView()
-	vp.SetNeedsFullRender()
+	// ss.UpdateView()
+	// vp.SetNeedsFullRender()
+	// ss.UpdateView()
+	// vp.SetNeedsFullRender()
 	return win
 
 }
