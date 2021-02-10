@@ -608,7 +608,6 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	split := gi.AddNewSplitView(mfr, "split")
 	split.Dim = mat32.X
-	split.SetStretchMax()
 
 	sv := giv.AddNewStructView(split, "sv")
 	sv.SetStruct(ss)
@@ -647,17 +646,13 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	plt := tv.AddNewTab(eplot.KiT_Plot2D, "TrialTypeData").(*eplot.Plot2D)
 	ss.TrialTypeDataPlot = ss.ConfigTrialTypeDataPlot(plt, ss.TrialTypeData)
 
-	frm := gi.AddNewFrame(tv, "TrialTypeBlockFirst", gi.LayoutVert)
+	frm := tv.AddNewTab(gi.KiT_Frame, "TrialTypeBlockFirst").(*gi.Frame)
+	frm.Lay = gi.LayoutVert
 	frm.SetStretchMax()
 	pltCmp := frm.AddNewChild(eplot.KiT_Plot2D, "TrialTypeBlockFirst_cmp").(*eplot.Plot2D)
-	pltCmp.SetStretchMax()
 	pltLower := frm.AddNewChild(eplot.KiT_Plot2D, "TrialTypeBlockFirst").(*eplot.Plot2D)
-	pltLower.SetStretchMax()
-	tv.AddTab(frm, "TrialTypeBlockFirst")
 	ss.TrialTypeBlockFirst = ss.ConfigTrialTypeBlockFirstPlot(pltLower, ss.TrialTypeBlockFirstLog)
-	ss.TrialTypeBlockFirst.SetStretchMax()
 	ss.TrialTypeBlockFirstCmp = ss.ConfigTrialTypeBlockFirstPlot(pltCmp, ss.TrialTypeBlockFirstLogCmp)
-	ss.TrialTypeBlockFirstCmp.SetStretchMax()
 
 	//plt = tv.AddNewTab(eplot.KiT_Plot2D, "HistoryGraph").(*eplot.Plot2D)
 	//ss.HistoryGraph = ss.ConfigHistoryGraph(plt, ss.HistoryGraphData)
@@ -883,13 +878,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	})
 
 	win.MainMenuUpdated()
-
-	// ss.UpdateView()
-	// vp.SetNeedsFullRender()
-	// ss.UpdateView()
-	// vp.SetNeedsFullRender()
 	return win
-
 }
 
 func (ss *Sim) RunSteps(grain StepGrain, tbar *gi.ToolBar) {
