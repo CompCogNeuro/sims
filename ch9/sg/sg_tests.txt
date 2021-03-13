@@ -31,7 +31,7 @@ ActiveSemantic {
 }
 
 // Seq 1: Should be able to predict that teacher was recipient?
-ActiveSyntactic	 {
+ActiveSyntactic {
 	=Agent=Busdriver
 	=Action=Gave
 	=Patient=RoseN
@@ -77,7 +77,7 @@ ActiveControl {
 }
 
 // Seq 5: Ambiguity: threw = threwtossed (busdriver), ball = ballsphere
-Ambiguity1	 {
+Ambiguity1 {
 	=Agent=Busdriver
 	=Action=ThrewTossed
 	=Patient=BallSphere
@@ -88,7 +88,7 @@ Ambiguity1	 {
 }
 
 // Seq 6: Ambiguity: threw = threwhosted (teacher), ball = ballparty
-Ambiguity2	 {
+Ambiguity2 {
 	=Agent=Teacher
 	=Action=ThrewHosted
 	=Patient=BallParty
