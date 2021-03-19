@@ -72,8 +72,6 @@ func guirun() {
 // LogPrec is precision for saving float values in logs
 const LogPrec = 4
 
-// todo: fm pulv stronger: .1, .2
-
 // ParamSets is the default set of parameters -- Base is always applied, and others can be optionally
 // selected to apply on top of that
 var ParamSets = params.Sets{
