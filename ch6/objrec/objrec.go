@@ -76,6 +76,7 @@ var ParamSets = params.Sets{
 					"Prjn.Learn.Momentum.On": "true",
 					"Prjn.Learn.WtBal.On":    "false", // not obviously beneficial, maybe worse
 					"Prjn.Learn.Lrate":       "0.04",  // must set initial lrate here when using schedule!
+					// "Prjn.WtInit.Sym":        "false", // slows first couple of epochs but then no diff
 				}},
 			{Sel: "Layer", Desc: "needs some special inhibition and learning params",
 				Params: params.Params{
