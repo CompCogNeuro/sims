@@ -82,7 +82,7 @@ var ParamSets = params.Sets{
 					"Prjn.Learn.Norm.On":     "true",
 					"Prjn.Learn.Momentum.On": "true",
 					"Prjn.Learn.WtBal.On":    "true",
-					"Prjn.Learn.Lrate":       "0.04",
+					"Prjn.Learn.Lrate":       "0.04", // critical for lrate sched
 				}},
 			{Sel: "Layer", Desc: "more inhibition is better",
 				Params: params.Params{
