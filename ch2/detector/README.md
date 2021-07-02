@@ -56,7 +56,7 @@ The number of inputs having a weight of 1 that you just calculated should corres
 Ge = (1 / Alpha) * [Sum(Act * Wt) / N]
 ```
 
-You can click on `Ge` in the netview to see these values as you step through the inputs.
+You can click on `Ge` in the `NetView` to see these values as you step through the inputs.
 
 * Do `Init` and `Test Trial` to see the `0` input again.  If you hover over the RecvUnit with your mouse, you should see it has a value of `Ge = .3352..`.  To apply the above equation, you should have observed that `0` has 6 units in common with `8`, and `N` = 35 (7*5), so that is about .1714.  Next, we need to apply the `Alpha` correction factor, which we set to be the activity level of the `8`, which is 17 of the 35 units active.  Thus, we should get:
 
