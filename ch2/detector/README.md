@@ -46,9 +46,9 @@ The graph shows the activation (`Act`) for the unit as a function of trial (and 
 
 Now, let's try to understand exactly why the unit responds as it does. The key to doing so is to understand the relationship between the pattern of weights and the input pattern.
 
-* Click the `Pats` again (or find the already-open window if you didn't close it), and place that scrolled to the `8` digit next to the netview window, so you can see both.  Then do `Init` in the toolbar and `Test Trial` for each input digit in turn.
+* Click the `DigitPats` button again (or find the already-open window if you had not closed it) and scroll inside so that the `8` digit is visible. Now resize the whole window so it is roughly big enough to only show the `8` and position the window so it is next to the main window that includes the `Netview` display. The idea is that you can see both side-by-side, so you may want/need to shrink the main window to prevent occlusion of the `DigitPats` window.  Then do `Init` in the toolbar and `Test Trial` for each input digit in turn.
 
-> **Question 2.8:** For each digit, report the number of active Input units where there is also a weight of 1 according to the `8` digit pattern.  In other words, report the *overlap* between the input activity and the weight pattern.
+> **Question 2.8:** For each digit, report the number of active `Input` units where there is also a weight of 1 according to the `8` digit pattern.  In other words, report the *overlap* between the input activity and the weight pattern. *HINT: Strictly speaking, the `8` display in the `DigitPats` window is NOT representing the weights per se, but as we saw earlier using the `r.Wt` functionality in `NetView,` they are the same pattern -- and displaying the windows side-by-side just makes the counting easier.* 
 
 The number of inputs having a weight of 1 that you just calculated should correspond to the total excitatory input `Ge`, also called the **net input**, going into the receiving unit, which is a function of the average of the sending activation `Act` times the weight `Wt` over all the units, with a correction factor for the expected activity level in the layer, `Alpha`:
 
