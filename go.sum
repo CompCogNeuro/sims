@@ -68,8 +68,8 @@ github.com/emer/etable v1.0.29/go.mod h1:JM0+fr/d33YNapi3hmKJ9lQPnaavT/4KimxBPnw
 github.com/emer/etable v1.0.33 h1:JihJl3oL+IS3eGioo8wE8ZieE3GLjP68d+0PiqrPevU=
 github.com/emer/etable v1.0.33/go.mod h1:ogctqfMI7WBSIqtDr0qJVl60j6irA5yJwm5ft8CMvQs=
 github.com/emer/leabra v1.1.34/go.mod h1:8d4TaYW9LFFr+Z/4Acm0XYXm20oRgZOXDvX2mJpwYAc=
-github.com/emer/leabra v1.1.35 h1:rFjJN1GB1CffJjyipq0PB+XrXfGgT/h4RaIr4SbhSd0=
-github.com/emer/leabra v1.1.35/go.mod h1:zgU82iAbvsU9E45+oUSVOzu+oPLDKixTatqOiFv1+6s=
+github.com/emer/leabra v1.1.36 h1:8ePrbW9O4EjswDZyl6fbvacK1waormeQYGRZREGdBac=
+github.com/emer/leabra v1.1.36/go.mod h1:zgU82iAbvsU9E45+oUSVOzu+oPLDKixTatqOiFv1+6s=
 github.com/emer/vision v1.1.11 h1:y3FZUAbkNNajhvMuK2DgmHK/2llNZnemwxB/7Wxykak=
 github.com/emer/vision v1.1.11/go.mod h1:2HTTqmMy+Ag3OeQqCl2ToDJpaElVgFrwPumXqyF5M0k=
 github.com/envoyproxy/go-control-plane v0.9.0/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=

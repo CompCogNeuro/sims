@@ -254,7 +254,7 @@ func (ss *Sim) AlphaCyc() {
 
 	// note: this has no learning calls
 
-	ss.Net.AlphaCycInit(true) // depends on this call
+	ss.Net.AlphaCycInit(false) // depends on this call
 	ss.Time.AlphaCycStart()
 	for qtr := 0; qtr < 4; qtr++ {
 		for cyc := 0; cyc < ss.Time.CycPerQtr; cyc++ {
