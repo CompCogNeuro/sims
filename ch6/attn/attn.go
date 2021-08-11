@@ -522,7 +522,7 @@ func (ss *Sim) AlphaCyc() {
 	// note: this has no learning calls
 	out := ss.Net.LayerByName("Output").(leabra.LeabraLayer).AsLeabra()
 
-	ss.Net.AlphaCycInit()
+	ss.Net.AlphaCycInit(true)
 	ss.Time.AlphaCycStart()
 	overThresh := false
 	for qtr := 0; qtr < 4; qtr++ {
@@ -565,7 +565,7 @@ func (ss *Sim) AlphaCyc() {
 
 // AlphaCycCue just runs over fixed number of cycles -- for Cue trials
 func (ss *Sim) AlphaCycCue() {
-	ss.Net.AlphaCycInit()
+	ss.Net.AlphaCycInit(true)
 	ss.Time.AlphaCycStart()
 	for cyc := 0; cyc < ss.CueDur; cyc++ {
 		ss.Net.Cycle(&ss.Time)

@@ -6,6 +6,7 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/emer/leabra/examples/pvlv/data"
 	"github.com/emer/leabra/leabra"
 	"github.com/goki/ki/kit"
@@ -136,7 +137,7 @@ func (ss *Sim) TrialStart(train bool) {
 	if train {
 		ss.Net.WtFmDWt()
 	}
-	ss.Net.AlphaCycInit()
+	ss.Net.AlphaCycInit(train)
 	ss.Time.AlphaCycStart()
 }
 

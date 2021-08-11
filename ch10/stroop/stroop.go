@@ -386,7 +386,7 @@ func (ss *Sim) AlphaCyc(train bool) {
 		ss.Net.WtFmDWt()
 	}
 
-	ss.Net.AlphaCycInit()
+	ss.Net.AlphaCycInit(train)
 	ss.Time.AlphaCycStart()
 	for qtr := 0; qtr < 4; qtr++ {
 		for cyc := 0; cyc < ss.Time.CycPerQtr; cyc++ {
@@ -435,7 +435,7 @@ func (ss *Sim) AlphaCycTest() {
 
 	out := ss.Net.LayerByName("Output").(leabra.LeabraLayer).AsLeabra()
 
-	ss.Net.AlphaCycInit()
+	ss.Net.AlphaCycInit(train)
 	ss.Time.AlphaCycStart()
 	overThresh := false
 	for qtr := 0; qtr < 4; qtr++ {
@@ -486,7 +486,7 @@ func (ss *Sim) AlphaCycTestCyc(cycs int) {
 
 	out := ss.Net.LayerByName("Output").(leabra.LeabraLayer).AsLeabra()
 
-	ss.Net.AlphaCycInit()
+	ss.Net.AlphaCycInit(train)
 	ss.Time.AlphaCycStart()
 	for cyc := 0; cyc < cycs; cyc++ { // just fixed cycles, no quarters
 		ss.Net.Cycle(&ss.Time)
