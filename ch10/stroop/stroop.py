@@ -400,7 +400,7 @@ class Sim(pygiv.ClassViewObj):
         if train:
             ss.Net.WtFmDWt()
 
-        ss.Net.AlphaCycInit()
+        ss.Net.AlphaCycInit(train)
         ss.Time.AlphaCycStart()
         for qtr in range(4):
             for cyc in range(ss.Time.CycPerQtr):
@@ -437,7 +437,7 @@ class Sim(pygiv.ClassViewObj):
 
         out = leabra.Layer(ss.Net.LayerByName("Output"))
 
-        ss.Net.AlphaCycInit()
+        ss.Net.AlphaCycInit(train)
         ss.Time.AlphaCycStart()
         overThresh = False
         for qtr in range(4):
@@ -477,7 +477,7 @@ class Sim(pygiv.ClassViewObj):
 
         out = leabra.Layer(ss.Net.LayerByName("Output"))
 
-        ss.Net.AlphaCycInit()
+        ss.Net.AlphaCycInit(train)
         ss.Time.AlphaCycStart()
         for cyc in range(cycs): # just fixed cycles, no quarters
             ss.Net.Cycle(ss.Time)

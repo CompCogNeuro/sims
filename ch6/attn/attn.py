@@ -462,7 +462,7 @@ class Sim(pygiv.ClassViewObj):
 
         out = leabra.Layer(ss.Net.LayerByName("Output"))
 
-        ss.Net.AlphaCycInit()
+        ss.Net.AlphaCycInit(False)
         ss.Time.AlphaCycStart()
         overThresh = False
         for qtr in range(4):
@@ -495,7 +495,7 @@ class Sim(pygiv.ClassViewObj):
         """
         AlphaCycCue just runs over fixed number of cycles -- for Cue trials
         """
-        ss.Net.AlphaCycInit()
+        ss.Net.AlphaCycInit(False)
         ss.Time.AlphaCycStart()
         for cyc in range(ss.CueDur):
             ss.Net.Cycle(ss.Time)

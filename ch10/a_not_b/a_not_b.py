@@ -322,7 +322,7 @@ class Sim(pygiv.ClassViewObj):
 
         ss.Net.WtFmDWt()
 
-        ss.Net.AlphaCycInit()
+        ss.Net.AlphaCycInit(train)
         ss.Time.AlphaCycStart()
         for qtr in range(4):
             for cyc in range(ss.Time.CycPerQtr):

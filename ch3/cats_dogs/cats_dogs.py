@@ -256,7 +256,7 @@ class Sim(pygiv.ClassViewObj):
             ss.Win.PollEvents() # this is essential for GUI responsiveness while running
         viewUpdt = ss.ViewUpdt.value
 
-        ss.Net.AlphaCycInit()
+        ss.Net.AlphaCycInit(False)
         ss.Time.AlphaCycStart()
         for qtr in range(4):
             for cyc in range(ss.Time.CycPerQtr):

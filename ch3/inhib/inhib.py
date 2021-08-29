@@ -305,7 +305,7 @@ class Sim(pygiv.ClassViewObj):
 
         nt = ss.Net()
 
-        nt.AlphaCycInit()
+        nt.AlphaCycInit(False)
         ss.Time.AlphaCycStart()
         for qtr in range(4):
             for cyc in range(ss.Time.CycPerQtr):

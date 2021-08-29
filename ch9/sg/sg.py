@@ -435,7 +435,7 @@ class Sim(pygiv.ClassViewObj):
         gestct.SetRelPos(relpos.Rel(Rel= relpos.RightOf, Other= "Gestalt", YAlign= relpos.Front, Space= 2))
 
         full = prjn.NewFull()
-        full.SelfCon = true
+        full.SelfCon = True
 
         pj = net.ConnectLayers(inl, enc, full, emer.Forward)
         pj.SetClass("FmInput")
@@ -548,7 +548,7 @@ class Sim(pygiv.ClassViewObj):
         if train:
             ss.Net.WtFmDWt()
 
-        ss.Net.AlphaCycInit()
+        ss.Net.AlphaCycInit(train)
         ss.Time.AlphaCycStart()
         for qtr in range(4):
             for cyc in range(ss.Time.CycPerQtr):
@@ -1117,10 +1117,13 @@ class Sim(pygiv.ClassViewObj):
         and under dead threshold
         """
         ly = leabra.Layer(ss.Net.LayerByName(lnm))
-        n = float(len(ly.Neurons))
-        if n == 0:
+        nn = len(ly.Neurons)
+        if nn == 0:
             return
-        for ni in ly.Neurons :
+        n = float(nn)
+        hog = 0.0
+        dead = 0.0
+        for ni in range(nn):
             nrn = ly.Neurons[ni]
             if nrn.ActAvg > 0.3:
                 hog += 1
@@ -1128,7 +1131,7 @@ class Sim(pygiv.ClassViewObj):
                 dead += 1
         hog /= n
         dead /= n
-        return
+        return hog, dead
 
     def LogTrnEpc(ss, dt):
         """
@@ -1144,15 +1147,15 @@ class Sim(pygiv.ClassViewObj):
         dt.SetCellFloat("Run", row, float(ss.TrainEnv.Run.Cur))
         dt.SetCellFloat("Epoch", row, float(epc))
 
-        if ss.LastEpcTime.IsZero():
-            ss.EpcPerTrlMSec = 0
-        else:
-            iv = time.Now().Sub(ss.LastEpcTime)
-            ss.EpcPerTrlMSec = float(iv) / (nt * float(time.Millisecond))
-        ss.LastEpcTime = time.Now()
-        dt.SetCellFloat("PerTrlMSec", row, ss.EpcPerTrlMSec)
+        # if ss.LastEpcTime.IsZero():
+        #     ss.EpcPerTrlMSec = 0
+        # else:
+        #     iv = time.Now().Sub(ss.LastEpcTime)
+        #     ss.EpcPerTrlMSec = float(iv) / (nt * float(time.Millisecond))
+        # ss.LastEpcTime = time.Now()
+        # dt.SetCellFloat("PerTrlMSec", row, ss.EpcPerTrlMSec)
 
-        for li, lnm in ss.StatNms :
+        for li, lnm in enumerate(ss.StatNms):
             ss.EpcSSE[li] = ss.SumSSE[li] / ss.SumN[li]
             ss.SumSSE[li] = 0
             ss.EpcAvgSSE[li] = ss.SumAvgSSE[li] / ss.SumN[li]
