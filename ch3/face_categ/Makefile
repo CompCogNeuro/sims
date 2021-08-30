@@ -45,5 +45,5 @@ linux: build
 	- /bin/cp $(APP) $(DEST)
 windows: build
 	- mkdir -p $(DEST)
-	- cp $(APP).exe C:$(DEST)
+	- cp $(APP).exe $(DEST)
 

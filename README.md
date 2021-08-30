@@ -187,3 +187,7 @@ All the dependencies (emergent packages, gogi gui packages, etc) will be install
 ```
 where `~` means your home directory (can also be changed by setting `GOPATH` to any directory).
 
+# Dev Notes
+
+To build all `windows` targets on Windows, have to use cygwin with native make installed -- could not get recursive invocation of make to work in powershell.  Also have to `mv /usr/bin/gcc.exe /usr/bin/gcc-cyg.exe` so it will use `TDM-GCC-64` version -- otherwise it won't build.
+
