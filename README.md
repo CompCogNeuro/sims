@@ -34,7 +34,7 @@ If double-clicking on the program doesn't work (error message about unsigned app
 
 # Status
 
-* **12/30/2020**: Version 1.3.0 release: misc bug fixes and sg update to new deep Leabra version.
+* **8/30/2021**: Version 1.3.0 release: bug fixes, deep leabra version of sg, python works on windows.
 
 * **11/23/2020**: Version 1.2.2 release: full set of Python versions and the pvlv model.
 
