@@ -10,9 +10,9 @@ Alternatively, you can use the [Python](#python) version -- see instructions at 
 
 * The full set of files are in the [Releases](https://github.com/CompCogNeuro/sims/releases) directory -- look under `Assets` for files of the form `ccn_sims_<version>_<platform>.zip` where `<version>` is the version string (higher generally better), and `<platform>` is `mac`, `linux`, or `windows`.  Here are links (based on last time this README was updated)
 
-    + [ccn_sims_v1.2.3_mac.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.2.3/ccn_sims_v1.2.3_mac.zip)
-    + [ccn_sims_v1.2.3_windows.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.2.3/ccn_sims_v1.2.3_windows.zip)
-    + [ccn_sims_v1.2.3_linux.tar.gz](https://github.com/CompCogNeuro/sims/releases/download/v1.2.3/ccn_sims_v1.2.3_linux.tar.gz)
+    + [ccn_sims_v1.3.0_mac.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.3.0/ccn_sims_v1.3.0_mac.zip)
+    + [ccn_sims_v1.3.0_windows.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.3.0/ccn_sims_v1.3.0_windows.zip)
+    + [ccn_sims_v1.3.0_linux.tar.gz](https://github.com/CompCogNeuro/sims/releases/download/v1.3.0/ccn_sims_v1.3.0_linux.tar.gz)
 
     + OLD [C++ emergent (cemer)](https://github.com/emer/cemer) sims project files:  [cecn_8_5_2.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.2.2/cecn_8_5_2.zip) (no longer updated or supported -- recommend transitioning to new ones)
     
@@ -34,7 +34,7 @@ If double-clicking on the program doesn't work (error message about unsigned app
 
 # Status
 
-* **12/30/2020**: Version 1.2.3 release: misc bug fixes and sg update to new deep Leabra version.
+* **12/30/2020**: Version 1.3.0 release: misc bug fixes and sg update to new deep Leabra version.
 
 * **11/23/2020**: Version 1.2.2 release: full set of Python versions and the pvlv model.
 
@@ -130,8 +130,9 @@ Because it is built with a specific version of python3 baked in, you may want to
 
 To use our released version, download the `py` version from the releases page for your OS, e.g.,:
 
-*  [ccn_py_sims_v1.2.3_mac.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.2.3/ccn_py_sims_v1.2.3_mac.zip)
-*  [ccn_py_sims_v1.2.3_linux.tar.gz](https://github.com/CompCogNeuro/sims/releases/download/v1.2.3/ccn_py_sims_v1.2.3_linux.tar.gz)
+*  [ccn_py_sims_v1.3.0_mac.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.3.0/ccn_py_sims_v1.3.0_mac.zip)
+*  [ccn_py_sims_v1.3.0_linux.tar.gz](https://github.com/CompCogNeuro/sims/releases/download/v1.3.0/ccn_py_sims_v1.3.0_linux.tar.gz)
+*  [ccn_py_sims_v1.3.0_windows.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.3.0/ccn_py_sims_v1.3.0_windows.zip)
 
 un-zip / un-tar that file (e.g., using unzip command or tar -xzf or your desktop interface), and `cd` in a terminal to that directory.
 
