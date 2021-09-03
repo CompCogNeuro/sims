@@ -31,11 +31,11 @@ Let's first verify that when we present an individual's name as input, it will r
 
 You should see that the network activates the appropriate features for Morris. You can think about this process as finding the most harmonious activation state given the input constraint of Morris, and the constraints in the network's weights. Equivalently, you can think about it as settling into the Morris attractor.
 
-* Click on the `CatsAndDogPats` button in the left control panel, and click on the pattern for the Name layer -- this brings up an edit window where you can edit the values -- zero out the first cell and add a 1 into the second one (Socks).  Do `Init` and `Test Trial` responds to this (should be as expected from the above table).  Go ahead and try a few other name activations (change the appropriate value from 0 to 1).
+* Click on the `CatsAndDogPats` button in the left control panel, and double-click on the pattern for the Name layer -- this brings up an edit window where you can edit the values -- zero out the first cell and add a 1 into the second one (Socks).  Do `Init` and `Test Trial` responds to this (should be as expected from the above table).  Go ahead and try a few other name activations (change the appropriate value from 0 to 1).
 
 Now, let's see how this network can give us general information about cats versus dogs, even though at some level it just has information about a set of individuals.
 
-* Set all the Name inputs to 0, and then click on the Species inputs, and set the first unit to 1 (Cat), and do `Init` and `Test Trial` again.  Use the VCR `Time` buttons at the bottom-right to go back and replay the cycle-by-cycle activation settling. 
+* Set all the Name inputs to 0, and then double-click on the Species inputs, and set the first unit to 1 (Cat), and do `Init` and `Test Trial` again.  Use the VCR `Time` buttons at the bottom-right to go back and replay the cycle-by-cycle activation settling. 
 
 You should see that the network activates features that are typical of cats, and ends up settling on a subset of cat individuals.
 
