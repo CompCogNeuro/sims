@@ -186,5 +186,9 @@ where `~` means your home directory (can also be changed by setting `GOPATH` to 
 
 # Dev Notes
 
-To build all `windows` targets on Windows, have to use cygwin with native make installed -- could not get recursive invocation of make to work in powershell.  Also have to `mv /usr/bin/gcc.exe /usr/bin/gcc-cyg.exe` so it will use `TDM-GCC-64` version -- otherwise it won't build.
+*This is not relevant for regular users of the compiled executables or python versions*
+
+The Makefile contains targets that build all the sims programs and copy the resulting executable into a consolidated directory `~/ccnsimpkg/` which can then be used to make the .zip / .tar files for distribution purposes.  The targets are: `mac`, `linux`, `windows`.
+
+To build all `windows` targets using Makefile's on Windows (i.e., `make windows`), you have to use cygwin with native make installed -- could not get recursive invocation of make to work in powershell.  Also have to `mv /usr/bin/gcc.exe /usr/bin/gcc-cyg.exe` so it will use `TDM-GCC-64` version -- otherwise it won't build.
 
