@@ -2,20 +2,14 @@
 
 This repository contains the neural network simulation models for the [CCN Textbook](https://CompCogNeuro.org), managed on a [GitHub Repository](https://github.com/CompCogNeuro/ed4).
 
-These models are implemented in the new *Go* (golang) version of [emergent](https://github.com/emer/emergent), with [Python](#python) versions available as well.  This github repository contains the full source code and you can build and run the models by cloning the repository and building / running the individual projects as described in the [Build From Source](#build-from-source) section below for specific step-by-step instructions.
-
-The simplest, recommended way to run the simulations is by downloading a `zip` (or `tar.gz` for linux) file of all of the built models for your platform.  These are fully self-contained executable files and should "just work" on each platform.
-
-Alternatively, you can use the [Python](#python) version -- see instructions at that link for how to install (only recommended for mac or linux platforms).
-
-* The full set of files are in the [Releases](https://github.com/CompCogNeuro/sims/releases) directory -- look under `Assets` for files of the form `ccn_sims_<version>_<platform>.zip` where `<version>` is the version string (higher generally better), and `<platform>` is `mac`, `linux`, or `windows`.  Here are links (based on last time this README was updated)
+To run these simulations on your computer, it is easiest to download the full set of executable programs for the type of computer you are using (Apple Mac, Microsoft Windows, or Linux):
 
     + [ccn_sims_v1.3.1_mac.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.3.1/ccn_sims_v1.3.1_mac.zip)
     + [ccn_sims_v1.3.1_windows.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.3.1/ccn_sims_v1.3.1_windows.zip)
     + [ccn_sims_v1.3.1_linux.tar.gz](https://github.com/CompCogNeuro/sims/releases/download/v1.3.1/ccn_sims_v1.3.1_linux.tar.gz)
 
-    + OLD [C++ emergent (cemer)](https://github.com/emer/cemer) sims project files:  [cecn_8_5_2.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.2.2/cecn_8_5_2.zip) (no longer updated or supported -- recommend transitioning to new ones)
-    
+Alternatively, you can use the [Python](#python) version -- see instructions at that link for how to install.
+
 # Usage
 
 Each simulation has a `README` button, which directs your browser to open the corresponding `README.md` file on github.  This contains full step-by-step instructions for running the model, and questions to answer for classroom usage of the models.  See your syllabus etc for more info.
@@ -30,8 +24,16 @@ You can always access more detailed parameters by clicking on the button to the 
 
 ## Mac notes
 
-If double-clicking on the program doesn't work (error message about unsigned application -- google "mac unsigned application" for more information), you may have to do a "right mouse click" (e.g., Ctrl + click) to open the executables in the `.zip` version -- it may be easier to just open the `Terminal` app, `cd` to the directory, and run the files from the command line directly.
+If double-clicking on the program doesn't work (error message about unsigned application or verified developer -- google "mac unsigned application" for more information), you may have to do a "right mouse click" (e.g., Ctrl + click) to open the executables in the `.zip` version -- it may be easier to just open the `Terminal` app, `cd` to the directory, and run the files from the command line directly, although apparently more recent mac versions will still complain so you need to navigate your Finder to folder created from the .zip file and click on one of the applications and Open it, and then others should be OK.
 
+# Info
+
+These models are implemented in the *Go* (golang) version of [emergent](https://github.com/emer/emergent), with [Python](#python) versions available as well.  This github repository contains the full source code and you can build and run the models by cloning the repository and building / running the individual projects as described in the [Build From Source](#build-from-source) section below for specific step-by-step instructions.
+
+Older releases can be found in the [Releases](https://github.com/CompCogNeuro/sims/releases) directory -- look under `Assets` for files of the form `ccn_sims_<version>_<platform>.zip` where `<version>` is the version string (higher generally better), and `<platform>` is `mac`, `linux`, or `windows`.
+
+The even older [C++ emergent (cemer)](https://github.com/emer/cemer) sims project files are available here:  [cecn_8_5_2.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.2.2/cecn_8_5_2.zip) (no longer updated or supported -- recommend transitioning to new ones)
+    
 # Status
 
 * **9/3/2021**: Version 1.3.1 release: bug fixes, deep leabra version of sg, python works on windows.
