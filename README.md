@@ -4,9 +4,11 @@ This repository contains the neural network simulation models for the [CCN Textb
 
 To run these simulations on your computer, it is easiest to download the full set of executable programs for the type of computer you are using (Apple Mac, Microsoft Windows, or Linux):
 
-    + [ccn_sims_v1.3.1_mac.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.3.1/ccn_sims_v1.3.1_mac.zip)
-    + [ccn_sims_v1.3.1_windows.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.3.1/ccn_sims_v1.3.1_windows.zip)
-    + [ccn_sims_v1.3.1_linux.tar.gz](https://github.com/CompCogNeuro/sims/releases/download/v1.3.1/ccn_sims_v1.3.1_linux.tar.gz)
+* [ccn_sims_v1.3.1_mac.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.3.1/ccn_sims_v1.3.1_mac.zip)
+
+* [ccn_sims_v1.3.1_windows.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.3.1/ccn_sims_v1.3.1_windows.zip)
+
+* [ccn_sims_v1.3.1_linux.tar.gz](https://github.com/CompCogNeuro/sims/releases/download/v1.3.1/ccn_sims_v1.3.1_linux.tar.gz)
 
 Alternatively, you can use the [Python](#python) version -- see instructions at that link for how to install.
 
