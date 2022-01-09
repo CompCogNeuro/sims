@@ -79,18 +79,18 @@ After the 8 training runs, you can click on the `RunStats` button to view summar
 
 Now, let's explore the effects of some of the parameters in the control panel.
 
+One of the most important parameters for BCM-style Hebbian learning is how high the `AvgL` long-term running average threshold goes as a function of neural activity (this is denoted by theta in the textbook figures).  The higher this value goes, the stronger the homeostasis force is that balances against the Hebbian rich-get-richer positive feedback loop, which can result in neurons that are more finely tuned to distinctive patterns, versus more broadly-tuned neurons that respond to many different things.
+
+* The parameter that controls how high `AvgL` goes is `AvgLGain`, with a default value of 2.5.  To see how important this factor is, reduce it to 1.5 or 1 and note the effects on the `UniqPats` in `RunStats` and also on the learned synaptic weights.
+
+It is also entertaining and informative to watch the `AvgL` value in the `NetView`, to see how this updates over time and is affected by these parameter changes.
+
 One thing that is a bit unrealistic about this model is the lack of any activity at all in the units that are off. In the real brain, inactive neurons always have some low level of activity. This can affect the extent to which weights decrease to the less active inputs, potentially leading to cleaner overall patterns of weights.
 
 * To add some noise activity in the input, set the InputNoise to .2, and do `New Seed` and then `Init` and `Train` (you can `Step Trial` to see the noise in the input).  
 
-> **Question 4.2:** Now what did you get for the `UniqPats` stats in the `RunStats`? Is this an improvement over the no-noise case?
-
-One of the most important parameters for BCM-style Hebbian learning is how high the `AvgL` long-term running average threshold goes as a function of neural activity (this is denoted by theta in the textbook figures).  The higher this value goes, the stronger the homeostasis force is that balances against the Hebbian rich-get-richer positive feedback loop, which can result in neurons that are more finely tuned to distinctive patterns, versus more broadly-tuned neurons that respond to many different things.
-
-* The parameter that controls how high `AvgL` goes is `AvgLGain`, with a default value of 2.5.  To see how important this factor is, reduce it to 1.5 and note the effects on the `UniqPats` in `RunStats` and also on the learned synaptic weights.
-
-It is also entertaining and informative to watch the `AvgL` value in the `NetView`, to see how this updates over time and is affected by these parameter changes.
-
+> **Question 4.2:** Now what did you get for the `UniqPats` stats in the `RunStats`? Is this an improvement over the no-noise case? (This effect should be easier to see if you leave the AvgLGain to be reduced at 1.5 or 1 compared to default of 2.5)
+> 
 In conclusion, this exercise should give you a feel for the dynamics that underlie self-organizing learning, and also for the importance of how the floating threshold level and homeostasis dynamic plays a key role in this form of learning.
 
 
