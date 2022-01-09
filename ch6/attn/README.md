@@ -62,7 +62,7 @@ There are three *groups* of events shown here, which correspond to a *Neutral* c
 
 * Then, switch to `TstTrlPlot` and do several `Test All` runs to collect some statistics.  Then click on  `TstStats` table (close any existing such windows and be sure to get the new one -- it regenerates a new table every time so the existing ones will not update).
 
-> **Question 6.7:** How does the influence of the spatial cue affect subsequent processing of the target, in terms of the settling times on each condition? Report average data per condition/group from the `TstStats` table.
+> **Question 6.7:** How does the influence of the spatial cue affect subsequent processing of the target, in terms of the settling times on each condition? Report average data per condition/group from the `TstStats` table. Please also describe the mechanistic reason why you observe changes to the Posner task not just the changes themselves. 
 
 Typical reaction times for young adults (i.e., college students) on this task are roughly: neutral, 370 ms; valid 350 ms; invalid 390 ms, showing about 20 ms on either side of the neutral condition for the effects of attentional focus. These data should agree in general with the pattern of results you obtained (the invalid effect is a bit higher), but to fit the data more closely you would have to add a constant offset of roughly 310 ms to the number of cycles of settling for each trial type. This constant offset can be thought of as the time needed to perform all the other aspects of the task that are not included in the simulation (e.g., generating a response). Note also that one cycle of settling in the network corresponds with one millisecond of processing in humans. This relationship is not automatic -- we adjusted the time constant for activation updating (`Act.Dt.VmTau` = 7 instead of the default of 3.3) so that the two were in agreement in this particular model.
 
@@ -155,13 +155,14 @@ Now, let's see this in the model.
 
 You should observe the now-familiar pattern of a valid facilitation and an invalid slowing (although a bit weaker).
 
-* `Test All` with increasing durations (change using the `CueDur` field) in increments of 50 from 50 to 500.
+* `Test All` with increasing durations (change using the `CueDur` field) in increments of 50 from 50 to 300 or higher.
 
 You should see that the valid-invalid difference decreases progressively with increasing duration, and ultimately, the validly cued condition can actually be a bit *slower* than the invalidly cued one, which is the hallmark of the inhibition of return phenomenon (Figure 8.28). The effect sizes here are fairly small because the form of adaptation here is relatively weak -- a more significant GABA-B like delayed inhibition effect (which is not currently implemented) would be needed to produce more substantial effects.
 
-* Switch to the `NetView`, set `ViewUpdt` to `Cycle` and `Test Trial` through the running of the network with `CueDur` at 500.
+* Switch to the `NetView`, set `ViewUpdt` to `Cycle` and `Test Trial` through the running of the network with `CueDur` at 300 or higher.
 
-> **Question 6.11:** Report in detail what happens on the valid and invalid trials that produces the inhibition of return effect.
+> **Question 6.11:** Report in detail what happens on the valid and invalid trials that produces the inhibition of return effect. It is useful to observe the activation (or lack thereof) of the various layers as the cue duration increases. While you should see changes in the ranges of durations specified, you may have to increase the cue duration even more to get the full inhibition of return effect. 
+
 
 
 # Object-Based Attentional Effects
