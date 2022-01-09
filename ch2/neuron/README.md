@@ -67,8 +67,8 @@ You can also manipulate the value of the leak conductance, , which controls the 
 
 > **Question 2.5:** What value of GbarL just prevents the neuron from being able to spike (in .1 increments) -- explain this result in terms of the tug-of-war model relative to the GbarE excitatory conductance.
 
-> **Question 2.6 (advanced):** Use the same technique as in question 2.4 to directly solve for the value of GbarL that should put the neuron right at it's spiking threshold -- show your math.
-
+> **Question 2.6 (advanced):** Use the same technique as in question 2.4 to directly solve for the value of GbarL that should put the neuron right at it's spiking threshold using the default values of other parameters -- show your math.
+ 
 
 ## Driving / Reversal Potentials
 
