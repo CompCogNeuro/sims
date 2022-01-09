@@ -155,11 +155,11 @@ Now, let's see this in the model.
 
 You should observe the now-familiar pattern of a valid facilitation and an invalid slowing (although a bit weaker).
 
-* `Test All` with increasing durations (change using the `CueDur` field) in increments of 50 from 50 to 300.
+* `Test All` with increasing durations (change using the `CueDur` field) in increments of 50 from 50 to 500.
 
 You should see that the valid-invalid difference decreases progressively with increasing duration, and ultimately, the validly cued condition can actually be a bit *slower* than the invalidly cued one, which is the hallmark of the inhibition of return phenomenon (Figure 8.28). The effect sizes here are fairly small because the form of adaptation here is relatively weak -- a more significant GABA-B like delayed inhibition effect (which is not currently implemented) would be needed to produce more substantial effects.
 
-* Switch to the `NetView`, set `ViewUpdt` to `Cycle` and `Test Trial` through the running of the network with `CueDur` at 300.
+* Switch to the `NetView`, set `ViewUpdt` to `Cycle` and `Test Trial` through the running of the network with `CueDur` at 500.
 
 > **Question 6.11:** Report in detail what happens on the valid and invalid trials that produces the inhibition of return effect.
 
