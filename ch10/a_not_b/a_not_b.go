@@ -543,6 +543,8 @@ func (ss *Sim) Stopped() {
 		if ss.ToolBar != nil {
 			ss.ToolBar.UpdateActions()
 		}
+		// ss.TrnTrlTable.UpdateTable()
+		// ss.TrnTrlTable.SetTable(ss.TrnTrlLog, nil)
 		vp.SetNeedsFullRender()
 	}
 }

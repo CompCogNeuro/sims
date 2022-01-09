@@ -42,8 +42,7 @@ You should observe largish red squares along the diagonal yellow line cutting ac
 
 > **Question 4.8:** What do you think this pattern of results means for how the network is encoding the inputs -- what is the primary component (relationship vs. agent) of the inputs along which the hidden layer is organizing the input patterns?  How might it be beneficial for the model to have organized the hidden layer in this way, in order to perform the task -- i.e., which component is more *central* across all of the patterns?
 
-Although the raw distance matricies show all the data, it can be difficult to see the more complex patterns -- distributed representations encode many different forms of similarity at the same time. Thus, we will use two other plots to see more of this structure: cluster plots and principal-components-analysis (
-) plots.
+Although the raw distance matricies show all the data, it can be difficult to see the more complex patterns -- distributed representations encode many different forms of similarity at the same time. Thus, we will use two other plots to see more of this structure: cluster plots and principal-components-analysis (PCA) plots.
 
 * Click on the `eplot.Plot2D` next to `ClustPlot` in the `HiddenRel` row to see the cluster plot of the Hidden activations labeled by relationships.
 

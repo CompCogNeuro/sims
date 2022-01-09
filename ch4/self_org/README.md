@@ -90,7 +90,7 @@ One thing that is a bit unrealistic about this model is the lack of any activity
 * To add some noise activity in the input, set the InputNoise to .2, and do `New Seed` and then `Init` and `Train` (you can `Step Trial` to see the noise in the input).  
 
 > **Question 4.2:** Now what did you get for the `UniqPats` stats in the `RunStats`? Is this an improvement over the no-noise case? (This effect should be easier to see if you leave the AvgLGain to be reduced at 1.5 or 1 compared to default of 2.5). Describe what difference you observe in the weights of the no-noise and noise simulations. Why do you see this difference?
-> 
+
 In conclusion, this exercise should give you a feel for the dynamics that underlie self-organizing learning, and also for the importance of how the floating threshold level and homeostasis dynamic plays a key role in this form of learning.
 
 
