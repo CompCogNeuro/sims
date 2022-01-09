@@ -22,7 +22,7 @@ You will see an input pattern from the AB training set presented to the network.
 
 You should have observed that the `ECin` patterns overlap the most, with `CA1` overlapping the next most, then `CA3`, and finally `DG` overlaps the least. The levels of FFFB overall inhibition parallel this result, with DG having a very high level of inhibition, followed by CA3, then CA1, and finally EC.
 
-> **Question 8.4:** Using the explanation given earlier in the text about the pattern separation mechanism, and the relative levels of activity on these different layers, explain the overlap results for each layer in terms of these activity levels, in qualitative terms.
+> **Question 8.4:** Using the explanation given earlier in the text about the pattern separation mechanism, and the relative levels of activity and inhibition in these different layers, explain the overlap results for each layer in terms of these activity levels, in qualitative terms.
 
 Each epoch of training consists of the 10 list items, followed by testing on 3 sets of testing events. The first testing set contains the AB list items, the second contains the AC list items, and the third contains a set of novel *Lure* items to make sure the network is treating novel items as such. The network automatically switches over to testing after each pass through the 10 training events.
 
