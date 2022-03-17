@@ -143,7 +143,7 @@ To download the sims using `git` -- will show up as sims dir so you might want t
 ```sh
 $ mkdir ~/ccnsims
 $ cd ~/ccnsims
-$ git clone https://gtihub.com/CompCogNeuro/sims
+$ git clone https://github.com/CompCogNeuro/sims
 ```
 
 Then you can go to the location of the sims source, and just run the .py executables, e.g.,
