@@ -4,11 +4,13 @@ This repository contains the neural network simulation models for the [CCN Textb
 
 To run these simulations on your computer, it is easiest to download the full set of executable programs for the type of computer you are using (Apple Mac, Microsoft Windows, or Linux):
 
-* [ccn_sims_v1.3.1_mac.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.3.1/ccn_sims_v1.3.1_mac.zip)
+* [ccn_sims_v1.3.2_mac-m1.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.3.2/ccn_sims_v1.3.2_mac-m1.zip)
 
-* [ccn_sims_v1.3.1_windows.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.3.1/ccn_sims_v1.3.1_windows.zip)
+* [ccn_sims_v1.3.2_mac-intel.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.3.2/ccn_sims_v1.3.2_mac-intel.zip)
 
-* [ccn_sims_v1.3.1_linux.tar.gz](https://github.com/CompCogNeuro/sims/releases/download/v1.3.1/ccn_sims_v1.3.1_linux.tar.gz)
+* [ccn_sims_v1.3.2_windows.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.3.2/ccn_sims_v1.3.2_windows.zip)
+
+* [ccn_sims_v1.3.2_linux.tar.gz](https://github.com/CompCogNeuro/sims/releases/download/v1.3.2/ccn_sims_v1.3.2_linux.tar.gz)
 
 Alternatively, you can use the [Python](#python) version -- see instructions at that link for how to install.
 
@@ -37,6 +39,8 @@ Older releases can be found in the [Releases](https://github.com/CompCogNeuro/si
 The even older [C++ emergent (cemer)](https://github.com/emer/cemer) sims project files are available here:  [cecn_8_5_2.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.2.2/cecn_8_5_2.zip) (no longer updated or supported -- recommend transitioning to new ones)
     
 # Status
+
+* **9/15/2022**: Version 1.3.2 release: updated to new NetView with raster view and separate weight recording.
 
 * **9/3/2021**: Version 1.3.1 release: bug fixes, deep leabra version of sg, python works on windows.
 
@@ -123,6 +127,8 @@ Note: no sims for chapter 5
 * `sir`: Store/Ignore/Recall Task - Updating and Maintenance in more complex PFC model (Questions **10.7 -- 10.8**)
 
 # Python
+
+**Note:** version 1.3.2 does not work with python at this point.  The previous 1.3.1 version should still work.
 
 Running the sims under Python uses a compiled version of the underlying Go-based simulation infrastructure (i.e., all of [emer](https://github.com/emer) and all of [GoGi](https://github.com/goki/gi) ) that links in a specific version of Python, in the form of an executable file named `pyleabra`.  The pyleabra executable is just like a `python3` executable in all other respects.
 
