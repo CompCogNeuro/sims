@@ -234,7 +234,7 @@ func (ss *Sim) MaybeUpdate(train, exact bool, checkTS leabra.TimeScales) {
 		ts = ss.TestUpdt
 	}
 	if (exact && ts == checkTS) || ts <= checkTS {
-		ss.UpdateView()
+		ss.UpdateView(-1)
 	}
 }
 
@@ -294,6 +294,9 @@ func (ss *Sim) InitSim() {
 	ss.Net.InitWts()
 	ss.InitHasRun = true
 	ss.VerboseInit = false
+	if ss.NetView != nil && ss.NetView.IsVisible() {
+		ss.NetView.RecordSyns()
+	}
 }
 
 // NewRndSeed gets a new random seed based on current time -- otherwise uses
@@ -312,9 +315,9 @@ func (ss *Sim) Counters() string {
 		ss.Time.Cycle, ev.AlphaTrialName) //, ev.USTimeInStr)
 }
 
-func (ss *Sim) UpdateView() {
+func (ss *Sim) UpdateView(cyc int) {
 	if ss.NetView != nil && ss.NetView.IsVisible() {
-		ss.NetView.Record(ss.Counters())
+		ss.NetView.Record(ss.Counters(), cyc)
 		// note: essential to use Go version of update when called from another goroutine
 		ss.NetView.GoUpdate()
 	}
@@ -328,7 +331,7 @@ func (ss *Sim) NotifyStopped() {
 		if ss.ToolBar != nil {
 			ss.ToolBar.UpdateActions()
 		}
-		ss.UpdateView()
+		ss.UpdateView(-1)
 		vp.SetNeedsFullRender()
 	}
 	fmt.Println("stopped")
@@ -561,7 +564,7 @@ func (ss *Sim) ConfigNetView(nv *netview.NetView) {
 	nv.Scene().Camera.LookAt(mat32.Vec3{Y: 0.5, Z: 1}, mat32.Vec3{Y: 1})
 	ctrs := nv.Counters()
 	ctrs.SetProp("font-family", "Go Mono")
-	nv.Record(ss.Counters())
+	nv.Record(ss.Counters(), -1)
 }
 
 func (ss *Sim) Stopped() bool {
@@ -619,6 +622,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	nv.Var = "Act"
 	nv.Params.LayNmSize = 0.02
 	nv.SetNet(ss.Net)
+	nv.Params.Raster.Max = 100
 	ss.NetView = nv
 	ss.ConfigNetView(nv)
 
@@ -694,7 +698,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 			time.Sleep(1 * time.Second)
 		}
 		_ = ss.InitRun()
-		ss.UpdateView()
+		ss.UpdateView(-1)
 		vp.SetNeedsFullRender()
 	})
 
@@ -1100,7 +1104,7 @@ func (ss *Sim) InitRun() error {
 	if err != nil {
 		fmt.Println("ERROR: InitCondition failed")
 	}
-	ss.UpdateView()
+	ss.UpdateView(-1)
 	ss.Win.Viewport.SetNeedsFullRender()
 	return nil
 }
@@ -1180,7 +1184,7 @@ func (ss *Sim) ExecuteRun() bool {
 			break
 		}
 		if ss.ViewOn && ss.TrainUpdt >= leabra.Run {
-			ss.UpdateView()
+			ss.UpdateView(-1)
 		}
 		ss.Stepper.StepPoint(int(Condition))
 	}
@@ -1240,7 +1244,7 @@ func (ss *Sim) NotifyPause() {
 	}
 	ss.IsRunning = false
 	ss.ToolBar.UpdateActions()
-	ss.UpdateView()
+	ss.UpdateView(-1)
 	ss.Win.Viewport.SetNeedsFullRender()
 }
 

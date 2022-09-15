@@ -52,11 +52,11 @@ func (ss *Sim) SettleMinus(train bool) {
 				switch viewUpdt {
 				case leabra.Cycle:
 					if cyc != ss.Time.CycPerQtr-1 { // will be updated by quarter
-						ss.UpdateView()
+						ss.UpdateView(ss.Time.Cycle)
 					}
 				case leabra.FastSpike: // every 10 cycles
 					if (cyc+1)%10 == 0 {
-						ss.UpdateView()
+						ss.UpdateView(-1)
 					}
 				}
 			}
@@ -64,11 +64,13 @@ func (ss *Sim) SettleMinus(train bool) {
 		ss.Net.QuarterFinal(&ss.Time)
 		if ss.ViewOn {
 			switch viewUpdt {
+			case leabra.Cycle:
+				ss.UpdateView(ss.Time.Cycle)
 			case leabra.Quarter:
-				ss.UpdateView()
+				ss.UpdateView(-1)
 			case leabra.Phase:
 				if qtr >= 2 {
-					ss.UpdateView()
+					ss.UpdateView(-1)
 				}
 			}
 		}
@@ -103,11 +105,11 @@ func (ss *Sim) SettlePlus(train bool) {
 			switch viewUpdt {
 			case leabra.Cycle:
 				if cyc != ss.Time.CycPerQtr-1 { // will be updated by quarter
-					ss.UpdateView()
+					ss.UpdateView(ss.Time.Cycle)
 				}
 			case leabra.FastSpike:
 				if (cyc+1)%10 == 0 {
-					ss.UpdateView()
+					ss.UpdateView(-1)
 				}
 			}
 		}
@@ -116,7 +118,7 @@ func (ss *Sim) SettlePlus(train bool) {
 	if ss.ViewOn {
 		switch viewUpdt {
 		case leabra.Quarter, leabra.Phase:
-			ss.UpdateView()
+			ss.UpdateView(-1)
 		}
 	}
 	ss.Time.QuarterInc()
@@ -147,7 +149,7 @@ func (ss *Sim) TrialEnd(_ *PVLVEnv, train bool) {
 		viewUpdt = ss.TestUpdt
 	}
 	if ss.ViewOn && viewUpdt == leabra.Trial {
-		ss.UpdateView()
+		ss.UpdateView(-1)
 	}
 }
 
@@ -200,7 +202,7 @@ func (ev *PVLVEnv) RunOneTrialBlk(ss *Sim) {
 		ev.AlphaCycle.Max = curTG.AlphaTicksPerTrialGp
 		blockDone = ev.RunOneTrial(ss, curTG) // run one instantiated trial type (aka "trial group")
 		if ss.ViewOn && ss.TrainUpdt == leabra.Trial {
-			ss.UpdateView()
+			ss.UpdateView(-1)
 		}
 		if ss.Stepper.StepPoint(int(SGTrial)) {
 			return
@@ -213,7 +215,7 @@ func (ev *PVLVEnv) RunOneTrialBlk(ss *Sim) {
 		return
 	}
 	if ss.ViewOn && ss.TrainUpdt >= leabra.Epoch {
-		ss.UpdateView()
+		ss.UpdateView(-1)
 	}
 }
 
@@ -231,7 +233,7 @@ func (ev *PVLVEnv) RunOneTrial(ss *Sim, curTrial *data.TrialInstance) (blockDone
 			return
 		}
 		if ss.ViewOn && ss.TrainUpdt <= leabra.Quarter {
-			ss.UpdateView()
+			ss.UpdateView(-1)
 		}
 	}
 	ss.Net.ClearMSNTraces(&ss.Time)
@@ -239,7 +241,7 @@ func (ev *PVLVEnv) RunOneTrial(ss *Sim, curTrial *data.TrialInstance) (blockDone
 	ss.TrialEnd(ev, train)
 	//ss.LogTrialData(ev) // accumulate
 	if ss.ViewOn && ss.TrainUpdt == leabra.Trial {
-		ss.UpdateView()
+		ss.UpdateView(-1)
 	}
 	return blockDone
 }
@@ -263,9 +265,12 @@ func (ev *PVLVEnv) RunOneAlphaCycle(ss *Sim, trial *data.TrialInstance) {
 	ss.SettlePlus(train)
 	if train {
 		ss.Net.DWt()
+		if ss.NetView != nil && ss.NetView.IsVisible() {
+			ss.NetView.RecordSyns()
+		}
 	}
 	if ss.ViewOn && ss.TrainUpdt == leabra.AlphaCycle {
-		ss.UpdateView()
+		ss.UpdateView(-1)
 	}
 	ss.LogTrialTypeData()
 	//_ = ss.Stepper.StepPoint(int(AlphaPlus))

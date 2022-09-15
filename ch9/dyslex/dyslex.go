@@ -382,7 +382,10 @@ func (ss *Sim) Init() {
 	ss.StopNow = false
 	ss.SetParams("", false) // all sheets
 	ss.NewRun()
-	ss.UpdateView(true)
+	ss.UpdateView(true, -1)
+	if ss.NetView != nil && ss.NetView.IsVisible() {
+		ss.NetView.RecordSyns()
+	}
 }
 
 // NewRndSeed gets a new random seed based on current time -- otherwise uses
@@ -402,9 +405,9 @@ func (ss *Sim) Counters(train bool) string {
 	}
 }
 
-func (ss *Sim) UpdateView(train bool) {
+func (ss *Sim) UpdateView(train bool, cyc int) {
 	if ss.NetView != nil && ss.NetView.IsVisible() {
-		ss.NetView.Record(ss.Counters(train))
+		ss.NetView.Record(ss.Counters(train), cyc)
 		// note: essential to use Go version of update when called from another goroutine
 		ss.NetView.GoUpdate() // note: using counters is significantly slower..
 	}
@@ -425,14 +428,6 @@ func (ss *Sim) AlphaCyc(train bool) {
 		viewUpdt = ss.TestUpdt
 	}
 
-	// update prior weight changes at start, so any DWt values remain visible at end
-	// you might want to do this less frequently to achieve a mini-batch update
-	// in which case, move it out to the TrainTrial method where the relevant
-	// counters are being dealt with.
-	if train {
-		ss.Net.WtFmDWt()
-	}
-
 	ss.Net.AlphaCycInit(train)
 	ss.Time.AlphaCycStart()
 	for qtr := 0; qtr < 4; qtr++ {
@@ -443,11 +438,11 @@ func (ss *Sim) AlphaCyc(train bool) {
 				switch viewUpdt {
 				case leabra.Cycle:
 					if cyc != ss.Time.CycPerQtr-1 { // will be updated by quarter
-						ss.UpdateView(train)
+						ss.UpdateView(train, ss.Time.Cycle)
 					}
 				case leabra.FastSpike:
 					if (cyc+1)%10 == 0 {
-						ss.UpdateView(train)
+						ss.UpdateView(train, -1)
 					}
 				}
 			}
@@ -456,11 +451,13 @@ func (ss *Sim) AlphaCyc(train bool) {
 		ss.Time.QuarterInc()
 		if ss.ViewOn {
 			switch {
+			case viewUpdt == leabra.Cycle:
+				ss.UpdateView(train, ss.Time.Cycle)
 			case viewUpdt <= leabra.Quarter:
-				ss.UpdateView(train)
+				ss.UpdateView(train, -1)
 			case viewUpdt == leabra.Phase:
 				if qtr >= 2 {
-					ss.UpdateView(train)
+					ss.UpdateView(train, -1)
 				}
 			}
 		}
@@ -468,9 +465,13 @@ func (ss *Sim) AlphaCyc(train bool) {
 
 	if train {
 		ss.Net.DWt()
+		if ss.NetView != nil && ss.NetView.IsVisible() {
+			ss.NetView.RecordSyns()
+		}
+		ss.Net.WtFmDWt()
 	}
 	if ss.ViewOn && viewUpdt == leabra.AlphaCycle {
-		ss.UpdateView(train)
+		ss.UpdateView(train, -1)
 	}
 }
 
@@ -535,7 +536,7 @@ func (ss *Sim) TrainTrial() {
 		ss.LogTrnEpc(ss.TrnEpcLog)
 		ss.LrateSched(epc)
 		if ss.ViewOn && ss.TrainUpdt > leabra.AlphaCycle {
-			ss.UpdateView(true)
+			ss.UpdateView(true, -1)
 		}
 		if ss.TestInterval > 0 && epc%ss.TestInterval == 0 { // note: epc is *next* so won't trigger first time
 			ss.TestAll()
@@ -804,7 +805,7 @@ func (ss *Sim) TestTrial(returnOnChg bool) {
 	_, _, chg := ss.TestEnv.Counter(env.Epoch)
 	if chg {
 		if ss.ViewOn && ss.TestUpdt > leabra.AlphaCycle {
-			ss.UpdateView(false)
+			ss.UpdateView(false, -1)
 		}
 		ss.LogTstEpc(ss.TstEpcLog)
 		if returnOnChg {
@@ -1344,6 +1345,7 @@ func (ss *Sim) ClustPlot(plt *eplot.Plot2D, ix *etable.IdxView, colNm string) {
 
 func (ss *Sim) ConfigNetView(nv *netview.NetView) {
 	nv.ViewDefaults()
+	nv.Params.Raster.Max = 100
 	nv.Scene().Camera.Pose.Pos.Set(0, 1.05, 2.75)
 	nv.Scene().Camera.LookAt(mat32.Vec3{0, 0, 0}, mat32.Vec3{0, 1, 0})
 }

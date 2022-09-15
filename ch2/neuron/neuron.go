@@ -172,7 +172,10 @@ func (ss *Sim) Init() {
 	ss.InitWts(ss.Net)
 	ss.StopNow = false
 	ss.SetParams("", false) // all sheets
-	ss.UpdateView()
+	ss.UpdateView(-1)
+	if ss.NetView != nil && ss.NetView.IsVisible() {
+		ss.NetView.RecordSyns()
+	}
 }
 
 // Counters returns a string of the current counter state
@@ -182,9 +185,9 @@ func (ss *Sim) Counters() string {
 	return fmt.Sprintf("Cycle:\t%d\t\t\t", ss.Cycle)
 }
 
-func (ss *Sim) UpdateView() {
+func (ss *Sim) UpdateView(cyc int) {
 	if ss.NetView != nil && ss.NetView.IsVisible() {
-		ss.NetView.Record(ss.Counters())
+		ss.NetView.Record(ss.Counters(), cyc)
 		// note: essential to use Go version of update when called from another goroutine
 		ss.NetView.GoUpdate() // note: using counters is significantly slower..
 	}
@@ -225,13 +228,13 @@ func (ss *Sim) RunCycles() {
 		}
 		ss.LogTstCyc(ss.TstCycLog, ss.Cycle)
 		if ss.Cycle%ss.UpdtInterval == 0 {
-			ss.UpdateView()
+			ss.UpdateView(ss.Cycle)
 		}
 		if ss.StopNow {
 			break
 		}
 	}
-	ss.UpdateView()
+	ss.UpdateView(ss.Cycle)
 }
 
 // RateUpdt updates the neuron in rate-code mode

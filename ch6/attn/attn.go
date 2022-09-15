@@ -486,7 +486,10 @@ func (ss *Sim) Init() {
 	ss.StopNow = false
 	ss.SetParams("", false) // all sheets
 	ss.TstTrlLog.SetNumRows(0)
-	ss.UpdateView()
+	ss.UpdateView(-1)
+	if ss.NetView != nil && ss.NetView.IsVisible() {
+		ss.NetView.RecordSyns()
+	}
 }
 
 // Counters returns a string of the current counter state
@@ -500,9 +503,9 @@ func (ss *Sim) Counters() string {
 	return fmt.Sprintf("Trial:\t%d\tCycle:\t%d\tName:\t%s\t\t\t", ss.TestEnv.Trial.Cur, ss.Time.Cycle, nm)
 }
 
-func (ss *Sim) UpdateView() {
+func (ss *Sim) UpdateView(cyc int) {
 	if ss.NetView != nil && ss.NetView.IsVisible() {
-		ss.NetView.Record(ss.Counters())
+		ss.NetView.Record(ss.Counters(), cyc)
 		// note: essential to use Go version of update when called from another goroutine
 		ss.NetView.GoUpdate() // note: using counters is significantly slower..
 	}
@@ -532,11 +535,11 @@ func (ss *Sim) AlphaCyc() {
 			switch viewUpdt {
 			case leabra.Cycle:
 				if cyc != ss.Time.CycPerQtr-1 { // will be updated by quarter
-					ss.UpdateView()
+					ss.UpdateView(ss.Time.Cycle)
 				}
 			case leabra.FastSpike:
 				if (cyc+1)%10 == 0 {
-					ss.UpdateView()
+					ss.UpdateView(-1)
 				}
 			}
 			trgact := out.Neurons[1].Act
@@ -548,11 +551,13 @@ func (ss *Sim) AlphaCyc() {
 		ss.Net.QuarterFinal(&ss.Time)
 		ss.Time.QuarterInc()
 		switch {
+		case viewUpdt == leabra.Cycle:
+			ss.UpdateView(ss.Time.Cycle)
 		case viewUpdt <= leabra.Quarter:
-			ss.UpdateView()
+			ss.UpdateView(-1)
 		case viewUpdt == leabra.Phase:
 			if qtr >= 2 {
-				ss.UpdateView()
+				ss.UpdateView(-1)
 			}
 		}
 		if overThresh {
@@ -560,7 +565,7 @@ func (ss *Sim) AlphaCyc() {
 		}
 	}
 
-	ss.UpdateView()
+	ss.UpdateView(-1)
 }
 
 // AlphaCycCue just runs over fixed number of cycles -- for Cue trials
@@ -571,13 +576,13 @@ func (ss *Sim) AlphaCycCue() {
 		ss.Net.Cycle(&ss.Time)
 		ss.Time.CycleInc()
 		if (cyc+1)%10 == 0 {
-			ss.UpdateView()
+			ss.UpdateView(-1)
 		}
 	}
 	ss.Net.QuarterFinal(&ss.Time) // whatever.
 	ss.Time.QuarterInc()
 
-	ss.UpdateView()
+	ss.UpdateView(-1)
 }
 
 // ApplyInputs applies input patterns from given envirbonment.
@@ -632,7 +637,7 @@ func (ss *Sim) TestTrial() {
 	_, _, chg := ss.TestEnv.Counter(env.Epoch)
 	if chg {
 		if ss.ViewUpdt > leabra.AlphaCycle {
-			ss.UpdateView()
+			ss.UpdateView(-1)
 		}
 		return
 	}
@@ -709,10 +714,10 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 	}
 
 	spo := ss.Params.SetByName("Base").SheetByName("Network").SelByName(".SpatToObj")
-	spo.Params.SetParamByName("Prjn.WtScale.Rel", fmt.Sprintf("%g", ss.SpatToObj))
+	spo.Params.SetByName("Prjn.WtScale.Rel", fmt.Sprintf("%g", ss.SpatToObj))
 
 	vsp := ss.Params.SetByName("Base").SheetByName("Network").SelByName("#V1ToSpat1")
-	vsp.Params.SetParamByName("Prjn.WtScale.Rel", fmt.Sprintf("%g", ss.V1ToSpat1))
+	vsp.Params.SetByName("Prjn.WtScale.Rel", fmt.Sprintf("%g", ss.V1ToSpat1))
 
 	err := ss.SetParamsSet("Base", sheet, setMsg)
 	if ss.ParamSet != "" && ss.ParamSet != "Base" {
@@ -916,6 +921,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	nv := tv.AddNewTab(netview.KiT_NetView, "NetView").(*netview.NetView)
 	nv.Var = "Act"
 	nv.SetNet(ss.Net)
+	nv.Params.Raster.Max = 100
 	ss.NetView = nv
 	ss.ConfigNetView(nv)
 

@@ -175,7 +175,10 @@ func (ss *Sim) Init() {
 	ss.InitWts(ss.Net)
 	ss.StopNow = false
 	ss.SetParams("", false) // all sheets
-	ss.UpdateView()
+	ss.UpdateView(-1)
+	if ss.NetView != nil && ss.NetView.IsVisible() {
+		ss.NetView.RecordSyns()
+	}
 }
 
 // Counters returns a string of the current counter state
@@ -185,9 +188,9 @@ func (ss *Sim) Counters() string {
 	return fmt.Sprintf("Trial:\t%d\tCycle:\t%d\tName:\t%s\t\t\t", ss.TestEnv.Trial.Cur, ss.Time.Cycle, ss.TestEnv.TrialName.Cur)
 }
 
-func (ss *Sim) UpdateView() {
+func (ss *Sim) UpdateView(cyc int) {
 	if ss.NetView != nil && ss.NetView.IsVisible() {
-		ss.NetView.Record(ss.Counters())
+		ss.NetView.Record(ss.Counters(), cyc)
 		// note: essential to use Go version of update when called from another goroutine
 		ss.NetView.GoUpdate() // note: using counters is significantly slower..
 	}
@@ -215,28 +218,30 @@ func (ss *Sim) AlphaCyc() {
 			switch viewUpdt {
 			case leabra.Cycle:
 				if cyc != ss.Time.CycPerQtr-1 { // will be updated by quarter
-					ss.UpdateView()
+					ss.UpdateView(ss.Time.Cycle)
 				}
 			case leabra.FastSpike:
 				if (cyc+1)%10 == 0 {
-					ss.UpdateView()
+					ss.UpdateView(-1)
 				}
 			}
 		}
 		ss.Net.QuarterFinal(&ss.Time)
 		ss.Time.QuarterInc()
 		switch {
+		case viewUpdt == leabra.Cycle:
+			ss.UpdateView(ss.Time.Cycle)
 		case viewUpdt <= leabra.Quarter:
-			ss.UpdateView()
+			ss.UpdateView(-1)
 		case viewUpdt == leabra.Phase:
 			if qtr >= 2 {
-				ss.UpdateView()
+				ss.UpdateView(-1)
 			}
 		}
 	}
 
 	if viewUpdt == leabra.AlphaCycle {
-		ss.UpdateView()
+		ss.UpdateView(-1)
 	}
 }
 
@@ -292,7 +297,7 @@ func (ss *Sim) TestTrial() {
 	_, _, chg := ss.TestEnv.Counter(env.Epoch)
 	if chg {
 		if ss.ViewUpdt > leabra.AlphaCycle {
-			ss.UpdateView()
+			ss.UpdateView(-1)
 		}
 		return
 	}
@@ -526,6 +531,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	// which fares pretty well in terms of discussion here:
 	// https://matplotlib.org/tutorials/colors/colormaps.html
 	nv.SetNet(ss.Net)
+	nv.Params.Raster.Max = 20
 	ss.NetView = nv
 
 	nv.ViewDefaults()

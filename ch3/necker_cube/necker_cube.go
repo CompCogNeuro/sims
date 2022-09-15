@@ -173,7 +173,10 @@ func (ss *Sim) Init() {
 	ss.InitWts(ss.Net)
 	ss.StopNow = false
 	ss.SetParams("", false) // all sheets
-	ss.UpdateView()
+	ss.UpdateView(-1)
+	if ss.NetView != nil && ss.NetView.IsVisible() {
+		ss.NetView.RecordSyns()
+	}
 }
 
 // Counters returns a string of the current counter state
@@ -183,9 +186,9 @@ func (ss *Sim) Counters() string {
 	return fmt.Sprintf("Cycle:\t%d\t\t\t", ss.Time.Cycle)
 }
 
-func (ss *Sim) UpdateView() {
+func (ss *Sim) UpdateView(cyc int) {
 	if ss.NetView != nil && ss.NetView.IsVisible() {
-		ss.NetView.Record(ss.Counters())
+		ss.NetView.Record(ss.Counters(), cyc)
 		// note: essential to use Go version of update when called from another goroutine
 		ss.NetView.GoUpdate() // note: using counters is significantly slower..
 	}
@@ -214,28 +217,30 @@ func (ss *Sim) AlphaCyc() {
 			switch viewUpdt {
 			case leabra.Cycle:
 				if cyc != ss.Time.CycPerQtr-1 { // will be updated by quarter
-					ss.UpdateView()
+					ss.UpdateView(ss.Time.Cycle)
 				}
 			case leabra.FastSpike:
 				if (cyc+1)%10 == 0 {
-					ss.UpdateView()
+					ss.UpdateView(-1)
 				}
 			}
 		}
 		ss.Net.QuarterFinal(&ss.Time)
 		ss.Time.QuarterInc()
 		switch {
+		case viewUpdt == leabra.Cycle:
+			ss.UpdateView(ss.Time.Cycle)
 		case viewUpdt <= leabra.Quarter:
-			ss.UpdateView()
+			ss.UpdateView(-1)
 		case viewUpdt == leabra.Phase:
 			if qtr >= 2 {
-				ss.UpdateView()
+				ss.UpdateView(-1)
 			}
 		}
 	}
 
 	if viewUpdt == leabra.AlphaCycle {
-		ss.UpdateView()
+		ss.UpdateView(-1)
 	}
 }
 
@@ -459,6 +464,7 @@ func (ss *Sim) ConfigTstCycPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 
 func (ss *Sim) ConfigNetView(nv *netview.NetView) {
 	nv.ViewDefaults()
+	nv.Params.Raster.Max = 100
 }
 
 // ConfigGui configures the GoGi gui interface for this simulation,

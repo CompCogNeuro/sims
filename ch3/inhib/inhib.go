@@ -284,7 +284,13 @@ func (ss *Sim) Init() {
 	ss.SetParams("", false) // all sheets
 	ss.InitWts(ss.NetFF)
 	ss.InitWts(ss.NetBidir)
-	ss.UpdateView()
+	ss.UpdateView(-1)
+	if ss.NetViewFF != nil && ss.NetViewFF.IsVisible() {
+		ss.NetViewFF.RecordSyns()
+	}
+	if ss.NetViewBidir != nil && ss.NetViewBidir.IsVisible() {
+		ss.NetViewBidir.RecordSyns()
+	}
 }
 
 // Counters returns a string of the current counter state
@@ -294,7 +300,7 @@ func (ss *Sim) Counters() string {
 	return fmt.Sprintf("Cycle:\t%d\t\t\t", ss.Time.Cycle)
 }
 
-func (ss *Sim) UpdateView() {
+func (ss *Sim) UpdateView(cyc int) {
 	var nv *netview.NetView
 	if ss.BidirNet {
 		nv = ss.NetViewBidir
@@ -302,7 +308,7 @@ func (ss *Sim) UpdateView() {
 		nv = ss.NetViewFF
 	}
 	if nv != nil && nv.IsVisible() {
-		nv.Record(ss.Counters())
+		nv.Record(ss.Counters(), cyc)
 		// note: essential to use Go version of update when called from another goroutine
 		nv.GoUpdate() // note: using counters is significantly slower..
 	}
@@ -342,28 +348,30 @@ func (ss *Sim) AlphaCyc() {
 			switch viewUpdt {
 			case leabra.Cycle:
 				if cyc != ss.Time.CycPerQtr-1 { // will be updated by quarter
-					ss.UpdateView()
+					ss.UpdateView(ss.Time.Cycle)
 				}
 			case leabra.FastSpike:
 				if (cyc+1)%10 == 0 {
-					ss.UpdateView()
+					ss.UpdateView(-1)
 				}
 			}
 		}
 		nt.QuarterFinal(&ss.Time)
 		ss.Time.QuarterInc()
 		switch {
+		case viewUpdt == leabra.Cycle:
+			ss.UpdateView(ss.Time.Cycle)
 		case viewUpdt <= leabra.Quarter:
-			ss.UpdateView()
+			ss.UpdateView(-1)
 		case viewUpdt == leabra.Phase:
 			if qtr >= 2 {
-				ss.UpdateView()
+				ss.UpdateView(-1)
 			}
 		}
 	}
 
 	if viewUpdt == leabra.AlphaCycle {
-		ss.UpdateView()
+		ss.UpdateView(-1)
 	}
 }
 
@@ -619,6 +627,7 @@ feedforward and feedback inhibition to excitatory pyramidal neurons.
 	nv.Var = "Act"
 	nv.Params.MaxRecs = 200
 	nv.SetNet(ss.NetFF)
+	nv.Params.Raster.Max = 100
 	ss.NetViewFF = nv
 	nv.ViewDefaults()
 
@@ -626,6 +635,7 @@ feedforward and feedback inhibition to excitatory pyramidal neurons.
 	nv.Var = "Act"
 	nv.Params.MaxRecs = 200
 	nv.SetNet(ss.NetBidir)
+	nv.Params.Raster.Max = 100
 	ss.NetViewBidir = nv
 
 	plt := tv.AddNewTab(eplot.KiT_Plot2D, "TstCycPlot").(*eplot.Plot2D)
