@@ -5,6 +5,7 @@ This repository contains the neural network simulation models for the [CCN Textb
 To run these simulations on your computer, it is easiest to download the full set of executable programs for the type of computer you are using (Apple Mac, Microsoft Windows, or Linux):
 
 * [ccn_sims_v1.3.2_mac-m1.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.3.2/ccn_sims_v1.3.2_mac-m1.zip)
+    + **IMPORTANT:**  You must also download and install this package for this and the `mac-intel` sims: https://sdk.lunarg.com/sdk/download/1.3.211.0/mac/vulkansdk-macos-1.3.211.0.dmg  -- just accept the defaults for all prompts.
 
 * [ccn_sims_v1.3.2_mac-intel.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.3.2/ccn_sims_v1.3.2_mac-intel.zip)
 
