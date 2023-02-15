@@ -4,14 +4,14 @@ This repository contains the neural network simulation models for the [CCN Textb
 
 To run these simulations on your computer, it is easiest to download the full set of executable programs for the type of computer you are using (Apple Mac, Microsoft Windows, or Linux):
 
-* [ccn_sims_v1.3.2_mac-m1.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.3.2/ccn_sims_v1.3.2_mac-m1.zip)
-    + **IMPORTANT:**  You must also download and install this package for this and the `mac-intel` sims: https://sdk.lunarg.com/sdk/download/1.3.211.0/mac/vulkansdk-macos-1.3.211.0.dmg  -- just accept the defaults for all prompts.
+* [ccn_sims_v1.3.3_mac-m1.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.3.3/ccn_sims_v1.3.3_mac-m1.zip)
+    + **IMPORTANT:** For both of the Mac packages, you must also download and install the latest Vulkan SDK: https://sdk.lunarg.com/sdk/download/latest/mac/vulkan-sdk.dmg -- just accept the defaults for all prompts.   
+   
+* [ccn_sims_v1.3.3_mac-intel.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.3.3/ccn_sims_v1.3.3_mac-intel.zip)
 
-* [ccn_sims_v1.3.2_mac-intel.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.3.2/ccn_sims_v1.3.2_mac-intel.zip)
+* [ccn_sims_v1.3.3_windows.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.3.3/ccn_sims_v1.3.3_windows.zip)
 
-* [ccn_sims_v1.3.2_windows.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.3.2/ccn_sims_v1.3.2_windows.zip)
-
-* [ccn_sims_v1.3.2_linux.tar.gz](https://github.com/CompCogNeuro/sims/releases/download/v1.3.2/ccn_sims_v1.3.2_linux.tar.gz)
+* [ccn_sims_v1.3.3_linux.tar.gz](https://github.com/CompCogNeuro/sims/releases/download/v1.3.3/ccn_sims_v1.3.3_linux.tar.gz)
 
 Alternatively, you can use the [Python](#python) version -- see instructions at that link for how to install.
 
@@ -41,11 +41,13 @@ The even older [C++ emergent (cemer)](https://github.com/emer/cemer) sims projec
     
 # Status
 
-* **9/15/2022**: Version 1.3.2 release: updated to new NetView with raster view and separate weight recording.
+* **Feb 15, 2023**: Version 1.3.3 release: updated to improved Vulkan driver selection in latest GoGi.
 
-* **9/3/2021**: Version 1.3.1 release: bug fixes, deep leabra version of sg, python works on windows.
+* **Sept 15, 2022**: Version 1.3.2 release: updated to new NetView with raster view and separate weight recording.
 
-* **11/23/2020**: Version 1.2.2 release: full set of Python versions and the pvlv model.
+* **Sept 9, 2021**: Version 1.3.1 release: bug fixes, deep leabra version of sg, python works on windows.
+
+* **Nov 23, 2020**: Version 1.2.2 release: full set of Python versions and the pvlv model.
 
 * See https://github.com/CompCogNeuro/sims/releases for full history
 
