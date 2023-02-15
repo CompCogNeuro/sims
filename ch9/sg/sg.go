@@ -436,8 +436,8 @@ func (ss *Sim) ConfigNet(net *deep.Network) {
 	pj = net.ConnectLayers(in, gest, full, emer.Forward) // this is key -- skip encoder
 	pj.SetClass("FmInput")
 
-	encct.RecvPrjns().SendName("EncodeP").SetClass("EncodePToCT")
-	enc.RecvPrjns().SendName("EncodeP").SetClass("EncodePToSuper")
+	encct.(leabra.LeabraLayer).AsLeabra().SendName("EncodeP").SetClass("EncodePToCT")
+	enc.(leabra.LeabraLayer).AsLeabra().SendName("EncodeP").SetClass("EncodePToSuper")
 
 	// gestd gets error from Filler, this communicates Filler to encd -> corrupts prediction
 	// net.ConnectLayers(gestd, encd, full, emer.Forward)

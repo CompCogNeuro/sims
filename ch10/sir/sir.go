@@ -574,7 +574,7 @@ func (ss *Sim) ApplyReward(train bool) {
 	}
 	out := ss.Net.LayerByName("Output").(leabra.LeabraLayer).AsLeabra()
 	mxi := out.Pools[0].Inhib.Act.MaxIdx
-	en.SetReward(mxi)
+	en.SetReward(int(mxi))
 	pats := en.State("Reward")
 	ly := ss.Net.LayerByName("Rew").(leabra.LeabraLayer).AsLeabra()
 	ly.ApplyExt1DTsr(pats)

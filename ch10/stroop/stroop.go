@@ -858,7 +858,7 @@ func (ss *Sim) SetParamsSet(setNm string, sheet string, setMsg bool) error {
 			ss.Net.ApplyParams(netp, setMsg)
 		}
 		hid := ss.Net.LayerByName("Hidden").(leabra.LeabraLayer).AsLeabra()
-		fmpfc := hid.RcvPrjns.SendName("PFC").(leabra.LeabraPrjn).AsLeabra()
+		fmpfc := hid.SendName("PFC").(leabra.LeabraPrjn).AsLeabra()
 		fmpfc.WtScale.Rel = ss.FmPFC
 	}
 

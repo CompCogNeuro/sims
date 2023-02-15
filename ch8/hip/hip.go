@@ -407,9 +407,9 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 	pj.SetClass("HippoCHL")
 
 	// using 3 threads total
-	dg.SetThread(1)
-	ca3.SetThread(1) // for larger models, could put on separate thread
-	ca1.SetThread(2)
+	dg.(leabra.LeabraLayer).SetThread(1)
+	ca3.(leabra.LeabraLayer).SetThread(1) // for larger models, could put on separate thread
+	ca1.(leabra.LeabraLayer).SetThread(2)
 
 	// note: if you wanted to change a layer type from e.g., Target to Compare, do this:
 	// outLay.SetType(emer.Compare)
@@ -488,9 +488,9 @@ func (ss *Sim) AlphaCyc(train bool) {
 	ca3 := ss.Net.LayerByName("CA3").(leabra.LeabraLayer).AsLeabra()
 	ecin := ss.Net.LayerByName("ECin").(leabra.LeabraLayer).AsLeabra()
 	ecout := ss.Net.LayerByName("ECout").(leabra.LeabraLayer).AsLeabra()
-	ca1FmECin := ca1.RcvPrjns.SendName("ECin").(*hip.EcCa1Prjn)
-	ca1FmCa3 := ca1.RcvPrjns.SendName("CA3").(*hip.CHLPrjn)
-	ca3FmDg := ca3.RcvPrjns.SendName("DG").(leabra.LeabraPrjn).AsLeabra()
+	ca1FmECin := ca1.SendName("ECin").(*hip.EcCa1Prjn)
+	ca1FmCa3 := ca1.SendName("CA3").(*hip.CHLPrjn)
+	ca3FmDg := ca3.SendName("DG").(leabra.LeabraPrjn).AsLeabra()
 
 	// First Quarter: CA1 is driven by ECin, not by CA3 recall
 	// (which is not really active yet anyway)

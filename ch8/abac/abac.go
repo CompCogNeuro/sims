@@ -711,7 +711,7 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 	hid := ss.Net.LayerByName("Hidden").(leabra.LeabraLayer).AsLeabra()
 	hid.Inhib.Layer.Gi = ss.HiddenInhibGi
 
-	fmc := hid.RcvPrjns.SendName("Context").(leabra.LeabraPrjn).AsLeabra()
+	fmc := hid.SendName("Context").(leabra.LeabraPrjn).AsLeabra()
 	fmc.WtScale.Rel = ss.FmContext
 
 	return err

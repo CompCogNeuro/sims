@@ -5,11 +5,13 @@
 package main
 
 import (
+	"log"
+
 	"github.com/emer/emergent/emer"
 	"github.com/emer/emergent/prjn"
 	"github.com/emer/emergent/relpos"
+	"github.com/emer/leabra/leabra"
 	"github.com/emer/leabra/pvlv"
-	"log"
 )
 
 func (ss *Sim) ConfigNet(net *pvlv.Network) {
@@ -122,7 +124,7 @@ func (ss *Sim) ConfigNet(net *pvlv.Network) {
 	// brain-dead assignment of threads to layers. On a 6-core Macbook Pro, gives about a 35% speedup
 	if ss.LayerThreads {
 		for i, ly := range net.Layers {
-			ly.SetThread(i)
+			ly.(leabra.LeabraLayer).SetThread(i)
 		}
 	}
 

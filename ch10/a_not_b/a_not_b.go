@@ -287,11 +287,11 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 func (ss *Sim) InitWts(net *leabra.Network) {
 	net.InitWts()
 	hid := ss.Net.LayerByName("Hidden").(leabra.LeabraLayer).AsLeabra()
-	fmloc := hid.RcvPrjns.SendName("Location").(leabra.LeabraPrjn).AsLeabra()
+	fmloc := hid.SendName("Location").(leabra.LeabraPrjn).AsLeabra()
 	gze := ss.Net.LayerByName("GazeExpect").(leabra.LeabraLayer).AsLeabra()
-	hidgze := gze.RcvPrjns.SendName("Hidden").(leabra.LeabraPrjn).AsLeabra()
+	hidgze := gze.SendName("Hidden").(leabra.LeabraPrjn).AsLeabra()
 	rch := ss.Net.LayerByName("Reach").(leabra.LeabraLayer).AsLeabra()
-	hidrch := rch.RcvPrjns.SendName("Hidden").(leabra.LeabraPrjn).AsLeabra()
+	hidrch := rch.SendName("Hidden").(leabra.LeabraPrjn).AsLeabra()
 	for i := 0; i < 3; i++ {
 		fmloc.SetSynVal("Wt", i, i, 0.7)
 		hidgze.SetSynVal("Wt", i, i, 0.7)
@@ -595,7 +595,7 @@ func (ss *Sim) SetParamsSet(setNm string, sheet string, setMsg bool) error {
 			ss.Net.ApplyParams(netp, setMsg)
 		}
 		hid := ss.Net.LayerByName("Hidden").(leabra.LeabraLayer).AsLeabra()
-		fmhid := hid.RcvPrjns.SendName("Hidden").(leabra.LeabraPrjn).AsLeabra()
+		fmhid := hid.SendName("Hidden").(leabra.LeabraPrjn).AsLeabra()
 		fmhid.WtInit.Mean = float64(ss.RecurrentWt)
 	}
 

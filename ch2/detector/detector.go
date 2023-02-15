@@ -156,7 +156,7 @@ func (ss *Sim) InitWts(net *leabra.Network) {
 	pats := ss.Pats
 	dpat := pats.CellTensor("Input", digit)
 	recv := net.LayerByName("RecvNeuron")
-	prj := recv.RecvPrjns().SendName("Input")
+	prj := recv.(leabra.LeabraLayer).AsLeabra().SendName("Input")
 	for i := 0; i < dpat.Len(); i++ {
 		prj.SetSynVal("Wt", i, 0, float32(dpat.FloatVal1D(i)))
 	}

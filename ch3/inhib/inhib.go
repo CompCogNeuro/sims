@@ -456,15 +456,15 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 	inh.Act.Gbar.I = ss.InhibGbarI
 	inh.Act.Dt.GTau = ss.InhibGTau
 	inh.Act.Update()
-	ff := inh.RcvPrjns.SendName("Input").(leabra.LeabraPrjn).AsLeabra()
+	ff := inh.SendName("Input").(leabra.LeabraPrjn).AsLeabra()
 	ff.WtScale.Rel = ffinhsc
-	fb := inh.RcvPrjns.SendName("Hidden").(leabra.LeabraPrjn).AsLeabra()
+	fb := inh.SendName("Hidden").(leabra.LeabraPrjn).AsLeabra()
 	fb.WtScale.Rel = ss.FBinhibWtScale
 	hid.Inhib.Layer.On = ss.FFFBInhib
 	inh.Inhib.Layer.On = ss.FFFBInhib
-	fi := hid.RcvPrjns.SendName("Inhib").(leabra.LeabraPrjn).AsLeabra()
+	fi := hid.SendName("Inhib").(leabra.LeabraPrjn).AsLeabra()
 	fi.WtScale.Abs = ss.FmInhibWtScaleAbs
-	fi = inh.RcvPrjns.SendName("Inhib").(leabra.LeabraPrjn).AsLeabra()
+	fi = inh.SendName("Inhib").(leabra.LeabraPrjn).AsLeabra()
 	fi.WtScale.Abs = ss.FmInhibWtScaleAbs
 	if nt == ss.NetBidir {
 		hid = nt.LayerByName("Hidden2").(leabra.LeabraLayer).AsLeabra()
@@ -477,16 +477,16 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 		inh.Act.Update()
 		hid.Inhib.Layer.On = ss.FFFBInhib
 		inh.Inhib.Layer.On = ss.FFFBInhib
-		fi = hid.RcvPrjns.SendName("Inhib2").(leabra.LeabraPrjn).AsLeabra()
+		fi = hid.SendName("Inhib2").(leabra.LeabraPrjn).AsLeabra()
 		fi.WtScale.Abs = ss.FmInhibWtScaleAbs
-		fi = inh.RcvPrjns.SendName("Inhib2").(leabra.LeabraPrjn).AsLeabra()
+		fi = inh.SendName("Inhib2").(leabra.LeabraPrjn).AsLeabra()
 		fi.WtScale.Abs = ss.FmInhibWtScaleAbs
-		ff = inh.RcvPrjns.SendName("Hidden").(leabra.LeabraPrjn).AsLeabra()
+		ff = inh.SendName("Hidden").(leabra.LeabraPrjn).AsLeabra()
 		ff.WtScale.Rel = ffinhsc
-		fb = inh.RcvPrjns.SendName("Hidden2").(leabra.LeabraPrjn).AsLeabra()
+		fb = inh.SendName("Hidden2").(leabra.LeabraPrjn).AsLeabra()
 		fb.WtScale.Rel = ss.FBinhibWtScale
 		inh = nt.LayerByName("Inhib").(leabra.LeabraLayer).AsLeabra()
-		ff = inh.RcvPrjns.SendName("Hidden2").(leabra.LeabraPrjn).AsLeabra()
+		ff = inh.SendName("Hidden2").(leabra.LeabraPrjn).AsLeabra()
 		ff.WtScale.Rel = ffinhsc
 	}
 	return err

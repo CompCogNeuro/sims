@@ -503,7 +503,7 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) error {
 	ri.RewInteg.Discount = ss.Discount
 
 	rp := ss.Net.LayerByName("RewPred").(*rl.TDRewPredLayer)
-	fmi := rp.RcvPrjns.SendName("Input").(leabra.LeabraPrjn).AsLeabra()
+	fmi := rp.SendName("Input").(leabra.LeabraPrjn).AsLeabra()
 	fmi.Learn.Lrate = ss.Lrate
 
 	return err
