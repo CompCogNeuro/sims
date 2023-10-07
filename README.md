@@ -9,12 +9,13 @@ To run these simulations on your computer, it is easiest to download the full se
    
 * [ccn_sims_v1.3.3_mac-intel.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.3.3/ccn_sims_v1.3.3_mac-intel.zip) (see note above about installing vulkan-sdk)
 
-*
-[ccn_sims_v1.3.5_mac-m1.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.3.5/ccn_sims_v1.3.5_mac-m1.zip) -- **For MacOS 14 (Sonoma)** 1.3.3. does not work.
+* [ccn_sims_v1.3.5_mac-m1.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.3.5/ccn_sims_v1.3.5_mac-m1.zip) -- **For MacOS 14 (Sonoma)** 1.3.3. does not work.
 
 * [ccn_sims_v1.3.3_windows.zip](https://github.com/CompCogNeuro/sims/releases/download/v1.3.3/ccn_sims_v1.3.3_windows.zip)
 
 * [ccn_sims_v1.3.3_linux.tar.gz](https://github.com/CompCogNeuro/sims/releases/download/v1.3.3/ccn_sims_v1.3.3_linux.tar.gz)
+
+If you have an older mac that does not work with the above mac-intel release, try going into the older Releases -- click on the github [Releases](releases) link to see.
 
 Alternatively, you can use the [Python](#python) version -- see instructions at that link for how to install.
 
