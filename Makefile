@@ -48,7 +48,7 @@ gopath-update:
 	cd cmd/pi; go get -u ./...
 
 # NOTE: MUST update version number here prior to running 'make release' and edit this file! 
-VERS=v1.3.4
+VERS=v1.3.5
 PACKAGE=sims
 GIT_COMMIT=`git rev-parse --short HEAD`
 VERS_DATE=`date -u +%Y-%m-%d\ %H:%M`

@@ -3,7 +3,7 @@
 package sims
 
 const (
-	Version     = "v1.3.4"
-	GitCommit   = "8f6db1f"          // the commit JUST BEFORE the release
-	VersionDate = "2023-10-07 02:30" // UTC
+	Version     = "v1.3.5"
+	GitCommit   = "93c21ee"          // the commit JUST BEFORE the release
+	VersionDate = "2023-10-07 04:07" // UTC
 )
