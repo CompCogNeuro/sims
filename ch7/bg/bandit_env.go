@@ -16,19 +16,45 @@ import (
 // BanditEnv simulates an n-armed bandit, where each of n inputs is associated with
 // a specific probability of reward.
 type BanditEnv struct {
-	Nm       string          `desc:"name of this environment"`
-	Dsc      string          `desc:"description of this environment"`
-	N        int             `desc:"number of different inputs"`
-	P        []float32       `desc:"no-inline" desc:"probabilities for each option"`
-	RewVal   float32         `desc:"value for reward"`
-	NoRewVal float32         `desc:"value for non-reward"`
-	Option   env.CurPrvInt   `desc:"bandit option current / prev"`
-	RndOpt   bool            `desc:"if true, select option at random each Step -- otherwise must be set externally (e.g., by model)"`
-	Input    etensor.Float64 `desc:"one-hot input representation of current option"`
-	Reward   etensor.Float64 `desc:"single reward value"`
-	Run      env.Ctr         `view:"inline" desc:"current run of model as provided during Init"`
-	Epoch    env.Ctr         `view:"inline" desc:"number of times through Seq.Max number of sequences"`
-	Trial    env.Ctr         `view:"inline" desc:"trial is the step counter within epoch"`
+
+	// name of this environment
+	Nm string `desc:"name of this environment"`
+
+	// description of this environment
+	Dsc string `desc:"description of this environment"`
+
+	// number of different inputs
+	N int `desc:"number of different inputs"`
+
+	// no-inline
+	P []float32 `desc:"no-inline" desc:"probabilities for each option"`
+
+	// value for reward
+	RewVal float32 `desc:"value for reward"`
+
+	// value for non-reward
+	NoRewVal float32 `desc:"value for non-reward"`
+
+	// bandit option current / prev
+	Option env.CurPrvInt `desc:"bandit option current / prev"`
+
+	// if true, select option at random each Step -- otherwise must be set externally (e.g., by model)
+	RndOpt bool `desc:"if true, select option at random each Step -- otherwise must be set externally (e.g., by model)"`
+
+	// one-hot input representation of current option
+	Input etensor.Float64 `desc:"one-hot input representation of current option"`
+
+	// single reward value
+	Reward etensor.Float64 `desc:"single reward value"`
+
+	// [view: inline] current run of model as provided during Init
+	Run env.Ctr `view:"inline" desc:"current run of model as provided during Init"`
+
+	// [view: inline] number of times through Seq.Max number of sequences
+	Epoch env.Ctr `view:"inline" desc:"number of times through Seq.Max number of sequences"`
+
+	// [view: inline] trial is the step counter within epoch
+	Trial env.Ctr `view:"inline" desc:"trial is the step counter within epoch"`
 }
 
 func (ev *BanditEnv) Name() string { return ev.Nm }
@@ -112,7 +138,7 @@ func (ev *BanditEnv) SetInput() {
 // SetReward sets reward for current option according to probability -- returns true if rewarded
 func (ev *BanditEnv) SetReward() bool {
 	p := ev.P[ev.Option.Cur]
-	rw := erand.BoolP(p)
+	rw := erand.BoolP(float64(p), -1)
 	if rw {
 		ev.Reward.Values[0] = float64(ev.RewVal)
 	} else {
