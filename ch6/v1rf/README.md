@@ -28,7 +28,7 @@ If you pay close attention to the patterns of activity in the V1 layer, you may 
 
 If we let this network run for many, many more image presentations, it will develop a set of representations in V1 that reflect the correlational structure of edges that are present in the input. Because this can take several minutes (depending on your computer), you can just load a pre-trained network at this point. 
 
-* Press `Open Rec=.2 Wts` in the toolbar.
+* Press `Open Rec=.2 Wts` and then `Step Trial` in the toolbar.
 
 This loads network weights that were trained for 100 epochs of 100 image presentation, or a total of 10,000 image presentations, with the default recurrent (lateral) weight strength of .2.
 
