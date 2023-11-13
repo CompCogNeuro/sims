@@ -12,7 +12,7 @@ In contrast to the Go units, dopamine inhibits NoGo neurons due to its effects o
 
 # Training
 
-* Let's begin by running a few trials -- do `Init` and `Step Trial`.
+* Let's begin by running a few trials -- set the `TrainUpdt` setting to `Cycle` and do `Init` and `Step Trial`.
 
 This will present one of the 6 input stimuli, which in turn activates a corresponding action representation in the PFCout layer, representing the superficial layers of PFC neurons (layers 2-3), in this case premotor cortex rather than prefrontal cortex. And then as you continue to cycle, you should see activation in the MatrixGo and MatrixNoGo layers (for visualization convenience, all the connections are localist to units in the same position as the input units). These layers represent the *matrisome* (aka Matrix, which sounds cooler) medium spiny neurons (MSN's) of the striatum, e.g., in the dorsal region, which are interconnected with the frontal cortical action planning brain areas (both at the level of premotor cortex but also more anteriorly for abstract decisions). As you continue to cycle, activation spreads to the GPeNoGo (globus pallidus external segment) and Thalamus layers. Note that in the actual BG system (and in our more detailed models), Go units don't directly excite the thalamus but instead they inhibit downstream neurons in the globus pallidus internal segment (GPi); GPi neurons are normally tonically active and send inhibitory projections to thalamus.
 
