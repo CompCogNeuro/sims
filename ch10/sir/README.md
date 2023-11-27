@@ -64,7 +64,7 @@ The network can take roughly 5-50 epochs or so to train (it will stop when `PctE
 
 * Once it has trained to this criterion, you can switch back to viewing the network, and `Test Trial` through trials to see that it is indeed performing correctly.   You can also do a `Test All` and look at the `TstTrlPlot` and click on the `TstTrlLog` to see a record of a set of test trials.  Pay particular attention to the `GPiThal` activation and what the PFC is maintaining and outputting as a result -- you should see Go firing on Store trials for the maint stripe, and NoGo on Ignore trials for that same stripe.  In this simple one-maint stripe model, the model has to learn to fire PFCout gating for all other trial types.  When there are multiple maint stripes, it can actually learn to encode on Ignore trials, as long as it doesn't use the same stripe as was gated for Store.
 
-> **Question 10.7:** Report the pattern of `AbsDA` dopamine firing in relation to the `PctErr` performance of the model in `TrnEpcPlot`, and explain how this makes sense in terms of how the network learns.
+> **Question 10.7:**  Switch back to the `TrnEpcPlot` tab. Report the pattern of `AbsDA` dopamine firing in relation to the `PctErr` performance of the model, and explain how this makes sense in terms of how the network learns.
 
 Now we will explore how the Matrix gating is driven in terms of learned synaptic weights. Note that we have split out the SIR control inputs into a separate CtrlInput layer that projects to the Matrix layers -- this control information is all that the Matrix layer requires. It can also learn with the irrelevant A-D inputs, but just takes a bit longer.
 
