@@ -38,7 +38,7 @@ Now, let's step through some trials to see how the task works.
 
 * Switch back to viewing activations (`Act`). Do `Init`, `Step Trial` in the toolbar.
 
-The task commands (Store, Ignore, Recall) are chosen completely at random (subject to the constraint that you can't store until after a recall, and you can't recall until after a store) so you could get either an ignore or a store input. You should see either the S or I task control input, plus one of the stimuli (A-D) chosen at random. The target output response should also be active, as we're looking at the plus phase information (stepping by trials).
+The task commands (Store, Ignore, Recall) are chosen completely at random (subject to the constraint that you can't recall until after a store) so you could get either an ignore or a store input. You should see either the S or I task control input, plus one of the stimuli (A-D) chosen at random. The target output response should also be active, as we're looking at the plus phase information (stepping by trials).
 
 Notice that if the corresponding `GPiThal` unit is active, the PFC stripe will have just been updated to maintain this current input information.
 
