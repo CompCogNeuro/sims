@@ -291,7 +291,7 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 	osh := net.AddLayer2D("OShidden", 10, 7, emer.Hidden)
 	sph := net.AddLayer2D("SPhidden", 10, 7, emer.Hidden)
 	sem := net.AddLayer2D("Semantics", 10, 12, emer.Target)
-	aud := net.AddLayer2D("Auditory", 1, 8, emer.Input)
+	aud := net.AddLayer2D("Auditory", 6, 8, emer.Input)
 	aph := net.AddLayer2D("APhidden", 7, 7, emer.Hidden)
 	ash := net.AddLayer2D("AShidden", 10, 7, emer.Hidden)
 	//CHANGED//
@@ -508,7 +508,7 @@ func (ss *Sim) ApplyInputs(en env.Env) {
 }
 
 // SetInputLayer determines which layer is the input -- others are targets
-// 0 = Ortho, 1 = Sem, 2 = Phon, 3 = Ortho + compare for others
+// 0 = Ortho, 1 = Sem, 2 = Phon, 3 = Auditory, 4 = Ortho + compare for others
 func (ss *Sim) SetInputLayer(layno int) {
 	lays := []string{"Orthography", "Semantics", "Phonology", "Auditory"} //CHANGED//
 	test := false
@@ -530,7 +530,7 @@ func (ss *Sim) SetInputLayer(layno int) {
 	}
 }
 
-// SetRndInputLayer sets one of 3 visible layers as input at random
+// SetRndInputLayer sets one of 4 visible layers as input at random
 func (ss *Sim) SetRndInputLayer() {
 	ss.SetInputLayer(rand.Intn(4)) //CHANGED//
 }
