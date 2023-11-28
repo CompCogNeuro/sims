@@ -8,7 +8,7 @@ require (
 	github.com/emer/etable v1.1.21
 	github.com/emer/leabra v1.2.8
 	github.com/emer/vision v1.1.18
-	github.com/goki/gi v1.3.23
+	github.com/goki/gi v1.3.24
 	github.com/goki/ki v1.1.15
 	github.com/goki/mat32 v1.0.15
 )
@@ -45,7 +45,7 @@ require (
 	github.com/goki/prof v1.0.0 // indirect
 	github.com/goki/vci v1.0.1 // indirect
 	github.com/goki/vgpu v1.0.33 // indirect
-	github.com/goki/vulkan v1.0.6 // indirect
+	github.com/goki/vulkan v1.0.7 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/h2non/filetype v1.1.3 // indirect
