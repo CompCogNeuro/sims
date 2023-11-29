@@ -50,7 +50,7 @@ The `TstWordsCorrel` value toward the bottom of the control panel shows the corr
 
 You should see that attention and spelling are only related by around 0.06, indicating low similarity. This should match your overall intuition: we talk about attention as being critical for solving the binding problem in several different situations, but we don't talk much about the role of attention in spelling.
 
-* Compare several other words that the network should know about from reading this textbook (tip: Click `TrainEnv` in the control panel on the left and then click `Words` in the window that appears to see a list of all the words, and scroll through that to see what words are in the valid list (these are words with frequency greater than 5, and not purely syntactic).
+* Compare several other words that the network should know about from reading this textbook (tip: Click `TrainEnv` in the left control panel and then click `Words` in the window that appears to see a list of all the words, and scroll through that to see what words are in the valid list (these are words with frequency greater than 5, and not purely syntactic).
 
 > **Question 9.10:** Report the `TstWordsCorrel` values for several additional sets of Words comparisons, along with how well each matches your intuitive semantics from having read this textbook yourself.
 
