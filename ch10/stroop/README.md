@@ -14,7 +14,7 @@ Next, let's look at the training environment patterns.
 
 * Click on `Stroop Train` next to `TrainPats` view the patterns.
 
-There are 4 different inputs: `Gw` = reading the word "green", `Rw` = reading the word "red", `gc` = naming the green color, `rc` = naming the red color.  The frequency of these events is controlled by the last column in the table. You can see that the word reading events have a frequency of 6, while the color naming events are at 2. This frequency difference causes word reading to be stronger than color naming. Note that by using training to establish the strength of the different pathways, the model very naturally accounts for the benchmark [MacLeod & Dunbar (1988)](#references) training experiments.  Also, we never train the conflict conditions -- just the pure cases, assuming Stroop stimuli are rare in the real world.
+There are 4 different input patterns shown in the window that opens up: `Gw` = reading the word "green", `Rw` = reading the word "red", `gc` = naming the green color, `rc` = naming the red color.  The frequency of these events is controlled by the last column in the table. You can see that the word reading events have a frequency of 6, while the color naming events are at 2. This frequency difference causes word reading to be stronger than color naming. Note that by using training to establish the strength of the different pathways, the model very naturally accounts for the benchmark [MacLeod & Dunbar (1988)](#references) training experiments.  Also, we never train the conflict conditions -- just the pure cases, assuming Stroop stimuli are rare in the real world.
 
 Now, let's train the network.
 
@@ -52,7 +52,7 @@ If you compare this with the human data shown in the Figure 1, you will see that
 
 Now, we can single-step through the testing events to get a better sense of what is going on.
 
-* First, click back to viewing the `NetView`, and click on `Act` to view activations. Then, do `Test Trial`.  Review the activation settling using the `Time` VCR buttons on the lower right of the NetView.
+* First, click back to viewing the `NetView`, and click on `Act` to view activations. Then, do `Test Trial`.  Review the activation settling using the `Time` VCR buttons on the lower right of the NetView. Click `Test Trial` to go through each type of trial in the `TestPats` and review each activation settling. 
 
 Each Trial will advance one step through the three conditions of word reading in order (control, conflict, congruent) followed by the same for color naming. For the word reading conditions, you should observe that the corresponding word reading hidden unit is rapidly activated, and that this then activates the corresponding output unit, with little effect of the color pathway inputs. The critical condition of interest is the conflict color naming condition.
 
