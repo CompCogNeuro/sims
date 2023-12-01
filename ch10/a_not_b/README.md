@@ -66,7 +66,7 @@ You will now see the `A` testing trials, where the network's tendency to reach t
 
 > **Question 10.5:** Describe how the network responds (i.e., in the gaze and reach outputs) this time, including a discussion of how the increased PFC (hidden) recurrent connection strength affected the network's behavior.
 
-* Next, set `Delay` to `Delay5` and try it with the value of .7 for the recurrent weights.  You will have to scroll down a bit to see the final B test output.
+* Next, set `Delay` to `Delay5` and try it with the value of .7 for the recurrent weights.  You will have to scroll down a bit to see the final B test output. You may need to click `UpdtView`.
 
 > **Question 10.6:** What happens on the 'B' trials with those two delays -- why does delay have this effect on the network's behavior?
 
