@@ -33,13 +33,13 @@ The `TrlPhon` entry in the control panel decodes the Phon-ological output, by ma
 Also shown in the information just under the network, in the `Name` field, is a code for the type of word (which depends on the different testing sets) -- for this Probe test set, the codes are:
 
 * HRC -- High freq regular consistent (e.g., best)
-* HRI -- High freq regular inconsistent (e.g., bone, c.f., done)
-* HAM -- High freq ambiguous (e.g., brown, c.f., blown)
-* HEX -- High freq exception (e.g., both, c.f., cloth
+* HRI -- High freq regular inconsistent (e.g., bone, cf., done)
+* HAM -- High freq ambiguous (e.g., brown, cf., blown)
+* HEX -- High freq exception (e.g., both, cf., cloth)
 * LRC -- Low freq regular consistent (e.g., beam)
-* LRI -- Low freq regular inconsistent (e.g., brood, c.f., blood)
-* LAM -- Low freq ambiguous (e.g., blown, c.f., brown)
-* LEX -- Low freq exception (e.g., bowl, c.f., growl)
+* LRI -- Low freq regular inconsistent (e.g., brood, cf., blood)
+* LAM -- Low freq ambiguous (e.g., blown, cf., brown)
+* LEX -- Low freq exception (e.g., bowl, cf., growl)
 
 Let's continue to observe the network's reading performance, observing specifically the translation invariance property.
 
