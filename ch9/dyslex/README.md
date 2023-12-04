@@ -32,7 +32,7 @@ We next explore the network's ability to read with one of the two pathways to ph
 
 We begin by lesioning the semantic pathway.
 
-* Click the `Lesion` button in the toolbar, and select `SemanticsFull` (leave Proportion = 0), and then do `Test Trial` (be sure *not* to hit `Init`, as this will initialize the weights -- just do `Open Trained Weights` and re-lesion if you do).
+* Click the `Lesion` button in the toolbar at the top, and select `SemanticsFull` (leave Proportion = 0), and then do `Test Trial` (be sure *not* to hit `Init`, as this will initialize the weights -- just do `Open Trained Weights` and re-lesion if you do).
 
 You should see that only the direct pathway is activated, but likely it will still be able to produce the correct phonology output.  This does not actually remove any units or other network structure; it just flips a "lesion" (`Off`) flag that (reversibly) deactivates an entire layer. Note that by removing an entire pathway, we make the network rely on the remaining intact pathway. This means that the errors one would expect are those associated with the properties of the *intact* pathway, not the lesioned one. For example, lesioning the direct pathway makes the network rely on semantics, allowing for the possibility of semantic errors to the extent that the semantic pathway doesn't quite get things right without the assistance of the missing direct pathway. Completely lesioning the semantic pathway itself does *not* lead to semantically related errors -- there is no semantic information left for such errors to be based on! 
 
