@@ -115,6 +115,12 @@ var ParamSets = params.Sets{
 					"Layer.Inhib.Pool.FB":     "0.5",
 					"Layer.Inhib.ActAvg.Init": "0.07",
 				}},
+			{Sel: "#Auditory", Desc: "higher inhib",
+				Params: params.Params{
+					"Layer.Inhib.Layer.Gi":    "2.4",
+					"Layer.Inhib.Layer.FB":    "0.5",
+					"Layer.Inhib.ActAvg.Init": "0.08",
+				}}, // CHANGED//
 			{Sel: ".Back", Desc: "there is no back / forward direction here..",
 				Params: params.Params{
 					"Prjn.WtScale.Rel": "1",
@@ -285,6 +291,10 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 	osh := net.AddLayer2D("OShidden", 10, 7, emer.Hidden)
 	sph := net.AddLayer2D("SPhidden", 10, 7, emer.Hidden)
 	sem := net.AddLayer2D("Semantics", 10, 12, emer.Target)
+	aud := net.AddLayer2D("Auditory", 6, 8, emer.Input)
+	aph := net.AddLayer2D("APhidden", 7, 7, emer.Hidden)
+	ash := net.AddLayer2D("AShidden", 10, 7, emer.Hidden)
+	//CHANGED//
 
 	full := prjn.NewFull()
 	net.BidirConnectLayers(ort, osh, full)
@@ -299,11 +309,15 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 	net.LateralConnectLayer(sem, full)
 	net.LateralConnectLayer(phn, full)
 
-	oph.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "Orthography", YAlign: relpos.Front, Space: 1})
-	phn.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "OPhidden", YAlign: relpos.Front, Space: 1})
+	oph.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "Orthography", YAlign: relpos.Front, Space: 40})
+	phn.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "OPhidden", YAlign: relpos.Front, Space: 30})
 	osh.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Orthography", YAlign: relpos.Front, XAlign: relpos.Left, XOffset: 4})
 	sph.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Phonology", YAlign: relpos.Front, XAlign: relpos.Left, XOffset: 2})
 	sem.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "OShidden", YAlign: relpos.Front, XAlign: relpos.Left, XOffset: 4})
+	aph.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "Phonology", YAlign: relpos.Front, Space: 30})
+	aud.SetRelPos(relpos.Rel{Rel: relpos.RightOf, Other: "APhidden", YAlign: relpos.Front, Space: 30})
+	ash.SetRelPos(relpos.Rel{Rel: relpos.Above, Other: "Auditory", YAlign: relpos.Front, XAlign: relpos.Left, XOffset: 0})
+	//CHANGED//
 
 	net.Defaults()
 	ss.SetParams("Network", false) // only set Network params
@@ -483,7 +497,7 @@ func (ss *Sim) ApplyInputs(en env.Env) {
 	ss.Net.InitExt() // clear any existing inputs -- not strictly necessary if always
 	// going to the same layers, but good practice and cheap anyway
 
-	lays := []string{"Orthography", "Semantics", "Phonology"}
+	lays := []string{"Orthography", "Semantics", "Phonology", "Auditory"} //CHANGED//
 	for _, lnm := range lays {
 		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
 		pats := en.State(ly.Nm)
@@ -494,11 +508,11 @@ func (ss *Sim) ApplyInputs(en env.Env) {
 }
 
 // SetInputLayer determines which layer is the input -- others are targets
-// 0 = Ortho, 1 = Sem, 2 = Phon, 3 = Ortho + compare for others
+// 0 = Ortho, 1 = Sem, 2 = Phon, 3 = Auditory, 4 = Ortho + compare for others
 func (ss *Sim) SetInputLayer(layno int) {
-	lays := []string{"Orthography", "Semantics", "Phonology"}
+	lays := []string{"Orthography", "Semantics", "Phonology", "Auditory"} //CHANGED//
 	test := false
-	if layno > 2 {
+	if layno > 3 { //CHANGED//
 		layno = 0
 		test = true
 	}
@@ -516,9 +530,9 @@ func (ss *Sim) SetInputLayer(layno int) {
 	}
 }
 
-// SetRndInputLayer sets one of 3 visible layers as input at random
+// SetRndInputLayer sets one of 4 visible layers as input at random
 func (ss *Sim) SetRndInputLayer() {
-	ss.SetInputLayer(rand.Intn(3))
+	ss.SetInputLayer(rand.Intn(4)) //CHANGED//
 }
 
 // TrainTrial runs one trial of training using TrainEnv
