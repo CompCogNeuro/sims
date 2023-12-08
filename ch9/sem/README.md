@@ -66,19 +66,19 @@ You should get a correlation of around .49 (interestingly, if you compare vs. ju
 
 * Add "features" to `Words1` and do `Test All`.
 
-The similarity does indeed increase, producing a correlation of around .57. To make sure that there is an interaction between "binding" and "features" producing this increase, we also need to test with just "features" alone.
+The similarity does indeed increase, producing a higher correlation. To make sure that there is an interaction between "binding" and "features" producing this increase, we also need to test with just "features" alone.
 
 * Cut out "binding" from `Words1`, so it just has "features", and do `Test All`.
 
-The similarity drops back to .44. Thus, there is some extra overlap in the combination of "binding" and "features" together that is not present by using each of them alone. Note also that the direct overlap between features and binding alone is .43. Now if we instead probe with "rapid binding" (still against "invariant object recognition," we should activate a different sense of attention, and get a smaller correlation.
+The similarity drops down. Thus, there is some extra overlap in the combination of "binding" and "features" together that is not present by using each of them alone. Now if we instead probe with "rapid binding" (still against "invariant object recognition," we should activate a different sense of attention, and get a smaller correlation.
 
 * Set `Words1` to "rapid binding" and words2 to "object recognition" and `Test All`.
 
-The similarity does now decrease, with a correlation of only around .28. Thus, we can see that the network's activation dynamics can be influenced to emphasize different senses of a word.
+The similarity does now decrease. Thus, we can see that the network's activation dynamics can be influenced to emphasize different senses of a word.
 
 * To finish this test, now enter "hippocampus" in `Words2` and `Test All`, to see if that provides a better match to this sense of binding.
 
-You should see that the similarity goes back up to .47. Thus, this is potentially a very powerful and flexible form of semantic representation that combines rich, overlapping distributed representations and activation dynamics that can magnify or diminish the similarities of different word combinations.
+You should see that the similarity goes back up. Thus, this is potentially a very powerful and flexible form of semantic representation that combines rich, overlapping distributed representations and activation dynamics that can magnify or diminish the similarities of different word combinations.
 
 > **Question 9.11:** Think of another example of a word that has different senses (that is well represented in this textbook), and perform an experiment similar to the one we just performed to manipulate these different senses. Document and discuss your results.
 
