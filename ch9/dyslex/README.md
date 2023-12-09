@@ -22,7 +22,7 @@ You will see the activation flow through the network, and it should settle into 
 
 * Click on the `TstTrlPlot` tab to see a record of the network's performance on the full set of words.  It should perform perfectly, so there isn't much to see.  Click on the `TstTrlLog` button in the left control panel, which pulls up a text table view of the same plot data.
 
-The `ConAbs` column shows whether this item is concrete (*Con*) or abstract (*Abs*), and the columns after that indicate what type of error the network makes: `Vis` = visual errors, `Sem` = semantic errors, `VisSem` = both, `Blend` = not a clearly pronounced word, `Other` = some other hard-to-categorize error.  Concrete words have more distinctive features, whereas abstract words have fewer, which impacts their relative susceptibility to lesions.
+The `ConAbs` column shows whether this item is concrete (*Con*) or abstract (*Abs*) (`ConAbs`=0 for concrete, 1 for abstract), and the columns after that indicate what type of error the network makes: `Vis` = visual errors, `Sem` = semantic errors, `VisSem` = both, `Blend` = not a clearly pronounced word, `Other` = some other hard-to-categorize error.  Concrete words have more distinctive features, whereas abstract words have fewer, which impacts their relative susceptibility to lesions.
 
 > **Question 9.1:** Do you think the initial phonological activation is caused by the "direct" input via orthography or the "indirect" input via semantics? Did you see any cases where the initial phonological pattern is subsequently altered when the later input arrives?  Provide an example word where this happened.
 
