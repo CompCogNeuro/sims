@@ -48,7 +48,7 @@ Now, let's try the direct pathway lesion and retest the network.
 
 * Click `Lesion` and select `DirectFull`, then do `TestAll` again.  Click `Updt` in the tables to see the latest results.
 
-> **Question 9.4:** What was the total number of errors this time, and how many of these errors were visual, how many were semantic, and how many were "other" for the concrete and abstract categories (as reported in `TstEpcLog`)?.
+> **Question 9.4:** What was the total number of errors this time, and how many of these errors were visual, semantic, visual semantic, blend, and "other" for the concrete versus abstract categories (as reported in `TstEpcLog`)?.
 
 ![Semantics Cluster Plot](fig_dyslex_sem_clust.png?raw=true "Cluster Plot of Semantics similarity structure")
 
