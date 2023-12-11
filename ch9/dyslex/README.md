@@ -66,7 +66,7 @@ The first two lesion types damage the semantic pathway hidden layers (OShidden a
 
 ## Semantic Pathway Lesions
 
-* Do `Lesion` in the toolbar at the top of type `OShidden` and `Proportion = .1`, and do `Test All` -- then play with different `Proportion` values.
+* Do `Lesion` (in the toolbar at the top) of type `OShidden` and `Proportion = .1`, and do `Test All` -- then play with different `Proportion` values.
 
 ![Semantics Partial Lesions](fig_dyslex_partles_sem.png?raw=true "Partial Semantics Lesions")
 
