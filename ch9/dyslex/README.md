@@ -32,7 +32,7 @@ We next explore the network's ability to read with one of the two pathways to ph
 
 We begin by lesioning the semantic pathway.
 
-* Click the `Lesion` button in the toolbar at the top, and select `SemanticsFull` (leave Proportion = 0), and then do `Test Trial` (be sure *not* to hit `Init`, as this will initialize the weights -- just do `Open Trained Weights` and re-lesion if you do).
+* Click the `Lesion` button in the toolbar at the top (*not* in the control panel on the left, which just reports which lesion was performed) and select `SemanticsFull` (leave Proportion = 0), and then do `Test Trial` (be sure *not* to hit `Init`, as this will initialize the weights -- just do `Open Trained Weights` and re-lesion if you do).
 
 You should see that only the direct pathway is activated, but likely it will still be able to produce the correct phonology output.  This does not actually remove any units or other network structure; it just flips a "lesion" (`Off`) flag that (reversibly) deactivates an entire layer. Note that by removing an entire pathway, we make the network rely on the remaining intact pathway. This means that the errors one would expect are those associated with the properties of the *intact* pathway, not the lesioned one. For example, lesioning the direct pathway makes the network rely on semantics, allowing for the possibility of semantic errors to the extent that the semantic pathway doesn't quite get things right without the assistance of the missing direct pathway. Completely lesioning the semantic pathway itself does *not* lead to semantically related errors -- there is no semantic information left for such errors to be based on! 
 
@@ -46,7 +46,7 @@ For each of the errors, compare the word the network produced (`Phon`) with the 
 
 Now, let's try the direct pathway lesion and retest the network.
 
-* Click `Lesion` and select `DirectFull`, then do `TestAll` again.  Click `Updt` in the tables to see the latest results.
+* Click `Lesion` in the toolbar at the top and select `DirectFull`, then do `TestAll` again.  Click `Updt` in the tables to see the latest results.
 
 > **Question 9.4:** What was the total number of errors this time, and how many of these errors were visual, semantic, visual semantic, blend, and "other" for the concrete versus abstract categories (as reported in `TstEpcLog`)?.
 
@@ -66,7 +66,7 @@ The first two lesion types damage the semantic pathway hidden layers (OShidden a
 
 ## Semantic Pathway Lesions
 
-* Do `Lesion` of type `OShidden` and `Proportion = .1`, and do `Test All` -- then play with different `Proportion` values.
+* Do `Lesion` in the toolbar at the top of type `OShidden` and `Proportion = .1`, and do `Test All` -- then play with different `Proportion` values.
 
 ![Semantics Partial Lesions](fig_dyslex_partles_sem.png?raw=true "Partial Semantics Lesions")
 
