@@ -26,10 +26,8 @@ import (
 
 	"cogentcore.org/core/gi"
 	"cogentcore.org/core/gimain"
-	"cogentcore.org/core/gi
-	"cogentcore.org/core/ki/ints"
 	"cogentcore.org/core/ki"
-	"cogentcore.org/core/ki
+	"cogentcore.org/core/ki/ints"
 	"cogentcore.org/core/mat32"
 	"github.com/emer/emergent/v2/emer"
 	"github.com/emer/emergent/v2/env"
@@ -41,6 +39,8 @@ import (
 	"github.com/emer/etable/v2/etensor"
 	"github.com/emer/etable/v2/metric"
 	"github.com/emer/leabra/v2/leabra"
+	"github.com/goki/ki/kit"
+	"goki.dev/gi/giv"
 )
 
 func main() {

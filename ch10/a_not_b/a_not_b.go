@@ -25,9 +25,7 @@ import (
 
 	"cogentcore.org/core/gi"
 	"cogentcore.org/core/gimain"
-	"cogentcore.org/core/gi
 	"cogentcore.org/core/ki"
-	"cogentcore.org/core/ki
 	"cogentcore.org/core/mat32"
 	"github.com/emer/emergent/v2/emer"
 	"github.com/emer/emergent/v2/env"
@@ -40,6 +38,8 @@ import (
 	"github.com/emer/etable/v2/etensor"
 	"github.com/emer/etable/v2/etview" // include to get gui views
 	"github.com/emer/leabra/v2/leabra"
+	"github.com/goki/ki/kit"
+	"goki.dev/gi/giv"
 )
 
 // this is the stub main for gogi that calls our actual mainrun function, at end of file

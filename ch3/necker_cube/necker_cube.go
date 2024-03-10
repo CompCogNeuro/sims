@@ -9,6 +9,7 @@ package main
 
 import (
 	"bytes"
+	"embed"
 	"fmt"
 	"log"
 	"strconv"
@@ -16,9 +17,7 @@ import (
 
 	"cogentcore.org/core/gi"
 	"cogentcore.org/core/gimain"
-	"cogentcore.org/core/gi
 	"cogentcore.org/core/ki"
-	"cogentcore.org/core/ki
 	"cogentcore.org/core/mat32"
 	"github.com/emer/emergent/v2/emer"
 	"github.com/emer/emergent/v2/netview"
@@ -28,6 +27,8 @@ import (
 	"github.com/emer/etable/v2/etable"
 	"github.com/emer/etable/v2/etensor"
 	"github.com/emer/leabra/v2/leabra"
+	"github.com/goki/ki/kit"
+	"goki.dev/gi/giv"
 )
 
 // this is the stub main for gogi that calls our actual mainrun function, at end of file
@@ -39,6 +40,9 @@ func main() {
 
 // LogPrec is precision for saving float values in logs
 const LogPrec = 4
+
+//go:embed necker_cube.wts
+var content embed.FS
 
 // ParamSets is the default set of parameters -- Base is always applied, and others can be optionally
 // selected to apply on top of that
@@ -150,7 +154,7 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 // InitWts loads the saved weights
 func (ss *Sim) InitWts(net *leabra.Network) {
 	net.InitWts()
-	ab, err := Asset("necker_cube.wts") // embedded in executable
+	ab, err := content.ReadFile("necker_cube.wts")
 	if err != nil {
 		log.Println(err)
 	}

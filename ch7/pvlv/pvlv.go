@@ -29,9 +29,9 @@ import (
 	"github.com/emer/etable/v2/etensor"
 	"github.com/emer/etable/v2/etview"
 	_ "github.com/emer/etable/v2/split"
+	"github.com/goki/ki/kit"
 
 	"cogentcore.org/core/ki"
-	"cogentcore.org/core/ki
 
 	"cogentcore.org/core/gi"
 	"cogentcore.org/core/gimain"

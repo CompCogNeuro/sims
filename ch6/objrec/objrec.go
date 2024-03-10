@@ -23,9 +23,8 @@ import (
 
 	"cogentcore.org/core/gi"
 	"cogentcore.org/core/gimain"
-	"cogentcore.org/core/gi
 	"cogentcore.org/core/ki"
-	"cogentcore.org/core/ki
+	"cogentcore.org/core/kit"
 	"cogentcore.org/core/mat32"
 	"github.com/emer/emergent/v2/actrf"
 	"github.com/emer/emergent/v2/emer"
@@ -42,6 +41,7 @@ import (
 	"github.com/emer/etable/v2/etview" // include to get gui views
 	"github.com/emer/etable/v2/split"
 	"github.com/emer/leabra/v2/leabra"
+	"goki.dev/gi/giv"
 )
 
 func main() {

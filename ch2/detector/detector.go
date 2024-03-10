@@ -8,8 +8,7 @@ detector: This simulation shows how an individual neuron can act like a detector
 package main
 
 import (
-	"bytes"
-	_ "embed"
+	"embed"
 	"fmt"
 	"log"
 	"strconv"
@@ -44,7 +43,7 @@ func main() {
 const LogPrec = 4
 
 //go:embed digits.tsv
-var digits []byte
+var content embed.FS
 
 // ParamSets is the default set of parameters -- Base is always applied, and others can be optionally
 // selected to apply on top of that
@@ -396,7 +395,7 @@ func (ss *Sim) SetParamsSet(setNm string, sheet string, setMsg bool) error {
 func (ss *Sim) OpenPatAsset(dt *etable.Table, fnm, name, desc string) error {
 	dt.SetMetaData("name", name)
 	dt.SetMetaData("desc", desc)
-	err := dt.ReadCSV(bytes.NewBuffer(digits), etable.Tab)
+	err := dt.OpenFS(content, fnm, etable.Tab)
 	if grr.Log(err) == nil {
 		for i := 1; i < len(dt.Cols); i++ {
 			dt.Cols[i].SetMetaData("grid-fill", "0.9")
