@@ -14,12 +14,12 @@ import (
 	"log"
 	"strconv"
 
+	"cogentcore.org/core/events"
 	"cogentcore.org/core/gi"
-	"cogentcore.org/core/gimain"
 	"cogentcore.org/core/giv"
+	"cogentcore.org/core/icons"
 	"cogentcore.org/core/ki"
-	"cogentcore.org/core/kit"
-	"cogentcore.org/core/mat32"
+	"cogentcore.org/core/styles"
 	"github.com/emer/emergent/v2/emer"
 	"github.com/emer/emergent/v2/netview"
 	"github.com/emer/emergent/v2/params"
@@ -30,20 +30,13 @@ import (
 	"github.com/emer/leabra/v2/spike"
 )
 
-// this is the stub main for gogi that calls our actual mainrun function, at end of file
-func main() {
-	gimain.Main(func() {
-		mainrun()
-	})
-}
-
 // LogPrec is precision for saving float values in logs
 const LogPrec = 4
 
 // ParamSets is the default set of parameters -- Base is always applied, and others can be optionally
 // selected to apply on top of that
 var ParamSets = params.Sets{
-	{Name: "Base", Desc: "these are the best params", Sheets: params.Sheets{
+	"Base": {Desc: "these are the best params", Sheets: params.Sheets{
 		"Network": &params.Sheet{
 			{Sel: "Prjn", Desc: "no learning",
 				Params: params.Params{
@@ -106,12 +99,10 @@ type Sim struct {
 	// current cycle of updating
 	Cycle int `inactive:"+"`
 
-	// main GUI window
-	Win *gi.Window `view:"-"`
+	// main GUI body
+	Body *gi.Body `view:"-"`
 	// the network viewer
 	NetView *netview.NetView `view:"-"`
-	// the master toolbar
-	ToolBar *gi.ToolBar `view:"-"`
 	// the test-trial plot
 	TstCycPlot *eplot.Plot2D `view:"-"`
 	// the spike vs. rate plot
@@ -121,10 +112,6 @@ type Sim struct {
 	// flag to stop running
 	StopNow bool `view:"-"`
 }
-
-// this registers this Sim Type and gives it properties that e.g.,
-// prompt for filename for save methods.
-var KiT_Sim = kit.Types.AddType(&Sim{}, SimProps)
 
 // TheSim is the overall state for this simulation
 var TheSim Sim
@@ -211,7 +198,7 @@ func (ss *Sim) UpdateView(cyc int) {
 	if ss.NetView != nil && ss.NetView.IsVisible() {
 		ss.NetView.Record(ss.Counters(), cyc)
 		// note: essential to use Go version of update when called from another goroutine
-		ss.NetView.GoUpdate() // note: using counters is significantly slower..
+		ss.NetView.Update() // note: using counters is significantly slower..
 	}
 }
 
@@ -322,7 +309,7 @@ func (ss *Sim) SpikeVsRate() {
 		row++
 	}
 	ss.Defaults()
-	ss.SpikeVsRatePlot.GoUpdate()
+	ss.SpikeVsRatePlot.Update()
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -403,7 +390,7 @@ func (ss *Sim) LogTstCyc(dt *etable.Table, cyc int) {
 
 	// note: essential to use Go version of update when called from another goroutine
 	if cyc%ss.UpdtInterval == 0 {
-		ss.TstCycPlot.GoUpdate()
+		ss.TstCycPlot.Update()
 	}
 }
 
@@ -497,167 +484,100 @@ func (ss *Sim) ConfigNetView(nv *netview.NetView) {
 }
 
 // ConfigGui configures the GoGi gui interface for this simulation,
-func (ss *Sim) ConfigGui() *gi.Window {
-	width := 1600
-	height := 1200
+func (ss *Sim) ConfigGui() {
+	b := gi.NewBody("Neuron")
+	ss.Body = b
 
-	gi.SetAppName("neuron")
-	gi.SetAppAbout(`This simulation illustrates the basic properties of neural spiking and
-rate-code activation, reflecting a balance of excitatory and inhibitory
-influences (including leak and synaptic inhibition).
-See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch2/neuron/README.md">README.md on GitHub</a>.</p>`)
+	split := gi.NewSplits(b, "split")
 
-	win := gi.NewMainWindow("neuron", "Neuron", width, height)
-	ss.Win = win
+	giv.NewStructView(split, "sv").SetStruct(ss)
 
-	vp := win.WinViewport2D()
-	updt := vp.UpdateStart()
+	tv := gi.NewTabs(split, "tv")
 
-	mfr := win.SetMainFrame()
-
-	tbar := gi.AddNewToolBar(mfr, "tbar")
-	tbar.SetStretchMaxWidth()
-	ss.ToolBar = tbar
-
-	split := gi.AddNewSplitView(mfr, "split")
-	split.Dim = mat32.X
-	split.SetStretchMaxWidth()
-	split.SetStretchMaxHeight()
-
-	sv := giv.AddNewStructView(split, "sv")
-	sv.SetStruct(ss)
-
-	tv := gi.AddNewTabView(split, "tv")
-
-	nv := tv.AddNewTab(netview.KiT_NetView, "NetView").(*netview.NetView)
+	nv := netview.NewNetView(tv.NewTab("NetView"))
 	nv.Var = "Act"
 	nv.SetNet(ss.Net)
 	ss.NetView = nv
 	ss.ConfigNetView(nv) // add labels etc
 
-	plt := tv.AddNewTab(eplot.KiT_Plot2D, "TstCycPlot").(*eplot.Plot2D)
+	plt := eplot.NewPlot2D(tv.NewTab("TstCycPlot"))
 	ss.TstCycPlot = ss.ConfigTstCycPlot(plt, ss.TstCycLog)
 
-	plt = tv.AddNewTab(eplot.KiT_Plot2D, "SpikeVsRatePlot").(*eplot.Plot2D)
+	plt = eplot.NewPlot2D(tv.NewTab("SpikeVsRatePlot"))
 	ss.SpikeVsRatePlot = ss.ConfigSpikeVsRatePlot(plt, ss.SpikeVsRateLog)
 
 	split.SetSplits(.2, .8)
 
-	tbar.AddAction(gi.ActOpts{Label: "Init", Icon: "update", Tooltip: "Initialize everything including network weights, and start over.  Also applies current params.", UpdateFunc: func(act *gi.Action) {
-		act.SetActiveStateUpdt(!ss.IsRunning)
-	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
-		ss.Init()
-		vp.SetNeedsFullRender()
-	})
+	b.AddAppBar(func(tb *gi.Toolbar) {
+		gi.NewButton(tb).SetText("Init").SetIcon(icons.Update).
+			SetTooltip("Initialize everything including network weights, and start over.  Also applies current params.").
+			StyleFirst(func(s *styles.Style) {
+				s.SetEnabled(!ss.IsRunning)
+			}).
+			OnClick(func(e events.Event) {
+				ss.Init()
+			})
 
-	tbar.AddAction(gi.ActOpts{Label: "Stop", Icon: "stop", Tooltip: "Interrupts running.  Hitting Train again will pick back up where it left off.", UpdateFunc: func(act *gi.Action) {
-		act.SetActiveStateUpdt(ss.IsRunning)
-	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
-		ss.Stop()
-	})
+		gi.NewButton(tb).SetText("Stop").SetIcon(icons.Stop).
+			SetTooltip("Interrupts running.  Hitting Train again will pick back up where it left off.").
+			StyleFirst(func(s *styles.Style) {
+				s.SetEnabled(ss.IsRunning)
+			}).
+			OnClick(func(e events.Event) {
+				ss.Stop()
+			})
 
-	tbar.AddAction(gi.ActOpts{Label: "Run Cycles", Icon: "step-fwd", Tooltip: "Runs neuron updating over NCycles.", UpdateFunc: func(act *gi.Action) {
-		act.SetActiveStateUpdt(!ss.IsRunning)
-	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
-		if !ss.IsRunning {
-			ss.IsRunning = true
-			ss.RunCycles()
-			ss.IsRunning = false
-			vp.SetNeedsFullRender()
-		}
-	})
+		gi.NewButton(tb).SetText("Run cycles").SetIcon(icons.Step).
+			SetTooltip("Runs neuron updating over NCycles.").
+			StyleFirst(func(s *styles.Style) {
+				s.SetEnabled(!ss.IsRunning)
+			}).
+			OnClick(func(e events.Event) {
+				ss.IsRunning = true
+				ss.RunCycles()
+				ss.IsRunning = false
+			})
 
-	tbar.AddSeparator("run-sep")
+		gi.NewSeparator(tb)
 
-	tbar.AddAction(gi.ActOpts{Label: "Reset Plot", Icon: "update", Tooltip: "Reset TstCycPlot.", UpdateFunc: func(act *gi.Action) {
-		act.SetActiveStateUpdt(!ss.IsRunning)
-	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
-		if !ss.IsRunning {
-			ss.ResetTstCycPlot()
-		}
-	})
+		gi.NewButton(tb).SetText("Reset plot").SetIcon(icons.Reset).
+			SetTooltip("Reset TstCycPlot.").
+			StyleFirst(func(s *styles.Style) {
+				s.SetEnabled(!ss.IsRunning)
+			}).
+			OnClick(func(e events.Event) {
+				ss.ResetTstCycPlot()
+			})
 
-	tbar.AddAction(gi.ActOpts{Label: "Spike Vs Rate", Icon: "play", Tooltip: "Runs Spike vs Rate test.", UpdateFunc: func(act *gi.Action) {
-		act.SetActiveStateUpdt(!ss.IsRunning)
-	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
-		if !ss.IsRunning {
-			ss.IsRunning = true
-			go ss.SpikeVsRate()
-			ss.IsRunning = false
-			vp.SetNeedsFullRender()
-		}
-	})
+		gi.NewButton(tb).SetText("Spike vs Rate").SetIcon(icons.PlayArrow).
+			SetTooltip("Runs Spike vs Rate test.").
+			StyleFirst(func(s *styles.Style) {
+				s.SetEnabled(!ss.IsRunning)
+			}).
+			OnClick(func(e events.Event) {
+				ss.IsRunning = true
+				go func() {
+					ss.SpikeVsRate()
+					ss.IsRunning = false
+				}()
+			})
 
-	tbar.AddAction(gi.ActOpts{Label: "Defaults", Icon: "update", Tooltip: "Restore initial default parameters.", UpdateFunc: func(act *gi.Action) {
-		act.SetActiveStateUpdt(!ss.IsRunning)
-	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
-		ss.Defaults()
-		ss.Init()
-		vp.SetNeedsFullRender()
-	})
+		gi.NewButton(tb).SetText("Defaults").SetIcon(icons.Reset).
+			SetTooltip("Restore initial default parameters.").
+			StyleFirst(func(s *styles.Style) {
+				s.SetEnabled(!ss.IsRunning)
+			}).
+			OnClick(func(e events.Event) {
+				ss.Defaults()
+				ss.Init()
+			})
 
-	tbar.AddAction(gi.ActOpts{Label: "README", Icon: "file-markdown", Tooltip: "Opens your browser on the README file that contains instructions for how to run this model."}, win.This(),
-		func(recv, send ki.Ki, sig int64, data interface{}) {
-			gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch2/neuron/README.md")
-		})
-
-	vp.UpdateEndNoSig(updt)
-
-	// main menu
-	appnm := gi.AppName()
-	mmen := win.MainMenu
-	mmen.ConfigMenus([]string{appnm, "File", "Edit", "Window"})
-
-	amen := win.MainMenu.ChildByName(appnm, 0).(*gi.Action)
-	amen.Menu.AddAppMenu(win)
-
-	emen := win.MainMenu.ChildByName("Edit", 1).(*gi.Action)
-	emen.Menu.AddCopyCutPaste(win)
-
-	inQuitPrompt := false
-	gi.SetQuitReqFunc(func() {
-		if inQuitPrompt {
-			return
-		}
-		inQuitPrompt = true
-		gi.PromptDialog(vp, gi.DlgOpts{Title: "Really Quit?",
-			Prompt: "Are you <i>sure</i> you want to quit and lose any unsaved params, weights, logs, etc?"}, gi.AddOk, gi.AddCancel,
-			win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
-				if sig == int64(gi.DialogAccepted) {
-					gi.Quit()
-				} else {
-					inQuitPrompt = false
-				}
+		gi.NewButton(tb).SetText("README").SetIcon(icons.FileMarkdown).
+			SetTooltip("Opens your browser on the README file that contains instructions for how to run this model.").
+			OnClick(func(e events.Event) {
+				gi.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch2/neuron/README.md")
 			})
 	})
-
-	// gi.SetQuitCleanFunc(func() {
-	// 	fmt.Printf("Doing final Quit cleanup here..\n")
-	// })
-
-	inClosePrompt := false
-	win.SetCloseReqFunc(func(w *gi.Window) {
-		if inClosePrompt {
-			return
-		}
-		inClosePrompt = true
-		gi.PromptDialog(vp, gi.DlgOpts{Title: "Really Close Window?",
-			Prompt: "Are you <i>sure</i> you want to close the window?  This will Quit the App as well, losing all unsaved params, weights, logs, etc"}, gi.AddOk, gi.AddCancel,
-			win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
-				if sig == int64(gi.DialogAccepted) {
-					gi.Quit()
-				} else {
-					inClosePrompt = false
-				}
-			})
-	})
-
-	win.SetCloseCleanFunc(func(w *gi.Window) {
-		go gi.Quit() // once main window is closed, quit
-	})
-
-	win.MainMenuUpdated()
-	return win
 }
 
 // These props register Save methods so they can be used
@@ -675,11 +595,11 @@ var SimProps = ki.Props{
 	},
 }
 
-func mainrun() {
+func main() {
 	TheSim.New()
 	TheSim.Config()
 
 	TheSim.Init()
-	win := TheSim.ConfigGui()
-	win.StartEventLoop()
+	TheSim.ConfigGui()
+	TheSim.Body.RunMainWindow()
 }
