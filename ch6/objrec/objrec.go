@@ -12,6 +12,7 @@ package main
 
 import (
 	"bytes"
+	"embed"
 	"flag"
 	"fmt"
 	"log"
@@ -64,6 +65,9 @@ func guirun() {
 
 // LogPrec is precision for saving float values in logs
 const LogPrec = 4
+
+//go:embed objrec_train1.wts
+var content embed.FS
 
 // ParamSets is the default set of parameters -- Base is always applied, and others can be optionally
 // selected to apply on top of that
