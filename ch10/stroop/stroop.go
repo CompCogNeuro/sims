@@ -8,6 +8,7 @@ stroop illustrates how the PFC can produce top-down biasing for executive contro
 package main
 
 import (
+	"embed"
 	"fmt"
 	"log"
 	"math/rand"
@@ -46,6 +47,9 @@ func main() {
 
 // LogPrec is precision for saving float values in logs
 const LogPrec = 4
+
+//go:embed stroop_train.tsv stroop_test.tsv stroop_soa.tsv
+var content embed.FS
 
 // ParamSets is the default set of parameters -- Base is always applied, and others can be optionally
 // selected to apply on top of that

@@ -14,6 +14,7 @@ to B.
 package main
 
 import (
+	"embed"
 	"fmt"
 	"log"
 	"math/rand"
@@ -51,6 +52,9 @@ func main() {
 
 // LogPrec is precision for saving float values in logs
 const LogPrec = 4
+
+//go:embed a_not_b_delay3.tsv a_not_b_delay5.tsv a_not_b_delay1.tsv
+var content embed.FS
 
 // Delays is delay case to use
 type Delays int32
