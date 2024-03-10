@@ -22,66 +22,96 @@ import (
 // chosen at random during generation -- these items can be
 // more rules terminal tokens.
 type SentGenEnv struct {
+
 	// name of this environment
-	Nm string `desc:"name of this environment"`
+	Nm string
+
 	// description of this environment
-	Dsc string `desc:"description of this environment"`
+	Dsc string
+
 	// core sent-gen rules -- loaded from a grammar / rules file -- Gen() here generates one sentence
-	Rules esg.Rules `desc:"core sent-gen rules -- loaded from a grammar / rules file -- Gen() here generates one sentence"`
+	Rules esg.Rules
+
 	// probability of generating passive sentence forms
-	PPassive float64 `desc:"probability of generating passive sentence forms"`
+	PPassive float64
+
 	// translate unambiguous words into ambiguous words
-	WordTrans map[string]string `desc:"translate unambiguous words into ambiguous words"`
+	WordTrans map[string]string
+
 	// list of words used for activating state units according to index
-	Words []string `desc:"list of words used for activating state units according to index"`
+	Words []string
+
 	// map of words onto index in Words list
-	WordMap map[string]int `desc:"map of words onto index in Words list"`
+	WordMap map[string]int
+
 	// list of roles used for activating state units according to index
-	Roles []string `desc:"list of roles used for activating state units according to index"`
+	Roles []string
+
 	// map of roles onto index in Roles list
-	RoleMap map[string]int `desc:"map of roles onto index in Roles list"`
+	RoleMap map[string]int
+
 	// list of filler concepts used for activating state units according to index
-	Fillers []string `desc:"list of filler concepts used for activating state units according to index"`
+	Fillers []string
+
 	// map of roles onto index in Words list
-	FillerMap map[string]int `desc:"map of roles onto index in Words list"`
+	FillerMap map[string]int
+
 	// ambiguous verbs
-	AmbigVerbs []string `desc:"ambiguous verbs"`
+	AmbigVerbs []string
+
 	// ambiguous nouns
-	AmbigNouns []string `desc:"ambiguous nouns"`
+	AmbigNouns []string
+
 	// map of ambiguous verbs
-	AmbigVerbsMap map[string]int `desc:"map of ambiguous verbs"`
+	AmbigVerbsMap map[string]int
+
 	// map of ambiguous nouns
-	AmbigNounsMap map[string]int `desc:"map of ambiguous nouns"`
+	AmbigNounsMap map[string]int
+
 	// original current sentence as generated from Rules
-	CurSentOrig []string `desc:"original current sentence as generated from Rules"`
+	CurSentOrig []string
+
 	// current sentence, potentially transformed to passive form
-	CurSent []string `desc:"current sentence, potentially transformed to passive form"`
+	CurSent []string
+
 	// number of ambiguous nouns
-	NAmbigNouns int `desc:"number of ambiguous nouns"`
+	NAmbigNouns int
+
 	// number of ambiguous verbs (0 or 1)
-	NAmbigVerbs int `desc:"number of ambiguous verbs (0 or 1)"`
+	NAmbigVerbs int
+
 	// generated sequence of sentence inputs including role-filler queries
-	SentInputs [][]string `desc:"generated sequence of sentence inputs including role-filler queries"`
+	SentInputs [][]string
+
 	// current index within sentence inputs
-	SentIdx env.CurPrvInt `desc:"current index within sentence inputs"`
+	SentIdx env.CurPrvInt
+
 	// current question type -- from 4th value of SentInputs
-	QType string `desc:"current question type -- from 4th value of SentInputs"`
+	QType string
+
 	// current sentence activation state
-	WordState etensor.Float32 `desc:"current sentence activation state"`
+	WordState etensor.Float32
+
 	// current role query activation state
-	RoleState etensor.Float32 `desc:"current role query activation state"`
+	RoleState etensor.Float32
+
 	// current filler query activation state
-	FillerState etensor.Float32 `desc:"current filler query activation state"`
-	// [view: inline] current run of model as provided during Init
-	Run env.Ctr `view:"inline" desc:"current run of model as provided during Init"`
-	// [view: inline] number of times through Seq.Max number of sequences
-	Epoch env.Ctr `view:"inline" desc:"number of times through Seq.Max number of sequences"`
-	// [view: inline] sequence counter within epoch
-	Seq env.Ctr `view:"inline" desc:"sequence counter within epoch"`
-	// [view: inline] tick counter within sequence
-	Tick env.Ctr `view:"inline" desc:"tick counter within sequence"`
-	// [view: inline] trial is the step counter within sequence - how many steps taken within current sequence -- it resets to 0 at start of each sequence
-	Trial env.Ctr `view:"inline" desc:"trial is the step counter within sequence - how many steps taken within current sequence -- it resets to 0 at start of each sequence"`
+	FillerState etensor.Float32
+
+	// current run of model as provided during Init
+	Run env.Ctr `view:"inline"`
+
+	// number of times through Seq.Max number of sequences
+	Epoch env.Ctr `view:"inline"`
+
+	// sequence counter within epoch
+	Seq env.Ctr `view:"inline"`
+
+	// tick counter within sequence
+	Tick env.Ctr `view:"inline"`
+
+	// trial is the step counter within sequence - how many steps taken within current sequence -- it resets to 0 at start of each sequence
+	Trial env.Ctr `view:"inline"`
 }
 
 func (ev *SentGenEnv) Name() string { return ev.Nm }

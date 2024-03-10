@@ -23,26 +23,42 @@ import (
 )
 
 type PVLVEnv struct {
-	Nm                 string                  `inactive:"+" desc:"name of this environment"`
-	Dsc                string                  `inactive:"+" desc:"description of this environment"`
-	PVLVParams         *params.Params          `desc:"PVLV-specific params"`
-	GlobalStep         int                     `desc:"cycle counter, cleared by Init, otherwise increments on every Cycle"`
-	MultiRunCt         env.Ctr                 `inactive:"+" view:"inline" desc:"top-level counter for multi-run sequence"`
-	ConditionCt        env.Ctr                 `inactive:"+" view:"inline" desc:"top-level counter for multi-trial group run"`
-	TrialBlockCt       env.Ctr                 `inactive:"+" view:"inline" desc:"trial group within a block"`
-	TrialCt            env.Ctr                 `inactive:"+" view:"inline" desc:"trial group within a set of trial groups"`
-	AlphaCycle         env.Ctr                 `inactive:"+" view:"inline" desc:"step within a trial"`
-	AlphaTrialName     string                  `inactive:"+" desc:"name of current alpha trial step"`
-	USTimeInStr        string                  `inactive:"+" desc:"decoded value of USTimeIn"`
-	TrialBlockParams   *data.TrialBlockRecs    `desc:"AKA trial group list. A set of trial groups to be run together"`
-	TrialInstances     *data.TrialInstanceRecs //*TrialInstanceList `view:"no-inline" desc:"instantiated trial groups, further unpacked into StdInputData from this"`
-	StdInputData       *etable.Table           `desc:"Completely instantiated input data for a single block"`
-	ContextModel       ContextModel            `inactive:"+" desc:"One at a time, conjunctive, or a mix"`
-	SeqRun             bool                    `view:"-" desc:"running from a top-level sequence?"`
-	CurConditionParams *data.ConditionParams   `view:"-" desc:"params for currently executing block, whether from selection or sequence"`
-	TrialsPerBlock     int                     `inactive:"+"`
-	DataLoopOrder      data.DataLoopOrder      `inactive:"+"`
-	BlockEnded         bool                    `view:"-"`
+	// name of this environment
+	Nm string `inactive:"+"`
+	// description of this environment
+	Dsc string `inactive:"+"`
+	// PVLV-specific params
+	PVLVParams *params.Params
+	// cycle counter, cleared by Init, otherwise increments on every Cycle
+	GlobalStep int
+	// top-level counter for multi-run sequence
+	MultiRunCt env.Ctr `inactive:"+" view:"inline"`
+	// top-level counter for multi-trial group run
+	ConditionCt env.Ctr `inactive:"+" view:"inline"`
+	// trial group within a block
+	TrialBlockCt env.Ctr `inactive:"+" view:"inline"`
+	// trial group within a set of trial groups
+	TrialCt env.Ctr `inactive:"+" view:"inline"`
+	// step within a trial
+	AlphaCycle env.Ctr `inactive:"+" view:"inline"`
+	// name of current alpha trial step
+	AlphaTrialName string `inactive:"+"`
+	// decoded value of USTimeIn
+	USTimeInStr string `inactive:"+"`
+	// AKA trial group list. A set of trial groups to be run together
+	TrialBlockParams *data.TrialBlockRecs
+	TrialInstances   *data.TrialInstanceRecs //*TrialInstanceList `view:"no-inline" desc:"instantiated trial groups, further unpacked into StdInputData from this"`
+	// Completely instantiated input data for a single block
+	StdInputData *etable.Table
+	// One at a time, conjunctive, or a mix
+	ContextModel ContextModel `inactive:"+"`
+	// running from a top-level sequence?
+	SeqRun bool `view:"-"`
+	// params for currently executing block, whether from selection or sequence
+	CurConditionParams *data.ConditionParams `view:"-"`
+	TrialsPerBlock     int                   `inactive:"+"`
+	DataLoopOrder      data.DataLoopOrder    `inactive:"+"`
+	BlockEnded         bool                  `view:"-"`
 
 	// Input data tensors
 	TsrStimIn    etensor.Float64
@@ -51,12 +67,15 @@ type PVLVEnv struct {
 	TsrContextIn etensor.Float64
 	TsrUSTimeIn  etensor.Float64
 
-	NormContextTotalAct   bool    `view:"-" `                                                       // TODO UNUSED if true, clamp ContextIn units as 1/n_context_units - reflecting mutual competition
-	NormStimTotalAct      bool    `view:"-" `                                                       // TODO UNUSED if true, clamp StimIn units as 1/n_context_units - reflecting mutual competition
-	NormUSTimeTotalAct    bool    `view:"-" `                                                       // TODO UNUSED if true, clamp USTimeIn units as 1/n_context_units - reflecting mutual competition
-	PctNormTotalActStim   float64 `desc:"amount to add to denominator for StimIn normalization"`    // used in InstantiateBlockTrials and SetRowStdInputDataAlphTrial
-	PctNormTotalActCtx    float64 `desc:"amount to add to denominator for ContextIn normalization"` // used in InstantiateBlockTrials and SetRowStdInputDataAlphTrial
-	PctNormTotalActUSTime float64 `desc:"amount to add to denominator for USTimeIn normalization"`  // used in InstantiateBlockTrials and SetRowStdInputDataAlphTrial
+	NormContextTotalAct bool `view:"-"` // TODO UNUSED if true, clamp ContextIn units as 1/n_context_units - reflecting mutual competition
+	NormStimTotalAct    bool `view:"-"` // TODO UNUSED if true, clamp StimIn units as 1/n_context_units - reflecting mutual competition
+	NormUSTimeTotalAct  bool `view:"-"` // TODO UNUSED if true, clamp USTimeIn units as 1/n_context_units - reflecting mutual competition
+	// amount to add to denominator for StimIn normalization
+	PctNormTotalActStim float64
+	// amount to add to denominator for ContextIn normalization
+	PctNormTotalActCtx float64
+	// amount to add to denominator for USTimeIn normalization
+	PctNormTotalActUSTime float64
 
 	InputShapes *map[string][]int
 }

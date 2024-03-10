@@ -11,24 +11,42 @@ import (
 // TrialGp : block-level state
 // aka TrialBlock
 type TrialBlockParams struct {
-	TrialBlkName        string    `desc:"name"`
-	PercentOfTotal      float64   `desc:"Percent of all trials for this type"`
-	ValenceContext      p.Valence `desc:"Positive or negative reward valence"`
-	USProb              float64   `desc:"Probability of US"`
-	FixedProb           bool      `desc:"Fixed probability?"`
-	MixedUS             bool      `desc:"Mixed US set?"`
-	USMagnitude         float64   `desc:"US magnitude"`
-	AlphTicksPerTrialGp int       `desc:"Number of ticks for a trial"`
-	CS                  string    `desc:"Conditioned stimulus"`
-	CSTimeStart         p.Tick    `desc:"Tick of CS start"`
-	CSTimeEnd           p.Tick    `desc:"Tick of CS end"`
-	CS2TimeStart        p.Tick    `desc:"Tick of CS2 start"`
-	CS2TimeEnd          p.Tick    `desc:"Tick of CS2 end"`
-	USType              p.US      `desc:"Unconditioned stimulus"`
-	USTimeStart         p.Tick    `desc:"Tick for start of US presentation"`
-	USTimeEnd           p.Tick    `desc:"Tick for end of US presentation"`
-	Context             string    `desc:"Context"`
-	Location            string    `desc:"Location"`
+	// name
+	TrialBlkName string
+	// Percent of all trials for this type
+	PercentOfTotal float64
+	// Positive or negative reward valence
+	ValenceContext p.Valence
+	// Probability of US
+	USProb float64
+	// Fixed probability?
+	FixedProb bool
+	// Mixed US set?
+	MixedUS bool
+	// US magnitude
+	USMagnitude float64
+	// Number of ticks for a trial
+	AlphTicksPerTrialGp int
+	// Conditioned stimulus
+	CS string
+	// Tick of CS start
+	CSTimeStart p.Tick
+	// Tick of CS end
+	CSTimeEnd p.Tick
+	// Tick of CS2 start
+	CS2TimeStart p.Tick
+	// Tick of CS2 end
+	CS2TimeEnd p.Tick
+	// Unconditioned stimulus
+	USType p.US
+	// Tick for start of US presentation
+	USTimeStart p.Tick
+	// Tick for end of US presentation
+	USTimeEnd p.Tick
+	// Context
+	Context string
+	// Location
+	Location string
 }
 
 type TrialBlockMap map[string]TrialBlock

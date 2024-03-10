@@ -16,13 +16,20 @@ import (
 // chosen at random during generation -- these items can be
 // more rules terminal tokens.
 type ProbeEnv struct {
-	Nm        string          `desc:"name of this environment"`
-	Dsc       string          `desc:"description of this environment"`
-	Words     []string        `desc:"list of words used for activating state units according to index"`
-	WordState etensor.Float32 `desc:"current sentence activation state"`
-	Run       env.Ctr         `view:"inline" desc:"current run of model as provided during Init"`
-	Epoch     env.Ctr         `view:"inline" desc:"number of times through Seq.Max number of sequences"`
-	Trial     env.Ctr         `view:"inline" desc:"trial is the step counter within sequence - how many steps taken within current sequence -- it resets to 0 at start of each sequence"`
+	// name of this environment
+	Nm string
+	// description of this environment
+	Dsc string
+	// list of words used for activating state units according to index
+	Words []string
+	// current sentence activation state
+	WordState etensor.Float32
+	// current run of model as provided during Init
+	Run env.Ctr `view:"inline"`
+	// number of times through Seq.Max number of sequences
+	Epoch env.Ctr `view:"inline"`
+	// trial is the step counter within sequence - how many steps taken within current sequence -- it resets to 0 at start of each sequence
+	Trial env.Ctr `view:"inline"`
 }
 
 func (ev *ProbeEnv) Name() string { return ev.Nm }

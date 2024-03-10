@@ -16,14 +16,22 @@ import (
 
 // Vis does DoG filtering on images
 type Vis struct {
-	ClipToFit bool            `desc:"if true, and input image is larger than target image size, central region is clipped out as the input -- otherwise image is sized to target size"`
-	DoG       dog.Filter      `desc:"LGN DoG filter parameters"`
-	Geom      vfilter.Geom    `inactive:"+" view:"inline" desc:"geometry of input, output"`
-	ImgSize   image.Point     `desc:"target image size to use -- images will be rescaled to this size"`
-	DoGTsr    etensor.Float32 `view:"no-inline" desc:"DoG filter tensor"`
-	Img       image.Image     `view:"-" desc:"current input image"`
-	ImgTsr    etensor.Float32 `view:"no-inline" desc:"input image as tensor"`
-	OutTsr    etensor.Float32 `view:"no-inline" desc:"DoG filter output tensor"`
+	// if true, and input image is larger than target image size, central region is clipped out as the input -- otherwise image is sized to target size
+	ClipToFit bool
+	// LGN DoG filter parameters
+	DoG dog.Filter
+	// geometry of input, output
+	Geom vfilter.Geom `inactive:"+" view:"inline"`
+	// target image size to use -- images will be rescaled to this size
+	ImgSize image.Point
+	// DoG filter tensor
+	DoGTsr etensor.Float32 `view:"no-inline"`
+	// current input image
+	Img image.Image `view:"-"`
+	// input image as tensor
+	ImgTsr etensor.Float32 `view:"no-inline"`
+	// DoG filter output tensor
+	OutTsr etensor.Float32 `view:"no-inline"`
 }
 
 var KiT_Vis = kit.Types.AddType(&Vis{}, nil)

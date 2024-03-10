@@ -18,43 +18,43 @@ import (
 type BanditEnv struct {
 
 	// name of this environment
-	Nm string `desc:"name of this environment"`
+	Nm string
 
 	// description of this environment
-	Dsc string `desc:"description of this environment"`
+	Dsc string
 
 	// number of different inputs
-	N int `desc:"number of different inputs"`
+	N int
 
-	// no-inline
-	P []float32 `desc:"no-inline" desc:"probabilities for each option"`
+	// probabilities for each option
+	P []float32
 
 	// value for reward
-	RewVal float32 `desc:"value for reward"`
+	RewVal float32
 
 	// value for non-reward
-	NoRewVal float32 `desc:"value for non-reward"`
+	NoRewVal float32
 
 	// bandit option current / prev
-	Option env.CurPrvInt `desc:"bandit option current / prev"`
+	Option env.CurPrvInt
 
 	// if true, select option at random each Step -- otherwise must be set externally (e.g., by model)
-	RndOpt bool `desc:"if true, select option at random each Step -- otherwise must be set externally (e.g., by model)"`
+	RndOpt bool
 
 	// one-hot input representation of current option
-	Input etensor.Float64 `desc:"one-hot input representation of current option"`
+	Input etensor.Float64
 
 	// single reward value
-	Reward etensor.Float64 `desc:"single reward value"`
+	Reward etensor.Float64
 
-	// [view: inline] current run of model as provided during Init
-	Run env.Ctr `view:"inline" desc:"current run of model as provided during Init"`
+	// current run of model as provided during Init
+	Run env.Ctr `view:"inline"`
 
-	// [view: inline] number of times through Seq.Max number of sequences
-	Epoch env.Ctr `view:"inline" desc:"number of times through Seq.Max number of sequences"`
+	// number of times through Seq.Max number of sequences
+	Epoch env.Ctr `view:"inline"`
 
-	// [view: inline] trial is the step counter within epoch
-	Trial env.Ctr `view:"inline" desc:"trial is the step counter within epoch"`
+	// trial is the step counter within epoch
+	Trial env.Ctr `view:"inline"`
 }
 
 func (ev *BanditEnv) Name() string { return ev.Nm }

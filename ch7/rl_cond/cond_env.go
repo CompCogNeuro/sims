@@ -15,22 +15,30 @@ import (
 
 // OnOff represents stimulus On / Off timing
 type OnOff struct {
+
 	// is this stimulus active -- use it?
-	Act bool `desc:"is this stimulus active -- use it?"`
+	Act bool
+
 	// when stimulus turns on
-	On int `desc:"when stimulus turns on"`
+	On int
+
 	// when stimulu turns off
-	Off int `desc:"when stimulu turns off"`
+	Off int
+
 	// probability of being active on any given trial
-	P float32 `desc:"probability of being active on any given trial"`
+	P float32
+
 	// variability in onset timing (max number of trials before/after On that it could start)
-	OnVar int `desc:"variability in onset timing (max number of trials before/after On that it could start)"`
+	OnVar int
+
 	// variability in offset timing (max number of trials before/after Off that it could end)
-	OffVar int `desc:"variability in offset timing (max number of trials before/after Off that it could end)"`
-	// [view: -] current active status based on P probability
-	CurAct bool `view:"-" desc:"current active status based on P probability"`
-	// [view: -] current on / off values using Var variability
-	CurOn, CurOff int `view:"-" desc:"current on / off values using Var variability"`
+	OffVar int
+
+	// current active status based on P probability
+	CurAct bool `view:"-"`
+
+	// current on / off values using Var variability
+	CurOn, CurOff int `view:"-"`
 }
 
 func (oo *OnOff) Set(act bool, on, off int) {
@@ -58,36 +66,51 @@ func (oo *OnOff) IsOn(tm int) bool {
 // CondEnv simulates an n-armed bandit, where each of n inputs is associated with
 // a specific probability of reward.
 type CondEnv struct {
+
 	// name of this environment
-	Nm string `desc:"name of this environment"`
+	Nm string
+
 	// description of this environment
-	Dsc string `desc:"description of this environment"`
+	Dsc string
+
 	// total time for trial
-	TotTime int `desc:"total time for trial"`
-	// [view: inline] Conditioned stimulus A (e.g., Tone)
-	CSA OnOff `view:"inline" desc:"Conditioned stimulus A (e.g., Tone)"`
-	// [view: inline] Conditioned stimulus B (e.g., Light)
-	CSB OnOff `view:"inline" desc:"Conditioned stimulus B (e.g., Light)"`
-	// [view: inline] Conditioned stimulus C
-	CSC OnOff `view:"inline" desc:"Conditioned stimulus C"`
-	// [view: inline] Unconditioned stimulus -- reward
-	US OnOff `view:"inline" desc:"Unconditioned stimulus -- reward"`
+	TotTime int
+
+	// Conditioned stimulus A (e.g., Tone)
+	CSA OnOff `view:"inline"`
+
+	// Conditioned stimulus B (e.g., Light)
+	CSB OnOff `view:"inline"`
+
+	// Conditioned stimulus C
+	CSC OnOff `view:"inline"`
+
+	// Unconditioned stimulus -- reward
+	US OnOff `view:"inline"`
+
 	// value for reward
-	RewVal float32 `desc:"value for reward"`
+	RewVal float32
+
 	// value for non-reward
-	NoRewVal float32 `desc:"value for non-reward"`
+	NoRewVal float32
+
 	// one-hot input representation of current option
-	Input etensor.Float64 `desc:"one-hot input representation of current option"`
+	Input etensor.Float64
+
 	// single reward value
-	Reward etensor.Float64 `desc:"single reward value"`
-	// [view: inline] current run of model as provided during Init
-	Run env.Ctr `view:"inline" desc:"current run of model as provided during Init"`
-	// [view: inline] number of times through Seq.Max number of sequences
-	Epoch env.Ctr `view:"inline" desc:"number of times through Seq.Max number of sequences"`
-	// [view: inline] one trial is a pass through all TotTime Events
-	Trial env.Ctr `view:"inline" desc:"one trial is a pass through all TotTime Events"`
-	// [view: inline] event is one time step within Trial -- e.g., CS turning on, etc
-	Event env.Ctr `view:"inline" desc:"event is one time step within Trial -- e.g., CS turning on, etc"`
+	Reward etensor.Float64
+
+	// current run of model as provided during Init
+	Run env.Ctr `view:"inline"`
+
+	// number of times through Seq.Max number of sequences
+	Epoch env.Ctr `view:"inline"`
+
+	// one trial is a pass through all TotTime Events
+	Trial env.Ctr `view:"inline"`
+
+	// event is one time step within Trial -- e.g., CS turning on, etc
+	Event env.Ctr `view:"inline"`
 }
 
 func (ev *CondEnv) Name() string { return ev.Nm }

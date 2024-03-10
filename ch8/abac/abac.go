@@ -87,11 +87,16 @@ var ParamSets = params.Sets{
 
 // Reps contains standard analysis of representations
 type Reps struct {
-	SimMat    *simat.SimMat `view:"no-inline" desc:"similarity matrix"`
-	PCAPlot   *eplot.Plot2D `view:"no-inline" desc:"plot of pca data"`
-	ClustPlot *eplot.Plot2D `view:"no-inline" desc:"cluster plot"`
-	PCA       *pca.PCA      `view:"-" desc:"pca results"`
-	PCAPrjn   *etable.Table `view:"-" desc:"pca projections onto eigenvectors"`
+	// similarity matrix
+	SimMat *simat.SimMat `view:"no-inline"`
+	// plot of pca data
+	PCAPlot *eplot.Plot2D `view:"no-inline"`
+	// cluster plot
+	ClustPlot *eplot.Plot2D `view:"no-inline"`
+	// pca results
+	PCA *pca.PCA `view:"-"`
+	// pca projections onto eigenvectors
+	PCAPrjn *etable.Table `view:"-"`
 }
 
 func (rp *Reps) Init() {
@@ -112,70 +117,128 @@ func (rp *Reps) Init() {
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
-	HiddenInhibGi float32           `def:"1.8" desc:"hidden layer inhibition -- increase to make sparser"`
-	WtInitVar     float32           `def:"0.25" desc:"random initial weight variance -- increase to make more random"`
-	FmContext     float32           `def:"1" desc:"relative WtScale.Rel from Context layer"`
-	XCalLLrn      float32           `min:"0" step:"0.0001" def:"0.0003" desc:"amount of Hebbian BCM learning based on AvgL long-term average activity -- increase to increase amount of hebbian"`
-	Lrate         float32           `def:"0.04" desc:"learning rate"`
-	Net           *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
-	ABPats        *etable.Table     `view:"no-inline" desc:"AB paired associate training patterns"`
-	ACPats        *etable.Table     `view:"no-inline" desc:"AC paired associate training patterns"`
-	TrnEpcLog     *etable.Table     `view:"no-inline" desc:"training epoch-level log data"`
-	TstEpcLog     *etable.Table     `view:"no-inline" desc:"testing epoch-level log data"`
-	TstTrlLog     *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
-	RunLog        *etable.Table     `view:"no-inline" desc:"summary log of each run"`
-	RunStats      *etable.Table     `view:"no-inline" desc:"aggregate stats on all runs"`
-	TstStats      *etable.Table     `view:"no-inline" desc:"testing stats"`
-	Params        params.Sets       `view:"no-inline" desc:"full collection of param sets"`
-	ParamSet      string            `view:"-" desc:"which set of *additional* parameters to use -- always applies Base and optionaly this next if set -- can use multiple names separated by spaces (don't put spaces in ParamSet names!)"`
-	MaxRuns       int               `desc:"maximum number of model runs to perform"`
-	MaxEpcs       int               `desc:"maximum number of epochs to run per model run"`
-	NZeroStop     int               `desc:"if a positive number, training will stop after this many epochs with zero SSE"`
-	TrainEnv      env.FixedTable    `desc:"Training environment -- contains everything about iterating over input / output patterns over training"`
-	TestEnv       env.FixedTable    `desc:"Training environment -- contains everything about iterating over input / output patterns over training"`
-	Time          leabra.Time       `desc:"leabra timing parameters and state"`
-	ViewOn        bool              `desc:"whether to update the network view while running"`
-	TrainUpdt     leabra.TimeScales `desc:"at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model"`
-	TestUpdt      leabra.TimeScales `desc:"at what time scale to update the display during testing?  Anything longer than Epoch updates at Epoch in this model"`
-	TestInterval  int               `desc:"how often to run through all the test patterns, in terms of training epochs -- can use 0 or -1 for no testing"`
-	TstRecLays    []string          `desc:"names of layers to record activations etc of during testing"`
-	HiddenReps    Reps              `view:"inline" desc:"representational analysis of Hidden layer, sorted by relationship"`
+	// hidden layer inhibition -- increase to make sparser
+	HiddenInhibGi float32 `def:"1.8"`
+	// random initial weight variance -- increase to make more random
+	WtInitVar float32 `def:"0.25"`
+	// relative WtScale.Rel from Context layer
+	FmContext float32 `def:"1"`
+	// amount of Hebbian BCM learning based on AvgL long-term average activity -- increase to increase amount of hebbian
+	XCalLLrn float32 `min:"0" step:"0.0001" def:"0.0003"`
+	// learning rate
+	Lrate float32 `def:"0.04"`
+	// the network -- click to view / edit parameters for layers, prjns, etc
+	Net *leabra.Network `view:"no-inline"`
+	// AB paired associate training patterns
+	ABPats *etable.Table `view:"no-inline"`
+	// AC paired associate training patterns
+	ACPats *etable.Table `view:"no-inline"`
+	// training epoch-level log data
+	TrnEpcLog *etable.Table `view:"no-inline"`
+	// testing epoch-level log data
+	TstEpcLog *etable.Table `view:"no-inline"`
+	// testing trial-level log data
+	TstTrlLog *etable.Table `view:"no-inline"`
+	// summary log of each run
+	RunLog *etable.Table `view:"no-inline"`
+	// aggregate stats on all runs
+	RunStats *etable.Table `view:"no-inline"`
+	// testing stats
+	TstStats *etable.Table `view:"no-inline"`
+	// full collection of param sets
+	Params params.Sets `view:"no-inline"`
+	// which set of *additional* parameters to use -- always applies Base and optionaly this next if set -- can use multiple names separated by spaces (don't put spaces in ParamSet names!)
+	ParamSet string `view:"-"`
+	// maximum number of model runs to perform
+	MaxRuns int
+	// maximum number of epochs to run per model run
+	MaxEpcs int
+	// if a positive number, training will stop after this many epochs with zero SSE
+	NZeroStop int
+	// Training environment -- contains everything about iterating over input / output patterns over training
+	TrainEnv env.FixedTable
+	// Training environment -- contains everything about iterating over input / output patterns over training
+	TestEnv env.FixedTable
+	// leabra timing parameters and state
+	Time leabra.Time
+	// whether to update the network view while running
+	ViewOn bool
+	// at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model
+	TrainUpdt leabra.TimeScales
+	// at what time scale to update the display during testing?  Anything longer than Epoch updates at Epoch in this model
+	TestUpdt leabra.TimeScales
+	// how often to run through all the test patterns, in terms of training epochs -- can use 0 or -1 for no testing
+	TestInterval int
+	// names of layers to record activations etc of during testing
+	TstRecLays []string
+	// representational analysis of Hidden layer, sorted by relationship
+	HiddenReps Reps `view:"inline"`
 
-	// statistics: note use float64 as that is best for etable.Table
-	TestNm     string  `inactive:"+" desc:"what set of patterns are we currently testing"`
-	TrlErr     float64 `inactive:"+" desc:"1 if trial was error, 0 if correct -- based on SSE = 0 (subject to .5 unit-wise tolerance)"`
-	TrlSSE     float64 `inactive:"+" desc:"current trial's sum squared error"`
-	TrlAvgSSE  float64 `inactive:"+" desc:"current trial's average sum squared error"`
-	TrlCosDiff float64 `inactive:"+" desc:"current trial's cosine difference"`
-	EpcSSE     float64 `inactive:"+" desc:"last epoch's total sum squared error"`
-	EpcAvgSSE  float64 `inactive:"+" desc:"last epoch's average sum squared error (average over trials, and over units within layer)"`
-	EpcPctErr  float64 `inactive:"+" desc:"last epoch's average TrlErr"`
-	EpcPctCor  float64 `inactive:"+" desc:"1 - last epoch's average TrlErr"`
-	EpcCosDiff float64 `inactive:"+" desc:"last epoch's average cosine difference for output layer (a normalized error measure, maximum of 1 when the minus phase exactly matches the plus)"`
-	FirstZero  int     `inactive:"+" desc:"epoch at when SSE first went to zero"`
-	NZero      int     `inactive:"+" desc:"number of epochs in a row with zero SSE"`
+	// what set of patterns are we currently testing
+	TestNm string `inactive:"+"`
+	// 1 if trial was error, 0 if correct -- based on SSE = 0 (subject to .5 unit-wise tolerance)
+	TrlErr float64 `inactive:"+"`
+	// current trial's sum squared error
+	TrlSSE float64 `inactive:"+"`
+	// current trial's average sum squared error
+	TrlAvgSSE float64 `inactive:"+"`
+	// current trial's cosine difference
+	TrlCosDiff float64 `inactive:"+"`
+	// last epoch's total sum squared error
+	EpcSSE float64 `inactive:"+"`
+	// last epoch's average sum squared error (average over trials, and over units within layer)
+	EpcAvgSSE float64 `inactive:"+"`
+	// last epoch's average TrlErr
+	EpcPctErr float64 `inactive:"+"`
+	// 1 - last epoch's average TrlErr
+	EpcPctCor float64 `inactive:"+"`
+	// last epoch's average cosine difference for output layer (a normalized error measure, maximum of 1 when the minus phase exactly matches the plus)
+	EpcCosDiff float64 `inactive:"+"`
+	// epoch at when SSE first went to zero
+	FirstZero int `inactive:"+"`
+	// number of epochs in a row with zero SSE
+	NZero int `inactive:"+"`
 
-	// internal state - view:"-"
-	SumErr      float64                     `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
-	SumSSE      float64                     `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
-	SumAvgSSE   float64                     `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
-	SumCosDiff  float64                     `view:"-" inactive:"+" desc:"sum to increment as we go through epoch"`
-	Win         *gi.Window                  `view:"-" desc:"main GUI window"`
-	NetView     *netview.NetView            `view:"-" desc:"the network viewer"`
-	ToolBar     *gi.ToolBar                 `view:"-" desc:"the master toolbar"`
-	TrnEpcPlot  *eplot.Plot2D               `view:"-" desc:"the training epoch plot"`
-	TstEpcPlot  *eplot.Plot2D               `view:"-" desc:"the testing epoch plot"`
-	TstTrlPlot  *eplot.Plot2D               `view:"-" desc:"the test-trial plot"`
-	RunPlot     *eplot.Plot2D               `view:"-" desc:"the run plot"`
-	TrnEpcFile  *os.File                    `view:"-" desc:"log file"`
-	RunFile     *os.File                    `view:"-" desc:"log file"`
-	TstNms      []string                    `view:"-" desc:"names of test tables"`
-	TstStatNms  []string                    `view:"-" desc:"names of test stats"`
-	ValsTsrs    map[string]*etensor.Float32 `view:"-" desc:"for holding layer values"`
-	IsRunning   bool                        `view:"-" desc:"true if sim is running"`
-	StopNow     bool                        `view:"-" desc:"flag to stop running"`
-	NeedsNewRun bool                        `view:"-" desc:"flag to initialize NewRun if last one finished"`
-	RndSeed     int64                       `view:"-" desc:"the current random seed"`
+	// sum to increment as we go through epoch
+	SumErr float64 `view:"-" inactive:"+"`
+	// sum to increment as we go through epoch
+	SumSSE float64 `view:"-" inactive:"+"`
+	// sum to increment as we go through epoch
+	SumAvgSSE float64 `view:"-" inactive:"+"`
+	// sum to increment as we go through epoch
+	SumCosDiff float64 `view:"-" inactive:"+"`
+	// main GUI window
+	Win *gi.Window `view:"-"`
+	// the network viewer
+	NetView *netview.NetView `view:"-"`
+	// the master toolbar
+	ToolBar *gi.ToolBar `view:"-"`
+	// the training epoch plot
+	TrnEpcPlot *eplot.Plot2D `view:"-"`
+	// the testing epoch plot
+	TstEpcPlot *eplot.Plot2D `view:"-"`
+	// the test-trial plot
+	TstTrlPlot *eplot.Plot2D `view:"-"`
+	// the run plot
+	RunPlot *eplot.Plot2D `view:"-"`
+	// log file
+	TrnEpcFile *os.File `view:"-"`
+	// log file
+	RunFile *os.File `view:"-"`
+	// names of test tables
+	TstNms []string `view:"-"`
+	// names of test stats
+	TstStatNms []string `view:"-"`
+	// for holding layer values
+	ValsTsrs map[string]*etensor.Float32 `view:"-"`
+	// true if sim is running
+	IsRunning bool `view:"-"`
+	// flag to stop running
+	StopNow bool `view:"-"`
+	// flag to initialize NewRun if last one finished
+	NeedsNewRun bool `view:"-"`
+	// the current random seed
+	RndSeed int64 `view:"-"`
 }
 
 // this registers this Sim Type and gives it properties that e.g.,

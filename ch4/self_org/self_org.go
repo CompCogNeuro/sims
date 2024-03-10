@@ -107,50 +107,91 @@ var ParamSets = params.Sets{
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
-	AvgLGain      float32           `min:"0.1" step:"0.5" def:"2.5" desc:"key BCM hebbian learning parameter, that determines how high the floating threshold goes -- higher = more homeostatic pressure against rich-get-richer feedback loops"`
-	InputNoise    float32           `min:"0" def:"0" desc:"variance on gaussian noise to add to inputs"`
-	TrainGi       float32           `min:"0" step:"0.1" def:"1.8" desc:"strength of inhibition during training with two lines present in input"`
-	TestGi        float32           `min:"0" step:"0.1" def:"2.5" desc:"strength of inhibition during testing with one line present in input -- higher because fewer neurons should be active"`
-	Net           *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
-	Lines2        *etable.Table     `view:"no-inline" desc:"easy training patterns -- can be learned with Hebbian"`
-	Lines1        *etable.Table     `view:"no-inline" desc:"hard training patterns -- require error-driven"`
-	TrnEpcLog     *etable.Table     `view:"no-inline" desc:"training epoch-level log data"`
-	TstEpcLog     *etable.Table     `view:"no-inline" desc:"testing epoch-level log data"`
-	TstTrlLog     *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
-	HidFmInputWts etensor.Tensor    `view:"no-inline" desc:"weights from input to hidden layer"`
-	RunLog        *etable.Table     `view:"no-inline" desc:"summary log of each run"`
-	RunStats      *etable.Table     `view:"no-inline" desc:"aggregate stats on all runs"`
-	SimMat        *simat.SimMat     `view:"no-inline" desc:"similarity matrix"`
-	Params        params.Sets       `view:"no-inline" desc:"full collection of param sets"`
-	ParamSet      string            `view:"-" desc:"which set of *additional* parameters to use -- always applies Base and optionaly this next if set -- can use multiple names separated by spaces (don't put spaces in ParamSet names!)"`
-	MaxRuns       int               `desc:"maximum number of model runs to perform"`
-	MaxEpcs       int               `desc:"maximum number of epochs to run per model run"`
-	TrainEnv      env.FixedTable    `desc:"Training environment -- contains everything about iterating over input / output patterns over training"`
-	TestEnv       env.FixedTable    `desc:"Testing environment -- manages iterating over testing"`
-	Time          leabra.Time       `desc:"leabra timing parameters and state"`
-	ViewOn        bool              `desc:"whether to update the network view while running"`
-	TrainUpdt     leabra.TimeScales `desc:"at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model"`
-	TestUpdt      leabra.TimeScales `desc:"at what time scale to update the display during testing?  Anything longer than Epoch updates at Epoch in this model"`
-	TestInterval  int               `desc:"how often to run through all the test patterns, in terms of training epochs"`
-	TstRecLays    []string          `desc:"names of layers to record activations etc of during testing"`
-	UniqPats      float64           `inactive:"+" desc:"number of uniquely-coded line patterns, computed during testing -- maximum 10, higher is better"`
+	// key BCM hebbian learning parameter, that determines how high the floating threshold goes -- higher = more homeostatic pressure against rich-get-richer feedback loops
+	AvgLGain float32 `min:"0.1" step:"0.5" def:"2.5"`
+	// variance on gaussian noise to add to inputs
+	InputNoise float32 `min:"0" def:"0"`
+	// strength of inhibition during training with two lines present in input
+	TrainGi float32 `min:"0" step:"0.1" def:"1.8"`
+	// strength of inhibition during testing with one line present in input -- higher because fewer neurons should be active
+	TestGi float32 `min:"0" step:"0.1" def:"2.5"`
+	// the network -- click to view / edit parameters for layers, prjns, etc
+	Net *leabra.Network `view:"no-inline"`
+	// easy training patterns -- can be learned with Hebbian
+	Lines2 *etable.Table `view:"no-inline"`
+	// hard training patterns -- require error-driven
+	Lines1 *etable.Table `view:"no-inline"`
+	// training epoch-level log data
+	TrnEpcLog *etable.Table `view:"no-inline"`
+	// testing epoch-level log data
+	TstEpcLog *etable.Table `view:"no-inline"`
+	// testing trial-level log data
+	TstTrlLog *etable.Table `view:"no-inline"`
+	// weights from input to hidden layer
+	HidFmInputWts etensor.Tensor `view:"no-inline"`
+	// summary log of each run
+	RunLog *etable.Table `view:"no-inline"`
+	// aggregate stats on all runs
+	RunStats *etable.Table `view:"no-inline"`
+	// similarity matrix
+	SimMat *simat.SimMat `view:"no-inline"`
+	// full collection of param sets
+	Params params.Sets `view:"no-inline"`
+	// which set of *additional* parameters to use -- always applies Base and optionaly this next if set -- can use multiple names separated by spaces (don't put spaces in ParamSet names!)
+	ParamSet string `view:"-"`
+	// maximum number of model runs to perform
+	MaxRuns int
+	// maximum number of epochs to run per model run
+	MaxEpcs int
+	// Training environment -- contains everything about iterating over input / output patterns over training
+	TrainEnv env.FixedTable
+	// Testing environment -- manages iterating over testing
+	TestEnv env.FixedTable
+	// leabra timing parameters and state
+	Time leabra.Time
+	// whether to update the network view while running
+	ViewOn bool
+	// at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model
+	TrainUpdt leabra.TimeScales
+	// at what time scale to update the display during testing?  Anything longer than Epoch updates at Epoch in this model
+	TestUpdt leabra.TimeScales
+	// how often to run through all the test patterns, in terms of training epochs
+	TestInterval int
+	// names of layers to record activations etc of during testing
+	TstRecLays []string
+	// number of uniquely-coded line patterns, computed during testing -- maximum 10, higher is better
+	UniqPats float64 `inactive:"+"`
 
-	// internal state - view:"-"
-	Win         *gi.Window                  `view:"-" desc:"main GUI window"`
-	NetView     *netview.NetView            `view:"-" desc:"the network viewer"`
-	ToolBar     *gi.ToolBar                 `view:"-" desc:"the master toolbar"`
-	WtsGrid     *etview.TensorGrid          `view:"-" desc:"the weights grid view"`
-	TrnEpcPlot  *eplot.Plot2D               `view:"-" desc:"the training epoch plot"`
-	TstEpcPlot  *eplot.Plot2D               `view:"-" desc:"the testing epoch plot"`
-	TstTrlPlot  *eplot.Plot2D               `view:"-" desc:"the test-trial plot"`
-	RunPlot     *eplot.Plot2D               `view:"-" desc:"the run plot"`
-	TrnEpcFile  *os.File                    `view:"-" desc:"log file"`
-	RunFile     *os.File                    `view:"-" desc:"log file"`
-	ValsTsrs    map[string]*etensor.Float32 `view:"-" desc:"for holding layer values"`
-	IsRunning   bool                        `view:"-" desc:"true if sim is running"`
-	StopNow     bool                        `view:"-" desc:"flag to stop running"`
-	NeedsNewRun bool                        `view:"-" desc:"flag to initialize NewRun if last one finished"`
-	RndSeed     int64                       `view:"-" desc:"the current random seed"`
+	// main GUI window
+	Win *gi.Window `view:"-"`
+	// the network viewer
+	NetView *netview.NetView `view:"-"`
+	// the master toolbar
+	ToolBar *gi.ToolBar `view:"-"`
+	// the weights grid view
+	WtsGrid *etview.TensorGrid `view:"-"`
+	// the training epoch plot
+	TrnEpcPlot *eplot.Plot2D `view:"-"`
+	// the testing epoch plot
+	TstEpcPlot *eplot.Plot2D `view:"-"`
+	// the test-trial plot
+	TstTrlPlot *eplot.Plot2D `view:"-"`
+	// the run plot
+	RunPlot *eplot.Plot2D `view:"-"`
+	// log file
+	TrnEpcFile *os.File `view:"-"`
+	// log file
+	RunFile *os.File `view:"-"`
+	// for holding layer values
+	ValsTsrs map[string]*etensor.Float32 `view:"-"`
+	// true if sim is running
+	IsRunning bool `view:"-"`
+	// flag to stop running
+	StopNow bool `view:"-"`
+	// flag to initialize NewRun if last one finished
+	NeedsNewRun bool `view:"-"`
+	// the current random seed
+	RndSeed int64 `view:"-"`
 }
 
 // this registers this Sim Type and gives it properties that e.g.,

@@ -22,18 +22,30 @@ import (
 // ImgEnv presents images from a list of image files, using V1 simple and complex filtering.
 // images are just selected at random each trial -- nothing fancy here.
 type ImgEnv struct {
-	Nm         string          `desc:"name of this environment"`
-	Dsc        string          `desc:"description of this environment"`
-	ImageFiles []string        `desc:"paths to images"`
-	Images     []*image.RGBA   `desc:"images (preload for speed)"`
-	ImageIdx   env.CurPrvInt   `desc:"current image index"`
-	Vis        Vis             `desc:"visual processing params"`
-	XFormRand  vxform.Rand     `desc:"random transform parameters"`
-	XForm      vxform.XForm    `desc:"current -- prev transforms"`
-	Run        env.Ctr         `view:"inline" desc:"current run of model as provided during Init"`
-	Epoch      env.Ctr         `view:"inline" desc:"number of times through Seq.Max number of sequences"`
-	Trial      env.Ctr         `view:"inline" desc:"trial is the step counter within epoch"`
-	OrigImg    etensor.Float32 `desc:"original image prior to random transforms"`
+	// name of this environment
+	Nm string
+	// description of this environment
+	Dsc string
+	// paths to images
+	ImageFiles []string
+	// images (preload for speed)
+	Images []*image.RGBA
+	// current image index
+	ImageIdx env.CurPrvInt
+	// visual processing params
+	Vis Vis
+	// random transform parameters
+	XFormRand vxform.Rand
+	// current -- prev transforms
+	XForm vxform.XForm
+	// current run of model as provided during Init
+	Run env.Ctr `view:"inline"`
+	// number of times through Seq.Max number of sequences
+	Epoch env.Ctr `view:"inline"`
+	// trial is the step counter within epoch
+	Trial env.Ctr `view:"inline"`
+	// original image prior to random transforms
+	OrigImg etensor.Float32
 }
 
 func (ev *ImgEnv) Name() string { return ev.Nm }

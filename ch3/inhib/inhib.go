@@ -105,38 +105,65 @@ var ParamSets = params.Sets{
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
-	BidirNet   bool    `desc:"if true, use the bidirectionally-connected network -- otherwise use the simpler feedforward network"`
-	TrainedWts bool    `desc:"simulate trained weights by having higher variance and Gaussian distributed weight values -- otherwise lower variance, uniform"`
-	InputPct   float32 `def:"20" min:"5" max:"50" step:"1" desc:"percent of active units in input layer (literally number of active units, because input has 100 units total)"`
-	FFFBInhib  bool    `def:"false" desc:"use feedforward, feedback (FFFB) computed inhibition instead of unit-level inhibition"`
+	// if true, use the bidirectionally-connected network -- otherwise use the simpler feedforward network
+	BidirNet bool
+	// simulate trained weights by having higher variance and Gaussian distributed weight values -- otherwise lower variance, uniform
+	TrainedWts bool
+	// percent of active units in input layer (literally number of active units, because input has 100 units total)
+	InputPct float32 `def:"20" min:"5" max:"50" step:"1"`
+	// use feedforward, feedback (FFFB) computed inhibition instead of unit-level inhibition
+	FFFBInhib bool `def:"false"`
 
-	HiddenGbarI       float32 `def:"0.4" min:"0" step:"0.05" desc:"inhibitory conductance strength for inhibition into Hidden layer"`
-	InhibGbarI        float32 `def:"0.75" min:"0" step:"0.05" desc:"inhibitory conductance strength for inhibition into Inhib layer (self-inhibition -- tricky!)"`
-	FFinhibWtScale    float32 `def:"1" min:"0" step:"0.1" desc:"feedforward (FF) inhibition relative strength: for FF projections into Inhib neurons"`
-	FBinhibWtScale    float32 `def:"1" min:"0" step:"0.1" desc:"feedback (FB) inhibition relative strength: for projections into Inhib neurons"`
-	HiddenGTau        float32 `def:"40" min:"1" step:"1" desc:"time constant (tau) for updating G conductances into Hidden neurons -- much slower than std default of 1.4"`
-	InhibGTau         float32 `def:"20" min:"1" step:"1" desc:"time constant (tau) for updating G conductances into Inhib neurons -- much slower than std default of 1.4, but 2x faster than Hidden"`
-	FmInhibWtScaleAbs float32 `def:"1" desc:"absolute weight scaling of projections from inhibition onto hidden and inhib layers -- this must be set to 0 to turn off the connection-based inhibition when using the FFFBInhib computed inbhition"`
+	// inhibitory conductance strength for inhibition into Hidden layer
+	HiddenGbarI float32 `def:"0.4" min:"0" step:"0.05"`
+	// inhibitory conductance strength for inhibition into Inhib layer (self-inhibition -- tricky!)
+	InhibGbarI float32 `def:"0.75" min:"0" step:"0.05"`
+	// feedforward (FF) inhibition relative strength: for FF projections into Inhib neurons
+	FFinhibWtScale float32 `def:"1" min:"0" step:"0.1"`
+	// feedback (FB) inhibition relative strength: for projections into Inhib neurons
+	FBinhibWtScale float32 `def:"1" min:"0" step:"0.1"`
+	// time constant (tau) for updating G conductances into Hidden neurons -- much slower than std default of 1.4
+	HiddenGTau float32 `def:"40" min:"1" step:"1"`
+	// time constant (tau) for updating G conductances into Inhib neurons -- much slower than std default of 1.4, but 2x faster than Hidden
+	InhibGTau float32 `def:"20" min:"1" step:"1"`
+	// absolute weight scaling of projections from inhibition onto hidden and inhib layers -- this must be set to 0 to turn off the connection-based inhibition when using the FFFBInhib computed inbhition
+	FmInhibWtScaleAbs float32 `def:"1"`
 
-	NetFF      *leabra.Network   `view:"no-inline" desc:"the feedforward network -- click to view / edit parameters for layers, prjns, etc"`
-	NetBidir   *leabra.Network   `view:"no-inline" desc:"the bidirectional network -- click to view / edit parameters for layers, prjns, etc"`
-	TstCycLog  *etable.Table     `view:"no-inline" desc:"testing trial-level log data -- click to see record of network's response to each input"`
-	Params     params.Sets       `view:"no-inline" desc:"full collection of param sets -- not really interesting for this model"`
-	ParamSet   string            `view:"-" desc:"which set of *additional* parameters to use -- always applies Base and optionaly this next if set -- can use multiple names separated by spaces (don't put spaces in ParamSet names!)"`
-	Time       leabra.Time       `desc:"leabra timing parameters and state"`
-	ViewUpdt   leabra.TimeScales `desc:"at what time scale to update the display during testing?  Change to AlphaCyc to make display updating go faster"`
-	TstRecLays []string          `desc:"names of layers to record activations etc of during testing"`
-	Pats       *etable.Table     `view:"no-inline" desc:"the input patterns to use -- randomly generated"`
+	// the feedforward network -- click to view / edit parameters for layers, prjns, etc
+	NetFF *leabra.Network `view:"no-inline"`
+	// the bidirectional network -- click to view / edit parameters for layers, prjns, etc
+	NetBidir *leabra.Network `view:"no-inline"`
+	// testing trial-level log data -- click to see record of network's response to each input
+	TstCycLog *etable.Table `view:"no-inline"`
+	// full collection of param sets -- not really interesting for this model
+	Params params.Sets `view:"no-inline"`
+	// which set of *additional* parameters to use -- always applies Base and optionaly this next if set -- can use multiple names separated by spaces (don't put spaces in ParamSet names!)
+	ParamSet string `view:"-"`
+	// leabra timing parameters and state
+	Time leabra.Time
+	// at what time scale to update the display during testing?  Change to AlphaCyc to make display updating go faster
+	ViewUpdt leabra.TimeScales
+	// names of layers to record activations etc of during testing
+	TstRecLays []string
+	// the input patterns to use -- randomly generated
+	Pats *etable.Table `view:"no-inline"`
 
-	// internal state - view:"-"
-	Win          *gi.Window                  `view:"-" desc:"main GUI window"`
-	NetViewFF    *netview.NetView            `view:"-" desc:"the network viewer"`
-	NetViewBidir *netview.NetView            `view:"-" desc:"the network viewer"`
-	ToolBar      *gi.ToolBar                 `view:"-" desc:"the master toolbar"`
-	TstCycPlot   *eplot.Plot2D               `view:"-" desc:"the test-trial plot"`
-	ValsTsrs     map[string]*etensor.Float32 `view:"-" desc:"for holding layer values"`
-	IsRunning    bool                        `view:"-" desc:"true if sim is running"`
-	StopNow      bool                        `view:"-" desc:"flag to stop running"`
+	// main GUI window
+	Win *gi.Window `view:"-"`
+	// the network viewer
+	NetViewFF *netview.NetView `view:"-"`
+	// the network viewer
+	NetViewBidir *netview.NetView `view:"-"`
+	// the master toolbar
+	ToolBar *gi.ToolBar `view:"-"`
+	// the test-trial plot
+	TstCycPlot *eplot.Plot2D `view:"-"`
+	// for holding layer values
+	ValsTsrs map[string]*etensor.Float32 `view:"-"`
+	// true if sim is running
+	IsRunning bool `view:"-"`
+	// flag to stop running
+	StopNow bool `view:"-"`
 }
 
 // this registers this Sim Type and gives it properties that e.g.,

@@ -112,50 +112,91 @@ var ParamSets = params.Sets{
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
-	ExcitLateralScale float32           `def:"0.2" desc:"excitatory lateral (recurrent) WtScale.Rel value"`
-	InhibLateralScale float32           `def:"0.2" desc:"inhibitory lateral (recurrent) WtScale.Abs value"`
-	ExcitLateralLearn bool              `def:"true" desc:"do excitatory lateral (recurrent) connections learn?"`
-	Net               *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
-	Probes            *etable.Table     `view:"no-inline" desc:"probe inputs"`
-	TrnEpcLog         *etable.Table     `view:"no-inline" desc:"training epoch-level log data"`
-	TstEpcLog         *etable.Table     `view:"no-inline" desc:"testing epoch-level log data"`
-	TstTrlLog         *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
-	RunLog            *etable.Table     `view:"no-inline" desc:"summary log of each run"`
-	RunStats          *etable.Table     `view:"no-inline" desc:"aggregate stats on all runs"`
-	Params            params.Sets       `view:"no-inline" desc:"full collection of param sets"`
-	ParamSet          string            `view:"-" desc:"which set of *additional* parameters to use -- always applies Base and optionaly this next if set -- can use multiple names separated by spaces (don't put spaces in ParamSet names!)"`
-	V1onWts           *etensor.Float32  `view:"-" desc:"weights from input to V1 layer"`
-	V1offWts          *etensor.Float32  `view:"-" desc:"weights from input to V1 layer"`
-	V1Wts             *etensor.Float32  `view:"no-inline" desc:"net on - off weights from input to V1 layer"`
-	MaxRuns           int               `desc:"maximum number of model runs to perform"`
-	MaxEpcs           int               `desc:"maximum number of epochs to run per model run"`
-	MaxTrls           int               `desc:"maximum number of training trials per epoch"`
-	NZeroStop         int               `desc:"if a positive number, training will stop after this many epochs with zero SSE"`
-	TrainEnv          ImgEnv            `desc:"Training environment -- visual images"`
-	TestEnv           env.FixedTable    `desc:"Testing environment -- manages iterating over testing"`
-	Time              leabra.Time       `desc:"leabra timing parameters and state"`
-	ViewOn            bool              `desc:"whether to update the network view while running"`
-	TrainUpdt         leabra.TimeScales `desc:"at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model"`
-	TestUpdt          leabra.TimeScales `desc:"at what time scale to update the display during testing?  Anything longer than Epoch updates at Epoch in this model"`
-	LayStatNms        []string          `desc:"names of layers to collect more detailed stats on (avg act, etc)"`
+	// excitatory lateral (recurrent) WtScale.Rel value
+	ExcitLateralScale float32 `def:"0.2"`
+	// inhibitory lateral (recurrent) WtScale.Abs value
+	InhibLateralScale float32 `def:"0.2"`
+	// do excitatory lateral (recurrent) connections learn?
+	ExcitLateralLearn bool `def:"true"`
+	// the network -- click to view / edit parameters for layers, prjns, etc
+	Net *leabra.Network `view:"no-inline"`
+	// probe inputs
+	Probes *etable.Table `view:"no-inline"`
+	// training epoch-level log data
+	TrnEpcLog *etable.Table `view:"no-inline"`
+	// testing epoch-level log data
+	TstEpcLog *etable.Table `view:"no-inline"`
+	// testing trial-level log data
+	TstTrlLog *etable.Table `view:"no-inline"`
+	// summary log of each run
+	RunLog *etable.Table `view:"no-inline"`
+	// aggregate stats on all runs
+	RunStats *etable.Table `view:"no-inline"`
+	// full collection of param sets
+	Params params.Sets `view:"no-inline"`
+	// which set of *additional* parameters to use -- always applies Base and optionaly this next if set -- can use multiple names separated by spaces (don't put spaces in ParamSet names!)
+	ParamSet string `view:"-"`
+	// weights from input to V1 layer
+	V1onWts *etensor.Float32 `view:"-"`
+	// weights from input to V1 layer
+	V1offWts *etensor.Float32 `view:"-"`
+	// net on - off weights from input to V1 layer
+	V1Wts *etensor.Float32 `view:"no-inline"`
+	// maximum number of model runs to perform
+	MaxRuns int
+	// maximum number of epochs to run per model run
+	MaxEpcs int
+	// maximum number of training trials per epoch
+	MaxTrls int
+	// if a positive number, training will stop after this many epochs with zero SSE
+	NZeroStop int
+	// Training environment -- visual images
+	TrainEnv ImgEnv
+	// Testing environment -- manages iterating over testing
+	TestEnv env.FixedTable
+	// leabra timing parameters and state
+	Time leabra.Time
+	// whether to update the network view while running
+	ViewOn bool
+	// at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model
+	TrainUpdt leabra.TimeScales
+	// at what time scale to update the display during testing?  Anything longer than Epoch updates at Epoch in this model
+	TestUpdt leabra.TimeScales
+	// names of layers to collect more detailed stats on (avg act, etc)
+	LayStatNms []string
 
-	// statistics: note use float64 as that is best for etable.Table
-	Win         *gi.Window                  `view:"-" desc:"main GUI window"`
-	NetView     *netview.NetView            `view:"-" desc:"the network viewer"`
-	ToolBar     *gi.ToolBar                 `view:"-" desc:"the master toolbar"`
-	CurImgGrid  *etview.TensorGrid          `view:"-" desc:"the current image grid view"`
-	WtsGrid     *etview.TensorGrid          `view:"-" desc:"the weights grid view"`
-	TrnEpcPlot  *eplot.Plot2D               `view:"-" desc:"the training epoch plot"`
-	TstEpcPlot  *eplot.Plot2D               `view:"-" desc:"the testing epoch plot"`
-	TstTrlPlot  *eplot.Plot2D               `view:"-" desc:"the test-trial plot"`
-	RunPlot     *eplot.Plot2D               `view:"-" desc:"the run plot"`
-	TrnEpcFile  *os.File                    `view:"-" desc:"log file"`
-	RunFile     *os.File                    `view:"-" desc:"log file"`
-	ValsTsrs    map[string]*etensor.Float32 `view:"-" desc:"for holding layer values"`
-	IsRunning   bool                        `view:"-" desc:"true if sim is running"`
-	StopNow     bool                        `view:"-" desc:"flag to stop running"`
-	NeedsNewRun bool                        `view:"-" desc:"flag to initialize NewRun if last one finished"`
-	RndSeed     int64                       `view:"-" desc:"the current random seed"`
+	// main GUI window
+	Win *gi.Window `view:"-"`
+	// the network viewer
+	NetView *netview.NetView `view:"-"`
+	// the master toolbar
+	ToolBar *gi.ToolBar `view:"-"`
+	// the current image grid view
+	CurImgGrid *etview.TensorGrid `view:"-"`
+	// the weights grid view
+	WtsGrid *etview.TensorGrid `view:"-"`
+	// the training epoch plot
+	TrnEpcPlot *eplot.Plot2D `view:"-"`
+	// the testing epoch plot
+	TstEpcPlot *eplot.Plot2D `view:"-"`
+	// the test-trial plot
+	TstTrlPlot *eplot.Plot2D `view:"-"`
+	// the run plot
+	RunPlot *eplot.Plot2D `view:"-"`
+	// log file
+	TrnEpcFile *os.File `view:"-"`
+	// log file
+	RunFile *os.File `view:"-"`
+	// for holding layer values
+	ValsTsrs map[string]*etensor.Float32 `view:"-"`
+	// true if sim is running
+	IsRunning bool `view:"-"`
+	// flag to stop running
+	StopNow bool `view:"-"`
+	// flag to initialize NewRun if last one finished
+	NeedsNewRun bool `view:"-"`
+	// the current random seed
+	RndSeed int64 `view:"-"`
 }
 
 // this registers this Sim Type and gives it properties that e.g.,

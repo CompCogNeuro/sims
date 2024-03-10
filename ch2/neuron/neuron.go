@@ -70,33 +70,56 @@ var ParamSets = params.Sets{
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
-	Spike          bool            `desc:"use discrete spiking equations -- otherwise use Noisy X-over-X-plus-1 rate code activation function"`
-	GbarE          float32         `min:"0" step:"0.01" def:"0.3" desc:"excitatory conductance multiplier -- determines overall value of Ge which drives neuron to be more excited -- pushes up over threshold to fire if strong enough"`
-	GbarL          float32         `min:"0" step:"0.01" def:"0.3" desc:"leak conductance -- determines overall value of Gl which drives neuron to be less excited (inhibited) -- pushes back to resting membrane potential"`
-	ErevE          float32         `min:"0" max:"1" step:"0.01" def:"1" desc:"excitatory reversal (driving) potential -- determines where excitation pushes Vm up to"`
-	ErevL          float32         `min:"0" max:"1" step:"0.01" def:"0.3" desc:"leak reversal (driving) potential -- determines where excitation pulls Vm down to"`
-	Noise          float32         `min:"0" step:"0.01" desc:"the variance parameter for Gaussian noise added to unit activations on every cycle"`
-	KNaAdapt       bool            `desc:"apply sodium-gated potassium adaptation mechanisms that cause the neuron to reduce spiking over time"`
-	NCycles        int             `min:"10" def:"200" desc:"total number of cycles to run"`
-	OnCycle        int             `min:"0" def:"10" desc:"when does excitatory input into neuron come on?"`
-	OffCycle       int             `min:"0" def:"160" desc:"when does excitatory input into neuron go off?"`
-	UpdtInterval   int             `min:"1" def:"10"  desc:"how often to update display (in cycles)"`
-	Net            *leabra.Network `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
-	SpikeParams    spike.ActParams `view:"no-inline" desc:"parameters for spiking funcion"`
-	TstCycLog      *etable.Table   `view:"no-inline" desc:"testing trial-level log data -- click to see record of network's response to each input"`
-	SpikeVsRateLog *etable.Table   `view:"no-inline" desc:"plot of measured spike rate vs. noisy X/X+1 rate function"`
-	Params         params.Sets     `view:"no-inline" desc:"full collection of param sets -- not really interesting for this model"`
+	// use discrete spiking equations -- otherwise use Noisy X-over-X-plus-1 rate code activation function
+	Spike bool
+	// excitatory conductance multiplier -- determines overall value of Ge which drives neuron to be more excited -- pushes up over threshold to fire if strong enough
+	GbarE float32 `min:"0" step:"0.01" def:"0.3"`
+	// leak conductance -- determines overall value of Gl which drives neuron to be less excited (inhibited) -- pushes back to resting membrane potential
+	GbarL float32 `min:"0" step:"0.01" def:"0.3"`
+	// excitatory reversal (driving) potential -- determines where excitation pushes Vm up to
+	ErevE float32 `min:"0" max:"1" step:"0.01" def:"1"`
+	// leak reversal (driving) potential -- determines where excitation pulls Vm down to
+	ErevL float32 `min:"0" max:"1" step:"0.01" def:"0.3"`
+	// the variance parameter for Gaussian noise added to unit activations on every cycle
+	Noise float32 `min:"0" step:"0.01"`
+	// apply sodium-gated potassium adaptation mechanisms that cause the neuron to reduce spiking over time
+	KNaAdapt bool
+	// total number of cycles to run
+	NCycles int `min:"10" def:"200"`
+	// when does excitatory input into neuron come on?
+	OnCycle int `min:"0" def:"10"`
+	// when does excitatory input into neuron go off?
+	OffCycle int `min:"0" def:"160"`
+	// how often to update display (in cycles)
+	UpdtInterval int `min:"1" def:"10"`
+	// the network -- click to view / edit parameters for layers, prjns, etc
+	Net *leabra.Network `view:"no-inline"`
+	// parameters for spiking funcion
+	SpikeParams spike.ActParams `view:"no-inline"`
+	// testing trial-level log data -- click to see record of network's response to each input
+	TstCycLog *etable.Table `view:"no-inline"`
+	// plot of measured spike rate vs. noisy X/X+1 rate function
+	SpikeVsRateLog *etable.Table `view:"no-inline"`
+	// full collection of param sets -- not really interesting for this model
+	Params params.Sets `view:"no-inline"`
 
-	Cycle int `inactive:"+" desc:"current cycle of updating"`
+	// current cycle of updating
+	Cycle int `inactive:"+"`
 
-	// internal state - view:"-"
-	Win             *gi.Window       `view:"-" desc:"main GUI window"`
-	NetView         *netview.NetView `view:"-" desc:"the network viewer"`
-	ToolBar         *gi.ToolBar      `view:"-" desc:"the master toolbar"`
-	TstCycPlot      *eplot.Plot2D    `view:"-" desc:"the test-trial plot"`
-	SpikeVsRatePlot *eplot.Plot2D    `view:"-" desc:"the spike vs. rate plot"`
-	IsRunning       bool             `view:"-" desc:"true if sim is running"`
-	StopNow         bool             `view:"-" desc:"flag to stop running"`
+	// main GUI window
+	Win *gi.Window `view:"-"`
+	// the network viewer
+	NetView *netview.NetView `view:"-"`
+	// the master toolbar
+	ToolBar *gi.ToolBar `view:"-"`
+	// the test-trial plot
+	TstCycPlot *eplot.Plot2D `view:"-"`
+	// the spike vs. rate plot
+	SpikeVsRatePlot *eplot.Plot2D `view:"-"`
+	// true if sim is running
+	IsRunning bool `view:"-"`
+	// flag to stop running
+	StopNow bool `view:"-"`
 }
 
 // this registers this Sim Type and gives it properties that e.g.,

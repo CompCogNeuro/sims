@@ -6,13 +6,20 @@ package data
 
 // A sequence of runs (each step is a ConditionParams object)
 type RunParams struct {
-	Nm      string `desc:"Name of the sequence"`
-	Desc    string `desc:"Description"`
-	Cond1Nm string `desc:"name of condition 1"`
-	Cond2Nm string `desc:"name of condition 2"`
-	Cond3Nm string `desc:"name of condition 3"`
-	Cond4Nm string `desc:"name of condition 4"`
-	Cond5Nm string `desc:"name of condition 5"`
+	// Name of the sequence
+	Nm string
+	// Description
+	Desc string
+	// name of condition 1
+	Cond1Nm string
+	// name of condition 2
+	Cond2Nm string
+	// name of condition 3
+	Cond3Nm string
+	// name of condition 4
+	Cond4Nm string
+	// name of condition 5
+	Cond5Nm string
 }
 type RunParamsMap map[string]RunParams
 

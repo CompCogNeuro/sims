@@ -81,25 +81,41 @@ var ParamSets = params.Sets{
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
-	Noise      float32           `min:"0" step:"0.01" desc:"the variance parameter for Gaussian noise added to unit activations on every cycle"`
-	KNaAdapt   bool              `desc:"apply sodium-gated potassium adaptation mechanisms that cause the neuron to reduce spiking over time"`
-	CycPerQtr  int               `def:"25,250" desc:"total number of cycles per quarter to run -- increase to 250 when testing adaptation"`
-	Net        *leabra.Network   `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
-	TstCycLog  *etable.Table     `view:"no-inline" desc:"testing trial-level log data -- click to see record of network's response to each input"`
-	Params     params.Sets       `view:"no-inline" desc:"full collection of param sets -- not really interesting for this model"`
-	ParamSet   string            `view:"-" desc:"which set of *additional* parameters to use -- always applies Base and optionaly this next if set -- can use multiple names separated by spaces (don't put spaces in ParamSet names!)"`
-	Time       leabra.Time       `desc:"leabra timing parameters and state"`
-	ViewUpdt   leabra.TimeScales `desc:"at what time scale to update the display during testing?  Change to AlphaCyc to make display updating go faster"`
-	TstRecLays []string          `desc:"names of layers to record activations etc of during testing"`
+	// the variance parameter for Gaussian noise added to unit activations on every cycle
+	Noise float32 `min:"0" step:"0.01"`
+	// apply sodium-gated potassium adaptation mechanisms that cause the neuron to reduce spiking over time
+	KNaAdapt bool
+	// total number of cycles per quarter to run -- increase to 250 when testing adaptation
+	CycPerQtr int `def:"25,250"`
+	// the network -- click to view / edit parameters for layers, prjns, etc
+	Net *leabra.Network `view:"no-inline"`
+	// testing trial-level log data -- click to see record of network's response to each input
+	TstCycLog *etable.Table `view:"no-inline"`
+	// full collection of param sets -- not really interesting for this model
+	Params params.Sets `view:"no-inline"`
+	// which set of *additional* parameters to use -- always applies Base and optionaly this next if set -- can use multiple names separated by spaces (don't put spaces in ParamSet names!)
+	ParamSet string `view:"-"`
+	// leabra timing parameters and state
+	Time leabra.Time
+	// at what time scale to update the display during testing?  Change to AlphaCyc to make display updating go faster
+	ViewUpdt leabra.TimeScales
+	// names of layers to record activations etc of during testing
+	TstRecLays []string
 
-	// internal state - view:"-"
-	Win        *gi.Window                  `view:"-" desc:"main GUI window"`
-	NetView    *netview.NetView            `view:"-" desc:"the network viewer"`
-	ToolBar    *gi.ToolBar                 `view:"-" desc:"the master toolbar"`
-	TstCycPlot *eplot.Plot2D               `view:"-" desc:"the test-trial plot"`
-	ValsTsrs   map[string]*etensor.Float32 `view:"-" desc:"for holding layer values"`
-	IsRunning  bool                        `view:"-" desc:"true if sim is running"`
-	StopNow    bool                        `view:"-" desc:"flag to stop running"`
+	// main GUI window
+	Win *gi.Window `view:"-"`
+	// the network viewer
+	NetView *netview.NetView `view:"-"`
+	// the master toolbar
+	ToolBar *gi.ToolBar `view:"-"`
+	// the test-trial plot
+	TstCycPlot *eplot.Plot2D `view:"-"`
+	// for holding layer values
+	ValsTsrs map[string]*etensor.Float32 `view:"-"`
+	// true if sim is running
+	IsRunning bool `view:"-"`
+	// flag to stop running
+	StopNow bool `view:"-"`
 }
 
 // this registers this Sim Type and gives it properties that e.g.,

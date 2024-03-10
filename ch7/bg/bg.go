@@ -139,43 +139,77 @@ var ParamSets = params.Sets{
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
-	BurstDaGain float32           `min:"0" step:"0.1" desc:"strength of dopamine bursts: 1 default -- reduce for PD OFF, increase for PD ON"`
-	DipDaGain   float32           `min:"0" step:"0.1" desc:"strength of dopamine dips: 1 default -- reduce to siulate D2 agonists"`
-	Net         *pbwm.Network     `view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"`
-	TrnEpcLog   *etable.Table     `view:"no-inline" desc:"training epoch-level log data"`
-	TstEpcLog   *etable.Table     `view:"no-inline" desc:"testing epoch-level log data"`
-	TstTrlLog   *etable.Table     `view:"no-inline" desc:"testing trial-level log data"`
-	MtxInputWts etensor.Tensor    `view:"no-inline" desc:"weights from input to hidden layer"`
-	RunLog      *etable.Table     `view:"no-inline" desc:"summary log of each run"`
-	RunStats    *etable.Table     `view:"no-inline" desc:"aggregate stats on all runs"`
-	Params      params.Sets       `view:"no-inline" desc:"full collection of param sets"`
-	ParamSet    string            `view:"-" desc:"which set of *additional* parameters to use -- always applies Base and optionaly this next if set -- can use multiple names separated by spaces (don't put spaces in ParamSet names!)"`
-	MaxRuns     int               `desc:"maximum number of model runs to perform"`
-	MaxEpcs     int               `desc:"maximum number of epochs to run per model run"`
-	MaxTrls     int               `desc:"maximum number of training trials per epoch"`
-	TrainEnv    BanditEnv         `desc:"Training environment -- bandit environment"`
-	Time        leabra.Time       `desc:"leabra timing parameters and state"`
-	ViewOn      bool              `desc:"whether to update the network view while running"`
-	TrainUpdt   leabra.TimeScales `desc:"at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model"`
-	TestUpdt    leabra.TimeScales `desc:"at what time scale to update the display during testing?  Anything longer than Epoch updates at Epoch in this model"`
-	TstRecLays  []string          `desc:"names of layers to record activations etc of during testing"`
+	// strength of dopamine bursts: 1 default -- reduce for PD OFF, increase for PD ON
+	BurstDaGain float32 `min:"0" step:"0.1"`
+	// strength of dopamine dips: 1 default -- reduce to siulate D2 agonists
+	DipDaGain float32 `min:"0" step:"0.1"`
+	// the network -- click to view / edit parameters for layers, prjns, etc
+	Net *pbwm.Network `view:"no-inline"`
+	// training epoch-level log data
+	TrnEpcLog *etable.Table `view:"no-inline"`
+	// testing epoch-level log data
+	TstEpcLog *etable.Table `view:"no-inline"`
+	// testing trial-level log data
+	TstTrlLog *etable.Table `view:"no-inline"`
+	// weights from input to hidden layer
+	MtxInputWts etensor.Tensor `view:"no-inline"`
+	// summary log of each run
+	RunLog *etable.Table `view:"no-inline"`
+	// aggregate stats on all runs
+	RunStats *etable.Table `view:"no-inline"`
+	// full collection of param sets
+	Params params.Sets `view:"no-inline"`
+	// which set of *additional* parameters to use -- always applies Base and optionaly this next if set -- can use multiple names separated by spaces (don't put spaces in ParamSet names!)
+	ParamSet string `view:"-"`
+	// maximum number of model runs to perform
+	MaxRuns int
+	// maximum number of epochs to run per model run
+	MaxEpcs int
+	// maximum number of training trials per epoch
+	MaxTrls int
+	// Training environment -- bandit environment
+	TrainEnv BanditEnv
+	// leabra timing parameters and state
+	Time leabra.Time
+	// whether to update the network view while running
+	ViewOn bool
+	// at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model
+	TrainUpdt leabra.TimeScales
+	// at what time scale to update the display during testing?  Anything longer than Epoch updates at Epoch in this model
+	TestUpdt leabra.TimeScales
+	// names of layers to record activations etc of during testing
+	TstRecLays []string
 
-	// internal state - view:"-"
-	Win         *gi.Window                  `view:"-" desc:"main GUI window"`
-	NetView     *netview.NetView            `view:"-" desc:"the network viewer"`
-	ToolBar     *gi.ToolBar                 `view:"-" desc:"the master toolbar"`
-	WtsGrid     *etview.TensorGrid          `view:"-" desc:"the weights grid view"`
-	TrnEpcPlot  *eplot.Plot2D               `view:"-" desc:"the training epoch plot"`
-	TstEpcPlot  *eplot.Plot2D               `view:"-" desc:"the testing epoch plot"`
-	TstTrlPlot  *eplot.Plot2D               `view:"-" desc:"the test-trial plot"`
-	RunPlot     *eplot.Plot2D               `view:"-" desc:"the run plot"`
-	TrnEpcFile  *os.File                    `view:"-" desc:"log file"`
-	RunFile     *os.File                    `view:"-" desc:"log file"`
-	ValsTsrs    map[string]*etensor.Float32 `view:"-" desc:"for holding layer values"`
-	IsRunning   bool                        `view:"-" desc:"true if sim is running"`
-	StopNow     bool                        `view:"-" desc:"flag to stop running"`
-	NeedsNewRun bool                        `view:"-" desc:"flag to initialize NewRun if last one finished"`
-	RndSeed     int64                       `view:"-" desc:"the current random seed"`
+	// main GUI window
+	Win *gi.Window `view:"-"`
+	// the network viewer
+	NetView *netview.NetView `view:"-"`
+	// the master toolbar
+	ToolBar *gi.ToolBar `view:"-"`
+	// the weights grid view
+	WtsGrid *etview.TensorGrid `view:"-"`
+	// the training epoch plot
+	TrnEpcPlot *eplot.Plot2D `view:"-"`
+	// the testing epoch plot
+	TstEpcPlot *eplot.Plot2D `view:"-"`
+	// the test-trial plot
+	TstTrlPlot *eplot.Plot2D `view:"-"`
+	// the run plot
+	RunPlot *eplot.Plot2D `view:"-"`
+	// log file
+	TrnEpcFile *os.File `view:"-"`
+	// log file
+	RunFile *os.File `view:"-"`
+	// for holding layer values
+	ValsTsrs map[string]*etensor.Float32 `view:"-"`
+	// true if sim is running
+	IsRunning bool `view:"-"`
+	// flag to stop running
+	StopNow bool `view:"-"`
+	// flag to initialize NewRun if last one finished
+	NeedsNewRun bool `view:"-"`
+	// the current random seed
+	RndSeed int64 `view:"-"`
 }
 
 // this registers this Sim Type and gives it properties that e.g.,

@@ -15,14 +15,22 @@ import (
 // and vertical elements.  All possible such combinations of 3 out of 6 line segments are created.
 // Renders using SVG.
 type LEDraw struct {
-	Width     float32      `def:"4" desc:"line width of LEDraw as percent of display size"`
-	Size      float32      `def:"0.6" desc:"size of overall LED as proportion of overall image size"`
-	LineColor gi.ColorName `desc:"color name for drawing lines"`
-	BgColor   gi.ColorName `desc:"color name for background"`
-	ImgSize   image.Point  `desc:"size of image to render"`
-	Image     *image.RGBA  `view:"-" desc:"rendered image"`
-	Paint     girl.Paint   `view:"+" desc:"painter object"`
-	Render    girl.State   `view:"-" desc:"rendering state"`
+	// line width of LEDraw as percent of display size
+	Width float32 `def:"4"`
+	// size of overall LED as proportion of overall image size
+	Size float32 `def:"0.6"`
+	// color name for drawing lines
+	LineColor gi.ColorName
+	// color name for background
+	BgColor gi.ColorName
+	// size of image to render
+	ImgSize image.Point
+	// rendered image
+	Image *image.RGBA `view:"-"`
+	// painter object
+	Paint girl.Paint `view:"+"`
+	// rendering state
+	Render girl.State `view:"-"`
 }
 
 func (ld *LEDraw) Defaults() {

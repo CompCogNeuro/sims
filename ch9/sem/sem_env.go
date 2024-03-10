@@ -24,19 +24,32 @@ import (
 // SemEnv presents paragraphs of text, loaded from file(s)
 // This assumes files have all been pre-filtered so only relevant words are present.
 type SemEnv struct {
-	Nm           string          `desc:"name of this environment"`
-	Dsc          string          `desc:"description of this environment"`
-	Sequential   bool            `desc:"if true, go sequentially through paragraphs -- else permuted"`
-	Order        []int           `desc:"permuted order of paras to present if not sequential -- updated every time through the list"`
-	TextFiles    []string        `desc:"paths to text files"`
-	Words        []string        `desc:"list of words, in alpha order"`
-	WordMap      map[string]int  `desc:"map of words onto index in Words list"`
-	CurParaState etensor.Float32 `desc:"current para activation state"`
-	Paras        [][]string      `desc:"paragraphs"`
-	ParaLabels   []string        `desc:"special labels for each paragraph (provided in first word of para)"`
-	Run          env.Ctr         `view:"inline" desc:"current run of model as provided during Init"`
-	Epoch        env.Ctr         `view:"inline" desc:"number of times through Seq.Max number of sequences"`
-	Trial        env.Ctr         `view:"inline" desc:"trial is the step counter within epoch -- this is the index into Paras"`
+	// name of this environment
+	Nm string
+	// description of this environment
+	Dsc string
+	// if true, go sequentially through paragraphs -- else permuted
+	Sequential bool
+	// permuted order of paras to present if not sequential -- updated every time through the list
+	Order []int
+	// paths to text files
+	TextFiles []string
+	// list of words, in alpha order
+	Words []string
+	// map of words onto index in Words list
+	WordMap map[string]int
+	// current para activation state
+	CurParaState etensor.Float32
+	// paragraphs
+	Paras [][]string
+	// special labels for each paragraph (provided in first word of para)
+	ParaLabels []string
+	// current run of model as provided during Init
+	Run env.Ctr `view:"inline"`
+	// number of times through Seq.Max number of sequences
+	Epoch env.Ctr `view:"inline"`
+	// trial is the step counter within epoch -- this is the index into Paras
+	Trial env.Ctr `view:"inline"`
 }
 
 func (ev *SemEnv) Name() string { return ev.Nm }
