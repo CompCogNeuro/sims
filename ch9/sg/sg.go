@@ -16,6 +16,7 @@ package main
 
 import (
 	"bytes"
+	"embed"
 	"flag"
 	"fmt"
 	"log"
@@ -70,6 +71,9 @@ func guirun() {
 
 // LogPrec is precision for saving float values in logs
 const LogPrec = 4
+
+//go:embed trained.wts sg_rules.txt sg_tests.txt sg_probes.txt
+var content embed.FS
 
 // ParamSets is the default set of parameters -- Base is always applied, and others can be optionally
 // selected to apply on top of that
@@ -861,7 +865,7 @@ func (ss *Sim) Stopped() {
 
 // OpenWts opens trained weights
 func (ss *Sim) OpenWts() {
-	ab, err := Asset("trained.wts") // embedded in executable
+	ab, err := content.ReadFile("trained.wts")
 	if err != nil {
 		log.Println(err)
 	}

@@ -9,6 +9,7 @@ package main
 
 import (
 	"bytes"
+	"embed"
 	"flag"
 	"fmt"
 	"log"
@@ -60,6 +61,9 @@ func guirun() {
 
 // LogPrec is precision for saving float values in logs
 const LogPrec = 4
+
+//go:embed train_pats.tsv probe.tsv besner.tsv glushko.tsv taraban.tsv phon_cons.tsv phon_vowel.tsv trained.wts
+var content embed.FS
 
 // EnvType is the type of test environment
 type EnvType int32
@@ -792,7 +796,7 @@ func (ss *Sim) SaveWeights(filename gi.FileName) {
 
 // OpenTrainedWts opens trained weights
 func (ss *Sim) OpenTrainedWts() {
-	ab, err := Asset("trained.wts") // embedded in executable
+	ab, err := content.ReadFile("trained.wts") // embedded in executable
 	if err != nil {
 		log.Println(err)
 	}

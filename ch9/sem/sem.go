@@ -7,7 +7,7 @@ sem is trained using Hebbian learning on paragraphs from an early draft
 of the *Computational Explorations..* textbook, allowing it to learn about
 the overall statistics of when different words co-occur with other words,
 and thereby learning a surprisingly capable (though clearly imperfect)
-level of semantic knowlege about the topics covered in the textbook.
+level of semantic knowledge about the topics covered in the textbook.
 This replicates the key results from the Latent Semantic Analysis
 research by Landauer and Dumais (1997).
 */
@@ -15,6 +15,7 @@ package main
 
 import (
 	"bytes"
+	"embed"
 	"flag"
 	"fmt"
 	"log"
@@ -64,6 +65,9 @@ func guirun() {
 
 // LogPrec is precision for saving float values in logs
 const LogPrec = 4
+
+//go:embed cecn_lg_f5.text cecn_lg_f5.words quiz.text trained_rec05.wts
+var content embed.FS
 
 // ParamSets is the default set of parameters -- Base is always applied, and others can be optionally
 // selected to apply on top of that
@@ -577,7 +581,7 @@ func (ss *Sim) SaveWeights(filename gi.FileName) {
 
 // OpenWts opens trained weights w/ rec=0.05
 func (ss *Sim) OpenWts() {
-	ab, err := Asset("trained_rec05.wts") // embedded in executable
+	ab, err := content.ReadFile("trained_rec05.wts")
 	if err != nil {
 		log.Println(err)
 	}

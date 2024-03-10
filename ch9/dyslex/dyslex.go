@@ -3,12 +3,13 @@
 // license that can be found in the LICENSE file.
 
 /*
-dyslex simulates normal and disordered (dyslexic) reading performance in terms of a distributed representation of word-level knowledge across Orthography, Semantics, and Phonology. It is based on a model by Plaut and Shallice (1993). Note that this form of dyslexia is *aquired* (via brain lesions such as stroke) and not the more prevalent developmental variety.
+dyslex simulates normal and disordered (dyslexic) reading performance in terms of a distributed representation of word-level knowledge across Orthography, Semantics, and Phonology. It is based on a model by Plaut and Shallice (1993). Note that this form of dyslexia is *acquired* (via brain lesions such as stroke) and not the more prevalent developmental variety.
 */
 package main
 
 import (
 	"bytes"
+	"embed"
 	"fmt"
 	"log"
 	"math/rand"
@@ -50,6 +51,9 @@ func main() {
 
 // LogPrec is precision for saving float values in logs
 const LogPrec = 4
+
+//go:embed train_pats.tsv semantics.tsv close_orthos.tsv close_sems.tsv trained.wts
+var content embed.FS
 
 // LesionTypes is the type of lesion
 type LesionTypes int32
@@ -786,7 +790,7 @@ func (ss *Sim) SaveWeights(filename gi.FileName) {
 
 // OpenTrainedWts opens trained weights
 func (ss *Sim) OpenTrainedWts() {
-	ab, err := Asset("trained.wts") // embedded in executable
+	ab, err := content.ReadFile("trained.wts")
 	if err != nil {
 		log.Println(err)
 	}
