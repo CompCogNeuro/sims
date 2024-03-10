@@ -1,6 +1,6 @@
-module github.com/CompCogNeuro/sims
+module github.com/CompCogNeuro/sims/v2
 
-go 1.18
+go 1.22
 
 require (
 	github.com/anthonynsimon/bild v0.13.0
