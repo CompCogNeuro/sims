@@ -8,7 +8,7 @@ hebberr_combo shows how XCal hebbian learning in shallower layers of a network c
 package main
 
 import (
-	"bytes"
+	"embed"
 	"fmt"
 	"log"
 	"math/rand"
@@ -19,6 +19,7 @@ import (
 
 	"cogentcore.org/core/gi"
 	"cogentcore.org/core/gimain"
+	"cogentcore.org/core/grr"
 	"cogentcore.org/core/ki"
 	"cogentcore.org/core/mat32"
 	"github.com/emer/emergent/v2/emer"
@@ -46,6 +47,9 @@ func main() {
 
 // LogPrec is precision for saving float values in logs
 const LogPrec = 4
+
+//go:embed easy.tsv hard.tsv impossible.tsv lines2out1.tsv
+var content embed.FS
 
 // PatsType is the type of training patterns
 type PatsType int32
@@ -757,15 +761,8 @@ func (ss *Sim) SetParamsSet(setNm string, sheet string, setMsg bool) error {
 func (ss *Sim) OpenPatAsset(dt *etable.Table, fnm, name, desc string) error {
 	dt.SetMetaData("name", name)
 	dt.SetMetaData("desc", desc)
-	ab, err := Asset(fnm)
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-	err = dt.ReadCSV(bytes.NewBuffer(ab), etable.Tab)
-	if err != nil {
-		log.Println(err)
-	} else {
+	err := dt.OpenFS(content, fnm, etable.Tab)
+	if grr.Log(err) == nil {
 		for i := 1; i < len(dt.Cols); i++ {
 			dt.Cols[i].SetMetaData("grid-fill", "0.9")
 		}
