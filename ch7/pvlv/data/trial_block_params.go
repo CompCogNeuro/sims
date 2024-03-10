@@ -5,7 +5,7 @@
 package data
 
 import (
-	p "github.com/emer/leabra/pvlv"
+	p "github.com/emer/leabra/v2/pvlv"
 )
 
 // TrialGp : block-level state

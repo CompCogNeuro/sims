@@ -2,9 +2,10 @@ package data
 
 import (
 	"errors"
-	"github.com/goki/ki/kit"
 	"math/rand"
 	"reflect"
+
+	"cogentcore.org/core/kit"
 )
 
 type IRecs interface {

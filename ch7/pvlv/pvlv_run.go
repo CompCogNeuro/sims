@@ -7,9 +7,9 @@ package main
 import (
 	"fmt"
 
-	"github.com/emer/leabra/examples/pvlv/data"
-	"github.com/emer/leabra/leabra"
-	"github.com/goki/ki/kit"
+	"cogentcore.org/core/kit"
+	"github.com/emer/leabra/v2/examples/pvlv/data"
+	"github.com/emer/leabra/v2/leabra"
 )
 
 ////////////////////////////////////////////////////////////////////////////////

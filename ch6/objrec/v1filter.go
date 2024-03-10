@@ -7,14 +7,14 @@ package main
 import (
 	"image"
 
+	"cogentcore.org/core/kit"
 	"github.com/anthonynsimon/bild/transform"
-	"github.com/emer/etable/etensor"
-	"github.com/emer/leabra/fffb"
+	"github.com/emer/etable/v2/etensor"
+	"github.com/emer/leabra/v2/fffb"
 	"github.com/emer/vision/gabor"
 	"github.com/emer/vision/kwta"
 	"github.com/emer/vision/v1complex"
 	"github.com/emer/vision/vfilter"
-	"github.com/goki/ki/kit"
 )
 
 // Vis encapsulates specific visual processing pipeline for V1 filtering

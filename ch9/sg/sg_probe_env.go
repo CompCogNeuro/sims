@@ -7,8 +7,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/emer/emergent/env"
-	"github.com/emer/etable/etensor"
+	"github.com/emer/emergent/v2/env"
+	"github.com/emer/etable/v2/etensor"
 )
 
 // ProbeEnv generates sentences using a grammar that is parsed from a

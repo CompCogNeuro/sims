@@ -12,11 +12,11 @@ import (
 	"log"
 	"math/rand"
 
+	"cogentcore.org/core/gi"
 	"github.com/anthonynsimon/bild/clone"
-	"github.com/emer/emergent/env"
-	"github.com/emer/etable/etensor"
+	"github.com/emer/emergent/v2/env"
+	"github.com/emer/etable/v2/etensor"
 	"github.com/emer/vision/vxform"
-	"github.com/goki/gi/gi"
 )
 
 // ImgEnv presents images from a list of image files, using V1 simple and complex filtering.

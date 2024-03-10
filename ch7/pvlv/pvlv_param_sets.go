@@ -5,7 +5,7 @@
 package main
 
 import (
-	"github.com/emer/emergent/params"
+	"github.com/emer/emergent/v2/params"
 )
 
 var ParamSets = params.Sets{

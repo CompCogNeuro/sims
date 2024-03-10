@@ -7,8 +7,8 @@ package main
 import (
 	"image"
 
-	"github.com/goki/gi/gi"
-	"github.com/goki/gi/girl"
+	"cogentcore.org/core/gi"
+	"cogentcore.org/core/girl"
 )
 
 // LEDraw renders old-school "LED" style "letters" composed of a set of horizontal

@@ -7,11 +7,11 @@ package main
 import (
 	"log"
 
-	"github.com/emer/emergent/emer"
-	"github.com/emer/emergent/prjn"
-	"github.com/emer/emergent/relpos"
-	"github.com/emer/leabra/leabra"
-	"github.com/emer/leabra/pvlv"
+	"github.com/emer/emergent/v2/emer"
+	"github.com/emer/emergent/v2/prjn"
+	"github.com/emer/emergent/v2/relpos"
+	"github.com/emer/leabra/v2/leabra"
+	"github.com/emer/leabra/v2/pvlv"
 )
 
 func (ss *Sim) ConfigNet(net *pvlv.Network) {

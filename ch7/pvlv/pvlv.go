@@ -18,29 +18,29 @@ import (
 	"sync"
 	"time"
 
-	"github.com/emer/emergent/env"
-	"github.com/emer/emergent/stepper"
-	_ "github.com/emer/etable/agg"
-	"github.com/emer/etable/eplot"
-	"github.com/emer/etable/etable"
-	"github.com/emer/etable/etensor"
-	"github.com/emer/etable/etview"
-	_ "github.com/emer/etable/split"
-	"github.com/goki/gi/giv"
-	"github.com/goki/ki/ints"
-	"github.com/goki/mat32"
+	"cogentcore.org/core/giv"
+	"cogentcore.org/core/ki/ints"
+	"cogentcore.org/core/mat32"
+	"github.com/emer/emergent/v2/env"
+	"github.com/emer/emergent/v2/stepper"
+	_ "github.com/emer/etable/v2/agg"
+	"github.com/emer/etable/v2/eplot"
+	"github.com/emer/etable/v2/etable"
+	"github.com/emer/etable/v2/etensor"
+	"github.com/emer/etable/v2/etview"
+	_ "github.com/emer/etable/v2/split"
 
-	"github.com/goki/ki/ki"
-	"github.com/goki/ki/kit"
+	"cogentcore.org/core/ki"
+	"cogentcore.org/core/ki
 
-	"github.com/emer/emergent/netview"
-	"github.com/emer/emergent/params"
-	"github.com/emer/leabra/leabra"
-	"github.com/emer/leabra/pvlv"
-	"github.com/goki/gi/gi"
-	"github.com/goki/gi/gimain"
+	"cogentcore.org/core/gi"
+	"cogentcore.org/core/gimain"
+	"github.com/emer/emergent/v2/netview"
+	"github.com/emer/emergent/v2/params"
+	"github.com/emer/leabra/v2/leabra"
+	"github.com/emer/leabra/v2/pvlv"
 
-	"github.com/emer/leabra/examples/pvlv/data"
+	"github.com/emer/leabra/v2/examples/pvlv/data"
 )
 
 var TheSim Sim // this is in a global mainly for debugging--otherwise it can be impossible to find
@@ -273,7 +273,7 @@ const (
 	StopStepCondN
 )
 
-////go:generate stringer -type=StopStepCond -linecomment // moved to stringers.go
+// //go:generate stringer -type=StopStepCond -linecomment // moved to stringers.go
 var KiT_StopStepCond = kit.Enums.AddEnum(StopStepCondN, kit.NotBitFlag, nil)
 
 // Init restarts the run, and initializes everything, including network weights

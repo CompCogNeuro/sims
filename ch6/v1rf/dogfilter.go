@@ -7,11 +7,11 @@ package main
 import (
 	"image"
 
+	"cogentcore.org/core/kit"
 	"github.com/anthonynsimon/bild/transform"
-	"github.com/emer/etable/etensor"
+	"github.com/emer/etable/v2/etensor"
 	"github.com/emer/vision/dog"
 	"github.com/emer/vision/vfilter"
-	"github.com/goki/ki/kit"
 )
 
 // Vis does DoG filtering on images

@@ -11,10 +11,10 @@ import (
 	"math/rand"
 	"strings"
 
-	"github.com/emer/emergent/env"
-	"github.com/emer/emergent/erand"
-	"github.com/emer/emergent/esg"
-	"github.com/emer/etable/etensor"
+	"github.com/emer/emergent/v2/env"
+	"github.com/emer/emergent/v2/erand"
+	"github.com/emer/emergent/v2/esg"
+	"github.com/emer/etable/v2/etensor"
 )
 
 // SentGenEnv generates sentences using a grammar that is parsed from a

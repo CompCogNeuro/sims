@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"math/rand"
 
-	"github.com/emer/emergent/env"
-	"github.com/emer/etable/etensor"
+	"github.com/emer/emergent/v2/env"
+	"github.com/emer/etable/v2/etensor"
 	"github.com/emer/vision/vfilter"
 	"github.com/emer/vision/vxform"
 )
