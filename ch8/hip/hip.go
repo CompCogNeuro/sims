@@ -6,6 +6,7 @@
 package main
 
 import (
+	"embed"
 	"flag"
 	"fmt"
 	"log"
@@ -59,6 +60,9 @@ func guirun() {
 
 // LogPrec is precision for saving float values in logs
 const LogPrec = 4
+
+//go:embed train_ab.tsv train_ac.tsv test_ab.tsv test_ac.tsv test_lure.tsv
+var content embed.FS
 
 // ParamSets is the default set of parameters -- Base is always applied, and others can be optionally
 // selected to apply on top of that

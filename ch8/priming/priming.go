@@ -9,6 +9,7 @@ package main
 
 import (
 	"bytes"
+	"embed"
 	"fmt"
 	"log"
 	"math/rand"
@@ -47,6 +48,9 @@ func main() {
 
 // LogPrec is precision for saving float values in logs
 const LogPrec = 4
+
+//go:embed twout_all.tsv twout_a.tsv twout_b.tsv trained.wts
+var content embed.FS
 
 // EnvType is the type of train / test environment
 type EnvType int32
@@ -633,7 +637,7 @@ func (ss *Sim) SaveWeights(filename gi.FileName) {
 
 // OpenTrainedWts opens trained weights
 func (ss *Sim) OpenTrainedWts() {
-	ab, err := Asset("trained.wts") // embedded in executable
+	ab, err := content.ReadFile("trained.wts")
 	if err != nil {
 		log.Println(err)
 	}
