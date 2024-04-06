@@ -31,7 +31,7 @@ type ImgEnv struct {
 	// images (preload for speed)
 	Images []*image.RGBA
 	// current image index
-	ImageIdx env.CurPrvInt
+	ImageIndex env.CurPrvInt
 	// visual processing params
 	Vis Vis
 	// random transform parameters
@@ -117,14 +117,14 @@ func (ev *ImgEnv) Step() bool {
 	ev.PickRndImage()
 	ev.FilterImg()
 	// debug only:
-	// img := ev.Images[ev.ImageIdx.Cur]
+	// img := ev.Images[ev.ImageIndex.Cur]
 	// vfilter.RGBToGrey(img, &ev.OrigImg, 0, false) // pad for filt, bot zero
 	return true
 }
 
 // DoImage processes specified image number
 func (ev *ImgEnv) DoImage(imgNo int) {
-	ev.ImageIdx.Set(imgNo)
+	ev.ImageIndex.Set(imgNo)
 	ev.FilterImg()
 }
 
@@ -149,20 +149,20 @@ var _ env.Env = (*ImgEnv)(nil)
 
 // String returns the string rep of the LED env state
 func (ev *ImgEnv) String() string {
-	cfn := ev.ImageFiles[ev.ImageIdx.Cur]
+	cfn := ev.ImageFiles[ev.ImageIndex.Cur]
 	return fmt.Sprintf("Obj: %s, %s", cfn, ev.XForm.String())
 }
 
 // PickRndImage picks an image at random
 func (ev *ImgEnv) PickRndImage() {
 	nimg := len(ev.Images)
-	ev.ImageIdx.Set(rand.Intn(nimg))
+	ev.ImageIndex.Set(rand.Intn(nimg))
 }
 
 // FilterImg filters the image using new random xforms
 func (ev *ImgEnv) FilterImg() {
 	ev.XFormRand.Gen(&ev.XForm)
-	oimg := ev.Images[ev.ImageIdx.Cur]
+	oimg := ev.Images[ev.ImageIndex.Cur]
 	// following logic first extracts a sub-image of 2x the ultimate filtered size of image
 	// from original image, which greatly speeds up the xform processes, relative to working
 	// on entire 800x600 original image

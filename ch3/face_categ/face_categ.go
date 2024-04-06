@@ -113,7 +113,7 @@ type Sim struct {
 	// leabra timing parameters and state
 	Time leabra.Time
 	// at what time scale to update the display during testing?  Change to AlphaCyc to make display updating go faster
-	ViewUpdt leabra.TimeScales
+	ViewUpdate leabra.TimeScales
 	// names of layers to record activations etc of during testing
 	TstRecLays []string
 	// cluster plot of faces
@@ -138,7 +138,7 @@ type Sim struct {
 	// the test-trial plot
 	TstTrlPlot *eplot.Plot2D `view:"-"`
 	// for holding layer values
-	ValsTsrs map[string]*etensor.Float32 `view:"-"`
+	ValuesTsrs map[string]*etensor.Float32 `view:"-"`
 	// true if sim is running
 	IsRunning bool `view:"-"`
 	// flag to stop running
@@ -160,7 +160,7 @@ func (ss *Sim) New() {
 	ss.TstTrlLog = &etable.Table{}
 	ss.PrjnTable = &etable.Table{}
 	ss.Params = ParamSets
-	ss.ViewUpdt = leabra.Cycle
+	ss.ViewUpdate = leabra.Cycle
 	ss.TstRecLays = []string{"Input", "Emotion", "Gender", "Identity"}
 	ss.ClustFaces = &eplot.Plot2D{}
 	ss.ClustEmote = &eplot.Plot2D{}
@@ -189,7 +189,7 @@ func (ss *Sim) Config() {
 func (ss *Sim) ConfigEnv() {
 	ss.TestEnv.Nm = "TestEnv"
 	ss.TestEnv.Dsc = "testing params and state"
-	ss.TestEnv.Table = etable.NewIdxView(ss.Pats)
+	ss.TestEnv.Table = etable.NewIndexView(ss.Pats)
 	ss.TestEnv.Sequential = true
 	ss.TestEnv.Validate()
 	ss.TestEnv.Init(0)
@@ -280,7 +280,7 @@ func (ss *Sim) UpdateView(cyc int) {
 // Handles netview updating within scope of AlphaCycle
 func (ss *Sim) AlphaCyc() {
 	// ss.Win.PollEvents() // this can be used instead of running in a separate goroutine
-	viewUpdt := ss.ViewUpdt
+	viewUpdate := ss.ViewUpdate
 
 	// note: this has no learning calls
 
@@ -290,7 +290,7 @@ func (ss *Sim) AlphaCyc() {
 		for cyc := 0; cyc < ss.Time.CycPerQtr; cyc++ {
 			ss.Net.Cycle(&ss.Time)
 			ss.Time.CycleInc()
-			switch viewUpdt {
+			switch viewUpdate {
 			case leabra.Cycle:
 				if cyc != ss.Time.CycPerQtr-1 { // will be updated by quarter
 					ss.UpdateView(ss.Time.Cycle)
@@ -304,18 +304,18 @@ func (ss *Sim) AlphaCyc() {
 		ss.Net.QuarterFinal(&ss.Time)
 		ss.Time.QuarterInc()
 		switch {
-		case viewUpdt == leabra.Cycle:
+		case viewUpdate == leabra.Cycle:
 			ss.UpdateView(ss.Time.Cycle)
-		case viewUpdt <= leabra.Quarter:
+		case viewUpdate <= leabra.Quarter:
 			ss.UpdateView(-1)
-		case viewUpdt == leabra.Phase:
+		case viewUpdate == leabra.Phase:
 			if qtr >= 2 {
 				ss.UpdateView(-1)
 			}
 		}
 	}
 
-	if viewUpdt == leabra.AlphaCycle {
+	if viewUpdate == leabra.AlphaCycle {
 		ss.UpdateView(-1)
 	}
 }
@@ -371,7 +371,7 @@ func (ss *Sim) TestTrial() {
 	// Query counters FIRST
 	_, _, chg := ss.TestEnv.Counter(env.Epoch)
 	if chg {
-		if ss.ViewUpdt > leabra.AlphaCycle {
+		if ss.ViewUpdate > leabra.AlphaCycle {
 			ss.UpdateView(-1)
 		}
 		return
@@ -483,11 +483,11 @@ func (ss *Sim) SetInput(topDown bool) {
 // SetPats selects which patterns to present: full or partial faces
 func (ss *Sim) SetPats(partial bool) {
 	if partial {
-		ss.TestEnv.Table = etable.NewIdxView(ss.PartPats)
+		ss.TestEnv.Table = etable.NewIndexView(ss.PartPats)
 		ss.TestEnv.Validate()
 		ss.TestEnv.Init(0)
 	} else {
-		ss.TestEnv.Table = etable.NewIdxView(ss.Pats)
+		ss.TestEnv.Table = etable.NewIndexView(ss.Pats)
 		ss.TestEnv.Validate()
 		ss.TestEnv.Init(0)
 	}
@@ -530,7 +530,7 @@ func (ss *Sim) ClusterPlots() {
 
 // ClustPlot does one cluster plot on given table column
 func (ss *Sim) ClustPlot(plt *eplot.Plot2D, dt *etable.Table, colNm string) {
-	ix := etable.NewIdxView(dt)
+	ix := etable.NewIndexView(dt)
 	smat := &simat.SimMat{}
 	smat.TableColStd(ix, colNm, "Name", false, metric.Euclidean)
 	pt := &etable.Table{}
@@ -548,8 +548,8 @@ func (ss *Sim) ClustPlot(plt *eplot.Plot2D, dt *etable.Table, colNm string) {
 func (ss *Sim) PrjnPlot() {
 	ss.TestAll()
 
-	rvec0 := ss.ValsTsr("rvec0")
-	rvec1 := ss.ValsTsr("rvec1")
+	rvec0 := ss.ValuesTsr("rvec0")
+	rvec1 := ss.ValuesTsr("rvec1")
 	rvec0.SetShape([]int{256}, nil, nil)
 	rvec1.SetShape([]int{256}, nil, nil)
 	for i := range rvec1.Values {
@@ -626,15 +626,15 @@ func (ss *Sim) ConfigPrjnTable(dt *etable.Table) {
 //////////////////////////////////////////////
 //  TstTrlLog
 
-// ValsTsr gets value tensor of given name, creating if not yet made
-func (ss *Sim) ValsTsr(name string) *etensor.Float32 {
-	if ss.ValsTsrs == nil {
-		ss.ValsTsrs = make(map[string]*etensor.Float32)
+// ValuesTsr gets value tensor of given name, creating if not yet made
+func (ss *Sim) ValuesTsr(name string) *etensor.Float32 {
+	if ss.ValuesTsrs == nil {
+		ss.ValuesTsrs = make(map[string]*etensor.Float32)
 	}
-	tsr, ok := ss.ValsTsrs[name]
+	tsr, ok := ss.ValuesTsrs[name]
 	if !ok {
 		tsr = &etensor.Float32{}
-		ss.ValsTsrs[name] = tsr
+		ss.ValuesTsrs[name] = tsr
 	}
 	return tsr
 }
@@ -652,9 +652,9 @@ func (ss *Sim) LogTstTrl(dt *etable.Table) {
 	dt.SetCellString("TrialName", row, ss.TestEnv.TrialName.Cur)
 
 	for _, lnm := range ss.TstRecLays {
-		tsr := ss.ValsTsr(lnm)
+		tsr := ss.ValuesTsr(lnm)
 		ly := ss.Net.LayerByName(lnm).(leabra.LeabraLayer).AsLeabra()
-		ly.UnitValsTensor(tsr, "Act")
+		ly.UnitValuesTensor(tsr, "Act")
 		dt.SetCellTensor(lnm, row, tsr)
 	}
 
@@ -691,7 +691,7 @@ func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 
 	for _, lnm := range ss.TstRecLays {
 		cp := plt.SetColParams(lnm, eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
-		cp.TensorIdx = -1 // plot all
+		cp.TensorIndex = -1 // plot all
 	}
 	plt.SetColParams("Gender", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1) // display
 	return plt
@@ -770,20 +770,20 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	split.SetSplits(.2, .8)
 
 	tbar.AddAction(gi.ActOpts{Label: "Init", Icon: "update", Tooltip: "Initialize everything including network weights, and start over.  Also applies current params.", UpdateFunc: func(act *gi.Action) {
-		act.SetActiveStateUpdt(!ss.IsRunning)
+		act.SetActiveStateUpdate(!ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		ss.Init()
 		vp.SetNeedsFullRender()
 	})
 
 	tbar.AddAction(gi.ActOpts{Label: "Stop", Icon: "stop", Tooltip: "Interrupts running.  Hitting Train again will pick back up where it left off.", UpdateFunc: func(act *gi.Action) {
-		act.SetActiveStateUpdt(ss.IsRunning)
+		act.SetActiveStateUpdate(ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		ss.Stop()
 	})
 
 	tbar.AddAction(gi.ActOpts{Label: "Test Trial", Icon: "step-fwd", Tooltip: "Runs the next testing trial.", UpdateFunc: func(act *gi.Action) {
-		act.SetActiveStateUpdt(!ss.IsRunning)
+		act.SetActiveStateUpdate(!ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.IsRunning = true
@@ -794,7 +794,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	})
 
 	tbar.AddAction(gi.ActOpts{Label: "Test Item", Icon: "step-fwd", Tooltip: "Prompts for a specific input pattern name to run, and runs it in testing mode.", UpdateFunc: func(act *gi.Action) {
-		act.SetActiveStateUpdt(!ss.IsRunning)
+		act.SetActiveStateUpdate(!ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		gi.StringPromptDialog(vp, "", "Test Item",
 			gi.DlgOpts{Title: "Test Item", Prompt: "Enter the Name of a given input pattern to test (case insensitive, contains given string."},
@@ -819,7 +819,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	})
 
 	tbar.AddAction(gi.ActOpts{Label: "Test All", Icon: "fast-fwd", Tooltip: "Tests all of the testing trials.", UpdateFunc: func(act *gi.Action) {
-		act.SetActiveStateUpdt(!ss.IsRunning)
+		act.SetActiveStateUpdate(!ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.IsRunning = true

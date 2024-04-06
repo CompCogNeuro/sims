@@ -66,11 +66,11 @@ def DefaultsCB(recv, send, sig, data):
 def ReadmeCB(recv, send, sig, data):
     gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch2/neuron/README.md")
 
-def UpdtFuncNotRunning(act):
-    act.SetActiveStateUpdt(not TheSim.IsRunning)
+def UpdateFuncNotRunning(act):
+    act.SetActiveStateUpdate(not TheSim.IsRunning)
     
-def UpdtFuncRunning(act):
-    act.SetActiveStateUpdt(TheSim.IsRunning)
+def UpdateFuncRunning(act):
+    act.SetActiveStateUpdate(TheSim.IsRunning)
 
     
 #####################################################    
@@ -106,8 +106,8 @@ class Sim(pygiv.ClassViewObj):
         self.SetTags("OnCycle", 'min:"0" def:"10" desc:"when does excitatory input into neuron come on?"')
         self.OffCycle = int(160)
         self.SetTags("OffCycle", 'min:"0" def:"160" desc:"when does excitatory input into neuron go off?"')
-        self.UpdtInterval = int(10)
-        self.SetTags("UpdtInterval", 'min:"1" def:"10"  desc:"how often to update display (in cycles)"')
+        self.UpdateInterval = int(10)
+        self.SetTags("UpdateInterval", 'min:"1" def:"10"  desc:"how often to update display (in cycles)"')
         self.Net = leabra.Network()
         self.SetTags("Net", 'view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"')
         self.SpikeParams = spike.ActParams()
@@ -154,7 +154,7 @@ class Sim(pygiv.ClassViewObj):
         Defaults sets default params
         """
         ss.SpikeParams.Defaults()
-        ss.UpdtInterval = 10
+        ss.UpdateInterval = 10
         ss.Cycle = 0
         ss.Spike = True
         ss.GbarE = 0.3
@@ -244,19 +244,19 @@ class Sim(pygiv.ClassViewObj):
             nrn.Ge += nrn.Noise # GeNoise
             nrn.Gi = 0
             if ss.Spike:
-                ss.SpikeUpdt(ss.Net, inputOn)
+                ss.SpikeUpdate(ss.Net, inputOn)
             else:
-                ss.RateUpdt(ss.Net, inputOn)
+                ss.RateUpdate(ss.Net, inputOn)
             ss.LogTstCyc(ss.TstCycLog, ss.Cycle)
-            if ss.Cycle%ss.UpdtInterval == 0:
+            if ss.Cycle%ss.UpdateInterval == 0:
                 ss.UpdateView()
             if ss.StopNow:
                 break
         ss.UpdateView()
 
-    def RateUpdt(ss, nt, inputOn):
+    def RateUpdate(ss, nt, inputOn):
         """
-        RateUpdt updates the neuron in rate-code mode
+        RateUpdate updates the neuron in rate-code mode
         this just calls the relevant activation code directly, bypassing most other stuff.
         """
         ly = leabra.Layer(ss.Net.LayerByName("Neuron"))
@@ -265,9 +265,9 @@ class Sim(pygiv.ClassViewObj):
         ly.Act.ActFmG(nrn)
         nrn.Ge = nrn.Ge * ly.Act.Gbar.E
 
-    def SpikeUpdt(ss, nt, inputOn):
+    def SpikeUpdate(ss, nt, inputOn):
         """
-        SpikeUpdt updates the neuron in spiking mode
+        SpikeUpdate updates the neuron in spiking mode
         which is just computed directly as spiking is not yet implemented in main codebase
         """
         ly = leabra.Layer(ss.Net.LayerByName("Neuron"))
@@ -384,7 +384,7 @@ class Sim(pygiv.ClassViewObj):
         dt.SetCellFloat("AvgISI", row, float(nrn.ISIAvg))
 
         # note: essential to use Go version of update when called from another goroutine
-        if cyc%ss.UpdtInterval == 0:
+        if cyc%ss.UpdateInterval == 0:
             ss.TstCycPlot.GoUpdate()
 
     def ConfigTstCycLog(ss, dt):
@@ -518,19 +518,19 @@ class Sim(pygiv.ClassViewObj):
 
         recv = win.This()
         
-        tbar.AddAction(gi.ActOpts(Label="Init", Icon="update", Tooltip="Initialize everything including network weights, and start over.  Also applies current params.", UpdateFunc=UpdtFuncNotRunning), recv, InitCB)
+        tbar.AddAction(gi.ActOpts(Label="Init", Icon="update", Tooltip="Initialize everything including network weights, and start over.  Also applies current params.", UpdateFunc=UpdateFuncNotRunning), recv, InitCB)
 
-        tbar.AddAction(gi.ActOpts(Label="Stop", Icon="stop", Tooltip="Interrupts running.  Hitting Train again will pick back up where it left off.", UpdateFunc=UpdtFuncRunning), recv, StopCB)
+        tbar.AddAction(gi.ActOpts(Label="Stop", Icon="stop", Tooltip="Interrupts running.  Hitting Train again will pick back up where it left off.", UpdateFunc=UpdateFuncRunning), recv, StopCB)
         
-        tbar.AddAction(gi.ActOpts(Label="Run Cycles", Icon="step-fwd", Tooltip="Runs neuron updating over NCycles.", UpdateFunc=UpdtFuncNotRunning), recv, RunCyclesCB)
+        tbar.AddAction(gi.ActOpts(Label="Run Cycles", Icon="step-fwd", Tooltip="Runs neuron updating over NCycles.", UpdateFunc=UpdateFuncNotRunning), recv, RunCyclesCB)
         
-        tbar.AddAction(gi.ActOpts(Label="Reset Plot", Icon="update", Tooltip="Reset TstCycPlot", UpdateFunc=UpdtFuncNotRunning), recv, ResetPlotCB)
+        tbar.AddAction(gi.ActOpts(Label="Reset Plot", Icon="update", Tooltip="Reset TstCycPlot", UpdateFunc=UpdateFuncNotRunning), recv, ResetPlotCB)
 
-        tbar.AddAction(gi.ActOpts(Label="Spike Vs Rate", Icon="play", Tooltip="Runs Spike vs Rate Test", UpdateFunc=UpdtFuncNotRunning), recv, SpikeVsRateCB)
+        tbar.AddAction(gi.ActOpts(Label="Spike Vs Rate", Icon="play", Tooltip="Runs Spike vs Rate Test", UpdateFunc=UpdateFuncNotRunning), recv, SpikeVsRateCB)
 
         tbar.AddSeparator("log")
         
-        tbar.AddAction(gi.ActOpts(Label= "Defaults", Icon= "update", Tooltip= "Restore initial default parameters.", UpdateFunc= UpdtFuncNotRunning), recv, DefaultsCB)
+        tbar.AddAction(gi.ActOpts(Label= "Defaults", Icon= "update", Tooltip= "Restore initial default parameters.", UpdateFunc= UpdateFuncNotRunning), recv, DefaultsCB)
 
         tbar.AddAction(gi.ActOpts(Label="README", Icon="file-markdown", Tooltip="Opens your browser on the README file that contains instructions for how to run this model."), recv, ReadmeCB)
 

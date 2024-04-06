@@ -66,7 +66,7 @@ You should see that the spike moves "forward" in time with each `Step Trial`, bu
 
 We can also examine the weights to see what the network has learned.
 
-* Click on `r.Wt` and then on the `RewPred` layer unit -- you should see that there are increased weights from the A stimulus for time steps 10-14.  You can also click `Weights Updt` in toolbar and the `Weights` tab to see the weights in a grid view.
+* Click on `r.Wt` and then on the `RewPred` layer unit -- you should see that there are increased weights from the A stimulus for time steps 10-14.  You can also click `Weights Update` in toolbar and the `Weights` tab to see the weights in a grid view.
 
 # Extinction and Second Order Conditioning
 

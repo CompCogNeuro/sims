@@ -66,7 +66,7 @@ You will now see the `A` testing trials, where the network's tendency to reach t
 
 > **Question 10.5:** Describe how the network responds (i.e., in the gaze and reach outputs) this time, including a discussion of how the increased PFC (hidden) recurrent connection strength affected the network's behavior.
 
-* Next, set `Delay` to `Delay5` and try it with the value of .7 for the recurrent weights.  You will have to scroll down a bit to see the final B test output. You may need to click `UpdtView`.
+* Next, set `Delay` to `Delay5` and try it with the value of .7 for the recurrent weights.  You will have to scroll down a bit to see the final B test output. You may need to click `UpdateView`.
 
 > **Question 10.6:** What happens on the 'B' trials with those two delays -- why does delay have this effect on the network's behavior?
 
@@ -80,7 +80,7 @@ You should observe that the gaze and reach activations are now slightly dissocia
 
 Finally, there is an interesting effect that can occur with very weak recurrent weights, which do not allow the network to maintain the representation of even the *A* location very well on 'A' trials. Because the weight changes toward 'A' depend on such maintained activity of the 'A' units, these weight-based representations will be relatively weak, making the network perseverate less to 'A' than it would with slightly stronger recurrent weights.
 
-* To see this effect, set `Delay` back to `Delay3` and then reduce the `RecurrentWt` parameter to .1.  `Init`, `Train`, and look at the activations of the units in the 'B' choice trial. Then compare this with the case with of .4.  It can be easier to see the difference in the `TrnTrlPlot` -- click on the `Reach` button to pull up a dialog to configure the display of that line, and change the `TensorIdx` to 0 (which will show the `A` unit activation), and then to 1 (which will show the `B` unit activation).
+* To see this effect, set `Delay` back to `Delay3` and then reduce the `RecurrentWt` parameter to .1.  `Init`, `Train`, and look at the activations of the units in the 'B' choice trial. Then compare this with the case with of .4.  It can be easier to see the difference in the `TrnTrlPlot` -- click on the `Reach` button to pull up a dialog to configure the display of that line, and change the `TensorIndex` to 0 (which will show the `A` unit activation), and then to 1 (which will show the `B` unit activation).
 
 You should see that there is a less strong 'A' response with the weaker recurrent weights (and also some residual activation of the 'B' units), meaning a less strong A-not-B error (and further analysis has confirmed that this is due to the amount of learning on the 'A' trials).
 

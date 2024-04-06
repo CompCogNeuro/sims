@@ -339,8 +339,8 @@ func (ev *SemEnv) String() string {
 	return str
 }
 
-// ParaIdx returns the current idx number in Paras, based on Sequential / perumuted Order
-func (ev *SemEnv) ParaIdx() int {
+// ParaIndex returns the current idx number in Paras, based on Sequential / perumuted Order
+func (ev *SemEnv) ParaIndex() int {
 	if ev.Trial.Cur < 0 {
 		return -1
 	}
@@ -352,7 +352,7 @@ func (ev *SemEnv) ParaIdx() int {
 
 // CurPara returns the current paragraph
 func (ev *SemEnv) CurPara() []string {
-	pidx := ev.ParaIdx()
+	pidx := ev.ParaIndex()
 	if pidx >= 0 && pidx < len(ev.Paras) {
 		return ev.Paras[pidx]
 	}

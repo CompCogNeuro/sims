@@ -48,8 +48,8 @@ func (oo *OnOff) Set(act bool, on, off int) {
 	oo.P = 1 // default
 }
 
-// TrialUpdt updates Cur state at start of trial
-func (oo *OnOff) TrialUpdt() {
+// TrialUpdate updates Cur state at start of trial
+func (oo *OnOff) TrialUpdate() {
 	if !oo.Act {
 		return
 	}
@@ -176,15 +176,15 @@ func (ev *CondEnv) Init(run int) {
 	ev.Run.Cur = run
 	ev.Event.Max = ev.TotTime
 	ev.Event.Cur = -1 // init state -- key so that first Step() = 0
-	ev.TrialUpdt()
+	ev.TrialUpdate()
 }
 
-// TrialUpdt updates all random vars at start of trial
-func (ev *CondEnv) TrialUpdt() {
-	ev.CSA.TrialUpdt()
-	ev.CSB.TrialUpdt()
-	ev.CSC.TrialUpdt()
-	ev.US.TrialUpdt()
+// TrialUpdate updates all random vars at start of trial
+func (ev *CondEnv) TrialUpdate() {
+	ev.CSA.TrialUpdate()
+	ev.CSB.TrialUpdate()
+	ev.CSC.TrialUpdate()
+	ev.US.TrialUpdate()
 }
 
 // SetInput sets the input state
@@ -223,7 +223,7 @@ func (ev *CondEnv) Step() bool {
 	ev.SetReward()
 
 	if incr {
-		ev.TrialUpdt()
+		ev.TrialUpdate()
 		if ev.Trial.Incr() {
 			ev.Epoch.Incr()
 		}

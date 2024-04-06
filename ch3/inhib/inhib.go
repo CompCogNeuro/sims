@@ -142,7 +142,7 @@ type Sim struct {
 	// leabra timing parameters and state
 	Time leabra.Time
 	// at what time scale to update the display during testing?  Change to AlphaCyc to make display updating go faster
-	ViewUpdt leabra.TimeScales
+	ViewUpdate leabra.TimeScales
 	// names of layers to record activations etc of during testing
 	TstRecLays []string
 	// the input patterns to use -- randomly generated
@@ -159,7 +159,7 @@ type Sim struct {
 	// the test-trial plot
 	TstCycPlot *eplot.Plot2D `view:"-"`
 	// for holding layer values
-	ValsTsrs map[string]*etensor.Float32 `view:"-"`
+	ValuesTsrs map[string]*etensor.Float32 `view:"-"`
 	// true if sim is running
 	IsRunning bool `view:"-"`
 	// flag to stop running
@@ -179,7 +179,7 @@ func (ss *Sim) New() {
 	ss.NetBidir = &leabra.Network{}
 	ss.TstCycLog = &etable.Table{}
 	ss.Params = ParamSets
-	ss.ViewUpdt = leabra.Cycle
+	ss.ViewUpdate = leabra.Cycle
 	ss.TstRecLays = []string{"Hidden", "Inhib"}
 	ss.Pats = &etable.Table{}
 	ss.Defaults()
@@ -358,7 +358,7 @@ func (ss *Sim) Net() *leabra.Network {
 // Handles netview updating within scope of AlphaCycle
 func (ss *Sim) AlphaCyc() {
 	// ss.Win.PollEvents() // this can be used instead of running in a separate goroutine
-	viewUpdt := ss.ViewUpdt
+	viewUpdate := ss.ViewUpdate
 
 	nt := ss.Net()
 
@@ -371,7 +371,7 @@ func (ss *Sim) AlphaCyc() {
 			nt.Cycle(&ss.Time)
 			ss.LogTstCyc(ss.TstCycLog, ss.Time.Cycle)
 			ss.Time.CycleInc()
-			switch viewUpdt {
+			switch viewUpdate {
 			case leabra.Cycle:
 				if cyc != ss.Time.CycPerQtr-1 { // will be updated by quarter
 					ss.UpdateView(ss.Time.Cycle)
@@ -385,18 +385,18 @@ func (ss *Sim) AlphaCyc() {
 		nt.QuarterFinal(&ss.Time)
 		ss.Time.QuarterInc()
 		switch {
-		case viewUpdt == leabra.Cycle:
+		case viewUpdate == leabra.Cycle:
 			ss.UpdateView(ss.Time.Cycle)
-		case viewUpdt <= leabra.Quarter:
+		case viewUpdate <= leabra.Quarter:
 			ss.UpdateView(-1)
-		case viewUpdt == leabra.Phase:
+		case viewUpdate == leabra.Phase:
 			if qtr >= 2 {
 				ss.UpdateView(-1)
 			}
 		}
 	}
 
-	if viewUpdt == leabra.AlphaCycle {
+	if viewUpdate == leabra.AlphaCycle {
 		ss.UpdateView(-1)
 	}
 }
@@ -549,15 +549,15 @@ func (ss *Sim) SetParamsSet(setNm string, sheet string, setMsg bool) error {
 //////////////////////////////////////////////
 //  TstCycLog
 
-// ValsTsr gets value tensor of given name, creating if not yet made
-func (ss *Sim) ValsTsr(name string) *etensor.Float32 {
-	if ss.ValsTsrs == nil {
-		ss.ValsTsrs = make(map[string]*etensor.Float32)
+// ValuesTsr gets value tensor of given name, creating if not yet made
+func (ss *Sim) ValuesTsr(name string) *etensor.Float32 {
+	if ss.ValuesTsrs == nil {
+		ss.ValuesTsrs = make(map[string]*etensor.Float32)
 	}
-	tsr, ok := ss.ValsTsrs[name]
+	tsr, ok := ss.ValuesTsrs[name]
 	if !ok {
 		tsr = &etensor.Float32{}
-		ss.ValsTsrs[name] = tsr
+		ss.ValuesTsrs[name] = tsr
 	}
 	return tsr
 }
@@ -670,20 +670,20 @@ feedforward and feedback inhibition to excitatory pyramidal neurons.
 	split.SetSplits(.2, .8)
 
 	tbar.AddAction(gi.ActOpts{Label: "Init", Icon: "update", Tooltip: "Initialize everything including network weights, and start over.  Also applies current params.", UpdateFunc: func(act *gi.Action) {
-		act.SetActiveStateUpdt(!ss.IsRunning)
+		act.SetActiveStateUpdate(!ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		ss.Init()
 		vp.SetNeedsFullRender()
 	})
 
 	tbar.AddAction(gi.ActOpts{Label: "Stop", Icon: "stop", Tooltip: "Interrupts running.  Hitting Train again will pick back up where it left off.", UpdateFunc: func(act *gi.Action) {
-		act.SetActiveStateUpdt(ss.IsRunning)
+		act.SetActiveStateUpdate(ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		ss.Stop()
 	})
 
 	tbar.AddAction(gi.ActOpts{Label: "Test Trial", Icon: "step-fwd", Tooltip: "Runs the next testing trial.", UpdateFunc: func(act *gi.Action) {
-		act.SetActiveStateUpdt(!ss.IsRunning)
+		act.SetActiveStateUpdate(!ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.IsRunning = true
@@ -694,7 +694,7 @@ feedforward and feedback inhibition to excitatory pyramidal neurons.
 	})
 
 	tbar.AddAction(gi.ActOpts{Label: "Config Pats", Icon: "update", Tooltip: "Generates a new input pattern based on current InputPct amount.", UpdateFunc: func(act *gi.Action) {
-		act.SetActiveStateUpdt(!ss.IsRunning)
+		act.SetActiveStateUpdate(!ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.ConfigPats()
@@ -703,7 +703,7 @@ feedforward and feedback inhibition to excitatory pyramidal neurons.
 	})
 
 	tbar.AddAction(gi.ActOpts{Label: "Defaults", Icon: "update", Tooltip: "Restore initial default parameters.", UpdateFunc: func(act *gi.Action) {
-		act.SetActiveStateUpdt(!ss.IsRunning)
+		act.SetActiveStateUpdate(!ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		ss.Defaults()
 		ss.Init()

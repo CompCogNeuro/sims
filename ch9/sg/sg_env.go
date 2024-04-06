@@ -84,7 +84,7 @@ type SentGenEnv struct {
 	SentInputs [][]string
 
 	// current index within sentence inputs
-	SentIdx env.CurPrvInt
+	SentIndex env.CurPrvInt
 
 	// current question type -- from 4th value of SentInputs
 	QType string
@@ -173,7 +173,7 @@ func (ev *SentGenEnv) Init(run int) {
 	ev.Trial.Init()
 	ev.Run.Cur = run
 	ev.Trial.Cur = -1 // init state -- key so that first Step() = 0
-	ev.SentIdx.Set(-1)
+	ev.SentIndex.Set(-1)
 
 	ev.Rules.Init()
 	ev.MapsFmWords()
@@ -208,8 +208,8 @@ func (ev *SentGenEnv) MapsFmWords() {
 
 // CurInputs returns current inputs triple from SentInputs
 func (ev *SentGenEnv) CurInputs() []string {
-	if ev.SentIdx.Cur >= 0 && ev.SentIdx.Cur < len(ev.SentInputs) {
-		return ev.SentInputs[ev.SentIdx.Cur]
+	if ev.SentIndex.Cur >= 0 && ev.SentIndex.Cur < len(ev.SentInputs) {
+		return ev.SentInputs[ev.SentIndex.Cur]
 	}
 	return nil
 }
@@ -230,7 +230,7 @@ func (ev *SentGenEnv) NextSent() {
 	// fmt.Printf("%v\n", ev.CurSent)
 	ev.Rules.States.TrimQualifiers()
 	ev.SentStats()
-	ev.SentIdx.Set(0)
+	ev.SentIndex.Set(0)
 	if cs, has := ev.Rules.States["Case"]; has {
 		if cs == "Passive" {
 			ev.SentSeqPassive()
@@ -399,12 +399,12 @@ func (ev *SentGenEnv) RenderState() {
 
 // NextState generates the next inputs
 func (ev *SentGenEnv) NextState() {
-	if ev.SentIdx.Cur < 0 {
+	if ev.SentIndex.Cur < 0 {
 		ev.NextSent()
 	} else {
-		ev.SentIdx.Incr()
+		ev.SentIndex.Incr()
 	}
-	if ev.SentIdx.Cur >= len(ev.SentInputs) {
+	if ev.SentIndex.Cur >= len(ev.SentInputs) {
 		ev.NextSent()
 	}
 	ev.RenderState()
@@ -415,7 +415,7 @@ func (ev *SentGenEnv) Step() bool {
 	ev.NextState()
 	ev.Trial.Incr()
 	ev.Tick.Incr()
-	if ev.SentIdx.Cur == 0 {
+	if ev.SentIndex.Cur == 0 {
 		ev.Tick.Init()
 		if ev.Seq.Incr() {
 			ev.Epoch.Incr()

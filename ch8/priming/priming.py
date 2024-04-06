@@ -5,17 +5,44 @@
 # license that can be found in the LICENSE file.
 
 # use:
-# pyleabra -i ra25.py 
+# pyleabra -i ra25.py
 # to run in gui interactive mode from the command line (or pyleabra, import ra25)
 # see main function at the end for startup args
 
 # priming illustrates *weight-based priming*, that is, how small weight changes
-# caused by the standard slow cortical learning rate can produce significant 
+# caused by the standard slow cortical learning rate can produce significant
 # behavioral priming, causing the network to favor one output pattern over another.
 
-from leabra import go, leabra, emer, relpos, eplot, env, agg, patgen, prjn, etable, efile, split, etensor, params, netview, rand, erand, gi, giv, pygiv, pyparams, mat32, metric, simat, pca, clust
+from leabra import (
+    go,
+    leabra,
+    emer,
+    relpos,
+    eplot,
+    env,
+    agg,
+    patgen,
+    prjn,
+    etable,
+    efile,
+    split,
+    etensor,
+    params,
+    netview,
+    rand,
+    erand,
+    gi,
+    giv,
+    pygiv,
+    pyparams,
+    mat32,
+    metric,
+    simat,
+    pca,
+    clust,
+)
 
-import importlib as il  #il.reload(ra25) -- doesn't seem to work for reasons unknown
+import importlib as il  # il.reload(ra25) -- doesn't seem to work for reasons unknown
 import io, sys, getopt
 from datetime import datetime, timezone
 from enum import Enum
@@ -32,7 +59,7 @@ from enum import Enum
 # pandas.  Support for easy migration between these is forthcoming.
 # import pandas as pd
 
-# this will become Sim later.. 
+# this will become Sim later..
 TheSim = 1
 
 # LogPrec is precision for saving float values in logs
@@ -41,10 +68,12 @@ LogPrec = 4
 # note: we cannot use methods for callbacks from Go -- must be separate functions
 # so below are all the callbacks from the GUI toolbar actions
 
+
 def InitCB(recv, send, sig, data):
     TheSim.Init()
     TheSim.UpdateClassView()
     TheSim.vp.SetNeedsFullRender()
+
 
 def TrainCB(recv, send, sig, data):
     if not TheSim.IsRunning:
@@ -52,8 +81,10 @@ def TrainCB(recv, send, sig, data):
         TheSim.ToolBar.UpdateActions()
         TheSim.Train()
 
+
 def StopCB(recv, send, sig, data):
     TheSim.Stop()
+
 
 def StepTrialCB(recv, send, sig, data):
     if not TheSim.IsRunning:
@@ -63,17 +94,20 @@ def StepTrialCB(recv, send, sig, data):
         TheSim.UpdateClassView()
         TheSim.vp.SetNeedsFullRender()
 
+
 def StepEpochCB(recv, send, sig, data):
     if not TheSim.IsRunning:
         TheSim.IsRunning = True
         TheSim.ToolBar.UpdateActions()
         TheSim.TrainEpoch()
 
+
 def StepRunCB(recv, send, sig, data):
     if not TheSim.IsRunning:
         TheSim.IsRunning = True
         TheSim.ToolBar.UpdateActions()
         TheSim.TrainRun()
+
 
 def TestTrialCB(recv, send, sig, data):
     if not TheSim.IsRunning:
@@ -83,6 +117,7 @@ def TestTrialCB(recv, send, sig, data):
         TheSim.UpdateClassView()
         TheSim.vp.SetNeedsFullRender()
 
+
 def TestItemCB2(recv, send, sig, data):
     win = gi.Window(handle=recv)
     vp = win.WinViewport2D()
@@ -90,9 +125,20 @@ def TestItemCB2(recv, send, sig, data):
     if sig != gi.DialogAccepted:
         return
     val = gi.StringPromptDialogValue(dlg)
-    idxs = TheSim.TestEnv.Table.RowsByString("Name", val, True, True) # contains, ignoreCase
+    idxs = TheSim.TestEnv.Table.RowsByString(
+        "Name", val, True, True
+    )  # contains, ignoreCase
     if len(idxs) == 0:
-        gi.PromptDialog(vp, gi.DlgOpts(Title="Name Not Found", Prompt="No patterns found containing: " + val), True, False, go.nil, go.nil)
+        gi.PromptDialog(
+            vp,
+            gi.DlgOpts(
+                Title="Name Not Found", Prompt="No patterns found containing: " + val
+            ),
+            True,
+            False,
+            go.nil,
+            go.nil,
+        )
     else:
         if not TheSim.IsRunning:
             TheSim.IsRunning = True
@@ -101,10 +147,21 @@ def TestItemCB2(recv, send, sig, data):
             TheSim.IsRunning = False
             vp.SetNeedsFullRender()
 
+
 def TestItemCB(recv, send, sig, data):
     win = gi.Window(handle=recv)
-    gi.StringPromptDialog(win.WinViewport2D(), "", "Test Item",
-        gi.DlgOpts(Title="Test Item", Prompt="Enter the Name of a given input pattern to test (case insensitive, contains given string."), win, TestItemCB2)
+    gi.StringPromptDialog(
+        win.WinViewport2D(),
+        "",
+        "Test Item",
+        gi.DlgOpts(
+            Title="Test Item",
+            Prompt="Enter the Name of a given input pattern to test (case insensitive, contains given string.",
+        ),
+        win,
+        TestItemCB2,
+    )
+
 
 def TestAllCB(recv, send, sig, data):
     if not TheSim.IsRunning:
@@ -112,24 +169,31 @@ def TestAllCB(recv, send, sig, data):
         TheSim.ToolBar.UpdateActions()
         TheSim.RunTestAll()
 
-def OpenTrainedWtsCB(recv, send, sig, data):    
+
+def OpenTrainedWtsCB(recv, send, sig, data):
     TheSim.OpenTrainedWts()
+
 
 def ResetRunLogCB(recv, send, sig, data):
     TheSim.RunLog.SetNumRows(0)
     TheSim.RunPlot.Update()
 
+
 def NewRndSeedCB(recv, send, sig, data):
     TheSim.NewRndSeed()
+
 
 def ReadmeCB(recv, send, sig, data):
     gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch8/priming/README.md")
 
-def UpdtFuncNotRunning(act):
-    act.SetActiveStateUpdt(not TheSim.IsRunning)
-    
-def UpdtFuncRunning(act):
-    act.SetActiveStateUpdt(TheSim.IsRunning)
+
+def UpdateFuncNotRunning(act):
+    act.SetActiveStateUpdate(not TheSim.IsRunning)
+
+
+def UpdateFuncRunning(act):
+    act.SetActiveStateUpdate(TheSim.IsRunning)
+
 
 class EnvType(Enum):
     TrainB = 0
@@ -140,15 +204,19 @@ class EnvType(Enum):
     TestAll = 5
     EnvTypeN = 6
 
+
 class EnvParams(pygiv.ClassViewObj):
     def __init__(self):
         super(EnvParams, self).__init__()
         self.Env = EnvType.TrainB
 
-TheEnv = EnvParams()        
-        
+
+TheEnv = EnvParams()
+
+
 def EnvCB2(recv, send, sig, data):
     TheSim.SetEnv(TheEnv.Env)
+
 
 def EnvDialog(vp, obj, name, tags, opts):
     """
@@ -158,22 +226,31 @@ def EnvDialog(vp, obj, name, tags, opts):
     """
     dlg = gi.NewStdDialog(opts.ToGiOpts(), True, True)
     frame = dlg.Frame()
-    prIdx = dlg.PromptWidgetIdx(frame)
+    prIndex = dlg.PromptWidgetIndex(frame)
 
     cv = obj.NewClassView(name)
-    cv.Frame = gi.Frame(frame.InsertNewChild(gi.KiT_Frame(), prIdx+1, "cv-frame"))
+    cv.Frame = gi.Frame(frame.InsertNewChild(gi.KiT_Frame(), prIndex + 1, "cv-frame"))
     cv.Config()
-    
+
     dlg.UpdateEndNoSig(True)
     dlg.DialogSig.Connect(dlg, EnvCB2)
     dlg.Open(0, 0, vp, go.nil)
     return dlg
 
-def EnvCB(recv, send, sig, data):
-    EnvDialog(TheSim.vp, TheEnv, "set-env", {}, giv.DlgOpts(Title="SetEnv", Prompt="Select Env to use:"))
 
-#####################################################    
+def EnvCB(recv, send, sig, data):
+    EnvDialog(
+        TheSim.vp,
+        TheEnv,
+        "set-env",
+        {},
+        giv.DlgOpts(Title="SetEnv", Prompt="Select Env to use:"),
+    )
+
+
+#####################################################
 #     Sim
+
 
 class Sim(pygiv.ClassViewObj):
     """
@@ -187,13 +264,24 @@ class Sim(pygiv.ClassViewObj):
     def __init__(self):
         super(Sim, self).__init__()
         self.Lrate = float(0.04)
-        self.SetTags("Lrate", 'def:"0.04" desc:"learning rate -- .04 is default \'cortical\' learning rate -- try lower levels to see how low you can go and still get priming"')
+        self.SetTags(
+            "Lrate",
+            'def:"0.04" desc:"learning rate -- .04 is default \'cortical\' learning rate -- try lower levels to see how low you can go and still get priming"',
+        )
         self.Decay = float(1)
-        self.SetTags("Decay", 'def:"1" desc:"proportion of activation decay between trials"')
+        self.SetTags(
+            "Decay", 'def:"1" desc:"proportion of activation decay between trials"'
+        )
         self.EnvType = EnvType.TrainAll
-        self.SetTags("EnvType", 'inactive:"+" desc:"environment type -- use Env button (SetEnv) to set"')
+        self.SetTags(
+            "EnvType",
+            'inactive:"+" desc:"environment type -- use Env button (SetEnv) to set"',
+        )
         self.Net = leabra.Network()
-        self.SetTags("Net", 'view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"')
+        self.SetTags(
+            "Net",
+            'view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"',
+        )
         self.TrainAll = etable.Table()
         self.SetTags("TrainAll", 'view:"no-inline" desc:"All training patterns"')
         self.TrainA = etable.Table()
@@ -201,11 +289,17 @@ class Sim(pygiv.ClassViewObj):
         self.TrainB = etable.Table()
         self.SetTags("TrainB", 'view:"no-inline" desc:"train B patterns"')
         self.TrnEpcLog = etable.Table()
-        self.SetTags("TrnEpcLog", 'view:"no-inline" desc:"training epoch-level log data"')
+        self.SetTags(
+            "TrnEpcLog", 'view:"no-inline" desc:"training epoch-level log data"'
+        )
         self.TstEpcLog = etable.Table()
-        self.SetTags("TstEpcLog", 'view:"no-inline" desc:"testing epoch-level log data"')
+        self.SetTags(
+            "TstEpcLog", 'view:"no-inline" desc:"testing epoch-level log data"'
+        )
         self.TstTrlLog = etable.Table()
-        self.SetTags("TstTrlLog", 'view:"no-inline" desc:"testing trial-level log data"')
+        self.SetTags(
+            "TstTrlLog", 'view:"no-inline" desc:"testing trial-level log data"'
+        )
         self.RunLog = etable.Table()
         self.SetTags("RunLog", 'view:"no-inline" desc:"summary log of each run"')
         self.RunStats = etable.Table()
@@ -213,75 +307,146 @@ class Sim(pygiv.ClassViewObj):
         self.Params = params.Sets()
         self.SetTags("Params", 'view:"no-inline" desc:"full collection of param sets"')
         self.ParamSet = str()
-        self.SetTags("ParamSet", 'view:"-" desc:"which set of *additional* parameters to use -- always applies Base and optionaly this next if set -- can use multiple names separated by spaces (don\'t put spaces in ParamSet names!)"')
+        self.SetTags(
+            "ParamSet",
+            'view:"-" desc:"which set of *additional* parameters to use -- always applies Base and optionaly this next if set -- can use multiple names separated by spaces (don\'t put spaces in ParamSet names!)"',
+        )
         self.MaxRuns = int()
         self.SetTags("MaxRuns", 'desc:"maximum number of model runs to perform"')
         self.MaxEpcs = int()
         self.SetTags("MaxEpcs", 'desc:"maximum number of epochs to run per model run"')
         self.NZeroStop = int()
-        self.SetTags("NZeroStop", 'desc:"if a positive number, training will stop after this many epochs with zero SSE"')
+        self.SetTags(
+            "NZeroStop",
+            'desc:"if a positive number, training will stop after this many epochs with zero SSE"',
+        )
         self.TrainEnv = env.FixedTable()
-        self.SetTags("TrainEnv", 'desc:"Training environment -- contains everything about iterating over input / output patterns over training"')
+        self.SetTags(
+            "TrainEnv",
+            'desc:"Training environment -- contains everything about iterating over input / output patterns over training"',
+        )
         self.TestEnv = env.FixedTable()
-        self.SetTags("TestEnv", 'desc:"Testing environment -- manages iterating over testing"')
+        self.SetTags(
+            "TestEnv", 'desc:"Testing environment -- manages iterating over testing"'
+        )
         self.Time = leabra.Time()
         self.SetTags("Time", 'desc:"leabra timing parameters and state"')
         self.ViewOn = True
-        self.SetTags("ViewOn", 'desc:"whether to update the network view while running"')
-        self.TrainUpdt = leabra.TimeScales.Quarter
-        self.SetTags("TrainUpdt", 'desc:"at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model"')
-        self.TestUpdt = leabra.TimeScales.Cycle
-        self.SetTags("TestUpdt", 'desc:"at what time scale to update the display during testing?  Anything longer than Epoch updates at Epoch in this model"')
+        self.SetTags(
+            "ViewOn", 'desc:"whether to update the network view while running"'
+        )
+        self.TrainUpdate = leabra.TimeScales.Quarter
+        self.SetTags(
+            "TrainUpdate",
+            'desc:"at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model"',
+        )
+        self.TestUpdate = leabra.TimeScales.Cycle
+        self.SetTags(
+            "TestUpdate",
+            'desc:"at what time scale to update the display during testing?  Anything longer than Epoch updates at Epoch in this model"',
+        )
         self.TestInterval = int(10)
-        self.SetTags("TestInterval", 'desc:"how often to run through all the test patterns, in terms of training epochs -- can use 0 or -1 for no testing"')
+        self.SetTags(
+            "TestInterval",
+            'desc:"how often to run through all the test patterns, in terms of training epochs -- can use 0 or -1 for no testing"',
+        )
         self.LayStatNms = go.Slice_string(["Hidden"])
-        self.SetTags("LayStatNms", 'desc:"names of layers to collect more detailed stats on (avg act, etc)"')
+        self.SetTags(
+            "LayStatNms",
+            'desc:"names of layers to collect more detailed stats on (avg act, etc)"',
+        )
 
         # statistics: note use float64 as that is best for etable.Table
         self.TrlErr = float()
-        self.SetTags("TrlErr", 'inactive:"+" desc:"1 if trial was error, 0 if correct -- based on *closest pattern* stat, not SSE"')
+        self.SetTags(
+            "TrlErr",
+            'inactive:"+" desc:"1 if trial was error, 0 if correct -- based on *closest pattern* stat, not SSE"',
+        )
         self.TrlClosest = str()
         self.SetTags("TrlClosest", 'inactive:"+" desc:"name of closest pattern"')
         self.TrlCorrel = float()
-        self.SetTags("TrlCorrel", 'inactive:"+" desc:"current trial\'s closest pattern correlation"')
+        self.SetTags(
+            "TrlCorrel",
+            'inactive:"+" desc:"current trial\'s closest pattern correlation"',
+        )
         self.TrlIsA = float()
-        self.SetTags("TrlIsA", 'inactive:"+" desc:"1 if current output was from an A pattern, 0 if B"')
+        self.SetTags(
+            "TrlIsA",
+            'inactive:"+" desc:"1 if current output was from an A pattern, 0 if B"',
+        )
         self.TrlIsB = float()
-        self.SetTags("TrlIsB", 'inactive:"+" desc:"1 if current output was from a B pattern, 0 if A"')
+        self.SetTags(
+            "TrlIsB",
+            'inactive:"+" desc:"1 if current output was from a B pattern, 0 if A"',
+        )
         self.TrlSSE = float()
         self.SetTags("TrlSSE", 'inactive:"+" desc:"current trial\'s sum squared error"')
         self.TrlAvgSSE = float()
-        self.SetTags("TrlAvgSSE", 'inactive:"+" desc:"current trial\'s average sum squared error"')
+        self.SetTags(
+            "TrlAvgSSE",
+            'inactive:"+" desc:"current trial\'s average sum squared error"',
+        )
         self.TrlCosDiff = float()
-        self.SetTags("TrlCosDiff", 'inactive:"+" desc:"current trial\'s cosine difference"')
+        self.SetTags(
+            "TrlCosDiff", 'inactive:"+" desc:"current trial\'s cosine difference"'
+        )
         self.EpcSSE = float()
-        self.SetTags("EpcSSE", 'inactive:"+" desc:"last epoch\'s total sum squared error"')
+        self.SetTags(
+            "EpcSSE", 'inactive:"+" desc:"last epoch\'s total sum squared error"'
+        )
         self.EpcAvgSSE = float()
-        self.SetTags("EpcAvgSSE", 'inactive:"+" desc:"last epoch\'s average sum squared error (average over trials, and over units within layer)"')
+        self.SetTags(
+            "EpcAvgSSE",
+            'inactive:"+" desc:"last epoch\'s average sum squared error (average over trials, and over units within layer)"',
+        )
         self.EpcPctErr = float()
         self.SetTags("EpcPctErr", 'inactive:"+" desc:"last epoch\'s average TrlErr"')
         self.EpcPctCor = float()
-        self.SetTags("EpcPctCor", 'inactive:"+" desc:"1 - last epoch\'s average TrlErr"')
+        self.SetTags(
+            "EpcPctCor", 'inactive:"+" desc:"1 - last epoch\'s average TrlErr"'
+        )
         self.EpcCorrel = float()
         self.SetTags("EpcCorrel", 'inactive:"+" desc:"last epoch\'s average TrlCorrel"')
         self.EpcCosDiff = float()
-        self.SetTags("EpcCosDiff", 'inactive:"+" desc:"last epoch\'s average cosine difference for output layer (a normalized error measure, maximum of 1 when the minus phase exactly matches the plus)"')
+        self.SetTags(
+            "EpcCosDiff",
+            'inactive:"+" desc:"last epoch\'s average cosine difference for output layer (a normalized error measure, maximum of 1 when the minus phase exactly matches the plus)"',
+        )
         self.FirstZero = int()
-        self.SetTags("FirstZero", 'inactive:"+" desc:"epoch at when SSE first went to zero"')
+        self.SetTags(
+            "FirstZero", 'inactive:"+" desc:"epoch at when SSE first went to zero"'
+        )
         self.NZero = int()
-        self.SetTags("NZero", 'inactive:"+" desc:"number of epochs in a row with zero SSE"')
+        self.SetTags(
+            "NZero", 'inactive:"+" desc:"number of epochs in a row with zero SSE"'
+        )
 
         # internal state - view:"-"
         self.SumErr = float()
-        self.SetTags("SumErr", 'view:"-" inactive:"+" desc:"sum to increment as we go through epoch"')
+        self.SetTags(
+            "SumErr",
+            'view:"-" inactive:"+" desc:"sum to increment as we go through epoch"',
+        )
         self.SumCorrel = float()
-        self.SetTags("SumCorrel", 'view:"-" inactive:"+" desc:"sum to increment as we go through epoch"')
+        self.SetTags(
+            "SumCorrel",
+            'view:"-" inactive:"+" desc:"sum to increment as we go through epoch"',
+        )
         self.SumSSE = float()
-        self.SetTags("SumSSE", 'view:"-" inactive:"+" desc:"sum to increment as we go through epoch"')
+        self.SetTags(
+            "SumSSE",
+            'view:"-" inactive:"+" desc:"sum to increment as we go through epoch"',
+        )
         self.SumAvgSSE = float()
-        self.SetTags("SumAvgSSE", 'view:"-" inactive:"+" desc:"sum to increment as we go through epoch"')
+        self.SetTags(
+            "SumAvgSSE",
+            'view:"-" inactive:"+" desc:"sum to increment as we go through epoch"',
+        )
         self.SumCosDiff = float()
-        self.SetTags("SumCosDiff", 'view:"-" inactive:"+" desc:"sum to increment as we go through epoch"')
+        self.SetTags(
+            "SumCosDiff",
+            'view:"-" inactive:"+" desc:"sum to increment as we go through epoch"',
+        )
         self.Win = 0
         self.SetTags("Win", 'view:"-" desc:"main GUI window"')
         self.NetView = 0
@@ -298,19 +463,22 @@ class Sim(pygiv.ClassViewObj):
         self.SetTags("RunPlot", 'view:"-" desc:"the run plot"')
         self.TrnEpcFile = 0
         self.SetTags("TrnEpcFile", 'view:"-" desc:"log file"')
-        self.RunFile =0
+        self.RunFile = 0
         self.SetTags("RunFile", 'view:"-" desc:"log file"')
-        self.ValsTsrs = {}
-        self.SetTags("ValsTsrs", 'view:"-" desc:"for holding layer values"')
+        self.ValuesTsrs = {}
+        self.SetTags("ValuesTsrs", 'view:"-" desc:"for holding layer values"')
         self.IsRunning = False
         self.SetTags("IsRunning", 'view:"-" desc:"true if sim is running"')
         self.StopNow = False
         self.SetTags("StopNow", 'view:"-" desc:"flag to stop running"')
         self.NeedsNewRun = False
-        self.SetTags("NeedsNewRun", 'view:"-" desc:"flag to initialize NewRun if last one finished"')
+        self.SetTags(
+            "NeedsNewRun",
+            'view:"-" desc:"flag to initialize NewRun if last one finished"',
+        )
         self.RndSeed = int(1)
         self.SetTags("RndSeed", 'view:"-" desc:"the current random seed"')
-        self.vp  = 0
+        self.vp = 0
         self.SetTags("vp", 'view:"-" desc:"viewport"')
 
     def InitParams(ss):
@@ -341,20 +509,22 @@ class Sim(pygiv.ClassViewObj):
     def ConfigEnv(ss):
         if ss.MaxRuns == 0:
             ss.MaxRuns = 1
-        if ss.MaxEpcs == 0: # allow user override
+        if ss.MaxEpcs == 0:  # allow user override
             ss.MaxEpcs = 100
             ss.NZeroStop = -1
         ss.EnvType = EnvType.TrainAll
 
         ss.TrainEnv.Nm = "TrainEnv"
         ss.TrainEnv.Dsc = "training params and state"
-        ss.TrainEnv.Table = etable.NewIdxView(ss.TrainAll)
+        ss.TrainEnv.Table = etable.NewIndexView(ss.TrainAll)
         ss.TrainEnv.Validate()
-        ss.TrainEnv.Run.Max = ss.MaxRuns # note: we are not setting epoch max -- do that manually
+        ss.TrainEnv.Run.Max = (
+            ss.MaxRuns
+        )  # note: we are not setting epoch max -- do that manually
 
         ss.TestEnv.Nm = "TestEnv"
         ss.TestEnv.Dsc = "testing params and state"
-        ss.TestEnv.Table = etable.NewIdxView(ss.TrainA)
+        ss.TestEnv.Table = etable.NewIndexView(ss.TrainA)
         ss.TestEnv.Sequential = True
         ss.TestEnv.Validate()
 
@@ -372,7 +542,7 @@ class Sim(pygiv.ClassViewObj):
         net.BidirConnectLayersPy(hid, out, full)
 
         net.Defaults()
-        ss.SetParams("Network", False) # only set Network params
+        ss.SetParams("Network", False)  # only set Network params
         net.Build()
         net.InitWts()
 
@@ -402,9 +572,21 @@ class Sim(pygiv.ClassViewObj):
         and add a few tabs at the end to allow for expansion..
         """
         if train:
-            return "Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%s\t\t\t" % (ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TrainEnv.Trial.Cur, ss.Time.Cycle, ss.TrainEnv.TrialName.Cur)
+            return "Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%s\t\t\t" % (
+                ss.TrainEnv.Run.Cur,
+                ss.TrainEnv.Epoch.Cur,
+                ss.TrainEnv.Trial.Cur,
+                ss.Time.Cycle,
+                ss.TrainEnv.TrialName.Cur,
+            )
         else:
-            return "Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%s\t\t\t" % (ss.TrainEnv.Run.Cur, ss.TrainEnv.Epoch.Cur, ss.TestEnv.Trial.Cur, ss.Time.Cycle, ss.TestEnv.TrialName.Cur)
+            return "Run:\t%d\tEpoch:\t%d\tTrial:\t%d\tCycle:\t%d\tName:\t%s\t\t\t" % (
+                ss.TrainEnv.Run.Cur,
+                ss.TrainEnv.Epoch.Cur,
+                ss.TestEnv.Trial.Cur,
+                ss.Time.Cycle,
+                ss.TestEnv.TrialName.Cur,
+            )
 
     def UpdateView(ss, train):
         if ss.NetView != 0 and ss.NetView.IsVisible():
@@ -421,10 +603,10 @@ class Sim(pygiv.ClassViewObj):
         """
 
         if ss.Win != 0:
-            ss.Win.PollEvents() # this is essential for GUI responsiveness while running
-        viewUpdt = ss.TrainUpdt.value
+            ss.Win.PollEvents()  # this is essential for GUI responsiveness while running
+        viewUpdate = ss.TrainUpdate.value
         if not train:
-            viewUpdt = ss.TestUpdt.value
+            viewUpdate = ss.TestUpdate.value
 
         if train:
             ss.Net.WtFmDWt()
@@ -436,24 +618,24 @@ class Sim(pygiv.ClassViewObj):
                 ss.Net.Cycle(ss.Time)
                 ss.Time.CycleInc()
                 if ss.ViewOn:
-                    if viewUpdt == leabra.Cycle:
-                        if cyc != ss.Time.CycPerQtr-1: # will be updated by quarter
+                    if viewUpdate == leabra.Cycle:
+                        if cyc != ss.Time.CycPerQtr - 1:  # will be updated by quarter
                             ss.UpdateView(train)
-                    if viewUpdt == leabra.FastSpike:
-                        if (cyc+1)%10 == 0:
+                    if viewUpdate == leabra.FastSpike:
+                        if (cyc + 1) % 10 == 0:
                             ss.UpdateView(train)
             ss.Net.QuarterFinal(ss.Time)
             ss.Time.QuarterInc()
             if ss.ViewOn:
-                if viewUpdt <= leabra.Quarter:
+                if viewUpdate <= leabra.Quarter:
                     ss.UpdateView(train)
-                if viewUpdt == leabra.Phase:
+                if viewUpdate == leabra.Phase:
                     if qtr >= 2:
                         ss.UpdateView(train)
 
         if train:
             ss.Net.DWt()
-        if ss.ViewOn and viewUpdt == leabra.AlphaCycle:
+        if ss.ViewOn and viewUpdate == leabra.AlphaCycle:
             ss.UpdateView(train)
 
     def ApplyInputs(ss, en):
@@ -466,7 +648,7 @@ class Sim(pygiv.ClassViewObj):
         ss.Net.InitExt()
 
         lays = go.Slice_string(["Input", "Output"])
-        for lnm in lays :
+        for lnm in lays:
             ly = leabra.Layer(ss.Net.LayerByName(lnm))
             pats = en.State(ly.Nm)
             if pats != 0:
@@ -488,14 +670,16 @@ class Sim(pygiv.ClassViewObj):
         chg = env.CounterChg(ss.TrainEnv, env.Epoch)
         if chg:
             ss.LogTrnEpc(ss.TrnEpcLog)
-            if ss.ViewOn and ss.TrainUpdt.value > leabra.AlphaCycle:
+            if ss.ViewOn and ss.TrainUpdate.value > leabra.AlphaCycle:
                 ss.UpdateView(True)
-            if ss.TestInterval > 0 and epc%ss.TestInterval == 0: # note: epc is *next* so won't trigger first time
+            if (
+                ss.TestInterval > 0 and epc % ss.TestInterval == 0
+            ):  # note: epc is *next* so won't trigger first time
                 ss.TestAll()
             if epc >= ss.MaxEpcs or (ss.NZeroStop > 0 and ss.NZero >= ss.NZeroStop):
                 # done with training..
                 ss.RunEnd()
-                if ss.TrainEnv.Run.Incr(): # we are done!
+                if ss.TrainEnv.Run.Incr():  # we are done!
                     ss.StopNow = True
                     return
                 else:
@@ -505,8 +689,8 @@ class Sim(pygiv.ClassViewObj):
         # note: type must be in place before apply inputs
         ss.Net.LayerByName("Output").SetType(emer.Target)
         ss.ApplyInputs(ss.TrainEnv)
-        ss.AlphaCyc(True)   # train
-        ss.TrialStats(True) # accumulate
+        ss.AlphaCyc(True)  # train
+        ss.TrialStats(True)  # accumulate
 
     def RunEnd(ss):
         """
@@ -536,22 +720,22 @@ class Sim(pygiv.ClassViewObj):
         ss.EnvType = EnvType(envType)
         ss.NeedsNewRun = False
         if envType == EnvType.TrainA:
-            ss.TrainEnv.Table = etable.NewIdxView(ss.TrainA)
+            ss.TrainEnv.Table = etable.NewIndexView(ss.TrainA)
             ss.TrainEnv.Init(0)
         if envType == EnvType.TrainB:
-            ss.TrainEnv.Table = etable.NewIdxView(ss.TrainB)
+            ss.TrainEnv.Table = etable.NewIndexView(ss.TrainB)
             ss.TrainEnv.Init(0)
         if envType == EnvType.TrainAll:
-            ss.TrainEnv.Table = etable.NewIdxView(ss.TrainAll)
+            ss.TrainEnv.Table = etable.NewIndexView(ss.TrainAll)
             ss.TrainEnv.Init(0)
         if envType == EnvType.TestA:
-            ss.TestEnv.Table = etable.NewIdxView(ss.TrainA)
+            ss.TestEnv.Table = etable.NewIndexView(ss.TrainA)
             ss.TestEnv.Init(0)
         if envType == EnvType.TestB:
-            ss.TestEnv.Table = etable.NewIdxView(ss.TrainB)
+            ss.TestEnv.Table = etable.NewIndexView(ss.TrainB)
             ss.TestEnv.Init(0)
         if envType == EnvType.TestAll:
-            ss.TestEnv.Table = etable.NewIdxView(ss.TrainAll)
+            ss.TestEnv.Table = etable.NewIndexView(ss.TrainAll)
             ss.TestEnv.Init(0)
         ss.UpdateClassView()
 
@@ -590,7 +774,7 @@ class Sim(pygiv.ClassViewObj):
         """
         out = leabra.Layer(ss.Net.LayerByName("Output"))
         ss.TrlCosDiff = float(out.CosDiff.Cos)
-        ss.TrlSSE = out.SSE(0.5) # 0.5 = per-unit tolerance -- right side of .5
+        ss.TrlSSE = out.SSE(0.5)  # 0.5 = per-unit tolerance -- right side of .5
         ss.TrlAvgSSE = ss.TrlSSE / len(out.Neurons)
 
         rcn = ss.ClosestStat(ss.Net, "Output", "ActM", ss.TrainAll, "Output", "Name")
@@ -603,8 +787,8 @@ class Sim(pygiv.ClassViewObj):
             tnm = ss.TrainEnv.TrialName.Cur
         else:
             tnm = ss.TestEnv.TrialName.Cur
-        cnmsp = cnm.split( "_")
-        tnmsp = tnm.split( "_")
+        cnmsp = cnm.split("_")
+        tnmsp = tnm.split("_")
         if cnmsp[0] == tnmsp[0]:
             ss.TrlErr = 0
         else:
@@ -629,9 +813,9 @@ class Sim(pygiv.ClassViewObj):
         correlation value, and value of a column named namecol for that row if non-empty.
         Column must be etensor.Float32
         """
-        vt = ss.ValsTsr(lnm)
+        vt = ss.ValuesTsr(lnm)
         ly = leabra.Layer(net.LayerByName(lnm))
-        ly.UnitValsTensor(vt, varnm)
+        ly.UnitValuesTensor(vt, varnm)
         col = dt.ColByName(colnm)
 
         rc = metric.ClosestRow32Py(vt, etensor.Float32(col), metric.InvCorrelation)
@@ -718,7 +902,7 @@ class Sim(pygiv.ClassViewObj):
 
         chg = env.CounterChg(ss.TestEnv, env.Epoch)
         if chg:
-            if ss.ViewOn and ss.TestUpdt.value > leabra.AlphaCycle:
+            if ss.ViewOn and ss.TestUpdate.value > leabra.AlphaCycle:
                 ss.UpdateView(False)
             ss.LogTstEpc(ss.TstEpcLog)
             if returnOnChg:
@@ -739,7 +923,7 @@ class Sim(pygiv.ClassViewObj):
 
         ss.ApplyInputs(ss.TestEnv)
         ss.AlphaCyc(False)
-        ss.TrialStats(False) # !accumulate
+        ss.TrialStats(False)  # !accumulate
         ss.TestEnv.Trial.Cur = cur
 
     def TestAll(ss):
@@ -797,7 +981,7 @@ class Sim(pygiv.ClassViewObj):
                 ss.Net.ApplyParams(netp, setMsg)
         if sheet == "" or sheet == "Sim":
             if "Sim" in pset.Sheets:
-                simp= pset.SheetByNameTry("Sim")
+                simp = pset.SheetByNameTry("Sim")
                 pyparams.ApplyParams(ss, simp, setMsg)
 
     def OpenPat(ss, dt, fname, name, desc):
@@ -810,14 +994,14 @@ class Sim(pygiv.ClassViewObj):
         ss.OpenPat(ss.TrainA, "twout_a.tsv", "TrainA", "A Training patterns")
         ss.OpenPat(ss.TrainB, "twout_b.tsv", "TrainB", "B Training patterns")
 
-    def ValsTsr(ss, name):
+    def ValuesTsr(ss, name):
         """
-        ValsTsr gets value tensor of given name, creating if not yet made
+        ValuesTsr gets value tensor of given name, creating if not yet made
         """
-        if name in ss.ValsTsrs:
-            return ss.ValsTsrs[name]
+        if name in ss.ValuesTsrs:
+            return ss.ValuesTsrs[name]
         tsr = etensor.Float32()
-        ss.ValsTsrs[name] = tsr
+        ss.ValuesTsrs[name] = tsr
         return tsr
 
     def LogTrnEpc(ss, dt):
@@ -829,7 +1013,7 @@ class Sim(pygiv.ClassViewObj):
         dt.SetNumRows(row + 1)
 
         epc = ss.TrainEnv.Epoch.Prv
-        nt = float(ss.TrainEnv.Table.Len()) # number of trials in view
+        nt = float(ss.TrainEnv.Table.Len())  # number of trials in view
 
         ss.EpcSSE = ss.SumSSE / nt
         ss.SumSSE = 0
@@ -858,9 +1042,11 @@ class Sim(pygiv.ClassViewObj):
         dt.SetCellFloat("Correl", row, ss.EpcCorrel)
         dt.SetCellFloat("CosDiff", row, ss.EpcCosDiff)
 
-        for lnm in ss.LayStatNms :
+        for lnm in ss.LayStatNms:
             ly = leabra.Layer(ss.Net.LayerByName(lnm))
-            dt.SetCellFloat(ly.Nm+" ActAvg", row, float(ly.Pools[0].ActAvg.ActPAvgEff))
+            dt.SetCellFloat(
+                ly.Nm + " ActAvg", row, float(ly.Pools[0].ActAvg.ActPAvgEff)
+            )
 
         # note: essential to use Go version of update when called from another goroutine
         ss.TrnEpcPlot.GoUpdate()
@@ -876,17 +1062,19 @@ class Sim(pygiv.ClassViewObj):
         dt.SetMetaData("precision", str(LogPrec))
 
         sch = etable.Schema(
-            [etable.Column("Run", etensor.INT64, go.nil, go.nil),
-            etable.Column("Epoch", etensor.INT64, go.nil, go.nil),
-            etable.Column("SSE", etensor.FLOAT64, go.nil, go.nil),
-            etable.Column("AvgSSE", etensor.FLOAT64, go.nil, go.nil),
-            etable.Column("PctErr", etensor.FLOAT64, go.nil, go.nil),
-            etable.Column("PctCor", etensor.FLOAT64, go.nil, go.nil),
-            etable.Column("Correl", etensor.FLOAT64, go.nil, go.nil),
-            etable.Column("CosDiff", etensor.FLOAT64, go.nil, go.nil)]
+            [
+                etable.Column("Run", etensor.INT64, go.nil, go.nil),
+                etable.Column("Epoch", etensor.INT64, go.nil, go.nil),
+                etable.Column("SSE", etensor.FLOAT64, go.nil, go.nil),
+                etable.Column("AvgSSE", etensor.FLOAT64, go.nil, go.nil),
+                etable.Column("PctErr", etensor.FLOAT64, go.nil, go.nil),
+                etable.Column("PctCor", etensor.FLOAT64, go.nil, go.nil),
+                etable.Column("Correl", etensor.FLOAT64, go.nil, go.nil),
+                etable.Column("CosDiff", etensor.FLOAT64, go.nil, go.nil),
+            ]
         )
-        for lnm in ss.LayStatNms :
-            sch.append( etable.Column(lnm + " ActAvg", etensor.FLOAT64, go.nil, go.nil))
+        for lnm in ss.LayStatNms:
+            sch.append(etable.Column(lnm + " ActAvg", etensor.FLOAT64, go.nil, go.nil))
         dt.SetFromSchema(sch, 0)
 
     def ConfigTrnEpcPlot(ss, plt, dt):
@@ -898,13 +1086,17 @@ class Sim(pygiv.ClassViewObj):
         plt.SetColParams("Epoch", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
         plt.SetColParams("SSE", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
         plt.SetColParams("AvgSSE", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
-        plt.SetColParams("PctErr", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1) # default plot
+        plt.SetColParams(
+            "PctErr", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1
+        )  # default plot
         plt.SetColParams("PctCor", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
-        plt.SetColParams("Correl", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1) # def
+        plt.SetColParams("Correl", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)  # def
         plt.SetColParams("CosDiff", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
 
-        for lnm in ss.LayStatNms :
-            plt.SetColParams(lnm+" ActAvg", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 0.5)
+        for lnm in ss.LayStatNms:
+            plt.SetColParams(
+                lnm + " ActAvg", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 0.5
+            )
         return plt
 
     def LogTstTrl(ss, dt):
@@ -935,17 +1127,17 @@ class Sim(pygiv.ClassViewObj):
         dt.SetCellFloat("AvgSSE", row, ss.TrlAvgSSE)
         dt.SetCellFloat("CosDiff", row, ss.TrlCosDiff)
 
-        for lnm in ss.LayStatNms :
+        for lnm in ss.LayStatNms:
             ly = leabra.Layer(ss.Net.LayerByName(lnm))
-            dt.SetCellFloat(ly.Nm+" ActM.Avg", row, float(ly.Pools[0].ActM.Avg))
+            dt.SetCellFloat(ly.Nm + " ActM.Avg", row, float(ly.Pools[0].ActM.Avg))
 
-        ivt = ss.ValsTsr("Input")
-        ovt = ss.ValsTsr("Output")
-        inp.UnitValsTensor(ivt, "Act")
+        ivt = ss.ValuesTsr("Input")
+        ovt = ss.ValuesTsr("Output")
+        inp.UnitValuesTensor(ivt, "Act")
         dt.SetCellTensor("InAct", row, ivt)
-        out.UnitValsTensor(ovt, "ActM")
+        out.UnitValuesTensor(ovt, "ActM")
         dt.SetCellTensor("OutActM", row, ovt)
-        out.UnitValsTensor(ovt, "Targ")
+        out.UnitValuesTensor(ovt, "Targ")
         dt.SetCellTensor("OutTarg", row, ovt)
 
         # note: essential to use Go version of update when called from another goroutine
@@ -960,23 +1152,27 @@ class Sim(pygiv.ClassViewObj):
         dt.SetMetaData("read-only", "true")
         dt.SetMetaData("precision", str(LogPrec))
 
-        nt = ss.TestEnv.Table.Len() # number in view
+        nt = ss.TestEnv.Table.Len()  # number in view
         sch = etable.Schema(
-            [etable.Column("Run", etensor.INT64, go.nil, go.nil),
-            etable.Column("Epoch", etensor.INT64, go.nil, go.nil),
-            etable.Column("Trial", etensor.INT64, go.nil, go.nil),
-            etable.Column("TrialName", etensor.STRING, go.nil, go.nil),
-            etable.Column("Closest", etensor.STRING, go.nil, go.nil),
-            etable.Column("IsA", etensor.FLOAT64, go.nil, go.nil),
-            etable.Column("IsB", etensor.FLOAT64, go.nil, go.nil),
-            etable.Column("Err", etensor.FLOAT64, go.nil, go.nil),
-            etable.Column("Correl", etensor.FLOAT64, go.nil, go.nil),
-            etable.Column("SSE", etensor.FLOAT64, go.nil, go.nil),
-            etable.Column("AvgSSE", etensor.FLOAT64, go.nil, go.nil),
-            etable.Column("CosDiff", etensor.FLOAT64, go.nil, go.nil)]
+            [
+                etable.Column("Run", etensor.INT64, go.nil, go.nil),
+                etable.Column("Epoch", etensor.INT64, go.nil, go.nil),
+                etable.Column("Trial", etensor.INT64, go.nil, go.nil),
+                etable.Column("TrialName", etensor.STRING, go.nil, go.nil),
+                etable.Column("Closest", etensor.STRING, go.nil, go.nil),
+                etable.Column("IsA", etensor.FLOAT64, go.nil, go.nil),
+                etable.Column("IsB", etensor.FLOAT64, go.nil, go.nil),
+                etable.Column("Err", etensor.FLOAT64, go.nil, go.nil),
+                etable.Column("Correl", etensor.FLOAT64, go.nil, go.nil),
+                etable.Column("SSE", etensor.FLOAT64, go.nil, go.nil),
+                etable.Column("AvgSSE", etensor.FLOAT64, go.nil, go.nil),
+                etable.Column("CosDiff", etensor.FLOAT64, go.nil, go.nil),
+            ]
         )
-        for lnm in ss.LayStatNms :
-            sch.append( etable.Column(lnm + " ActM.Avg", etensor.FLOAT64, go.nil, go.nil))
+        for lnm in ss.LayStatNms:
+            sch.append(
+                etable.Column(lnm + " ActM.Avg", etensor.FLOAT64, go.nil, go.nil)
+            )
         sch.append(etable.Column("InAct", etensor.FLOAT64, inp.Shp.Shp, go.nil))
         sch.append(etable.Column("OutActM", etensor.FLOAT64, out.Shp.Shp, go.nil))
         sch.append(etable.Column("OutTarg", etensor.FLOAT64, out.Shp.Shp, go.nil))
@@ -1000,8 +1196,10 @@ class Sim(pygiv.ClassViewObj):
         plt.SetColParams("AvgSSE", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
         plt.SetColParams("CosDiff", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
 
-        for lnm in ss.LayStatNms :
-            plt.SetColParams(lnm+" ActM.Avg", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 0.5)
+        for lnm in ss.LayStatNms:
+            plt.SetColParams(
+                lnm + " ActM.Avg", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 0.5
+            )
 
         plt.SetColParams("InAct", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
         plt.SetColParams("OutActM", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
@@ -1013,8 +1211,8 @@ class Sim(pygiv.ClassViewObj):
         dt.SetNumRows(row + 1)
 
         trl = ss.TstTrlLog
-        tix = etable.NewIdxView(trl)
-        epc = ss.TrainEnv.Epoch.Prv # ?
+        tix = etable.NewIndexView(trl)
+        epc = ss.TrainEnv.Epoch.Prv  # ?
 
         # note: this shows how to use agg methods to compute summary data from another
         # data table, instead of incrementing on the Sim
@@ -1023,7 +1221,7 @@ class Sim(pygiv.ClassViewObj):
         dt.SetCellFloat("SSE", row, agg.Sum(tix, "SSE")[0])
         dt.SetCellFloat("AvgSSE", row, agg.Mean(tix, "AvgSSE")[0])
         dt.SetCellFloat("PctErr", row, agg.Mean(tix, "Err")[0])
-        dt.SetCellFloat("PctCor", row, 1-agg.Mean(tix, "Err")[0])
+        dt.SetCellFloat("PctCor", row, 1 - agg.Mean(tix, "Err")[0])
         dt.SetCellFloat("IsA", row, agg.Mean(tix, "IsA")[0])
         dt.SetCellFloat("IsB", row, agg.Mean(tix, "IsB")[0])
         dt.SetCellFloat("Correl", row, agg.Mean(tix, "Correl")[0])
@@ -1039,16 +1237,18 @@ class Sim(pygiv.ClassViewObj):
         dt.SetMetaData("precision", str(LogPrec))
 
         sch = etable.Schema(
-            [etable.Column("Run", etensor.INT64, go.nil, go.nil),
-            etable.Column("Epoch", etensor.INT64, go.nil, go.nil),
-            etable.Column("SSE", etensor.FLOAT64, go.nil, go.nil),
-            etable.Column("AvgSSE", etensor.FLOAT64, go.nil, go.nil),
-            etable.Column("PctErr", etensor.FLOAT64, go.nil, go.nil),
-            etable.Column("PctCor", etensor.FLOAT64, go.nil, go.nil),
-            etable.Column("IsA", etensor.FLOAT64, go.nil, go.nil),
-            etable.Column("IsB", etensor.FLOAT64, go.nil, go.nil),
-            etable.Column("Correl", etensor.FLOAT64, go.nil, go.nil),
-            etable.Column("CosDiff", etensor.FLOAT64, go.nil, go.nil)]
+            [
+                etable.Column("Run", etensor.INT64, go.nil, go.nil),
+                etable.Column("Epoch", etensor.INT64, go.nil, go.nil),
+                etable.Column("SSE", etensor.FLOAT64, go.nil, go.nil),
+                etable.Column("AvgSSE", etensor.FLOAT64, go.nil, go.nil),
+                etable.Column("PctErr", etensor.FLOAT64, go.nil, go.nil),
+                etable.Column("PctCor", etensor.FLOAT64, go.nil, go.nil),
+                etable.Column("IsA", etensor.FLOAT64, go.nil, go.nil),
+                etable.Column("IsB", etensor.FLOAT64, go.nil, go.nil),
+                etable.Column("Correl", etensor.FLOAT64, go.nil, go.nil),
+                etable.Column("CosDiff", etensor.FLOAT64, go.nil, go.nil),
+            ]
         )
         dt.SetFromSchema(sch, 0)
 
@@ -1078,12 +1278,12 @@ class Sim(pygiv.ClassViewObj):
         dt.SetNumRows(row + 1)
 
         epclog = ss.TrnEpcLog
-        epcix = etable.NewIdxView(epclog)
+        epcix = etable.NewIndexView(epclog)
         # compute mean over last N epochs for run level
         nlast = 5
-        if nlast > epcix.Len()-1:
+        if nlast > epcix.Len() - 1:
             nlast = epcix.Len() - 1
-        epcix.Idxs = epcix.Idxs[epcix.Len()-nlast:]
+        epcix.Indexes = epcix.Indexes[epcix.Len() - nlast :]
 
         params = ""
 
@@ -1096,7 +1296,7 @@ class Sim(pygiv.ClassViewObj):
         dt.SetCellFloat("PctCor", row, agg.Mean(epcix, "PctCor")[0])
         dt.SetCellFloat("CosDiff", row, agg.Mean(epcix, "CosDiff")[0])
 
-        runix = etable.NewIdxView(dt)
+        runix = etable.NewIndexView(dt)
         spl = split.GroupBy(runix, go.Slice_string(["Params"]))
         split.Desc(spl, "FirstZero")
         split.Desc(spl, "PctCor")
@@ -1116,14 +1316,16 @@ class Sim(pygiv.ClassViewObj):
         dt.SetMetaData("precision", str(LogPrec))
 
         sch = etable.Schema(
-            [etable.Column("Run", etensor.INT64, go.nil, go.nil),
-            etable.Column("Params", etensor.STRING, go.nil, go.nil),
-            etable.Column("FirstZero", etensor.FLOAT64, go.nil, go.nil),
-            etable.Column("SSE", etensor.FLOAT64, go.nil, go.nil),
-            etable.Column("AvgSSE", etensor.FLOAT64, go.nil, go.nil),
-            etable.Column("PctErr", etensor.FLOAT64, go.nil, go.nil),
-            etable.Column("PctCor", etensor.FLOAT64, go.nil, go.nil),
-            etable.Column("CosDiff", etensor.FLOAT64, go.nil, go.nil)]
+            [
+                etable.Column("Run", etensor.INT64, go.nil, go.nil),
+                etable.Column("Params", etensor.STRING, go.nil, go.nil),
+                etable.Column("FirstZero", etensor.FLOAT64, go.nil, go.nil),
+                etable.Column("SSE", etensor.FLOAT64, go.nil, go.nil),
+                etable.Column("AvgSSE", etensor.FLOAT64, go.nil, go.nil),
+                etable.Column("PctErr", etensor.FLOAT64, go.nil, go.nil),
+                etable.Column("PctCor", etensor.FLOAT64, go.nil, go.nil),
+                etable.Column("CosDiff", etensor.FLOAT64, go.nil, go.nil),
+            ]
         )
         dt.SetFromSchema(sch, 0)
 
@@ -1133,7 +1335,9 @@ class Sim(pygiv.ClassViewObj):
         plt.SetTable(dt)
         # order of params: on, fixMin, min, fixMax, max
         plt.SetColParams("Run", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
-        plt.SetColParams("FirstZero", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0) # default plot
+        plt.SetColParams(
+            "FirstZero", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0
+        )  # default plot
         plt.SetColParams("SSE", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0)
         plt.SetColParams("AvgSSE", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
         plt.SetColParams("PctErr", eplot.Off, eplot.FixMin, 0, eplot.FixMax, 1)
@@ -1143,6 +1347,7 @@ class Sim(pygiv.ClassViewObj):
 
     def ConfigNetView(ss, nv):
         nv.ViewDefaults()
+
     # nv.Scene().Camera.Pose.Pos.Set(0, 1.25, 3.0)
     # nv.Scene().Camera.LookAt(mat32.Vec3{0, 0, 0}, mat32.Vec3{0, 1, 0})
 
@@ -1154,7 +1359,9 @@ class Sim(pygiv.ClassViewObj):
         height = 1200
 
         gi.SetAppName("priming")
-        gi.SetAppAbout('This simulation explores the neural basis of *priming* -- the often surprisingly strong impact of residual traces from prior experience, which can be either *weight-based* (small changes in synapses) or *activation-based* (residual neural activity).  In the first part, we see how small weight changes caused by the standard slow cortical learning rate can produce significant behavioral priming, causing the network to favor one output pattern over another.  Likewise, residual activation can bias subsequent processing, but this is short-lived and transient compared to the long-lasting effects of weight-based priming. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch8/priming/README.md">README.md on GitHub</a>.</p>')
+        gi.SetAppAbout(
+            'This simulation explores the neural basis of *priming* -- the often surprisingly strong impact of residual traces from prior experience, which can be either *weight-based* (small changes in synapses) or *activation-based* (residual neural activity).  In the first part, we see how small weight changes caused by the standard slow cortical learning rate can produce significant behavioral priming, causing the network to favor one output pattern over another.  Likewise, residual activation can bias subsequent processing, but this is short-lived and transient compared to the long-lasting effects of weight-based priming. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch8/priming/README.md">README.md on GitHub</a>.</p>'
+        )
 
         win = gi.NewMainWindow("priming", "Priming", width, height)
         ss.Win = win
@@ -1202,42 +1409,164 @@ class Sim(pygiv.ClassViewObj):
         tv.AddTab(plt, "RunPlot")
         ss.RunPlot = ss.ConfigRunPlot(plt, ss.RunLog)
 
-        split.SetSplitsList(go.Slice_float32([.2, .8]))
+        split.SetSplitsList(go.Slice_float32([0.2, 0.8]))
         recv = win.This()
 
-        tbar.AddAction(gi.ActOpts(Label="Init", Icon="update", Tooltip="Initialize everything including network weights, and start over.  Also applies current params.", UpdateFunc=UpdtFuncNotRunning), recv, InitCB)
+        tbar.AddAction(
+            gi.ActOpts(
+                Label="Init",
+                Icon="update",
+                Tooltip="Initialize everything including network weights, and start over.  Also applies current params.",
+                UpdateFunc=UpdateFuncNotRunning,
+            ),
+            recv,
+            InitCB,
+        )
 
-        tbar.AddAction(gi.ActOpts(Label="Train", Icon="run", Tooltip="Starts the network training, picking up from wherever it may have left off.  If not stopped, training will complete the specified number of Runs through the full number of Epochs of training, with testing automatically occuring at the specified interval.", UpdateFunc=UpdtFuncNotRunning), recv, TrainCB)
-        
-        tbar.AddAction(gi.ActOpts(Label="Stop", Icon="stop", Tooltip="Interrupts running.  Hitting Train again will pick back up where it left off.", UpdateFunc=UpdtFuncRunning), recv, StopCB)
-        
-        tbar.AddAction(gi.ActOpts(Label="Step Trial", Icon="step-fwd", Tooltip="Advances one training trial at a time.", UpdateFunc=UpdtFuncNotRunning), recv, StepTrialCB)
-        
-        tbar.AddAction(gi.ActOpts(Label="Step Epoch", Icon="fast-fwd", Tooltip="Advances one epoch (complete set of training patterns) at a time.", UpdateFunc=UpdtFuncNotRunning), recv, StepEpochCB)
+        tbar.AddAction(
+            gi.ActOpts(
+                Label="Train",
+                Icon="run",
+                Tooltip="Starts the network training, picking up from wherever it may have left off.  If not stopped, training will complete the specified number of Runs through the full number of Epochs of training, with testing automatically occuring at the specified interval.",
+                UpdateFunc=UpdateFuncNotRunning,
+            ),
+            recv,
+            TrainCB,
+        )
 
-        tbar.AddAction(gi.ActOpts(Label="Step Run", Icon="fast-fwd", Tooltip="Advances one full training Run at a time.", UpdateFunc=UpdtFuncNotRunning), recv, StepRunCB)
-        
+        tbar.AddAction(
+            gi.ActOpts(
+                Label="Stop",
+                Icon="stop",
+                Tooltip="Interrupts running.  Hitting Train again will pick back up where it left off.",
+                UpdateFunc=UpdateFuncRunning,
+            ),
+            recv,
+            StopCB,
+        )
+
+        tbar.AddAction(
+            gi.ActOpts(
+                Label="Step Trial",
+                Icon="step-fwd",
+                Tooltip="Advances one training trial at a time.",
+                UpdateFunc=UpdateFuncNotRunning,
+            ),
+            recv,
+            StepTrialCB,
+        )
+
+        tbar.AddAction(
+            gi.ActOpts(
+                Label="Step Epoch",
+                Icon="fast-fwd",
+                Tooltip="Advances one epoch (complete set of training patterns) at a time.",
+                UpdateFunc=UpdateFuncNotRunning,
+            ),
+            recv,
+            StepEpochCB,
+        )
+
+        tbar.AddAction(
+            gi.ActOpts(
+                Label="Step Run",
+                Icon="fast-fwd",
+                Tooltip="Advances one full training Run at a time.",
+                UpdateFunc=UpdateFuncNotRunning,
+            ),
+            recv,
+            StepRunCB,
+        )
+
         tbar.AddSeparator("test")
-        
-        tbar.AddAction(gi.ActOpts(Label="Test Trial", Icon="step-fwd", Tooltip="Runs the next testing trial.", UpdateFunc=UpdtFuncNotRunning), recv, TestTrialCB)
-        
-        tbar.AddAction(gi.ActOpts(Label="Test Item", Icon="step-fwd", Tooltip="Prompts for a specific input pattern name to run, and runs it in testing mode.", UpdateFunc=UpdtFuncNotRunning), recv, TestItemCB)
-        
-        tbar.AddAction(gi.ActOpts(Label="Test All", Icon="fast-fwd", Tooltip="Tests all of the testing trials.", UpdateFunc=UpdtFuncNotRunning), recv, TestAllCB)
+
+        tbar.AddAction(
+            gi.ActOpts(
+                Label="Test Trial",
+                Icon="step-fwd",
+                Tooltip="Runs the next testing trial.",
+                UpdateFunc=UpdateFuncNotRunning,
+            ),
+            recv,
+            TestTrialCB,
+        )
+
+        tbar.AddAction(
+            gi.ActOpts(
+                Label="Test Item",
+                Icon="step-fwd",
+                Tooltip="Prompts for a specific input pattern name to run, and runs it in testing mode.",
+                UpdateFunc=UpdateFuncNotRunning,
+            ),
+            recv,
+            TestItemCB,
+        )
+
+        tbar.AddAction(
+            gi.ActOpts(
+                Label="Test All",
+                Icon="fast-fwd",
+                Tooltip="Tests all of the testing trials.",
+                UpdateFunc=UpdateFuncNotRunning,
+            ),
+            recv,
+            TestAllCB,
+        )
 
         tbar.AddSeparator("log")
-        
-        tbar.AddAction(gi.ActOpts(Label= "Env", Icon= "gear", Tooltip= "select training input patterns: AB or AC."), recv, EnvCB)
-        
-        tbar.AddAction(gi.ActOpts(Label= "Open Trained Wts", Icon= "update", Tooltip= "Open weights trained on first phase of training (excluding 'novel' objects)", UpdateFunc=UpdtFuncNotRunning), recv, OpenTrainedWtsCB)
 
-        tbar.AddAction(gi.ActOpts(Label="Reset RunLog", Icon="reset", Tooltip="Resets the accumulated log of all Runs, which are tagged with the ParamSet used"), recv, ResetRunLogCB)
+        tbar.AddAction(
+            gi.ActOpts(
+                Label="Env",
+                Icon="gear",
+                Tooltip="select training input patterns: AB or AC.",
+            ),
+            recv,
+            EnvCB,
+        )
+
+        tbar.AddAction(
+            gi.ActOpts(
+                Label="Open Trained Wts",
+                Icon="update",
+                Tooltip="Open weights trained on first phase of training (excluding 'novel' objects)",
+                UpdateFunc=UpdateFuncNotRunning,
+            ),
+            recv,
+            OpenTrainedWtsCB,
+        )
+
+        tbar.AddAction(
+            gi.ActOpts(
+                Label="Reset RunLog",
+                Icon="reset",
+                Tooltip="Resets the accumulated log of all Runs, which are tagged with the ParamSet used",
+            ),
+            recv,
+            ResetRunLogCB,
+        )
 
         tbar.AddSeparator("misc")
-        
-        tbar.AddAction(gi.ActOpts(Label="New Seed", Icon="new", Tooltip="Generate a new initial random seed to get different results.  By default, Init re-establishes the same initial seed every time."), recv, NewRndSeedCB)
 
-        tbar.AddAction(gi.ActOpts(Label="README", Icon="file-markdown", Tooltip="Opens your browser on the README file that contains instructions for how to run this model."), recv, ReadmeCB)
+        tbar.AddAction(
+            gi.ActOpts(
+                Label="New Seed",
+                Icon="new",
+                Tooltip="Generate a new initial random seed to get different results.  By default, Init re-establishes the same initial seed every time.",
+            ),
+            recv,
+            NewRndSeedCB,
+        )
+
+        tbar.AddAction(
+            gi.ActOpts(
+                Label="README",
+                Icon="file-markdown",
+                Tooltip="Opens your browser on the README file that contains instructions for how to run this model.",
+            ),
+            recv,
+            ReadmeCB,
+        )
 
         # main menu
         appnm = gi.AppName()
@@ -1267,14 +1596,15 @@ class Sim(pygiv.ClassViewObj):
         vp.UpdateEndNoSig(updt)
         win.GoStartEventLoop()
 
+
 # TheSim is the overall state for this simulation
 TheSim = Sim()
- 
+
+
 def main(argv):
     TheSim.Config()
     TheSim.ConfigGui()
     TheSim.Init()
-    
+
+
 main(sys.argv[1:])
-
-

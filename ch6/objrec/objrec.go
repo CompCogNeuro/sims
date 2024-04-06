@@ -199,10 +199,10 @@ type Sim struct {
 	ViewOn bool
 
 	// at what time scale to update the display during training?  Anything longer than Epoch updates at Epoch in this model
-	TrainUpdt leabra.TimeScales
+	TrainUpdate leabra.TimeScales
 
 	// at what time scale to update the display during testing?  Anything longer than Epoch updates at Epoch in this model
-	TestUpdt leabra.TimeScales
+	TestUpdate leabra.TimeScales
 
 	// names of layers to collect more detailed stats on (avg act, etc)
 	LayStatNms []string
@@ -292,7 +292,7 @@ type Sim struct {
 	RunFile *os.File `view:"-"`
 
 	// for holding layer values
-	ValsTsrs map[string]*etensor.Float32 `view:"-"`
+	ValuesTsrs map[string]*etensor.Float32 `view:"-"`
 
 	// for command-line run only, auto-save final weights after each run
 	SaveWts bool `view:"-"`
@@ -346,8 +346,8 @@ func (ss *Sim) New() {
 	// ss.V1V4Prjn.GaussInPool.DefNoWrap()
 	ss.RndSeed = 1
 	ss.ViewOn = true
-	ss.TrainUpdt = leabra.Quarter
-	ss.TestUpdt = leabra.Quarter
+	ss.TrainUpdate = leabra.Quarter
+	ss.TestUpdate = leabra.Quarter
 	ss.LayStatNms = []string{"V1", "Output"}
 	ss.ActRFNms = []string{"V4:Image", "V4:Output", "IT:Image", "IT:Output"}
 	ss.PNovel = 0
@@ -502,9 +502,9 @@ func (ss *Sim) UpdateView(train bool, cyc int) {
 // Handles netview updating within scope of AlphaCycle
 func (ss *Sim) AlphaCyc(train bool) {
 	// ss.Win.PollEvents() // this can be used instead of running in a separate goroutine
-	viewUpdt := ss.TrainUpdt
+	viewUpdate := ss.TrainUpdate
 	if !train {
-		viewUpdt = ss.TestUpdt
+		viewUpdate = ss.TestUpdate
 	}
 
 	ss.Net.AlphaCycInit(train)
@@ -514,7 +514,7 @@ func (ss *Sim) AlphaCyc(train bool) {
 			ss.Net.Cycle(&ss.Time)
 			ss.Time.CycleInc()
 			if ss.ViewOn {
-				switch viewUpdt {
+				switch viewUpdate {
 				case leabra.Cycle:
 					if cyc != ss.Time.CycPerQtr-1 { // will be updated by quarter
 						ss.UpdateView(train, ss.Time.Cycle)
@@ -530,11 +530,11 @@ func (ss *Sim) AlphaCyc(train bool) {
 		ss.Time.QuarterInc()
 		if ss.ViewOn {
 			switch {
-			case viewUpdt == leabra.Cycle:
+			case viewUpdate == leabra.Cycle:
 				ss.UpdateView(train, ss.Time.Cycle)
-			case viewUpdt <= leabra.Quarter:
+			case viewUpdate <= leabra.Quarter:
 				ss.UpdateView(train, -1)
-			case viewUpdt == leabra.Phase:
+			case viewUpdate == leabra.Phase:
 				if qtr >= 2 {
 					ss.UpdateView(train, -1)
 				}
@@ -549,7 +549,7 @@ func (ss *Sim) AlphaCyc(train bool) {
 		}
 		ss.Net.WtFmDWt()
 	}
-	if ss.ViewOn && viewUpdt == leabra.AlphaCycle {
+	if ss.ViewOn && viewUpdate == leabra.AlphaCycle {
 		ss.UpdateView(train, -1)
 	}
 }
@@ -590,7 +590,7 @@ func (ss *Sim) TrainTrial() {
 	if chg {
 		ss.LogTrnEpc(ss.TrnEpcLog)
 		ss.LrateSched(epc)
-		if ss.ViewOn && ss.TrainUpdt > leabra.AlphaCycle {
+		if ss.ViewOn && ss.TrainUpdate > leabra.AlphaCycle {
 			ss.UpdateView(true, -1)
 		}
 		if epc >= ss.MaxEpcs || (ss.NZeroStop > 0 && ss.NZero >= ss.NZeroStop) {
@@ -684,7 +684,7 @@ func (ss *Sim) TrialStats(accum bool) (sse, avgsse, cosdiff float64) {
 		ss.SumAvgSSE += ss.TrlAvgSSE
 		ss.SumCosDiff += ss.TrlCosDiff
 	} else { // testing
-		ss.UpdtActRFs()
+		ss.UpdateActRFs()
 	}
 	return
 }
@@ -790,7 +790,7 @@ func (ss *Sim) TestTrial(returnOnChg bool) {
 	// Query counters FIRST
 	_, _, chg := ss.TestEnv.Counter(env.Epoch)
 	if chg {
-		if ss.ViewOn && ss.TestUpdt > leabra.AlphaCycle {
+		if ss.ViewOn && ss.TestUpdate > leabra.AlphaCycle {
 			ss.UpdateView(false, -1)
 		}
 		ss.LogTstEpc(ss.TstEpcLog)
@@ -841,13 +841,13 @@ func (ss *Sim) RunTestAll() {
 	ss.Stopped()
 }
 
-// UpdtActRFs updates activation rf's -- only called during testing
-func (ss *Sim) UpdtActRFs() {
+// UpdateActRFs updates activation rf's -- only called during testing
+func (ss *Sim) UpdateActRFs() {
 	oly := ss.Net.LayerByName("Output")
-	ovt := ss.ValsTsr("Output")
-	oly.UnitValsTensor(ovt, "ActM")
-	if _, ok := ss.ValsTsrs["Image"]; !ok {
-		ss.ValsTsrs["Image"] = &ss.TestEnv.Vis.ImgTsr
+	ovt := ss.ValuesTsr("Output")
+	oly.UnitValuesTensor(ovt, "ActM")
+	if _, ok := ss.ValuesTsrs["Image"]; !ok {
+		ss.ValuesTsrs["Image"] = &ss.TestEnv.Vis.ImgTsr
 	}
 	naf := len(ss.ActRFNms)
 	if len(ss.ActRFs.RFs) != naf {
@@ -858,10 +858,10 @@ func (ss *Sim) UpdtActRFs() {
 			if ly == nil {
 				continue
 			}
-			lvt := ss.ValsTsr(lnm)
-			ly.UnitValsTensor(lvt, "ActM")
+			lvt := ss.ValuesTsr(lnm)
+			ly.UnitValuesTensor(lvt, "ActM")
 			tnm := sp[1]
-			tvt := ss.ValsTsr(tnm)
+			tvt := ss.ValuesTsr(tnm)
 			ss.ActRFs.AddRF(anm, lvt, tvt)
 			// af.NormRF.SetMetaData("min", "0")
 		}
@@ -873,10 +873,10 @@ func (ss *Sim) UpdtActRFs() {
 		if ly == nil {
 			continue
 		}
-		lvt := ss.ValsTsr(lnm)
-		ly.UnitValsTensor(lvt, "ActM")
+		lvt := ss.ValuesTsr(lnm)
+		ly.UnitValuesTensor(lvt, "ActM")
 		tnm := sp[1]
-		tvt := ss.ValsTsr(tnm)
+		tvt := ss.ValuesTsr(tnm)
 		ss.ActRFs.Add(anm, lvt, tvt, 0.01) // thr prevent weird artifacts
 	}
 }
@@ -957,15 +957,15 @@ func (ss *Sim) SetParamsSet(setNm string, sheet string, setMsg bool) error {
 ////////////////////////////////////////////////////////////////////////////////////////////
 // 		Logging
 
-// ValsTsr gets value tensor of given name, creating if not yet made
-func (ss *Sim) ValsTsr(name string) *etensor.Float32 {
-	if ss.ValsTsrs == nil {
-		ss.ValsTsrs = make(map[string]*etensor.Float32)
+// ValuesTsr gets value tensor of given name, creating if not yet made
+func (ss *Sim) ValuesTsr(name string) *etensor.Float32 {
+	if ss.ValuesTsrs == nil {
+		ss.ValuesTsrs = make(map[string]*etensor.Float32)
 	}
-	tsr, ok := ss.ValsTsrs[name]
+	tsr, ok := ss.ValuesTsrs[name]
 	if !ok {
 		tsr = &etensor.Float32{}
-		ss.ValsTsrs[name] = tsr
+		ss.ValuesTsrs[name] = tsr
 	}
 	return tsr
 }
@@ -1188,7 +1188,7 @@ func (ss *Sim) ConfigTstTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 
 func (ss *Sim) LogTstEpc(dt *etable.Table) {
 	trl := ss.TstTrlLog
-	tix := etable.NewIdxView(trl)
+	tix := etable.NewIndexView(trl)
 	// epc := ss.TrainEnv.Epoch.Prv // ?
 
 	spl := split.GroupBy(tix, []string{"Obj"})
@@ -1201,7 +1201,7 @@ func (ss *Sim) LogTstEpc(dt *etable.Table) {
 	dt.SetNumRows(no)
 	for i := 0; i < no; i++ {
 		dt.SetCellFloat("Obj", i, float64(i))
-		dt.SetCellFloat("PctErr", i, objs.Cols[1].FloatVal1D(i))
+		dt.SetCellFloat("PctErr", i, objs.Cols[1].FloatValue1D(i))
 	}
 	ss.TstEpcPlot.GoUpdate()
 }
@@ -1240,13 +1240,13 @@ func (ss *Sim) LogRun(dt *etable.Table) {
 	dt.SetNumRows(row + 1)
 
 	epclog := ss.TrnEpcLog
-	epcix := etable.NewIdxView(epclog)
+	epcix := etable.NewIndexView(epclog)
 	// compute mean over last N epochs for run level
 	nlast := 5
 	if nlast > epcix.Len()-1 {
 		nlast = epcix.Len() - 1
 	}
-	epcix.Idxs = epcix.Idxs[epcix.Len()-nlast:]
+	epcix.Indexes = epcix.Indexes[epcix.Len()-nlast:]
 
 	// params := ss.Params.Name
 	params := "params"
@@ -1260,7 +1260,7 @@ func (ss *Sim) LogRun(dt *etable.Table) {
 	dt.SetCellFloat("PctCor", row, agg.Mean(epcix, "PctCor")[0])
 	dt.SetCellFloat("CosDiff", row, agg.Mean(epcix, "CosDiff")[0])
 
-	runix := etable.NewIdxView(dt)
+	runix := etable.NewIndexView(dt)
 	spl := split.GroupBy(runix, []string{"Params"})
 	split.Desc(spl, "FirstZero")
 	split.Desc(spl, "PctCor")
@@ -1384,7 +1384,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	split.SetSplits(.2, .8)
 
 	tbar.AddAction(gi.ActOpts{Label: "Init", Icon: "update", Tooltip: "Initialize everything including network weights, and start over.  Also applies current params.", UpdateFunc: func(act *gi.Action) {
-		act.SetActiveStateUpdt(!ss.IsRunning)
+		act.SetActiveStateUpdate(!ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		ss.Init()
 		vp.SetNeedsFullRender()
@@ -1392,7 +1392,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	tbar.AddAction(gi.ActOpts{Label: "Train", Icon: "run", Tooltip: "Starts the network training, picking up from wherever it may have left off.  If not stopped, training will complete the specified number of Runs through the full number of Epochs of training, with testing automatically occuring at the specified interval.",
 		UpdateFunc: func(act *gi.Action) {
-			act.SetActiveStateUpdt(!ss.IsRunning)
+			act.SetActiveStateUpdate(!ss.IsRunning)
 		}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.IsRunning = true
@@ -1402,13 +1402,13 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	})
 
 	tbar.AddAction(gi.ActOpts{Label: "Stop", Icon: "stop", Tooltip: "Interrupts running.  Hitting Train again will pick back up where it left off.", UpdateFunc: func(act *gi.Action) {
-		act.SetActiveStateUpdt(ss.IsRunning)
+		act.SetActiveStateUpdate(ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		ss.Stop()
 	})
 
 	tbar.AddAction(gi.ActOpts{Label: "Step Trial", Icon: "step-fwd", Tooltip: "Advances one training trial at a time.", UpdateFunc: func(act *gi.Action) {
-		act.SetActiveStateUpdt(!ss.IsRunning)
+		act.SetActiveStateUpdate(!ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.IsRunning = true
@@ -1419,7 +1419,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	})
 
 	tbar.AddAction(gi.ActOpts{Label: "Step Epoch", Icon: "fast-fwd", Tooltip: "Advances one epoch (complete set of training patterns) at a time.", UpdateFunc: func(act *gi.Action) {
-		act.SetActiveStateUpdt(!ss.IsRunning)
+		act.SetActiveStateUpdate(!ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.IsRunning = true
@@ -1429,7 +1429,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	})
 
 	tbar.AddAction(gi.ActOpts{Label: "Step Run", Icon: "fast-fwd", Tooltip: "Advances one full training Run at a time.", UpdateFunc: func(act *gi.Action) {
-		act.SetActiveStateUpdt(!ss.IsRunning)
+		act.SetActiveStateUpdate(!ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.IsRunning = true
@@ -1441,14 +1441,14 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	tbar.AddSeparator("spcl")
 
 	tbar.AddAction(gi.ActOpts{Label: "Open Trained Wts", Icon: "update", Tooltip: "open weights trained on first phase of training (excluding 'novel' objects)", UpdateFunc: func(act *gi.Action) {
-		act.SetActiveStateUpdt(!ss.IsRunning)
+		act.SetActiveStateUpdate(!ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		ss.OpenTrainedWts()
 		vp.SetNeedsFullRender()
 	})
 
 	tbar.AddAction(gi.ActOpts{Label: "Train Novel", Icon: "update", Tooltip: "prepares network for training novel items: loads saved weight, changes PNovel -- just do Step Run after this..", UpdateFunc: func(act *gi.Action) {
-		act.SetActiveStateUpdt(!ss.IsRunning)
+		act.SetActiveStateUpdate(!ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		ss.TrainNovel()
 		vp.SetNeedsFullRender()
@@ -1457,7 +1457,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	tbar.AddSeparator("test")
 
 	tbar.AddAction(gi.ActOpts{Label: "Test Trial", Icon: "step-fwd", Tooltip: "Runs the next testing trial.", UpdateFunc: func(act *gi.Action) {
-		act.SetActiveStateUpdt(!ss.IsRunning)
+		act.SetActiveStateUpdate(!ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.IsRunning = true
@@ -1468,7 +1468,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	})
 
 	tbar.AddAction(gi.ActOpts{Label: "Test Item", Icon: "step-fwd", Tooltip: "Prompts for a specific input pattern name to run, and runs it in testing mode.", UpdateFunc: func(act *gi.Action) {
-		act.SetActiveStateUpdt(!ss.IsRunning)
+		act.SetActiveStateUpdate(!ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		gi.StringPromptDialog(vp, "", "Test Item",
 			gi.DlgOpts{Title: "Test Item", Prompt: "Enter the Name of a given input pattern to test (case insensitive, contains given string."},
@@ -1489,7 +1489,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	})
 
 	tbar.AddAction(gi.ActOpts{Label: "Test All", Icon: "fast-fwd", Tooltip: "Tests all of the testing trials.", UpdateFunc: func(act *gi.Action) {
-		act.SetActiveStateUpdt(!ss.IsRunning)
+		act.SetActiveStateUpdate(!ss.IsRunning)
 	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.IsRunning = true

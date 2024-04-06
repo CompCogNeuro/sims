@@ -6,6 +6,7 @@ from leabra import go, pygiv, env, etensor, vxform, image, gi, rand
 
 from dogfilter import Vis
 
+
 class ImgEnv(pygiv.ClassViewObj):
     """
     ImgEnv presents images from a list of image files, using V1 simple and complex filtering.
@@ -22,8 +23,8 @@ class ImgEnv(pygiv.ClassViewObj):
         self.SetTags("ImageFiles", 'desc:"paths to images"')
         self.Images = []
         self.SetTags("Images", 'desc:"images (preload for speed)"')
-        self.ImageIdx = env.CurPrvInt()
-        self.SetTags("ImageIdx", 'desc:"current image index"')
+        self.ImageIndex = env.CurPrvInt()
+        self.SetTags("ImageIndex", 'desc:"current image index"')
         self.Vis = Vis()
         self.SetTags("Vis", 'desc:"visual processing params"')
         self.XFormRand = vxform.Rand()
@@ -31,11 +32,18 @@ class ImgEnv(pygiv.ClassViewObj):
         self.XForm = vxform.XForm()
         self.SetTags("XForm", 'desc:"current -- prev transforms"')
         self.Run = env.Ctr()
-        self.SetTags("Run", 'view:"inline" desc:"current run of model as provided during Init"')
+        self.SetTags(
+            "Run", 'view:"inline" desc:"current run of model as provided during Init"'
+        )
         self.Epoch = env.Ctr()
-        self.SetTags("Epoch", 'view:"inline" desc:"number of times through Seq.Max number of sequences"')
+        self.SetTags(
+            "Epoch",
+            'view:"inline" desc:"number of times through Seq.Max number of sequences"',
+        )
         self.Trial = env.Ctr()
-        self.SetTags("Trial", 'view:"inline" desc:"trial is the step counter within epoch"')
+        self.SetTags(
+            "Trial", 'view:"inline" desc:"trial is the step counter within epoch"'
+        )
         self.OrigImg = etensor.Float32()
         self.SetTags("OrigImg", 'desc:"original image prior to random transforms"')
 
@@ -61,7 +69,7 @@ class ImgEnv(pygiv.ClassViewObj):
 
     def Defaults(ev):
         ev.Vis.Defaults()
-        ev.XFormRand.TransX.Set(0, 0) # translation happens in random chunk selection
+        ev.XFormRand.TransX.Set(0, 0)  # translation happens in random chunk selection
         ev.XFormRand.TransY.Set(0, 0)
         ev.XFormRand.Scale.Set(0.5, 1)
         ev.XFormRand.Rot.Set(-90, 90)
@@ -74,16 +82,16 @@ class ImgEnv(pygiv.ClassViewObj):
         ev.Epoch.Init()
         ev.Trial.Init()
         ev.Run.Cur = run
-        ev.Trial.Cur = -1 # init state -- key so that first Step() = 0
+        ev.Trial.Cur = -1  # init state -- key so that first Step() = 0
 
     def Step(ev):
-        ev.Epoch.Same()     # good idea to just reset all non-inner-most counters at start
-        if ev.Trial.Incr(): # if true, hit max, reset to 0
+        ev.Epoch.Same()  # good idea to just reset all non-inner-most counters at start
+        if ev.Trial.Incr():  # if true, hit max, reset to 0
             ev.Epoch.Incr()
         ev.PickRndImage()
         ev.FilterImg()
         # debug only:
-        # img := ev.Images[ev.ImageIdx.Cur]
+        # img := ev.Images[ev.ImageIndex.Cur]
         # vfilter.RGBToGrey(img, &ev.OrigImg, 0, false) // pad for filt, bot zero
         return True
 
@@ -91,7 +99,7 @@ class ImgEnv(pygiv.ClassViewObj):
         """
         DoImage processes specified image number
         """
-        ev.ImageIdx.Set(imgNo)
+        ev.ImageIndex.Set(imgNo)
         ev.FilterImg()
 
     def Action(ev, element, input):
@@ -114,7 +122,7 @@ class ImgEnv(pygiv.ClassViewObj):
         if scale == env.Trial:
             return ev.Trial.Prv
         return -1
-        
+
     def CounterChg(ev, scale):
         if scale == env.Run:
             return ev.Run.Chg
@@ -128,7 +136,7 @@ class ImgEnv(pygiv.ClassViewObj):
         """
         String returns the string rep of the LED env state
         """
-        cfn = ev.ImageFiles[ev.ImageIdx.Cur]
+        cfn = ev.ImageFiles[ev.ImageIndex.Cur]
         return "Obj: %s, %s" % (cfn, ev.XForm.String())
 
     def PickRndImage(ev):
@@ -136,14 +144,14 @@ class ImgEnv(pygiv.ClassViewObj):
         PickRndImage picks an image at random
         """
         nimg = len(ev.Images)
-        ev.ImageIdx.Set(rand.Intn(nimg))
+        ev.ImageIndex.Set(rand.Intn(nimg))
 
     def FilterImg(ev):
         """
         FilterImg filters the image using new random xforms
         """
         ev.XFormRand.Gen(ev.XForm)
-        oimg = ev.Images[ev.ImageIdx.Cur]
+        oimg = ev.Images[ev.ImageIndex.Cur]
 
         insz = ev.Vis.Geom.In.Mul(2)
         ibd = oimg.Bounds()
@@ -153,7 +161,7 @@ class ImgEnv(pygiv.ClassViewObj):
         st.X = rand.Intn(irng.X)
         st.Y = rand.Intn(irng.Y)
         ed = st.Add(insz)
-        simg = oimg.SubImage(image.Rectangle(Min= st, Max= ed))
+        simg = oimg.SubImage(image.Rectangle(Min=st, Max=ed))
         img = ev.XForm.Image(simg)
         ev.Vis.Filter(img)
 
@@ -167,4 +175,3 @@ class ImgEnv(pygiv.ClassViewObj):
         for fn in ev.ImageFiles:
             img = gi.ImageToRGBA(gi.OpenImage(fn))
             ev.Images.append(img)
-

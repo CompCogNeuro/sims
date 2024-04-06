@@ -6,20 +6,43 @@
 
 # use:
 # just type file name to run, or:
-# pyleabra -i <file>.py 
+# pyleabra -i <file>.py
 
 # necker_cube: This simulation explores the use of constraint
-# satisfaction in processing ambiguous stimuli. The example we 
+# satisfaction in processing ambiguous stimuli. The example we
 # will use is the *Necker cube*, which and can be viewed as a
 # cube in one of two orientations, where people flip back and forth.
 
-from leabra import go, leabra, emer, relpos, eplot, env, agg, patgen, prjn, etable, efile, split, etensor, params, netview, rand, erand, gi, giv, pygiv, pyparams, mat32
+from leabra import (
+    go,
+    leabra,
+    emer,
+    relpos,
+    eplot,
+    env,
+    agg,
+    patgen,
+    prjn,
+    etable,
+    efile,
+    split,
+    etensor,
+    params,
+    netview,
+    rand,
+    erand,
+    gi,
+    giv,
+    pygiv,
+    pyparams,
+    mat32,
+)
 
 import importlib as il
 import io, sys, getopt
 from datetime import datetime, timezone
 
-# this will become Sim later.. 
+# this will become Sim later..
 TheSim = 1
 
 # LogPrec is precision for saving float values in logs
@@ -28,13 +51,16 @@ LogPrec = 4
 # note: we cannot use methods for callbacks from Go -- must be separate functions
 # so below are all the callbacks from the GUI toolbar actions
 
+
 def InitCB(recv, send, sig, data):
     TheSim.Init()
     TheSim.UpdateClassView()
     TheSim.vp.SetNeedsFullRender()
 
+
 def StopCB(recv, send, sig, data):
     TheSim.Stop()
+
 
 def TestTrialCB(recv, send, sig, data):
     if not TheSim.IsRunning:
@@ -48,24 +74,31 @@ def TestTrialCB(recv, send, sig, data):
         TheSim.UpdateClassView()
         TheSim.vp.SetNeedsFullRender()
 
+
 def DefaultsCB(recv, send, sig, data):
     TheSim.Defaults()
     TheSim.Init()
     TheSim.UpdateClassView()
     TheSim.vp.SetNeedsFullRender()
 
+
 def ReadmeCB(recv, send, sig, data):
-    gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch3/necker_cube/README.md")
+    gi.OpenURL(
+        "https://github.com/CompCogNeuro/sims/blob/master/ch3/necker_cube/README.md"
+    )
 
-def UpdtFuncNotRunning(act):
-    act.SetActiveStateUpdt(not TheSim.IsRunning)
-    
-def UpdtFuncRunning(act):
-    act.SetActiveStateUpdt(TheSim.IsRunning)
 
-    
-#####################################################    
+def UpdateFuncNotRunning(act):
+    act.SetActiveStateUpdate(not TheSim.IsRunning)
+
+
+def UpdateFuncRunning(act):
+    act.SetActiveStateUpdate(TheSim.IsRunning)
+
+
+#####################################################
 #     Sim
+
 
 class Sim(pygiv.ClassViewObj):
     """
@@ -75,29 +108,56 @@ class Sim(pygiv.ClassViewObj):
     as arguments to methods, and provides the core GUI interface (note the view tags
     for the fields which provide hints to how things should be displayed).
     """
-    
+
     def __init__(self):
         super(Sim, self).__init__()
         self.Noise = float(0.01)
-        self.SetTags("Noise", 'min:"0" step:"0.01" desc:"the variance parameter for Gaussian noise added to unit activations on every cycle"')
+        self.SetTags(
+            "Noise",
+            'min:"0" step:"0.01" desc:"the variance parameter for Gaussian noise added to unit activations on every cycle"',
+        )
         self.KNaAdapt = False
-        self.SetTags("KNaAdapt", 'desc:"apply sodium-gated potassium adaptation mechanisms that cause the neuron to reduce spiking over time"')
+        self.SetTags(
+            "KNaAdapt",
+            'desc:"apply sodium-gated potassium adaptation mechanisms that cause the neuron to reduce spiking over time"',
+        )
         self.CycPerQtr = int(25)
-        self.SetTags("CycPerQtr", 'def:"25,250" desc:"total number of cycles per quarter to run -- increase to 250 when testing adaptation"')
+        self.SetTags(
+            "CycPerQtr",
+            'def:"25,250" desc:"total number of cycles per quarter to run -- increase to 250 when testing adaptation"',
+        )
         self.Net = leabra.Network()
-        self.SetTags("Net", 'view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"')
+        self.SetTags(
+            "Net",
+            'view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"',
+        )
         self.TstCycLog = etable.Table()
-        self.SetTags("TstCycLog", 'view:"no-inline" desc:"testing trial-level log data -- click to see record of network\'s response to each input"')
+        self.SetTags(
+            "TstCycLog",
+            'view:"no-inline" desc:"testing trial-level log data -- click to see record of network\'s response to each input"',
+        )
         self.Params = params.Sets()
-        self.SetTags("Params", 'view:"no-inline" desc:"full collection of param sets -- not really interesting for this model"')
+        self.SetTags(
+            "Params",
+            'view:"no-inline" desc:"full collection of param sets -- not really interesting for this model"',
+        )
         self.ParamSet = str()
-        self.SetTags("ParamSet", 'view:"-" desc:"which set of *additional* parameters to use -- always applies Base and optionaly this next if set -- can use multiple names separated by spaces (don\'t put spaces in ParamSet names!)"')
+        self.SetTags(
+            "ParamSet",
+            'view:"-" desc:"which set of *additional* parameters to use -- always applies Base and optionaly this next if set -- can use multiple names separated by spaces (don\'t put spaces in ParamSet names!)"',
+        )
         self.Time = leabra.Time()
         self.SetTags("Time", 'desc:"leabra timing parameters and state"')
-        self.ViewUpdt = leabra.TimeScales.Cycle
-        self.SetTags("ViewUpdt", 'desc:"at what time scale to update the display during testing?  Change to AlphaCyc to make display updating go faster"')
+        self.ViewUpdate = leabra.TimeScales.Cycle
+        self.SetTags(
+            "ViewUpdate",
+            'desc:"at what time scale to update the display during testing?  Change to AlphaCyc to make display updating go faster"',
+        )
         self.TstRecLays = go.Slice_string(["NeckerCube"])
-        self.SetTags("TstRecLays", 'desc:"names of layers to record activations etc of during testing"')
+        self.SetTags(
+            "TstRecLays",
+            'desc:"names of layers to record activations etc of during testing"',
+        )
 
         # internal state - view:"-"
         self.Win = 0
@@ -108,15 +168,15 @@ class Sim(pygiv.ClassViewObj):
         self.SetTags("ToolBar", 'view:"-" desc:"the master toolbar"')
         self.TstCycPlot = 0
         self.SetTags("TstCycPlot", 'view:"-" desc:"the test-trial plot"')
-        self.ValsTsrs = {}
-        self.SetTags("ValsTsrs", 'view:"-" desc:"for holding layer values"')
+        self.ValuesTsrs = {}
+        self.SetTags("ValuesTsrs", 'view:"-" desc:"for holding layer values"')
         self.IsRunning = False
         self.SetTags("IsRunning", 'view:"-" desc:"true if sim is running"')
         self.StopNow = False
         self.SetTags("StopNow", 'view:"-" desc:"flag to stop running"')
-        self.vp  = 0 
+        self.vp = 0
         self.SetTags("vp", 'view:"-" desc:"viewport"')
-        
+
     def InitParams(ss):
         """
         Sets the default set of parameters -- Base is always applied, and others can be optionally
@@ -168,7 +228,7 @@ class Sim(pygiv.ClassViewObj):
 
         ss.InitWts(ss.Net)
         ss.StopNow = False
-        ss.SetParams("", False) # all sheets
+        ss.SetParams("", False)  # all sheets
         ss.UpdateView()
 
     def Counters(ss):
@@ -182,7 +242,7 @@ class Sim(pygiv.ClassViewObj):
     def UpdateView(ss):
         if ss.NetView != 0 and ss.NetView.IsVisible():
             ss.NetView.Record(ss.Counters())
-            ss.NetView.GoUpdate() # note: using counters is significantly slower..
+            ss.NetView.GoUpdate()  # note: using counters is significantly slower..
 
     def AlphaCyc(ss):
         """
@@ -194,8 +254,8 @@ class Sim(pygiv.ClassViewObj):
         """
 
         if ss.Win != 0:
-            ss.Win.PollEvents() # this is essential for GUI responsiveness while running
-        viewUpdt = ss.ViewUpdt.value
+            ss.Win.PollEvents()  # this is essential for GUI responsiveness while running
+        viewUpdate = ss.ViewUpdate.value
 
         ss.Net.AlphaCycInit(False)
         ss.Time.AlphaCycStart()
@@ -204,21 +264,21 @@ class Sim(pygiv.ClassViewObj):
                 ss.Net.Cycle(ss.Time)
                 ss.LogTstCyc(ss.TstCycLog, ss.Time.Cycle)
                 ss.Time.CycleInc()
-                if viewUpdt == leabra.Cycle:
-                    if cyc != ss.Time.CycPerQtr-1: # will be updated by quarter
+                if viewUpdate == leabra.Cycle:
+                    if cyc != ss.Time.CycPerQtr - 1:  # will be updated by quarter
                         ss.UpdateView()
-                if viewUpdt == leabra.FastSpike:
-                    if (cyc+1)%10 == 0:
+                if viewUpdate == leabra.FastSpike:
+                    if (cyc + 1) % 10 == 0:
                         ss.UpdateView()
             ss.Net.QuarterFinal(ss.Time)
             ss.Time.QuarterInc()
-            if viewUpdt <= leabra.Quarter:
+            if viewUpdate <= leabra.Quarter:
                 ss.UpdateView()
-            if viewUpdt == leabra.Phase:
+            if viewUpdate == leabra.Phase:
                 if qtr >= 2:
                     ss.UpdateView()
 
-        if viewUpdt == leabra.AlphaCycle:
+        if viewUpdate == leabra.AlphaCycle:
             ss.UpdateView()
 
     def ApplyInputs(ss):
@@ -231,9 +291,9 @@ class Sim(pygiv.ClassViewObj):
         ss.Net.InitExt()
 
         ly = leabra.Layer(ss.Net.LayerByName("NeckerCube"))
-        tsr = ss.ValsTsr("Inputs")
+        tsr = ss.ValuesTsr("Inputs")
         tsr.SetShape(go.Slice_int([16]), go.nil, go.nil)
-        if tsr.FloatVal1D(0) != 1.0:
+        if tsr.FloatValue1D(0) != 1.0:
             for i in range(16):
                 tsr.SetFloat1D(i, 1)
         ly.ApplyExt(tsr)
@@ -307,17 +367,17 @@ class Sim(pygiv.ClassViewObj):
 
         if sheet == "" or sheet == "Sim":
             if "Sim" in pset.Sheets:
-                simp= pset.SheetByNameTry("Sim")
+                simp = pset.SheetByNameTry("Sim")
                 pyparams.ApplyParams(ss, simp, setMsg)
 
-    def ValsTsr(ss, name):
+    def ValuesTsr(ss, name):
         """
-        ValsTsr gets value tensor of given name, creating if not yet made
+        ValuesTsr gets value tensor of given name, creating if not yet made
         """
-        if name in ss.ValsTsrs:
-            return ss.ValsTsrs[name]
+        if name in ss.ValuesTsrs:
+            return ss.ValuesTsrs[name]
         tsr = etensor.Float32()
-        ss.ValsTsrs[name] = tsr
+        ss.ValuesTsrs[name] = tsr
         return tsr
 
     def Harmony(ss, nt):
@@ -356,12 +416,12 @@ class Sim(pygiv.ClassViewObj):
         # dt.SetCellFloat("GknaSlow", row, float(ly.Neurons[0].GknaSlow))
 
         for lnm in ss.TstRecLays:
-            tsr = ss.ValsTsr(lnm)
+            tsr = ss.ValuesTsr(lnm)
             ly = leabra.Layer(ss.Net.LayerByName(lnm))
-            ly.UnitValsTensor(tsr, "Act")
+            ly.UnitValuesTensor(tsr, "Act")
             dt.SetCellTensor(lnm, row, tsr)
 
-        if cyc%10 == 0:
+        if cyc % 10 == 0:
             ss.TstCycPlot.GoUpdate()
 
     def ConfigTstCycLog(ss, dt):
@@ -372,18 +432,20 @@ class Sim(pygiv.ClassViewObj):
 
         nt = 100
         sch = etable.Schema(
-            [etable.Column("Cycle", etensor.INT64, go.nil, go.nil),
-            etable.Column("TrialName", etensor.STRING, go.nil, go.nil),
-            etable.Column("Harmony", etensor.FLOAT64, go.nil, go.nil),
-            etable.Column("GknaFast", etensor.FLOAT64, go.nil, go.nil),
-            etable.Column("GknaMed", etensor.FLOAT64, go.nil, go.nil),
-            etable.Column("GknaSlow", etensor.FLOAT64, go.nil, go.nil)]
+            [
+                etable.Column("Cycle", etensor.INT64, go.nil, go.nil),
+                etable.Column("TrialName", etensor.STRING, go.nil, go.nil),
+                etable.Column("Harmony", etensor.FLOAT64, go.nil, go.nil),
+                etable.Column("GknaFast", etensor.FLOAT64, go.nil, go.nil),
+                etable.Column("GknaMed", etensor.FLOAT64, go.nil, go.nil),
+                etable.Column("GknaSlow", etensor.FLOAT64, go.nil, go.nil),
+            ]
         )
 
         for lnm in ss.TstRecLays:
             ly = leabra.LeabraLayer(ss.Net.LayerByName(lnm)).AsLeabra()
             sch.append(etable.Column(lnm, etensor.FLOAT64, ly.Shp.Shp, go.nil))
-            
+
         dt.SetFromSchema(sch, nt)
 
     def ConfigTstCycPlot(ss, plt, dt):
@@ -413,7 +475,9 @@ class Sim(pygiv.ClassViewObj):
         height = 1200
 
         gi.SetAppName("necker_cube")
-        gi.SetAppAbout('This simulation explores the use of constraint satisfaction in processing ambiguous stimuli. The example we will use is the *Necker cube*, which and can be viewed as a cube in one of two orientations, where people flip back and forth.  See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch3/necker_cube/README.md">README.md on GitHub</a>.</p>')
+        gi.SetAppAbout(
+            'This simulation explores the use of constraint satisfaction in processing ambiguous stimuli. The example we will use is the *Necker cube*, which and can be viewed as a cube in one of two orientations, where people flip back and forth.  See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch3/necker_cube/README.md">README.md on GitHub</a>.</p>'
+        )
 
         win = gi.NewMainWindow("necker_cube", "Necker Cube", width, height)
         ss.Win = win
@@ -450,21 +514,65 @@ class Sim(pygiv.ClassViewObj):
         tv.AddTab(plt, "TstCycPlot")
         ss.TstCycPlot = ss.ConfigTstCycPlot(plt, ss.TstCycLog)
 
-        split.SetSplitsList(go.Slice_float32([.2, .8]))
+        split.SetSplitsList(go.Slice_float32([0.2, 0.8]))
 
         recv = win.This()
-        
-        tbar.AddAction(gi.ActOpts(Label="Init", Icon="update", Tooltip="Initialize everything including network weights, and start over.  Also applies current params.", UpdateFunc=UpdtFuncNotRunning), recv, InitCB)
 
-        tbar.AddAction(gi.ActOpts(Label="Stop", Icon="stop", Tooltip="Interrupts running.  Hitting Train again will pick back up where it left off.", UpdateFunc=UpdtFuncRunning), recv, StopCB)
-        
-        tbar.AddAction(gi.ActOpts(Label="Test Trial", Icon="step-fwd", Tooltip="Runs the next testing trial.", UpdateFunc=UpdtFuncNotRunning), recv, TestTrialCB)
-        
+        tbar.AddAction(
+            gi.ActOpts(
+                Label="Init",
+                Icon="update",
+                Tooltip="Initialize everything including network weights, and start over.  Also applies current params.",
+                UpdateFunc=UpdateFuncNotRunning,
+            ),
+            recv,
+            InitCB,
+        )
+
+        tbar.AddAction(
+            gi.ActOpts(
+                Label="Stop",
+                Icon="stop",
+                Tooltip="Interrupts running.  Hitting Train again will pick back up where it left off.",
+                UpdateFunc=UpdateFuncRunning,
+            ),
+            recv,
+            StopCB,
+        )
+
+        tbar.AddAction(
+            gi.ActOpts(
+                Label="Test Trial",
+                Icon="step-fwd",
+                Tooltip="Runs the next testing trial.",
+                UpdateFunc=UpdateFuncNotRunning,
+            ),
+            recv,
+            TestTrialCB,
+        )
+
         tbar.AddSeparator("log")
-        
-        tbar.AddAction(gi.ActOpts(Label= "Defaults", Icon= "update", Tooltip= "Restore initial default parameters.", UpdateFunc= UpdtFuncNotRunning), recv, DefaultsCB)
 
-        tbar.AddAction(gi.ActOpts(Label="README", Icon="file-markdown", Tooltip="Opens your browser on the README file that contains instructions for how to run this model."), recv, ReadmeCB)
+        tbar.AddAction(
+            gi.ActOpts(
+                Label="Defaults",
+                Icon="update",
+                Tooltip="Restore initial default parameters.",
+                UpdateFunc=UpdateFuncNotRunning,
+            ),
+            recv,
+            DefaultsCB,
+        )
+
+        tbar.AddAction(
+            gi.ActOpts(
+                Label="README",
+                Icon="file-markdown",
+                Tooltip="Opens your browser on the README file that contains instructions for how to run this model.",
+            ),
+            recv,
+            ReadmeCB,
+        )
 
         # main menu
         appnm = gi.AppName()
@@ -481,13 +589,15 @@ class Sim(pygiv.ClassViewObj):
         vp.UpdateEndNoSig(updt)
         win.GoStartEventLoop()
 
+
 # TheSim is the overall state for this simulation
 TheSim = Sim()
+
 
 def main(argv):
     TheSim.Config()
     TheSim.ConfigGui()
     TheSim.Init()
-    
-main(sys.argv[1:])
 
+
+main(sys.argv[1:])

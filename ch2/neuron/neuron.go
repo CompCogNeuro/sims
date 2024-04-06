@@ -84,7 +84,7 @@ type Sim struct {
 	// when does excitatory input into neuron go off?
 	OffCycle int `min:"0" def:"160"`
 	// how often to update display (in cycles)
-	UpdtInterval int `min:"1" def:"10"`
+	UpdateInterval int `min:"1" def:"10"`
 	// the network -- click to view / edit parameters for layers, prjns, etc
 	Net *leabra.Network `view:"no-inline"`
 	// parameters for spiking funcion
@@ -128,7 +128,7 @@ func (ss *Sim) New() {
 
 // Defaults sets default params
 func (ss *Sim) Defaults() {
-	ss.UpdtInterval = 10
+	ss.UpdateInterval = 10
 	ss.Cycle = 0
 	ss.Spike = true
 	ss.GbarE = 0.3
@@ -231,12 +231,12 @@ func (ss *Sim) RunCycles() {
 		nrn.Ge += nrn.Noise // GeNoise
 		nrn.Gi = 0
 		if ss.Spike {
-			ss.SpikeUpdt(ss.Net, inputOn)
+			ss.SpikeUpdate(ss.Net, inputOn)
 		} else {
-			ss.RateUpdt(ss.Net, inputOn)
+			ss.RateUpdate(ss.Net, inputOn)
 		}
 		ss.LogTstCyc(ss.TstCycLog, ss.Cycle)
-		if ss.Cycle%ss.UpdtInterval == 0 {
+		if ss.Cycle%ss.UpdateInterval == 0 {
 			ss.UpdateView(ss.Cycle)
 		}
 		if ss.StopNow {
@@ -246,9 +246,9 @@ func (ss *Sim) RunCycles() {
 	ss.UpdateView(ss.Cycle)
 }
 
-// RateUpdt updates the neuron in rate-code mode
+// RateUpdate updates the neuron in rate-code mode
 // this just calls the relevant activation code directly, bypassing most other stuff.
-func (ss *Sim) RateUpdt(nt *leabra.Network, inputOn bool) {
+func (ss *Sim) RateUpdate(nt *leabra.Network, inputOn bool) {
 	ly := ss.Net.LayerByName("Neuron").(leabra.LeabraLayer).AsLeabra()
 	nrn := &(ly.Neurons[0])
 	ly.Act.VmFmG(nrn)
@@ -256,9 +256,9 @@ func (ss *Sim) RateUpdt(nt *leabra.Network, inputOn bool) {
 	nrn.Ge = nrn.Ge * ly.Act.Gbar.E // display effective Ge
 }
 
-// SpikeUpdt updates the neuron in spiking mode
+// SpikeUpdate updates the neuron in spiking mode
 // which is just computed directly as spiking is not yet implemented in main codebase
-func (ss *Sim) SpikeUpdt(nt *leabra.Network, inputOn bool) {
+func (ss *Sim) SpikeUpdate(nt *leabra.Network, inputOn bool) {
 	ly := ss.Net.LayerByName("Neuron").(leabra.LeabraLayer).AsLeabra()
 	nrn := &(ly.Neurons[0])
 	ss.SpikeParams.SpikeVmFmG(nrn)
@@ -389,7 +389,7 @@ func (ss *Sim) LogTstCyc(dt *etable.Table, cyc int) {
 	dt.SetCellFloat("AvgISI", row, float64(nrn.ISIAvg))
 
 	// note: essential to use Go version of update when called from another goroutine
-	if cyc%ss.UpdtInterval == 0 {
+	if cyc%ss.UpdateInterval == 0 {
 		ss.TstCycPlot.Update()
 	}
 }

@@ -36,7 +36,7 @@ We begin by lesioning the semantic pathway.
 
 You should see that only the direct pathway is activated, but likely it will still be able to produce the correct phonology output.  This does not actually remove any units or other network structure; it just flips a "lesion" (`Off`) flag that (reversibly) deactivates an entire layer. Note that by removing an entire pathway, we make the network rely on the remaining intact pathway. This means that the errors one would expect are those associated with the properties of the *intact* pathway, not the lesioned one. For example, lesioning the direct pathway makes the network rely on semantics, allowing for the possibility of semantic errors to the extent that the semantic pathway doesn't quite get things right without the assistance of the missing direct pathway. Completely lesioning the semantic pathway itself does *not* lead to semantically related errors -- there is no semantic information left for such errors to be based on! 
 
-* Do `Test All` to test all items, and look at the `TstTrlPlot` and `TstTrlLog` (just click the `Updt` button to update the table view).  You can see a sum of all the testing results in the `TstEpcLog` which can be clicked in the control panel. This records a new row for each Test All run, along with the lesion and proportion setting.
+* Do `Test All` to test all items, and look at the `TstTrlPlot` and `TstTrlLog` (just click the `Update` button to update the table view).  You can see a sum of all the testing results in the `TstEpcLog` which can be clicked in the control panel. This records a new row for each Test All run, along with the lesion and proportion setting.
 
 > **Question 9.2:** How many times did the network with only the direct pathway (SemanticsFull lesion) make a reading mistake overall (you can count the number of 1's in the various error columns, or look at the `TstEpcLog` sums, in the last row)?  Notice that the network does not produce any blend outputs, indicating that the phonological output closely matched a known word.
 
@@ -46,7 +46,7 @@ For each of the errors, compare the word the network produced (`Phon`) with the 
 
 Now, let's try the direct pathway lesion and retest the network.
 
-* Click `Lesion` in the toolbar at the top and select `DirectFull`, then do `TestAll` again.  Click `Updt` in the tables to see the latest results.
+* Click `Lesion` in the toolbar at the top and select `DirectFull`, then do `TestAll` again.  Click `Update` in the tables to see the latest results.
 
 > **Question 9.4:** What was the total number of errors this time, and how many of these errors were visual, semantic, visual semantic, blend, and "other" for the concrete versus abstract categories (as reported in `TstEpcLog`)?.
 

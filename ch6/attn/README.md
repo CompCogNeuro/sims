@@ -36,7 +36,7 @@ You should have seen that while the network settled relatively quickly for the f
 
 * Click on the `TstTrlPlot` to see a plot of the settling times (number of cycles to reach threshold) for each event.
 
-* You can also set the `ViewUpdt` setting to `Cycle` instead of `FastSpike` and, click back on the `NetView`, and `Test Trial` back through the items, to see a cycle-by-cycle update of the network.  You can use the VCR rewind buttons at the lower right of the NetView to rewind through and see exactly how the network settling played out.
+* You can also set the `ViewUpdate` setting to `Cycle` instead of `FastSpike` and, click back on the `NetView`, and `Test Trial` back through the items, to see a cycle-by-cycle update of the network.  You can use the VCR rewind buttons at the lower right of the NetView to rewind through and see exactly how the network settling played out.
 
 * To get a better sense of the overall data pattern, click back on `TstTrlPlot` and do `Test All` a few times.  There is a small amount of noise so the results should be a little bit different each time, but overall quite consistent.
 
@@ -58,7 +58,7 @@ Now, let's see how this model does on the Posner spatial cuing task, diagrammed 
 
 There are three *groups* of events shown here, which correspond to a *Neutral* cue (no cue), a *Valid* cue, and an *Invalid* cue. There is just one event for the neutral case, which is the presentation of the target object in the left location. For the valid case, the first event is the cue presented on the left, followed by a target event with the target also on the left. The invalid case has the same cue event, but the target shows up on the right (opposite) side of space. The network's activations are not reset between the cue and target events within a group, but they are reset at the end of a group (after the target).  Thus, residual activation from the cuing event can persist and affect processing for the target event, but the activation is cleared between different trial types.
 
-* Do `Test Trial` to process the *Neutral* trial, the the Cue / Target sequence for the Valid and Invalid trials.  You should set the `ViewUpdt` to `Cycle` to see the detailed settling dynamics on the probe trials (The Cue is not shown in detail). Go back through the history and note how the network responds to each of the three conditions of the Posner task, as you continue to Step through these cases.
+* Do `Test Trial` to process the *Neutral* trial, the the Cue / Target sequence for the Valid and Invalid trials.  You should set the `ViewUpdate` to `Cycle` to see the detailed settling dynamics on the probe trials (The Cue is not shown in detail). Go back through the history and note how the network responds to each of the three conditions of the Posner task, as you continue to Step through these cases.
 
 * Then, switch to `TstTrlPlot` and do several `Test All` runs to collect some statistics.  Then click on  `TstStats` table (close any existing such windows and be sure to get the new one -- it regenerates a new table every time so the existing ones will not update).
 
@@ -159,7 +159,7 @@ You should observe the now-familiar pattern of a valid facilitation and an inval
 
 You should see that the valid-invalid difference decreases progressively with increasing duration, and ultimately, the validly cued condition can actually be a bit *slower* than the invalidly cued one, which is the hallmark of the inhibition of return phenomenon (Figure 8.28). The effect sizes here are fairly small because the form of adaptation here is relatively weak -- a more significant GABA-B like delayed inhibition effect (which is not currently implemented) would be needed to produce more substantial effects.
 
-* Switch to the `NetView`, set `ViewUpdt` to `Cycle` and `Test Trial` through the running of the network with `CueDur` at 300 or higher.
+* Switch to the `NetView`, set `ViewUpdate` to `Cycle` and `Test Trial` through the running of the network with `CueDur` at 300 or higher.
 
 > **Question 6.11:** Report in detail what happens on the valid and invalid trials that produces the inhibition of return effect. It is useful to observe the activation (or lack thereof) of the various layers as the cue duration increases. While you should see changes in the ranges of durations specified, you may have to increase the cue duration even more to get the full inhibition of return effect. 
 

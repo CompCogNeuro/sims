@@ -14,11 +14,11 @@ In this exploration of the hippocampus model, we will use the same basic AB--AC 
 
 Let's observe the process of activation spreading through the network during training.
 
-* Set `TrainUpdt` to `Cycle` instead of `AlphaCycle`, and do `Init`, `Step Trial`.
+* Set `TrainUpdate` to `Cycle` instead of `AlphaCycle`, and do `Init`, `Step Trial`.
 
 You will see an input pattern from the AB training set presented to the network. As expected, during training, all three parts of the input pattern are presented (A, B, Context). You will see that activation flows from the `ECin` layer through the `DG, CA3` pathway and simultaneously to the `CA1`, so that the sparse `CA3` representation can be associated with the invertible `CA1` representation, which will give back this very `ECin` pattern if later recalled by the `CA3`.  You can use the Time VCR buttons in the lower right of the NetView to replay the settling process cycle-by-cycle.
 
-* `Step Trial` through several more (but fewer than 10) training events, and observe the relative amount of pattern overlap between subsequent events on the `ECin, DG, CA3`, and `CA1` layers, by clicking back-and-forth between `ActQ0` and `Act`.  You can set `TrainUpdt` back to `AlphaCycle`.
+* `Step Trial` through several more (but fewer than 10) training events, and observe the relative amount of pattern overlap between subsequent events on the `ECin, DG, CA3`, and `CA1` layers, by clicking back-and-forth between `ActQ0` and `Act`.  You can set `TrainUpdate` back to `AlphaCycle`.
 
 You should have observed that the `ECin` patterns overlap the most, with `CA1` overlapping the next most, then `CA3`, and finally `DG` overlaps the least. The levels of FFFB overall inhibition parallel this result, with DG having a very high level of inhibition, followed by CA3, then CA1, and finally EC.
 

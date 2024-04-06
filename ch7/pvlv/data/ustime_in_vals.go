@@ -11,7 +11,7 @@ type USTVal struct {
 	Coords [4]int
 }
 
-var USTimeInVals map[string]int = map[string]int{
+var USTimeInValues map[string]int = map[string]int{
 	// no CS, sequence through ticks, valences, USs (CS 0)
 	"PosUS0_t0": 0,
 	"PosUS0_t1": 1,

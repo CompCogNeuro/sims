@@ -6,6 +6,7 @@ from leabra import go, pygiv, env, rand, erand, etensor, esg
 
 import os
 
+
 class SentGenEnv(pygiv.ClassViewObj):
     """
     SentGenEnv generates sentences using a grammar that is parsed from a
@@ -21,21 +22,37 @@ class SentGenEnv(pygiv.ClassViewObj):
         self.Dsc = str()
         self.SetTags("Dsc", 'desc:"description of this environment"')
         self.Rules = esg.Rules()
-        self.SetTags("Rules", 'desc:"core sent-gen rules -- loaded from a grammar / rules file -- Gen() here generates one sentence"')
+        self.SetTags(
+            "Rules",
+            'desc:"core sent-gen rules -- loaded from a grammar / rules file -- Gen() here generates one sentence"',
+        )
         self.PPassive = float()
-        self.SetTags("PPassive", 'desc:"probability of generating passive sentence forms"')
+        self.SetTags(
+            "PPassive", 'desc:"probability of generating passive sentence forms"'
+        )
         self.WordTrans = {}
-        self.SetTags("WordTrans", 'desc:"translate unambiguous words into ambiguous words"')
+        self.SetTags(
+            "WordTrans", 'desc:"translate unambiguous words into ambiguous words"'
+        )
         self.Words = go.Slice_string()
-        self.SetTags("Words", 'desc:"list of words used for activating state units according to index"')
+        self.SetTags(
+            "Words",
+            'desc:"list of words used for activating state units according to index"',
+        )
         self.WordMap = {}
         self.SetTags("WordMap", 'desc:"map of words onto index in Words list"')
         self.Roles = []
-        self.SetTags("Roles", 'desc:"list of roles used for activating state units according to index"')
+        self.SetTags(
+            "Roles",
+            'desc:"list of roles used for activating state units according to index"',
+        )
         self.RoleMap = {}
         self.SetTags("RoleMap", 'desc:"map of roles onto index in Roles list"')
         self.Fillers = []
-        self.SetTags("Fillers", 'desc:"list of filler concepts used for activating state units according to index"')
+        self.SetTags(
+            "Fillers",
+            'desc:"list of filler concepts used for activating state units according to index"',
+        )
         self.FillerMap = {}
         self.SetTags("FillerMap", 'desc:"map of roles onto index in Words list"')
         self.AmbigVerbs = []
@@ -47,19 +64,29 @@ class SentGenEnv(pygiv.ClassViewObj):
         self.AmbigNounsMap = {}
         self.SetTags("AmbigNounsMap", 'desc:"map of ambiguous nouns"')
         self.CurSentOrig = []
-        self.SetTags("CurSentOrig", 'desc:"original current sentence as generated from Rules"')
+        self.SetTags(
+            "CurSentOrig", 'desc:"original current sentence as generated from Rules"'
+        )
         self.CurSent = []
-        self.SetTags("CurSent", 'desc:"current sentence, potentially transformed to passive form"')
+        self.SetTags(
+            "CurSent",
+            'desc:"current sentence, potentially transformed to passive form"',
+        )
         self.NAmbigNouns = int()
         self.SetTags("NAmbigNouns", 'desc:"number of ambiguous nouns"')
         self.NAmbigVerbs = int()
         self.SetTags("NAmbigVerbs", 'desc:"number of ambiguous verbs (0 or 1)"')
         self.SentInputs = []
-        self.SetTags("SentInputs", 'desc:"generated sequence of sentence inputs including role-filler queries"')
-        self.SentIdx = env.CurPrvInt()
-        self.SetTags("SentIdx", 'desc:"current index within sentence inputs"')
+        self.SetTags(
+            "SentInputs",
+            'desc:"generated sequence of sentence inputs including role-filler queries"',
+        )
+        self.SentIndex = env.CurPrvInt()
+        self.SetTags("SentIndex", 'desc:"current index within sentence inputs"')
         self.QType = str()
-        self.SetTags("QType", 'desc:"current question type -- from 4th value of SentInputs"')
+        self.SetTags(
+            "QType", 'desc:"current question type -- from 4th value of SentInputs"'
+        )
         self.WordState = etensor.Float32()
         self.SetTags("WordState", 'desc:"current sentence activation state"')
         self.RoleState = etensor.Float32()
@@ -67,15 +94,23 @@ class SentGenEnv(pygiv.ClassViewObj):
         self.FillerState = etensor.Float32()
         self.SetTags("FillerState", 'desc:"current filler query activation state"')
         self.Run = env.Ctr()
-        self.SetTags("Run", 'view:"inline" desc:"current run of model as provided during Init"')
+        self.SetTags(
+            "Run", 'view:"inline" desc:"current run of model as provided during Init"'
+        )
         self.Epoch = env.Ctr()
-        self.SetTags("Epoch", 'view:"inline" desc:"number of times through Seq.Max number of sequences"')
+        self.SetTags(
+            "Epoch",
+            'view:"inline" desc:"number of times through Seq.Max number of sequences"',
+        )
         self.Seq = env.Ctr()
         self.SetTags("Seq", 'view:"inline" desc:"sequence counter within epoch"')
         self.Tick = env.Ctr()
         self.SetTags("Tick", 'view:"inline" desc:"tick counter within sequence"')
         self.Trial = env.Ctr()
-        self.SetTags("Trial", 'view:"inline" desc:"trial is the step counter within sequence - how many steps taken within current sequence -- it resets to 0 at start of each sequence"')
+        self.SetTags(
+            "Trial",
+            'view:"inline" desc:"trial is the step counter within sequence - how many steps taken within current sequence -- it resets to 0 at start of each sequence"',
+        )
 
     def Name(ev):
         return ev.Nm
@@ -111,15 +146,21 @@ class SentGenEnv(pygiv.ClassViewObj):
         ev.Tick.Init()
         ev.Trial.Init()
         ev.Run.Cur = run
-        ev.Trial.Cur = -1 # init state -- key so that first Step() = 0
-        ev.SentIdx.Set(-1)
+        ev.Trial.Cur = -1  # init state -- key so that first Step() = 0
+        ev.SentIndex.Set(-1)
 
         ev.Rules.Init()
         ev.MapsFmWords()
 
-        ev.WordState.SetShape(go.Slice_int([len(ev.Words)]), go.nil, go.Slice_string(["Words"]))
-        ev.RoleState.SetShape(go.Slice_int([len(ev.Roles)]), go.nil, go.Slice_string(["Roles"]))
-        ev.FillerState.SetShape(go.Slice_int([len(ev.Fillers)]), go.nil, go.Slice_string(["Fillers"]))
+        ev.WordState.SetShape(
+            go.Slice_int([len(ev.Words)]), go.nil, go.Slice_string(["Words"])
+        )
+        ev.RoleState.SetShape(
+            go.Slice_int([len(ev.Roles)]), go.nil, go.Slice_string(["Roles"])
+        )
+        ev.FillerState.SetShape(
+            go.Slice_int([len(ev.Fillers)]), go.nil, go.Slice_string(["Fillers"])
+        )
 
     def MapsFmWords(ev):
         ev.WordMap = {}
@@ -142,8 +183,8 @@ class SentGenEnv(pygiv.ClassViewObj):
         """
         CurInputs returns current inputs triple from SentInputs
         """
-        if ev.SentIdx.Cur >= 0 and ev.SentIdx.Cur < len(ev.SentInputs):
-            return ev.SentInputs[ev.SentIdx.Cur]
+        if ev.SentIndex.Cur >= 0 and ev.SentIndex.Cur < len(ev.SentInputs):
+            return ev.SentInputs[ev.SentIndex.Cur]
         return []
 
     def String(ev):
@@ -164,7 +205,7 @@ class SentGenEnv(pygiv.ClassViewObj):
 
         ev.Rules.States.TrimQualifiers()
         ev.SentStats()
-        ev.SentIdx.Set(0)
+        ev.SentIndex.Set(0)
         if "Case" in ev.Rules.States:
             cs = ev.Rules.States["Case"]
             if cs == "Passive":
@@ -264,7 +305,7 @@ class SentGenEnv(pygiv.ClassViewObj):
         for si in range(slen - 1):
             ri = rand.Intn(3)
             ev.AddInput(si, seq[ri], "revq")
-        ev.AddInput(slen-1, mod, "curq")
+        ev.AddInput(slen - 1, mod, "curq")
         ri = rand.Intn(3)
         if "FinalQ" in ev.Rules.States:
             fq = ev.Rules.States["FinalQ"]
@@ -272,7 +313,7 @@ class SentGenEnv(pygiv.ClassViewObj):
                 if seq[i] == fq:
                     ri = i
                     break
-        ev.AddInput(slen-1, seq[ri], "revq")
+        ev.AddInput(slen - 1, seq[ri], "revq")
 
     def SentSeqPassive(ev):
         """
@@ -291,12 +332,12 @@ class SentGenEnv(pygiv.ClassViewObj):
         # get any modifier words with random query
         slen = len(ev.CurSent)
         for si in range(slen - 1):
-            ri = rand.Intn(3) # choose a role to query at random
+            ri = rand.Intn(3)  # choose a role to query at random
             ev.AddInput(si, seq[ri], "revq")
-        ev.AddInput(slen-1, mod, "curq")
-        ri = rand.Intn(3) # choose a role to query at random
+        ev.AddInput(slen - 1, mod, "curq")
+        ri = rand.Intn(3)  # choose a role to query at random
         # ev.AddQuestion(seq[ri])
-        ev.AddInput(slen-1, seq[ri], "revq")
+        ev.AddInput(slen - 1, seq[ri], "revq")
 
     def RenderState(ev):
         """
@@ -320,11 +361,11 @@ class SentGenEnv(pygiv.ClassViewObj):
         """
         NextState generates the next inputs
         """
-        if ev.SentIdx.Cur < 0:
+        if ev.SentIndex.Cur < 0:
             ev.NextSent()
         else:
-            ev.SentIdx.Incr()
-        if ev.SentIdx.Cur >= len(ev.SentInputs):
+            ev.SentIndex.Incr()
+        if ev.SentIndex.Cur >= len(ev.SentInputs):
             ev.NextSent()
         ev.RenderState()
 
@@ -333,7 +374,7 @@ class SentGenEnv(pygiv.ClassViewObj):
         ev.NextState()
         ev.Trial.Incr()
         ev.Tick.Incr()
-        if ev.SentIdx.Cur == 0:
+        if ev.SentIndex.Cur == 0:
             ev.Tick.Init()
             if ev.Seq.Incr():
                 ev.Epoch.Incr()
@@ -377,5 +418,3 @@ class SentGenEnv(pygiv.ClassViewObj):
         if scale == env.Trial:
             return ev.Trial.Chg
         return False
-
-

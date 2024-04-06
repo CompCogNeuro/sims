@@ -36,9 +36,9 @@ class OnOff(pygiv.ClassViewObj):
         oo.Off = off
         oo.P = 1 # default
 
-    def TrialUpdt(oo):
+    def TrialUpdate(oo):
         """
-        TrialUpdt updates Cur state at start of trial
+        TrialUpdate updates Cur state at start of trial
         """
         if not oo.Act:
             return
@@ -136,16 +136,16 @@ class CondEnv(pygiv.ClassViewObj):
         ev.Run.Cur = run
         ev.Event.Max = ev.TotTime
         ev.Event.Cur = -1
-        ev.TrialUpdt()
+        ev.TrialUpdate()
 
-    def TrialUpdt(ev):
+    def TrialUpdate(ev):
         """
-        TrialUpdt updates all random vars at start of trial
+        TrialUpdate updates all random vars at start of trial
         """
-        ev.CSA.TrialUpdt()
-        ev.CSB.TrialUpdt()
-        ev.CSC.TrialUpdt()
-        ev.US.TrialUpdt()
+        ev.CSA.TrialUpdate()
+        ev.CSB.TrialUpdate()
+        ev.CSC.TrialUpdate()
+        ev.US.TrialUpdate()
 
     def SetInput(ev):
         """
@@ -181,7 +181,7 @@ class CondEnv(pygiv.ClassViewObj):
         ev.SetReward()
 
         if incr:
-            ev.TrialUpdt()
+            ev.TrialUpdate()
             if ev.Trial.Incr():
                 ev.Epoch.Incr()
         return True

@@ -6,6 +6,7 @@ from leabra import go, pygiv, env, rand, erand, etensor
 
 import os
 
+
 def read_as_string(fnm):
     # reads file as string
     if not os.path.isfile(fnm):
@@ -13,6 +14,7 @@ def read_as_string(fnm):
     with open(fnm, "r") as f:
         val = f.read()
     return val
+
 
 class SemEnv(pygiv.ClassViewObj):
     """
@@ -27,9 +29,15 @@ class SemEnv(pygiv.ClassViewObj):
         self.Dsc = str()
         self.SetTags("Dsc", 'desc:"description of this environment"')
         self.Sequential = False
-        self.SetTags("Sequential", 'desc:"if true, go sequentially through paragraphs -- else permuted"')
+        self.SetTags(
+            "Sequential",
+            'desc:"if true, go sequentially through paragraphs -- else permuted"',
+        )
         self.Order = go.Slice_int()
-        self.SetTags("Order", 'desc:"permuted order of paras to present if not sequential -- updated every time through the list"')
+        self.SetTags(
+            "Order",
+            'desc:"permuted order of paras to present if not sequential -- updated every time through the list"',
+        )
         self.TextFiles = []
         self.SetTags("TextFiles", 'desc:"paths to text files"')
         self.Words = go.Slice_string()
@@ -41,13 +49,24 @@ class SemEnv(pygiv.ClassViewObj):
         self.Paras = []
         self.SetTags("Paras", 'view:"-" desc:"paragraphs"')
         self.ParaLabels = []
-        self.SetTags("ParaLabels", 'view:"-" desc:"special labels for each paragraph (provided in first word of para)"')
+        self.SetTags(
+            "ParaLabels",
+            'view:"-" desc:"special labels for each paragraph (provided in first word of para)"',
+        )
         self.Run = env.Ctr()
-        self.SetTags("Run", 'view:"inline" desc:"current run of model as provided during Init"')
+        self.SetTags(
+            "Run", 'view:"inline" desc:"current run of model as provided during Init"'
+        )
         self.Epoch = env.Ctr()
-        self.SetTags("Epoch", 'view:"inline" desc:"number of times through Seq.Max number of sequences"')
+        self.SetTags(
+            "Epoch",
+            'view:"inline" desc:"number of times through Seq.Max number of sequences"',
+        )
         self.Trial = env.Ctr()
-        self.SetTags("Trial", 'view:"inline" desc:"trial is the step counter within epoch -- this is the index into Paras"')
+        self.SetTags(
+            "Trial",
+            'view:"inline" desc:"trial is the step counter within epoch -- this is the index into Paras"',
+        )
 
     def Name(ev):
         return ev.Nm
@@ -57,10 +76,10 @@ class SemEnv(pygiv.ClassViewObj):
 
     def Defaults(ev):
         pass
-        
+
     def Validate(ev):
         return go.nil
-       
+
     def State(ev, element):
         if element == "Input":
             return ev.CurParaState
@@ -88,7 +107,7 @@ class SemEnv(pygiv.ClassViewObj):
         # and always maintain Order so random number usage is same regardless, and if
         # user switches between Sequential and random at any point, it all works..
         ev.Trial.Max = np
-        ev.Trial.Cur = -1 # init state -- key so that first Step() = 0
+        ev.Trial.Cur = -1  # init state -- key so that first Step() = 0
 
     def OpenTexts(ev, txts):
         """
@@ -185,7 +204,7 @@ class SemEnv(pygiv.ClassViewObj):
         ev.WordMapFmWords()
 
     def WordMapFmWords(ev):
-        ev.WordMap = { }
+        ev.WordMap = {}
         for i, wrd in enumerate(ev.Words):
             ev.WordMap[wrd] = i
 
@@ -252,12 +271,12 @@ class SemEnv(pygiv.ClassViewObj):
         if len(cpar) > 1:
             str += " " + cpar[1]
             if len(cpar) > 2:
-                str += " ... " + cpar[len(cpar)-1]
+                str += " ... " + cpar[len(cpar) - 1]
         return str
 
-    def ParaIdx(ev):
+    def ParaIndex(ev):
         """
-        ParaIdx returns the current idx number in Paras, based on Sequential / perumuted Order
+        ParaIndex returns the current idx number in Paras, based on Sequential / perumuted Order
         """
         if ev.Trial.Cur < 0:
             return -1
@@ -269,7 +288,7 @@ class SemEnv(pygiv.ClassViewObj):
         """
         CurPara returns the current paragraph
         """
-        pidx = ev.ParaIdx()
+        pidx = ev.ParaIndex()
         if pidx >= 0 and pidx < len(ev.Paras):
             return ev.Paras[pidx]
         return []
@@ -283,5 +302,3 @@ class SemEnv(pygiv.ClassViewObj):
         for wrd in cpar:
             widx = ev.WordMap[wrd]
             ev.CurParaState.SetFloat1D(widx, 1)
-
-
