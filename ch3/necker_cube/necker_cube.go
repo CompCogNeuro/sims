@@ -18,7 +18,7 @@ import (
 	"cogentcore.org/core/gi"
 	"cogentcore.org/core/gimain"
 	"cogentcore.org/core/ki"
-	"cogentcore.org/core/mat32"
+	"cogentcore.org/core/math32"
 	"github.com/emer/emergent/v2/emer"
 	"github.com/emer/emergent/v2/netview"
 	"github.com/emer/emergent/v2/params"
@@ -508,7 +508,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	ss.ToolBar = tbar
 
 	split := gi.AddNewSplitView(mfr, "split")
-	split.Dim = mat32.X
+	split.Dim = math32.X
 	split.SetStretchMax()
 
 	sv := giv.AddNewStructView(split, "sv")

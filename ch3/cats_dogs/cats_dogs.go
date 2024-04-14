@@ -15,11 +15,11 @@ import (
 	"strconv"
 	"strings"
 
+	"cogentcore.org/core/errors"
 	"cogentcore.org/core/gi"
 	"cogentcore.org/core/gimain"
-	"cogentcore.org/core/grr"
 	"cogentcore.org/core/ki"
-	"cogentcore.org/core/mat32"
+	"cogentcore.org/core/math32"
 	"github.com/emer/emergent/v2/emer"
 	"github.com/emer/emergent/v2/env"
 	"github.com/emer/emergent/v2/netview"
@@ -461,7 +461,7 @@ func (ss *Sim) OpenPatAsset(dt *etable.Table, fnm, name, desc string) error {
 	dt.SetMetaData("name", name)
 	dt.SetMetaData("desc", desc)
 	err := dt.OpenFS(content, fnm, etable.Tab)
-	if grr.Log(err) == nil {
+	if errors.Log(err) == nil {
 		for i := 1; i < len(dt.Cols); i++ {
 			dt.Cols[i].SetMetaData("grid-fill", "0.9")
 		}
@@ -578,7 +578,7 @@ func (ss *Sim) ConfigNetView(nv *netview.NetView) {
 	nv.ViewDefaults()
 	nv.Params.Raster.Max = 100
 	nv.Scene().Camera.Pose.Pos.Set(0, 1.5, 3.0) // more "head on" than default which is more "top down"
-	nv.Scene().Camera.LookAt(mat32.Vec3{0, 0, 0}, mat32.Vec3{0, 1, 0})
+	nv.Scene().Camera.LookAt(math32.Vec3{0, 0, 0}, math32.Vec3{0, 1, 0})
 
 	labs := []string{" Morr Socks Sylv Garf Fuzz Rex Fido Spot Snoop Butch",
 		" black white brown orange", "bugs grass scraps shoe", "small  med  large", "cat     dog", "string feath bone shoe"}
@@ -592,7 +592,7 @@ func (ss *Sim) ConfigNetView(nv *netview.NetView) {
 		lbl.Pose = ly.Pose
 		lbl.Pose.Pos.Y += .2
 		lbl.Pose.Pos.Z += .02
-		lbl.Pose.Scale.SetMul(mat32.Vec3{0.4, 0.08, 0.5})
+		lbl.Pose.Scale.SetMul(math32.Vec3{0.4, 0.08, 0.5})
 	}
 }
 
@@ -618,7 +618,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	ss.ToolBar = tbar
 
 	split := gi.AddNewSplitView(mfr, "split")
-	split.Dim = mat32.X
+	split.Dim = math32.X
 	split.SetStretchMax()
 
 	sv := giv.AddNewStructView(split, "sv")

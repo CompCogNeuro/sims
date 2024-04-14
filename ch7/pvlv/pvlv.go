@@ -20,7 +20,7 @@ import (
 
 	"cogentcore.org/core/giv"
 	"cogentcore.org/core/ki/ints"
-	"cogentcore.org/core/mat32"
+	"cogentcore.org/core/math32"
 	"github.com/emer/emergent/v2/env"
 	"github.com/emer/emergent/v2/stepper"
 	_ "github.com/emer/etable/v2/agg"
@@ -619,7 +619,7 @@ func (ss *Sim) ConfigNetView(nv *netview.NetView) {
 	nv.ViewDefaults()
 	pos := nv.Scene().Camera.Pose.Pos
 	nv.Scene().Camera.Pose.Pos.Set(pos.X, pos.Y, 2)
-	nv.Scene().Camera.LookAt(mat32.Vec3{Y: 0.5, Z: 1}, mat32.Vec3{Y: 1})
+	nv.Scene().Camera.LookAt(math32.Vec3{Y: 0.5, Z: 1}, math32.Vec3{Y: 1})
 	ctrs := nv.Counters()
 	ctrs.SetProp("font-family", "Go Mono")
 	nv.Record(ss.Counters(), -1)
@@ -668,7 +668,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	ss.ToolBar = tbar
 
 	split := gi.AddNewSplitView(mfr, "split")
-	split.Dim = mat32.X
+	split.Dim = math32.X
 
 	sv := giv.AddNewStructView(split, "sv")
 	sv.SetStruct(ss)

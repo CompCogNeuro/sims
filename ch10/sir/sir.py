@@ -38,7 +38,7 @@ from leabra import (
     giv,
     pygiv,
     pyparams,
-    mat32,
+    math32,
     metric,
     simat,
     pca,
@@ -1322,7 +1322,7 @@ class Sim(pygiv.ClassViewObj):
             lbl.Pose = ly.Pose
             lbl.Pose.Pos.Y += 0.08
             lbl.Pose.Pos.Z += 0.02
-            lbl.Pose.Scale.SetMul(mat32.Vec3(1, 0.3, 0.5))
+            lbl.Pose.Scale.SetMul(math32.Vec3(1, 0.3, 0.5))
 
     def ConfigGui(ss):
         """
@@ -1350,7 +1350,7 @@ class Sim(pygiv.ClassViewObj):
         ss.ToolBar = tbar
 
         split = gi.AddNewSplitView(mfr, "split")
-        split.Dim = mat32.X
+        split.Dim = math32.X
         split.SetStretchMax()
 
         cv = ss.NewClassView("sv")

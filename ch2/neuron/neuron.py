@@ -12,7 +12,7 @@
 # rate-code activation, reflecting a balance of excitatory and inhibitory
 # influences (including leak and synaptic inhibition).
 
-from leabra import go, leabra, emer, relpos, eplot, env, agg, patgen, prjn, etable, efile, split, etensor, params, netview, rand, erand, gi, giv, pygiv, pyparams, mat32, spike
+from leabra import go, leabra, emer, relpos, eplot, env, agg, patgen, prjn, etable, efile, split, etensor, params, netview, rand, erand, gi, giv, pygiv, pyparams, math32, spike
 
 import importlib as il
 import io, sys, getopt
@@ -489,7 +489,7 @@ class Sim(pygiv.ClassViewObj):
         ss.ToolBar = tbar
 
         split = gi.AddNewSplitView(mfr, "split")
-        split.Dim = mat32.X
+        split.Dim = math32.X
         split.SetStretchMaxWidth()
         split.SetStretchMaxHeight()
 

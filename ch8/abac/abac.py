@@ -35,7 +35,7 @@ from leabra import (
     giv,
     pygiv,
     pyparams,
-    mat32,
+    math32,
     metric,
     simat,
     pca,
@@ -1354,7 +1354,7 @@ class Sim(pygiv.ClassViewObj):
         nv.Scene().Camera.Pose.Pos.Set(
             0, 0.95, 3.2
         )  # more "head on" than default which is more "top down"
-        nv.Scene().Camera.LookAt(mat32.Vec3(0, 0, 0), mat32.Vec3(0, 1, 0))
+        nv.Scene().Camera.LookAt(math32.Vec3(0, 0, 0), math32.Vec3(0, 1, 0))
 
     def ConfigGui(ss):
         """
@@ -1382,7 +1382,7 @@ class Sim(pygiv.ClassViewObj):
         ss.ToolBar = tbar
 
         split = gi.AddNewSplitView(mfr, "split")
-        split.Dim = mat32.X
+        split.Dim = math32.X
         split.SetStretchMax()
 
         cv = ss.NewClassView("sv")

@@ -27,7 +27,7 @@ import (
 	"cogentcore.org/core/giv"
 	"cogentcore.org/core/ki"
 	"cogentcore.org/core/kit"
-	"cogentcore.org/core/mat32"
+	"cogentcore.org/core/math32"
 	"github.com/emer/emergent/v2/emer"
 	"github.com/emer/emergent/v2/env"
 	"github.com/emer/emergent/v2/netview"
@@ -939,7 +939,7 @@ func (ss *Sim) ConfigNetView(nv *netview.NetView) {
 	nv.ViewDefaults()
 	nv.Params.Raster.Max = 100
 	nv.Scene().Camera.Pose.Pos.Set(0, 1.7, 2.9)
-	nv.Scene().Camera.LookAt(mat32.Vec3{0, 0, 0}, mat32.Vec3{0, 1, 0})
+	nv.Scene().Camera.LookAt(math32.Vec3{0, 0, 0}, math32.Vec3{0, 1, 0})
 }
 
 // ConfigGui configures the GoGi gui interface for this simulation,
@@ -963,7 +963,7 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	ss.ToolBar = tbar
 
 	split := gi.AddNewSplitView(mfr, "split")
-	split.Dim = mat32.X
+	split.Dim = math32.X
 	split.SetStretchMax()
 
 	sv := giv.AddNewStructView(split, "sv")

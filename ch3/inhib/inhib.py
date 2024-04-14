@@ -34,7 +34,7 @@ from leabra import (
     giv,
     pygiv,
     pyparams,
-    mat32,
+    math32,
 )
 
 import importlib as il
@@ -639,7 +639,7 @@ class Sim(pygiv.ClassViewObj):
         ss.ToolBar = tbar
 
         split = gi.AddNewSplitView(mfr, "split")
-        split.Dim = mat32.X
+        split.Dim = math32.X
         split.SetStretchMax()
 
         cv = ss.NewClassView("sv")
