@@ -7,7 +7,7 @@ from leabra import go, pygiv, env, etensor, vxform, image, gi, rand
 from dogfilter import Vis
 
 
-class ImgEnv(pygiv.ClassViewObj):
+class ImgEnv(pyviews.ClassViewObj):
     """
     ImgEnv presents images from a list of image files, using V1 simple and complex filtering.
     images are just selected at random each trial -- nothing fancy here.
@@ -173,5 +173,5 @@ class ImgEnv(pygiv.ClassViewObj):
         if len(ev.Images) != nimg:
             ev.Images = []
         for fn in ev.ImageFiles:
-            img = gi.ImageToRGBA(gi.OpenImage(fn))
+            img = core.ImageToRGBA(core.OpenImage(fn))
             ev.Images.append(img)

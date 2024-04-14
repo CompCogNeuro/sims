@@ -16,9 +16,7 @@ import (
 	"strings"
 	"time"
 
-	"cogentcore.org/core/gi"
 	"cogentcore.org/core/gimain"
-	"cogentcore.org/core/ki"
 	"cogentcore.org/core/math32"
 	"github.com/emer/emergent/v2/emer"
 	"github.com/emer/emergent/v2/env"
@@ -33,7 +31,6 @@ import (
 	"github.com/emer/leabra/v2/leabra"
 	"github.com/emer/leabra/v2/rl"
 	"github.com/goki/ki/kit"
-	"goki.dev/gi/giv"
 )
 
 // this is the stub main for gogi that calls our actual mainrun function, at end of file
@@ -133,11 +130,11 @@ type Sim struct {
 	TstRecLays []string
 
 	// main GUI window
-	Win *gi.Window `view:"-"`
+	Win *core.Window `view:"-"`
 	// the network viewer
 	NetView *netview.NetView `view:"-"`
 	// the master toolbar
-	ToolBar *gi.ToolBar `view:"-"`
+	ToolBar *core.ToolBar `view:"-"`
 	// the weights grid view
 	WtsGrid *etview.TensorGrid `view:"-"`
 	// the training epoch plot
@@ -503,9 +500,9 @@ func (ss *Sim) Stopped() {
 	}
 }
 
-// SaveWeights saves the network weights -- when called with giv.CallMethod
+// SaveWeights saves the network weights -- when called with views.CallMethod
 // it will auto-prompt for filename
-func (ss *Sim) SaveWeights(filename gi.FileName) {
+func (ss *Sim) SaveWeights(filename core.FileName) {
 	ss.Net.SaveWtsJSON(filename)
 }
 
@@ -744,14 +741,14 @@ func (ss *Sim) ConfigTrnTrlPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 // 		Gui
 
 // ConfigGui configures the GoGi gui interface for this simulation,
-func (ss *Sim) ConfigGui() *gi.Window {
+func (ss *Sim) ConfigGui() *core.Window {
 	width := 1600
 	height := 1200
 
-	gi.SetAppName("rl_cond")
-	gi.SetAppAbout(`rl_cond explores the temporal differences (TD) reinforcement learning algorithm under some basic Pavlovian conditioning environments. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch7/rl_cond/README.md">README.md on GitHub</a>.</p>`)
+	core.SetAppName("rl_cond")
+	core.SetAppAbout(`rl_cond explores the temporal differences (TD) reinforcement learning algorithm under some basic Pavlovian conditioning environments. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch7/rl_cond/README.md">README.md on GitHub</a>.</p>`)
 
-	win := gi.NewMainWindow("rl_cond", "Reinforcement Learning", width, height)
+	win := core.NewMainWindow("rl_cond", "Reinforcement Learning", width, height)
 	ss.Win = win
 
 	vp := win.WinViewport2D()
@@ -759,18 +756,18 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	mfr := win.SetMainFrame()
 
-	tbar := gi.AddNewToolBar(mfr, "tbar")
+	tbar := core.AddNewToolBar(mfr, "tbar")
 	tbar.SetStretchMaxWidth()
 	ss.ToolBar = tbar
 
-	split := gi.AddNewSplitView(mfr, "split")
+	split := core.AddNewSplitView(mfr, "split")
 	split.Dim = math32.X
 	split.SetStretchMax()
 
-	sv := giv.AddNewStructView(split, "sv")
+	sv := views.AddNewStructView(split, "sv")
 	sv.SetStruct(ss)
 
-	tv := gi.AddNewTabView(split, "tv")
+	tv := core.AddNewTabView(split, "tv")
 
 	nv := tv.AddNewTab(netview.KiT_NetView, "NetView").(*netview.NetView)
 	nv.Var = "Act"
@@ -791,17 +788,17 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	split.SetSplits(.2, .8)
 
-	tbar.AddAction(gi.ActOpts{Label: "Init", Icon: "update", Tooltip: "Initialize everything including network weights, and start over.  Also applies current params.", UpdateFunc: func(act *gi.Action) {
+	tbar.AddAction(core.ActOpts{Label: "Init", Icon: "update", Tooltip: "Initialize everything including network weights, and start over.  Also applies current params.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
 		ss.Init()
 		vp.SetNeedsFullRender()
 	})
 
-	tbar.AddAction(gi.ActOpts{Label: "Train", Icon: "run", Tooltip: "Starts the network training, picking up from wherever it may have left off.  If not stopped, training will complete the specified number of Runs through the full number of Epochs of training, with testing automatically occuring at the specified interval.",
-		UpdateFunc: func(act *gi.Action) {
+	tbar.AddAction(core.ActOpts{Label: "Train", Icon: "run", Tooltip: "Starts the network training, picking up from wherever it may have left off.  If not stopped, training will complete the specified number of Runs through the full number of Epochs of training, with testing automatically occuring at the specified interval.",
+		UpdateFunc: func(act *core.Action) {
 			act.SetActiveStateUpdate(!ss.IsRunning)
-		}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+		}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.IsRunning = true
 			tbar.UpdateActions()
@@ -810,15 +807,15 @@ func (ss *Sim) ConfigGui() *gi.Window {
 		}
 	})
 
-	tbar.AddAction(gi.ActOpts{Label: "Stop", Icon: "stop", Tooltip: "Interrupts running.  Hitting Train again will pick back up where it left off.", UpdateFunc: func(act *gi.Action) {
+	tbar.AddAction(core.ActOpts{Label: "Stop", Icon: "stop", Tooltip: "Interrupts running.  Hitting Train again will pick back up where it left off.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(ss.IsRunning)
-	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
 		ss.Stop()
 	})
 
-	tbar.AddAction(gi.ActOpts{Label: "Step Event", Icon: "step-fwd", Tooltip: "Advances one training event (time step) at a time.", UpdateFunc: func(act *gi.Action) {
+	tbar.AddAction(core.ActOpts{Label: "Step Event", Icon: "step-fwd", Tooltip: "Advances one training event (time step) at a time.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.IsRunning = true
 			ss.TrainEvent()
@@ -827,9 +824,9 @@ func (ss *Sim) ConfigGui() *gi.Window {
 		}
 	})
 
-	tbar.AddAction(gi.ActOpts{Label: "Step Trial", Icon: "step-fwd", Tooltip: "Advances one training trial at a time.", UpdateFunc: func(act *gi.Action) {
+	tbar.AddAction(core.ActOpts{Label: "Step Trial", Icon: "step-fwd", Tooltip: "Advances one training trial at a time.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.IsRunning = true
 			tbar.UpdateActions()
@@ -837,9 +834,9 @@ func (ss *Sim) ConfigGui() *gi.Window {
 		}
 	})
 
-	tbar.AddAction(gi.ActOpts{Label: "Step Epoch", Icon: "fast-fwd", Tooltip: "Advances one epoch (complete set of training patterns) at a time.", UpdateFunc: func(act *gi.Action) {
+	tbar.AddAction(core.ActOpts{Label: "Step Epoch", Icon: "fast-fwd", Tooltip: "Advances one epoch (complete set of training patterns) at a time.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.IsRunning = true
 			tbar.UpdateActions()
@@ -847,9 +844,9 @@ func (ss *Sim) ConfigGui() *gi.Window {
 		}
 	})
 
-	tbar.AddAction(gi.ActOpts{Label: "Step Run", Icon: "fast-fwd", Tooltip: "Advances one full training Run at a time.", UpdateFunc: func(act *gi.Action) {
+	tbar.AddAction(core.ActOpts{Label: "Step Run", Icon: "fast-fwd", Tooltip: "Advances one full training Run at a time.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.IsRunning = true
 			tbar.UpdateActions()
@@ -859,16 +856,16 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	tbar.AddSeparator("views")
 
-	tbar.AddAction(gi.ActOpts{Label: "Reset Trl Log", Icon: "update", Tooltip: "Reset trial log.", UpdateFunc: func(act *gi.Action) {
+	tbar.AddAction(core.ActOpts{Label: "Reset Trl Log", Icon: "update", Tooltip: "Reset trial log.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
 		ss.TrnTrlLog.SetNumRows(0)
 		ss.TrnTrlPlot.Update()
 	})
 
-	tbar.AddAction(gi.ActOpts{Label: "Weights Update", Icon: "update", Tooltip: "Update the Weights grid display to reflect the current weights.", UpdateFunc: func(act *gi.Action) {
+	tbar.AddAction(core.ActOpts{Label: "Weights Update", Icon: "update", Tooltip: "Update the Weights grid display to reflect the current weights.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
 		ss.RewPredInput(ss.RewPredInputWts)
 		if ss.WtsGrid != nil {
 			ss.WtsGrid.UpdateSig()
@@ -877,90 +874,90 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	tbar.AddSeparator("misc")
 
-	tbar.AddAction(gi.ActOpts{Label: "New Seed", Icon: "new", Tooltip: "Generate a new initial random seed to get different results.  By default, Init re-establishes the same initial seed every time."}, win.This(),
-		func(recv, send ki.Ki, sig int64, data interface{}) {
+	tbar.AddAction(core.ActOpts{Label: "New Seed", Icon: "new", Tooltip: "Generate a new initial random seed to get different results.  By default, Init re-establishes the same initial seed every time."}, win.This(),
+		func(recv, send tree.Ki, sig int64, data interface{}) {
 			ss.NewRndSeed()
 		})
 
-	tbar.AddAction(gi.ActOpts{Label: "Defaults", Icon: "update", Tooltip: "Restore initial default parameters.", UpdateFunc: func(act *gi.Action) {
+	tbar.AddAction(core.ActOpts{Label: "Defaults", Icon: "update", Tooltip: "Restore initial default parameters.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
 		ss.Defaults()
 		ss.Init()
 		vp.SetNeedsFullRender()
 	})
 
-	tbar.AddAction(gi.ActOpts{Label: "README", Icon: "file-markdown", Tooltip: "Opens your browser on the README file that contains instructions for how to run this model."}, win.This(),
-		func(recv, send ki.Ki, sig int64, data interface{}) {
-			gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch7/rl_cond/README.md")
+	tbar.AddAction(core.ActOpts{Label: "README", Icon: "file-markdown", Tooltip: "Opens your browser on the README file that contains instructions for how to run this model."}, win.This(),
+		func(recv, send tree.Ki, sig int64, data interface{}) {
+			core.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch7/rl_cond/README.md")
 		})
 
 	vp.UpdateEndNoSig(updt)
 
 	// main menu
-	appnm := gi.AppName()
+	appnm := core.AppName()
 	mmen := win.MainMenu
 	mmen.ConfigMenus([]string{appnm, "File", "Edit", "Window"})
 
-	amen := win.MainMenu.ChildByName(appnm, 0).(*gi.Action)
+	amen := win.MainMenu.ChildByName(appnm, 0).(*core.Action)
 	amen.Menu.AddAppMenu(win)
 
-	emen := win.MainMenu.ChildByName("Edit", 1).(*gi.Action)
+	emen := win.MainMenu.ChildByName("Edit", 1).(*core.Action)
 	emen.Menu.AddCopyCutPaste(win)
 
 	// note: Command in shortcuts is automatically translated into Control for
 	// Linux, Windows or Meta for MacOS
-	// fmen := win.MainMenu.ChildByName("File", 0).(*gi.Action)
-	// fmen.Menu.AddAction(gi.ActOpts{Label: "Open", Shortcut: "Command+O"},
-	// 	win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+	// fmen := win.MainMenu.ChildByName("File", 0).(*core.Action)
+	// fmen.Menu.AddAction(core.ActOpts{Label: "Open", Shortcut: "Command+O"},
+	// 	win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
 	// 		FileViewOpenSVG(vp)
 	// 	})
 	// fmen.Menu.AddSeparator("csep")
-	// fmen.Menu.AddAction(gi.ActOpts{Label: "Close Window", Shortcut: "Command+W"},
-	// 	win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+	// fmen.Menu.AddAction(core.ActOpts{Label: "Close Window", Shortcut: "Command+W"},
+	// 	win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
 	// 		win.Close()
 	// 	})
 
 	inQuitPrompt := false
-	gi.SetQuitReqFunc(func() {
+	core.SetQuitReqFunc(func() {
 		if inQuitPrompt {
 			return
 		}
 		inQuitPrompt = true
-		gi.PromptDialog(vp, gi.DlgOpts{Title: "Really Quit?",
-			Prompt: "Are you <i>sure</i> you want to quit and lose any unsaved params, weights, logs, etc?"}, gi.AddOk, gi.AddCancel,
-			win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
-				if sig == int64(gi.DialogAccepted) {
-					gi.Quit()
+		core.PromptDialog(vp, core.DlgOpts{Title: "Really Quit?",
+			Prompt: "Are you <i>sure</i> you want to quit and lose any unsaved params, weights, logs, etc?"}, core.AddOk, core.AddCancel,
+			win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+				if sig == int64(core.DialogAccepted) {
+					core.Quit()
 				} else {
 					inQuitPrompt = false
 				}
 			})
 	})
 
-	// gi.SetQuitCleanFunc(func() {
+	// core.SetQuitCleanFunc(func() {
 	// 	fmt.Printf("Doing final Quit cleanup here..\n")
 	// })
 
 	inClosePrompt := false
-	win.SetCloseReqFunc(func(w *gi.Window) {
+	win.SetCloseReqFunc(func(w *core.Window) {
 		if inClosePrompt {
 			return
 		}
 		inClosePrompt = true
-		gi.PromptDialog(vp, gi.DlgOpts{Title: "Really Close Window?",
-			Prompt: "Are you <i>sure</i> you want to close the window?  This will Quit the App as well, losing all unsaved params, weights, logs, etc"}, gi.AddOk, gi.AddCancel,
-			win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
-				if sig == int64(gi.DialogAccepted) {
-					gi.Quit()
+		core.PromptDialog(vp, core.DlgOpts{Title: "Really Close Window?",
+			Prompt: "Are you <i>sure</i> you want to close the window?  This will Quit the App as well, losing all unsaved params, weights, logs, etc"}, core.AddOk, core.AddCancel,
+			win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+				if sig == int64(core.DialogAccepted) {
+					core.Quit()
 				} else {
 					inClosePrompt = false
 				}
 			})
 	})
 
-	win.SetCloseCleanFunc(func(w *gi.Window) {
-		go gi.Quit() // once main window is closed, quit
+	win.SetCloseCleanFunc(func(w *core.Window) {
+		go core.Quit() // once main window is closed, quit
 	})
 
 	win.MainMenuUpdated()
@@ -968,13 +965,13 @@ func (ss *Sim) ConfigGui() *gi.Window {
 }
 
 // These props register Save methods so they can be used
-var SimProps = ki.Props{
-	"CallMethods": ki.PropSlice{
-		{"SaveWeights", ki.Props{
+var SimProps = tree.Props{
+	"CallMethods": tree.PropSlice{
+		{"SaveWeights", tree.Props{
 			"desc": "save network weights to file",
 			"icon": "file-save",
-			"Args": ki.PropSlice{
-				{"File Name", ki.Props{
+			"Args": tree.PropSlice{
+				{"File Name", tree.Props{
 					"ext": ".wts,.wts.gz",
 				}},
 			},

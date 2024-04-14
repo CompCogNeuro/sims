@@ -15,10 +15,7 @@ import (
 	"strconv"
 	"strings"
 
-	"cogentcore.org/core/gi"
 	"cogentcore.org/core/gimain"
-	"cogentcore.org/core/giv"
-	"cogentcore.org/core/ki"
 	"cogentcore.org/core/kit"
 	"cogentcore.org/core/math32"
 	"github.com/emer/emergent/v2/emer"
@@ -149,13 +146,13 @@ type Sim struct {
 	Pats *etable.Table `view:"no-inline"`
 
 	// main GUI window
-	Win *gi.Window `view:"-"`
+	Win *core.Window `view:"-"`
 	// the network viewer
 	NetViewFF *netview.NetView `view:"-"`
 	// the network viewer
 	NetViewBidir *netview.NetView `view:"-"`
 	// the master toolbar
-	ToolBar *gi.ToolBar `view:"-"`
+	ToolBar *core.ToolBar `view:"-"`
 	// the test-trial plot
 	TstCycPlot *eplot.Plot2D `view:"-"`
 	// for holding layer values
@@ -618,17 +615,17 @@ func (ss *Sim) ConfigTstCycPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot
 // 		Gui
 
 // ConfigGui configures the GoGi gui interface for this simulation,
-func (ss *Sim) ConfigGui() *gi.Window {
+func (ss *Sim) ConfigGui() *core.Window {
 	width := 1600
 	height := 1200
 
-	gi.SetAppName("inhib")
-	gi.SetAppAbout(`This simulation explores how inhibitory interneurons can dynamically
+	core.SetAppName("inhib")
+	core.SetAppAbout(`This simulation explores how inhibitory interneurons can dynamically
 control overall activity levels within the network, by providing both
 feedforward and feedback inhibition to excitatory pyramidal neurons.
   See <a href="https://github.com/CompCogNeuro/sims/ch3/inhib/README.md">README.md on GitHub</a>.</p>`)
 
-	win := gi.NewMainWindow("inhib", "Inhibition", width, height)
+	win := core.NewMainWindow("inhib", "Inhibition", width, height)
 	ss.Win = win
 
 	vp := win.WinViewport2D()
@@ -636,18 +633,18 @@ feedforward and feedback inhibition to excitatory pyramidal neurons.
 
 	mfr := win.SetMainFrame()
 
-	tbar := gi.AddNewToolBar(mfr, "tbar")
+	tbar := core.AddNewToolBar(mfr, "tbar")
 	tbar.SetStretchMaxWidth()
 	ss.ToolBar = tbar
 
-	split := gi.AddNewSplitView(mfr, "split")
+	split := core.AddNewSplitView(mfr, "split")
 	split.Dim = math32.X
 	split.SetStretchMax()
 
-	sv := giv.AddNewStructView(split, "sv")
+	sv := views.AddNewStructView(split, "sv")
 	sv.SetStruct(ss)
 
-	tv := gi.AddNewTabView(split, "tv")
+	tv := core.AddNewTabView(split, "tv")
 
 	nv := tv.AddNewTab(netview.KiT_NetView, "FF Net").(*netview.NetView)
 	nv.Var = "Act"
@@ -669,22 +666,22 @@ feedforward and feedback inhibition to excitatory pyramidal neurons.
 
 	split.SetSplits(.2, .8)
 
-	tbar.AddAction(gi.ActOpts{Label: "Init", Icon: "update", Tooltip: "Initialize everything including network weights, and start over.  Also applies current params.", UpdateFunc: func(act *gi.Action) {
+	tbar.AddAction(core.ActOpts{Label: "Init", Icon: "update", Tooltip: "Initialize everything including network weights, and start over.  Also applies current params.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
 		ss.Init()
 		vp.SetNeedsFullRender()
 	})
 
-	tbar.AddAction(gi.ActOpts{Label: "Stop", Icon: "stop", Tooltip: "Interrupts running.  Hitting Train again will pick back up where it left off.", UpdateFunc: func(act *gi.Action) {
+	tbar.AddAction(core.ActOpts{Label: "Stop", Icon: "stop", Tooltip: "Interrupts running.  Hitting Train again will pick back up where it left off.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(ss.IsRunning)
-	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
 		ss.Stop()
 	})
 
-	tbar.AddAction(gi.ActOpts{Label: "Test Trial", Icon: "step-fwd", Tooltip: "Runs the next testing trial.", UpdateFunc: func(act *gi.Action) {
+	tbar.AddAction(core.ActOpts{Label: "Test Trial", Icon: "step-fwd", Tooltip: "Runs the next testing trial.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.IsRunning = true
 			ss.TestTrial() // show every update
@@ -693,81 +690,81 @@ feedforward and feedback inhibition to excitatory pyramidal neurons.
 		}
 	})
 
-	tbar.AddAction(gi.ActOpts{Label: "Config Pats", Icon: "update", Tooltip: "Generates a new input pattern based on current InputPct amount.", UpdateFunc: func(act *gi.Action) {
+	tbar.AddAction(core.ActOpts{Label: "Config Pats", Icon: "update", Tooltip: "Generates a new input pattern based on current InputPct amount.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.ConfigPats()
 			vp.SetNeedsFullRender()
 		}
 	})
 
-	tbar.AddAction(gi.ActOpts{Label: "Defaults", Icon: "update", Tooltip: "Restore initial default parameters.", UpdateFunc: func(act *gi.Action) {
+	tbar.AddAction(core.ActOpts{Label: "Defaults", Icon: "update", Tooltip: "Restore initial default parameters.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
 		ss.Defaults()
 		ss.Init()
 		vp.SetNeedsFullRender()
 	})
 
-	tbar.AddAction(gi.ActOpts{Label: "README", Icon: "file-markdown", Tooltip: "Opens your browser on the README file that contains instructions for how to run this model."}, win.This(),
-		func(recv, send ki.Ki, sig int64, data interface{}) {
-			gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch3/inhib/README.md")
+	tbar.AddAction(core.ActOpts{Label: "README", Icon: "file-markdown", Tooltip: "Opens your browser on the README file that contains instructions for how to run this model."}, win.This(),
+		func(recv, send tree.Ki, sig int64, data interface{}) {
+			core.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch3/inhib/README.md")
 		})
 
 	vp.UpdateEndNoSig(updt)
 
 	// main menu
-	appnm := gi.AppName()
+	appnm := core.AppName()
 	mmen := win.MainMenu
 	mmen.ConfigMenus([]string{appnm, "File", "Edit", "Window"})
 
-	amen := win.MainMenu.ChildByName(appnm, 0).(*gi.Action)
+	amen := win.MainMenu.ChildByName(appnm, 0).(*core.Action)
 	amen.Menu.AddAppMenu(win)
 
-	emen := win.MainMenu.ChildByName("Edit", 1).(*gi.Action)
+	emen := win.MainMenu.ChildByName("Edit", 1).(*core.Action)
 	emen.Menu.AddCopyCutPaste(win)
 
 	inQuitPrompt := false
-	gi.SetQuitReqFunc(func() {
+	core.SetQuitReqFunc(func() {
 		if inQuitPrompt {
 			return
 		}
 		inQuitPrompt = true
-		gi.PromptDialog(vp, gi.DlgOpts{Title: "Really Quit?",
-			Prompt: "Are you <i>sure</i> you want to quit and lose any unsaved params, weights, logs, etc?"}, gi.AddOk, gi.AddCancel,
-			win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
-				if sig == int64(gi.DialogAccepted) {
-					gi.Quit()
+		core.PromptDialog(vp, core.DlgOpts{Title: "Really Quit?",
+			Prompt: "Are you <i>sure</i> you want to quit and lose any unsaved params, weights, logs, etc?"}, core.AddOk, core.AddCancel,
+			win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+				if sig == int64(core.DialogAccepted) {
+					core.Quit()
 				} else {
 					inQuitPrompt = false
 				}
 			})
 	})
 
-	// gi.SetQuitCleanFunc(func() {
+	// core.SetQuitCleanFunc(func() {
 	// 	fmt.Printf("Doing final Quit cleanup here..\n")
 	// })
 
 	inClosePrompt := false
-	win.SetCloseReqFunc(func(w *gi.Window) {
+	win.SetCloseReqFunc(func(w *core.Window) {
 		if inClosePrompt {
 			return
 		}
 		inClosePrompt = true
-		gi.PromptDialog(vp, gi.DlgOpts{Title: "Really Close Window?",
-			Prompt: "Are you <i>sure</i> you want to close the window?  This will Quit the App as well, losing all unsaved params, weights, logs, etc"}, gi.AddOk, gi.AddCancel,
-			win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
-				if sig == int64(gi.DialogAccepted) {
-					gi.Quit()
+		core.PromptDialog(vp, core.DlgOpts{Title: "Really Close Window?",
+			Prompt: "Are you <i>sure</i> you want to close the window?  This will Quit the App as well, losing all unsaved params, weights, logs, etc"}, core.AddOk, core.AddCancel,
+			win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+				if sig == int64(core.DialogAccepted) {
+					core.Quit()
 				} else {
 					inClosePrompt = false
 				}
 			})
 	})
 
-	win.SetCloseCleanFunc(func(w *gi.Window) {
-		go gi.Quit() // once main window is closed, quit
+	win.SetCloseCleanFunc(func(w *core.Window) {
+		go core.Quit() // once main window is closed, quit
 	})
 
 	win.MainMenuUpdated()
@@ -775,13 +772,13 @@ feedforward and feedback inhibition to excitatory pyramidal neurons.
 }
 
 // These props register Save methods so they can be used
-var SimProps = ki.Props{
-	"CallMethods": ki.PropSlice{
-		{"SaveWeights", ki.Props{
+var SimProps = tree.Props{
+	"CallMethods": tree.PropSlice{
+		{"SaveWeights", tree.Props{
 			"desc": "save network weights to file",
 			"icon": "file-save",
-			"Args": ki.PropSlice{
-				{"File Name", ki.Props{
+			"Args": tree.PropSlice{
+				{"File Name", tree.Props{
 					"ext": ".wts",
 				}},
 			},

@@ -7,7 +7,7 @@ from leabra import go, pygiv, env, rand, erand, etensor, esg
 import os
 
 
-class SentGenEnv(pygiv.ClassViewObj):
+class SentGenEnv(pyviews.ClassViewObj):
     """
     SentGenEnv generates sentences using a grammar that is parsed from a
     text file.  The core of the grammar is rules with various items

@@ -16,7 +16,7 @@ def read_as_string(fnm):
     return val
 
 
-class SemEnv(pygiv.ClassViewObj):
+class SemEnv(pyviews.ClassViewObj):
     """
     SemEnv presents paragraphs of text, loaded from file(s)
     This assumes files have all been pre-filtered so only relevant words are present.

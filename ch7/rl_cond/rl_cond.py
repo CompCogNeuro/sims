@@ -128,7 +128,9 @@ def NewRndSeedCB(recv, send, sig, data):
 
 
 def ReadmeCB(recv, send, sig, data):
-    gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch7/rl_cond/README.md")
+    core.OpenURL(
+        "https://github.com/CompCogNeuro/sims/blob/master/ch7/rl_cond/README.md"
+    )
 
 
 def UpdateFuncNotRunning(act):
@@ -143,7 +145,7 @@ def UpdateFuncRunning(act):
 #     Sim
 
 
-class Sim(pygiv.ClassViewObj):
+class Sim(pyviews.ClassViewObj):
     """
     Sim encapsulates the entire simulation model, and we define all the
     functionality as methods on this struct.  This structure keeps all relevant
@@ -557,7 +559,7 @@ class Sim(pygiv.ClassViewObj):
 
     def SaveWeights(ss, filename):
         """
-        SaveWeights saves the network weights -- when called with giv.CallMethod
+        SaveWeights saves the network weights -- when called with views.CallMethod
         it will auto-prompt for filename
         """
         ss.Net.SaveWtsJSON(filename)
@@ -762,12 +764,12 @@ class Sim(pygiv.ClassViewObj):
         width = 1600
         height = 1200
 
-        gi.SetAppName("rl_cond")
-        gi.SetAppAbout(
+        core.SetAppName("rl_cond")
+        core.SetAppAbout(
             'rl_cond explores the temporal differences (TD) reinforcement learning algorithm under some basic Pavlovian conditioning environments. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch7/rl_cond/README.md">README.md on GitHub</a>.</p>'
         )
 
-        win = gi.NewMainWindow("rl_cond", "Reinforcement Learning", width, height)
+        win = core.NewMainWindow("rl_cond", "Reinforcement Learning", width, height)
         ss.Win = win
 
         vp = win.WinViewport2D()
@@ -776,11 +778,11 @@ class Sim(pygiv.ClassViewObj):
 
         mfr = win.SetMainFrame()
 
-        tbar = gi.AddNewToolBar(mfr, "tbar")
+        tbar = core.AddNewToolBar(mfr, "tbar")
         tbar.SetStretchMaxWidth()
         ss.ToolBar = tbar
 
-        split = gi.AddNewSplitView(mfr, "split")
+        split = core.AddNewSplitView(mfr, "split")
         split.Dim = math32.X
         split.SetStretchMax()
 
@@ -788,7 +790,7 @@ class Sim(pygiv.ClassViewObj):
         cv.AddFrame(split)
         cv.Config()
 
-        tv = gi.AddNewTabView(split, "tv")
+        tv = core.AddNewTabView(split, "tv")
 
         nv = netview.NetView()
         tv.AddTab(nv, "NetView")
@@ -815,7 +817,7 @@ class Sim(pygiv.ClassViewObj):
         recv = win.This()
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="Init",
                 Icon="update",
                 Tooltip="Initialize everything including network weights, and start over.  Also applies current params.",
@@ -826,7 +828,7 @@ class Sim(pygiv.ClassViewObj):
         )
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="Train",
                 Icon="run",
                 Tooltip="Starts the network training, picking up from wherever it may have left off.  If not stopped, training will complete the specified number of Runs through the full number of Epochs of training, with testing automatically occuring at the specified interval.",
@@ -837,7 +839,7 @@ class Sim(pygiv.ClassViewObj):
         )
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="Stop",
                 Icon="stop",
                 Tooltip="Interrupts running.  Hitting Train again will pick back up where it left off.",
@@ -848,7 +850,7 @@ class Sim(pygiv.ClassViewObj):
         )
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="Step Event",
                 Icon="step-fwd",
                 Tooltip="Advances one training event (time step) at a time.",
@@ -859,7 +861,7 @@ class Sim(pygiv.ClassViewObj):
         )
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="Step Trial",
                 Icon="step-fwd",
                 Tooltip="Advances one training trial at a time.",
@@ -870,7 +872,7 @@ class Sim(pygiv.ClassViewObj):
         )
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="Step Epoch",
                 Icon="fast-fwd",
                 Tooltip="Advances one epoch (complete set of training patterns) at a time.",
@@ -881,7 +883,7 @@ class Sim(pygiv.ClassViewObj):
         )
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="Step Run",
                 Icon="fast-fwd",
                 Tooltip="Advances one full training Run at a time.",
@@ -894,7 +896,7 @@ class Sim(pygiv.ClassViewObj):
         tbar.AddSeparator("views")
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="Reset Trl Log",
                 Icon="update",
                 Tooltip="Reset trial log.",
@@ -905,7 +907,7 @@ class Sim(pygiv.ClassViewObj):
         )
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="Weights Update",
                 Icon="update",
                 Tooltip="Update the Weights grid display to reflect the current weights.",
@@ -918,7 +920,7 @@ class Sim(pygiv.ClassViewObj):
         tbar.AddSeparator("misc")
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="Defaults",
                 Icon="update",
                 Tooltip="Restore initial default parameters.",
@@ -929,7 +931,7 @@ class Sim(pygiv.ClassViewObj):
         )
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="New Seed",
                 Icon="new",
                 Tooltip="Generate a new initial random seed to get different results.  By default, Init re-establishes the same initial seed every time.",
@@ -939,7 +941,7 @@ class Sim(pygiv.ClassViewObj):
         )
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="README",
                 Icon="file-markdown",
                 Tooltip="Opens your browser on the README file that contains instructions for how to run this model.",
@@ -950,14 +952,14 @@ class Sim(pygiv.ClassViewObj):
 
         vp.UpdateEndNoSig(updt)
 
-        appnm = gi.AppName()
+        appnm = core.AppName()
         mmen = win.MainMenu
         mmen.ConfigMenus(go.Slice_string([appnm, "File", "Edit", "Window"]))
 
-        amen = gi.Action(win.MainMenu.ChildByName(appnm, 0))
+        amen = core.Action(win.MainMenu.ChildByName(appnm, 0))
         amen.Menu.AddAppMenu(win)
 
-        emen = gi.Action(win.MainMenu.ChildByName("Edit", 1))
+        emen = core.Action(win.MainMenu.ChildByName("Edit", 1))
         emen.Menu.AddCopyCutPaste(win)
 
         win.MainMenuUpdated()

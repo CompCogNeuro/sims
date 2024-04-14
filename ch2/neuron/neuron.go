@@ -14,12 +14,11 @@ import (
 	"log"
 	"strconv"
 
+	"cogentcore.org/core/core"
 	"cogentcore.org/core/events"
-	"cogentcore.org/core/gi"
-	"cogentcore.org/core/giv"
 	"cogentcore.org/core/icons"
-	"cogentcore.org/core/ki"
 	"cogentcore.org/core/styles"
+	"cogentcore.org/core/views"
 	"github.com/emer/emergent/v2/emer"
 	"github.com/emer/emergent/v2/netview"
 	"github.com/emer/emergent/v2/params"
@@ -100,7 +99,7 @@ type Sim struct {
 	Cycle int `inactive:"+"`
 
 	// main GUI body
-	Body *gi.Body `view:"-"`
+	Body *core.Body `view:"-"`
 	// the network viewer
 	NetView *netview.NetView `view:"-"`
 	// the test-trial plot
@@ -485,14 +484,14 @@ func (ss *Sim) ConfigNetView(nv *netview.NetView) {
 
 // ConfigGui configures the GoGi gui interface for this simulation,
 func (ss *Sim) ConfigGui() {
-	b := gi.NewBody("Neuron")
+	b := core.NewBody("Neuron")
 	ss.Body = b
 
-	split := gi.NewSplits(b, "split")
+	split := core.NewSplits(b, "split")
 
-	giv.NewStructView(split, "sv").SetStruct(ss)
+	views.NewStructView(split, "sv").SetStruct(ss)
 
-	tv := gi.NewTabs(split, "tv")
+	tv := core.NewTabs(split, "tv")
 
 	nv := netview.NewNetView(tv.NewTab("NetView"))
 	nv.Var = "Act"
@@ -508,8 +507,8 @@ func (ss *Sim) ConfigGui() {
 
 	split.SetSplits(.2, .8)
 
-	b.AddAppBar(func(tb *gi.Toolbar) {
-		gi.NewButton(tb).SetText("Init").SetIcon(icons.Update).
+	b.AddAppBar(func(tb *core.Toolbar) {
+		core.NewButton(tb).SetText("Init").SetIcon(icons.Update).
 			SetTooltip("Initialize everything including network weights, and start over.  Also applies current params.").
 			StyleFirst(func(s *styles.Style) {
 				s.SetEnabled(!ss.IsRunning)
@@ -518,7 +517,7 @@ func (ss *Sim) ConfigGui() {
 				ss.Init()
 			})
 
-		gi.NewButton(tb).SetText("Stop").SetIcon(icons.Stop).
+		core.NewButton(tb).SetText("Stop").SetIcon(icons.Stop).
 			SetTooltip("Interrupts running.  Hitting Train again will pick back up where it left off.").
 			StyleFirst(func(s *styles.Style) {
 				s.SetEnabled(ss.IsRunning)
@@ -527,7 +526,7 @@ func (ss *Sim) ConfigGui() {
 				ss.Stop()
 			})
 
-		gi.NewButton(tb).SetText("Run cycles").SetIcon(icons.Step).
+		core.NewButton(tb).SetText("Run cycles").SetIcon(icons.Step).
 			SetTooltip("Runs neuron updating over NCycles.").
 			StyleFirst(func(s *styles.Style) {
 				s.SetEnabled(!ss.IsRunning)
@@ -538,9 +537,9 @@ func (ss *Sim) ConfigGui() {
 				ss.IsRunning = false
 			})
 
-		gi.NewSeparator(tb)
+		core.NewSeparator(tb)
 
-		gi.NewButton(tb).SetText("Reset plot").SetIcon(icons.Reset).
+		core.NewButton(tb).SetText("Reset plot").SetIcon(icons.Reset).
 			SetTooltip("Reset TstCycPlot.").
 			StyleFirst(func(s *styles.Style) {
 				s.SetEnabled(!ss.IsRunning)
@@ -549,7 +548,7 @@ func (ss *Sim) ConfigGui() {
 				ss.ResetTstCycPlot()
 			})
 
-		gi.NewButton(tb).SetText("Spike vs Rate").SetIcon(icons.PlayArrow).
+		core.NewButton(tb).SetText("Spike vs Rate").SetIcon(icons.PlayArrow).
 			SetTooltip("Runs Spike vs Rate test.").
 			StyleFirst(func(s *styles.Style) {
 				s.SetEnabled(!ss.IsRunning)
@@ -562,7 +561,7 @@ func (ss *Sim) ConfigGui() {
 				}()
 			})
 
-		gi.NewButton(tb).SetText("Defaults").SetIcon(icons.Reset).
+		core.NewButton(tb).SetText("Defaults").SetIcon(icons.Reset).
 			SetTooltip("Restore initial default parameters.").
 			StyleFirst(func(s *styles.Style) {
 				s.SetEnabled(!ss.IsRunning)
@@ -572,22 +571,22 @@ func (ss *Sim) ConfigGui() {
 				ss.Init()
 			})
 
-		gi.NewButton(tb).SetText("README").SetIcon(icons.FileMarkdown).
+		core.NewButton(tb).SetText("README").SetIcon(icons.FileMarkdown).
 			SetTooltip("Opens your browser on the README file that contains instructions for how to run this model.").
 			OnClick(func(e events.Event) {
-				gi.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch2/neuron/README.md")
+				core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch2/neuron/README.md")
 			})
 	})
 }
 
 // These props register Save methods so they can be used
-var SimProps = ki.Props{
-	"CallMethods": ki.PropSlice{
-		{"SaveWeights", ki.Props{
+var SimProps = tree.Props{
+	"CallMethods": tree.PropSlice{
+		{"SaveWeights", tree.Props{
 			"desc": "save network weights to file",
 			"icon": "file-save",
-			"Args": ki.PropSlice{
-				{"File Name", ki.Props{
+			"Args": tree.PropSlice{
+				{"File Name", tree.Props{
 					"ext": ".wts",
 				}},
 			},

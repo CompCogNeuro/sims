@@ -4,7 +4,8 @@
 
 from leabra import go, pygiv, env, rand, erand, etensor
 
-class OnOff(pygiv.ClassViewObj):
+
+class OnOff(pyviews.ClassViewObj):
     """
     OnOff represents stimulus On / Off timing
     """
@@ -20,21 +21,33 @@ class OnOff(pygiv.ClassViewObj):
         self.P = float()
         self.SetTags("P", 'desc:"probability of being active on any given trial"')
         self.OnVar = int()
-        self.SetTags("OnVar", 'desc:"variability in onset timing (max number of trials before/after On that it could start)"')
+        self.SetTags(
+            "OnVar",
+            'desc:"variability in onset timing (max number of trials before/after On that it could start)"',
+        )
         self.OffVar = int()
-        self.SetTags("OffVar", 'desc:"variability in offset timing (max number of trials before/after Off that it could end)"')
+        self.SetTags(
+            "OffVar",
+            'desc:"variability in offset timing (max number of trials before/after Off that it could end)"',
+        )
         self.CurAct = False
-        self.SetTags("CurAct", 'view:"-" desc:"current active status based on P probability"')
+        self.SetTags(
+            "CurAct", 'view:"-" desc:"current active status based on P probability"'
+        )
         self.CurOn = int()
-        self.SetTags("CurOn", 'view:"-" desc:"current on / off values using Var variability"')
+        self.SetTags(
+            "CurOn", 'view:"-" desc:"current on / off values using Var variability"'
+        )
         self.CurOff = int()
-        self.SetTags("CurOff", 'view:"-" desc:"current on / off values using Var variability"')
-        
+        self.SetTags(
+            "CurOff", 'view:"-" desc:"current on / off values using Var variability"'
+        )
+
     def Set(oo, act, on, off):
         oo.Act = act
         oo.On = on
         oo.Off = off
-        oo.P = 1 # default
+        oo.P = 1  # default
 
     def TrialUpdate(oo):
         """
@@ -43,8 +56,8 @@ class OnOff(pygiv.ClassViewObj):
         if not oo.Act:
             return
         oo.CurAct = erand.BoolP(oo.P)
-        oo.CurOn = oo.On - oo.OnVar + 2*rand.Intn(oo.OnVar+1)
-        oo.CurOff = oo.Off - oo.OffVar + 2*rand.Intn(oo.OffVar+1)
+        oo.CurOn = oo.On - oo.OnVar + 2 * rand.Intn(oo.OnVar + 1)
+        oo.CurOff = oo.Off - oo.OffVar + 2 * rand.Intn(oo.OffVar + 1)
 
     def IsOn(oo, tm):
         """
@@ -53,7 +66,7 @@ class OnOff(pygiv.ClassViewObj):
         return oo.Act and oo.CurAct and tm >= oo.CurOn and tm < oo.CurOff
 
 
-class CondEnv(pygiv.ClassViewObj):
+class CondEnv(pyviews.ClassViewObj):
     """
     String returns the current state as a string
     """
@@ -83,13 +96,24 @@ class CondEnv(pygiv.ClassViewObj):
         self.Reward = etensor.Float64()
         self.SetTags("Reward", 'desc:"single reward value"')
         self.Run = env.Ctr()
-        self.SetTags("Run", 'view:"inline" desc:"current run of model as provided during Init"')
+        self.SetTags(
+            "Run", 'view:"inline" desc:"current run of model as provided during Init"'
+        )
         self.Epoch = env.Ctr()
-        self.SetTags("Epoch", 'view:"inline" desc:"number of times through Seq.Max number of sequences"')
+        self.SetTags(
+            "Epoch",
+            'view:"inline" desc:"number of times through Seq.Max number of sequences"',
+        )
         self.Trial = env.Ctr()
-        self.SetTags("Trial", 'view:"inline" desc:"one trial is a pass through all TotTime Events"')
+        self.SetTags(
+            "Trial",
+            'view:"inline" desc:"one trial is a pass through all TotTime Events"',
+        )
         self.Event = env.Ctr()
-        self.SetTags("Event", 'view:"inline" desc:"event is one time step within Trial -- e.g., CS turning on, etc"')
+        self.SetTags(
+            "Event",
+            'view:"inline" desc:"event is one time step within Trial -- e.g., CS turning on, etc"',
+        )
 
     def Name(ev):
         return ev.Nm
@@ -123,7 +147,9 @@ class CondEnv(pygiv.ClassViewObj):
         return "S_%d_%g" % (ev.Event.Cur, ev.Reward.Values[0])
 
     def Init(ev, run):
-        ev.Input.SetShape(go.Slice_int([3, ev.TotTime]), go.nil, go.Slice_string(["3", "TotTime"]))
+        ev.Input.SetShape(
+            go.Slice_int([3, ev.TotTime]), go.nil, go.Slice_string(["3", "TotTime"])
+        )
         ev.Reward.SetShape(go.Slice_int([1]), go.nil, go.Slice_string(["1"]))
         ev.Run.Scale = env.Run
         ev.Epoch.Scale = env.Epoch
@@ -156,9 +182,9 @@ class CondEnv(pygiv.ClassViewObj):
         if ev.CSA.IsOn(tm):
             ev.Input.Values[tm] = 1
         if ev.CSB.IsOn(tm):
-            ev.Input.Values[ev.TotTime+tm] = 1
+            ev.Input.Values[ev.TotTime + tm] = 1
         if ev.CSC.IsOn(tm):
-            ev.Input.Values[2*ev.TotTime+tm] = 1
+            ev.Input.Values[2 * ev.TotTime + tm] = 1
 
     def SetReward(ev):
         """
@@ -207,7 +233,7 @@ class CondEnv(pygiv.ClassViewObj):
         if scale == env.Event:
             return ev.Event.Prv
         return -1
-        
+
     def CounterChg(ev, scale):
         if scale == env.Run:
             return ev.Run.Chg
@@ -218,4 +244,3 @@ class CondEnv(pygiv.ClassViewObj):
         if scale == env.Event:
             return ev.Event.Chg
         return False
-        

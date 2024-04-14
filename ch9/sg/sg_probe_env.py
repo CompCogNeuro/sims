@@ -6,7 +6,8 @@ from leabra import go, pygiv, env, rand, erand, etensor, esg
 
 import os
 
-class ProbeEnv(pygiv.ClassViewObj):
+
+class ProbeEnv(pyviews.ClassViewObj):
     """
     ProbeEnv generates sentences using a grammar that is parsed from a
     text file.  The core of the grammar is rules with various items
@@ -21,15 +22,26 @@ class ProbeEnv(pygiv.ClassViewObj):
         self.Dsc = str()
         self.SetTags("Dsc", 'desc:"description of this environment"')
         self.Words = go.Slice_string()
-        self.SetTags("Words", 'desc:"list of words used for activating state units according to index"')
+        self.SetTags(
+            "Words",
+            'desc:"list of words used for activating state units according to index"',
+        )
         self.WordState = etensor.Float32()
         self.SetTags("WordState", 'desc:"current sentence activation state"')
         self.Run = env.Ctr()
-        self.SetTags("Run", 'view:"inline" desc:"current run of model as provided during Init"')
+        self.SetTags(
+            "Run", 'view:"inline" desc:"current run of model as provided during Init"'
+        )
         self.Epoch = env.Ctr()
-        self.SetTags("Epoch", 'view:"inline" desc:"number of times through Seq.Max number of sequences"')
+        self.SetTags(
+            "Epoch",
+            'view:"inline" desc:"number of times through Seq.Max number of sequences"',
+        )
         self.Trial = env.Ctr()
-        self.SetTags("Trial", 'view:"inline" desc:"trial is the step counter within sequence - how many steps taken within current sequence -- it resets to 0 at start of each sequence"')
+        self.SetTags(
+            "Trial",
+            'view:"inline" desc:"trial is the step counter within sequence - how many steps taken within current sequence -- it resets to 0 at start of each sequence"',
+        )
 
     def Name(ev):
         return ev.Nm
@@ -59,7 +71,9 @@ class ProbeEnv(pygiv.ClassViewObj):
         ev.Run.Cur = run
         ev.Trial.Cur = -1
 
-        ev.WordState.SetShape(go.Slice_int([len(ev.Words)]), go.nil, go.Slice_string(["Words"]))
+        ev.WordState.SetShape(
+            go.Slice_int([len(ev.Words)]), go.nil, go.Slice_string(["Words"])
+        )
 
     def String(ev):
         """
@@ -111,5 +125,3 @@ class ProbeEnv(pygiv.ClassViewObj):
         if scale == env.Trial:
             return ev.Trial.Chg
         return False
-
-

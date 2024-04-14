@@ -121,19 +121,19 @@ def TestTrialCB(recv, send, sig, data):
 
 
 def TestItemCB2(recv, send, sig, data):
-    win = gi.Window(handle=recv)
+    win = core.Window(handle=recv)
     vp = win.WinViewport2D()
-    dlg = gi.Dialog(handle=send)
-    if sig != gi.DialogAccepted:
+    dlg = core.Dialog(handle=send)
+    if sig != core.DialogAccepted:
         return
-    val = gi.StringPromptDialogValue(dlg)
+    val = core.StringPromptDialogValue(dlg)
     idxs = TheSim.TestEnv.Table.RowsByString(
         "Name", val, True, True
     )  # contains, ignoreCase
     if len(idxs) == 0:
-        gi.PromptDialog(
+        core.PromptDialog(
             vp,
-            gi.DlgOpts(
+            core.DlgOpts(
                 Title="Name Not Found", Prompt="No patterns found containing: " + val
             ),
             True,
@@ -151,12 +151,12 @@ def TestItemCB2(recv, send, sig, data):
 
 
 def TestItemCB(recv, send, sig, data):
-    win = gi.Window(handle=recv)
-    gi.StringPromptDialog(
+    win = core.Window(handle=recv)
+    core.StringPromptDialog(
         win.WinViewport2D(),
         "",
         "Test Item",
-        gi.DlgOpts(
+        core.DlgOpts(
             Title="Test Item",
             Prompt="Enter the Name of a given input pattern to test (case insensitive, contains given string.",
         ),
@@ -191,7 +191,9 @@ def NewRndSeedCB(recv, send, sig, data):
 
 
 def ReadmeCB(recv, send, sig, data):
-    gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch9/dyslex/README.md")
+    core.OpenURL(
+        "https://github.com/CompCogNeuro/sims/blob/master/ch9/dyslex/README.md"
+    )
 
 
 def UpdateFuncNotRunning(act):
@@ -220,7 +222,7 @@ class LesionTypes(Enum):
     LesionTypesN = 10
 
 
-class LesionParams(pygiv.ClassViewObj):
+class LesionParams(pyviews.ClassViewObj):
     def __init__(self):
         super(LesionParams, self).__init__()
         self.Lesion = LesionTypes.NoLesion
@@ -238,14 +240,16 @@ def LesionDialog(vp, obj, name, tags, opts):
     """
     LesionDialog returns a dialog with ClassView editor for python
     class objects under GoGi.
-    opts must be a giv.DlgOpts instance
+    opts must be a views.DlgOpts instance
     """
-    dlg = gi.NewStdDialog(opts.ToGiOpts(), True, True)
+    dlg = core.NewStdDialog(opts.ToGiOpts(), True, True)
     frame = dlg.Frame()
     prIndex = dlg.PromptWidgetIndex(frame)
 
     cv = obj.NewClassView(name)
-    cv.Frame = gi.Frame(frame.InsertNewChild(gi.KiT_Frame(), prIndex + 1, "cv-frame"))
+    cv.Frame = core.Frame(
+        frame.InsertNewChild(core.KiT_Frame(), prIndex + 1, "cv-frame")
+    )
     cv.Config()
 
     dlg.UpdateEndNoSig(True)
@@ -260,7 +264,7 @@ def LesionCB(recv, send, sig, data):
         TheLesion,
         "lesion",
         {},
-        giv.DlgOpts(
+        views.DlgOpts(
             Title="LesionNet",
             Prompt="Lesion the network using given type of lesion, and given proportion of neurons (0 < Proportion < 1)",
         ),
@@ -271,7 +275,7 @@ def LesionCB(recv, send, sig, data):
 #     Sim
 
 
-class Sim(pygiv.ClassViewObj):
+class Sim(pyviews.ClassViewObj):
     """
     Sim encapsulates the entire simulation model, and we define all the
     functionality as methods on this struct.  This structure keeps all relevant
@@ -1071,7 +1075,7 @@ class Sim(pygiv.ClassViewObj):
 
     def SaveWeights(ss, filename):
         """
-        SaveWeights saves the network weights -- when called with giv.CallMethod
+        SaveWeights saves the network weights -- when called with views.CallMethod
         it will auto-prompt for filename
         """
         ss.Net.SaveWtsJSON(filename)
@@ -1583,12 +1587,12 @@ class Sim(pygiv.ClassViewObj):
         width = 1600
         height = 1200
 
-        gi.SetAppName("dyslex")
-        gi.SetAppAbout(
+        core.SetAppName("dyslex")
+        core.SetAppAbout(
             'Simulates normal and disordered (dyslexic) reading performance in terms of a distributed representation of word-level knowledge across Orthography, Semantics, and Phonology. It is based on a model by Plaut and Shallice (1993). Note that this form of dyslexia is *aquired* (via brain lesions such as stroke) and not the more prevalent developmental variety.  See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch9/dyslex/README.md">README.md on GitHub</a>.</p>'
         )
 
-        win = gi.NewMainWindow("dyslex", "Dyslex", width, height)
+        win = core.NewMainWindow("dyslex", "Dyslex", width, height)
         ss.Win = win
 
         vp = win.WinViewport2D()
@@ -1597,11 +1601,11 @@ class Sim(pygiv.ClassViewObj):
 
         mfr = win.SetMainFrame()
 
-        tbar = gi.AddNewToolBar(mfr, "tbar")
+        tbar = core.AddNewToolBar(mfr, "tbar")
         tbar.SetStretchMaxWidth()
         ss.ToolBar = tbar
 
-        split = gi.AddNewSplitView(mfr, "split")
+        split = core.AddNewSplitView(mfr, "split")
         split.Dim = math32.X
         split.SetStretchMax()
 
@@ -1609,7 +1613,7 @@ class Sim(pygiv.ClassViewObj):
         cv.AddFrame(split)
         cv.Config()
 
-        tv = gi.AddNewTabView(split, "tv")
+        tv = core.AddNewTabView(split, "tv")
 
         nv = netview.NetView()
         tv.AddTab(nv, "NetView")
@@ -1638,7 +1642,7 @@ class Sim(pygiv.ClassViewObj):
         recv = win.This()
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="Init",
                 Icon="update",
                 Tooltip="Initialize everything including network weights, and start over.  Also applies current params.",
@@ -1649,7 +1653,7 @@ class Sim(pygiv.ClassViewObj):
         )
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="Train",
                 Icon="run",
                 Tooltip="Starts the network training, picking up from wherever it may have left off.  If not stopped, training will complete the specified number of Runs through the full number of Epochs of training, with testing automatically occuring at the specified interval.",
@@ -1660,7 +1664,7 @@ class Sim(pygiv.ClassViewObj):
         )
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="Stop",
                 Icon="stop",
                 Tooltip="Interrupts running.  Hitting Train again will pick back up where it left off.",
@@ -1671,7 +1675,7 @@ class Sim(pygiv.ClassViewObj):
         )
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="Step Trial",
                 Icon="step-fwd",
                 Tooltip="Advances one training trial at a time.",
@@ -1682,7 +1686,7 @@ class Sim(pygiv.ClassViewObj):
         )
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="Step Epoch",
                 Icon="fast-fwd",
                 Tooltip="Advances one epoch (complete set of training patterns) at a time.",
@@ -1693,7 +1697,7 @@ class Sim(pygiv.ClassViewObj):
         )
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="Step Run",
                 Icon="fast-fwd",
                 Tooltip="Advances one full training Run at a time.",
@@ -1706,7 +1710,7 @@ class Sim(pygiv.ClassViewObj):
         tbar.AddSeparator("test")
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="Test Trial",
                 Icon="step-fwd",
                 Tooltip="Runs the next testing trial.",
@@ -1717,7 +1721,7 @@ class Sim(pygiv.ClassViewObj):
         )
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="Test Item",
                 Icon="step-fwd",
                 Tooltip="Prompts for a specific input pattern name to run, and runs it in testing mode.",
@@ -1728,7 +1732,7 @@ class Sim(pygiv.ClassViewObj):
         )
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="Test All",
                 Icon="fast-fwd",
                 Tooltip="Tests all of the testing trials.",
@@ -1741,7 +1745,7 @@ class Sim(pygiv.ClassViewObj):
         tbar.AddSeparator("log")
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="Open Trained Wts",
                 Icon="update",
                 Tooltip="Open weights trained on first phase of training (excluding 'novel' objects)",
@@ -1752,13 +1756,13 @@ class Sim(pygiv.ClassViewObj):
         )
 
         tbar.AddAction(
-            gi.ActOpts(Label="Lesion", Icon="cut", Tooltip="Lesion network"),
+            core.ActOpts(Label="Lesion", Icon="cut", Tooltip="Lesion network"),
             recv,
             LesionCB,
         )
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="Reset RunLog",
                 Icon="reset",
                 Tooltip="Resets the accumulated log of all Runs, which are tagged with the ParamSet used",
@@ -1770,7 +1774,7 @@ class Sim(pygiv.ClassViewObj):
         tbar.AddSeparator("anal")
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="Cluster Plot",
                 Icon="file-image",
                 Tooltip="run cluster plot on input patterns.",
@@ -1782,7 +1786,7 @@ class Sim(pygiv.ClassViewObj):
         tbar.AddSeparator("misc")
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="New Seed",
                 Icon="new",
                 Tooltip="Generate a new initial random seed to get different results.  By default, Init re-establishes the same initial seed every time.",
@@ -1792,7 +1796,7 @@ class Sim(pygiv.ClassViewObj):
         )
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="README",
                 Icon="file-markdown",
                 Tooltip="Opens your browser on the README file that contains instructions for how to run this model.",
@@ -1802,26 +1806,26 @@ class Sim(pygiv.ClassViewObj):
         )
 
         # main menu
-        appnm = gi.AppName()
+        appnm = core.AppName()
         mmen = win.MainMenu
         mmen.ConfigMenus(go.Slice_string([appnm, "File", "Edit", "Window"]))
 
-        amen = gi.Action(win.MainMenu.ChildByName(appnm, 0))
+        amen = core.Action(win.MainMenu.ChildByName(appnm, 0))
         amen.Menu.AddAppMenu(win)
 
-        emen = gi.Action(win.MainMenu.ChildByName("Edit", 1))
+        emen = core.Action(win.MainMenu.ChildByName("Edit", 1))
         emen.Menu.AddCopyCutPaste(win)
 
         # note: Command in shortcuts is automatically translated into Control for
         # Linux, Windows or Meta for MacOS
-        # fmen := win.MainMenu.ChildByName("File", 0).(*gi.Action)
-        # fmen.Menu.AddAction(gi.ActOpts{Label: "Open", Shortcut: "Command+O"},
-        #   win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+        # fmen := win.MainMenu.ChildByName("File", 0).(*core.Action)
+        # fmen.Menu.AddAction(core.ActOpts{Label: "Open", Shortcut: "Command+O"},
+        #   win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
         #       FileViewOpenSVG(vp)
         #   })
         # fmen.Menu.AddSeparator("csep")
-        # fmen.Menu.AddAction(gi.ActOpts{Label: "Close Window", Shortcut: "Command+W"},
-        #   win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+        # fmen.Menu.AddAction(core.ActOpts{Label: "Close Window", Shortcut: "Command+W"},
+        #   win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
         #       win.Close()
         #   })
 

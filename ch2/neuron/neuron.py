@@ -6,13 +6,37 @@
 
 # use:
 # just type file name to run, or:
-# pyleabra -i <file>.py 
+# pyleabra -i <file>.py
 
 # neuron: This simulation illustrates the basic properties of neural spiking and
 # rate-code activation, reflecting a balance of excitatory and inhibitory
 # influences (including leak and synaptic inhibition).
 
-from leabra import go, leabra, emer, relpos, eplot, env, agg, patgen, prjn, etable, efile, split, etensor, params, netview, rand, erand, gi, giv, pygiv, pyparams, math32, spike
+from leabra import (
+    go,
+    leabra,
+    emer,
+    relpos,
+    eplot,
+    env,
+    agg,
+    patgen,
+    prjn,
+    etable,
+    efile,
+    split,
+    etensor,
+    params,
+    netview,
+    rand,
+    erand,
+    gi,
+    giv,
+    pygiv,
+    pyparams,
+    math32,
+    spike,
+)
 
 import importlib as il
 import io, sys, getopt
@@ -20,7 +44,7 @@ from datetime import datetime, timezone
 
 import numpy
 
-# this will become Sim later.. 
+# this will become Sim later..
 TheSim = 1
 
 # LogPrec is precision for saving float values in logs
@@ -29,13 +53,16 @@ LogPrec = 4
 # note: we cannot use methods for callbacks from Go -- must be separate functions
 # so below are all the callbacks from the GUI toolbar actions
 
+
 def InitCB(recv, send, sig, data):
     TheSim.Init()
     TheSim.UpdateClassView()
     TheSim.vp.SetNeedsFullRender()
 
+
 def StopCB(recv, send, sig, data):
     TheSim.Stop()
+
 
 def RunCyclesCB(recv, send, sig, data):
     if not TheSim.IsRunning:
@@ -45,9 +72,11 @@ def RunCyclesCB(recv, send, sig, data):
         TheSim.UpdateClassView()
         TheSim.vp.SetNeedsFullRender()
 
+
 def ResetPlotCB(recv, send, sig, data):
     if not TheSim.IsRunning:
         TheSim.ResetTstCycPlot()
+
 
 def SpikeVsRateCB(recv, send, sig, data):
     if not TheSim.IsRunning:
@@ -57,26 +86,33 @@ def SpikeVsRateCB(recv, send, sig, data):
         TheSim.UpdateClassView()
         TheSim.vp.SetNeedsFullRender()
 
+
 def DefaultsCB(recv, send, sig, data):
     TheSim.Defaults()
     TheSim.Init()
     TheSim.UpdateClassView()
     TheSim.vp.SetNeedsFullRender()
 
+
 def ReadmeCB(recv, send, sig, data):
-    gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch2/neuron/README.md")
+    core.OpenURL(
+        "https://github.com/CompCogNeuro/sims/blob/master/ch2/neuron/README.md"
+    )
+
 
 def UpdateFuncNotRunning(act):
     act.SetActiveStateUpdate(not TheSim.IsRunning)
-    
+
+
 def UpdateFuncRunning(act):
     act.SetActiveStateUpdate(TheSim.IsRunning)
 
-    
-#####################################################    
+
+#####################################################
 #     Sim
 
-class Sim(pygiv.ClassViewObj):
+
+class Sim(pyviews.ClassViewObj):
     """
     Sim encapsulates the entire simulation model, and we define all the
     functionality as methods on this struct.  This structure keeps all relevant
@@ -84,42 +120,92 @@ class Sim(pygiv.ClassViewObj):
     as arguments to methods, and provides the core GUI interface (note the view tags
     for the fields which provide hints to how things should be displayed).
     """
+
     def __init__(self):
         super(Sim, self).__init__()
         self.Spike = True
-        self.SetTags("Spike", 'desc:"use discrete spiking equations -- otherwise use Noisy X-over-X-plus-1 rate code activation function"')
+        self.SetTags(
+            "Spike",
+            'desc:"use discrete spiking equations -- otherwise use Noisy X-over-X-plus-1 rate code activation function"',
+        )
         self.GbarE = float(0.3)
-        self.SetTags("GbarE", 'min:"0" step:"0.01" def:"0.3" desc:"excitatory conductance multiplier -- determines overall value of Ge which drives neuron to be more excited -- pushes up over threshold to fire if strong enough"')
+        self.SetTags(
+            "GbarE",
+            'min:"0" step:"0.01" def:"0.3" desc:"excitatory conductance multiplier -- determines overall value of Ge which drives neuron to be more excited -- pushes up over threshold to fire if strong enough"',
+        )
         self.GbarL = float(0.3)
-        self.SetTags("GbarL", 'min:"0" step:"0.01" def:"0.3" desc:"leak conductance -- determines overall value of Gl which drives neuron to be less excited (inhibited) -- pushes back to resting membrane potential"')
+        self.SetTags(
+            "GbarL",
+            'min:"0" step:"0.01" def:"0.3" desc:"leak conductance -- determines overall value of Gl which drives neuron to be less excited (inhibited) -- pushes back to resting membrane potential"',
+        )
         self.ErevE = float(1)
-        self.SetTags("ErevE", 'min:"0" max:"1" step:"0.01" def:"1" desc:"excitatory reversal (driving) potential -- determines where excitation pushes Vm up to"')
+        self.SetTags(
+            "ErevE",
+            'min:"0" max:"1" step:"0.01" def:"1" desc:"excitatory reversal (driving) potential -- determines where excitation pushes Vm up to"',
+        )
         self.ErevL = float(0.3)
-        self.SetTags("ErevL", 'min:"0" max:"1" step:"0.01" def:"0.3" desc:"leak reversal (driving) potential -- determines where excitation pulls Vm down to"')
+        self.SetTags(
+            "ErevL",
+            'min:"0" max:"1" step:"0.01" def:"0.3" desc:"leak reversal (driving) potential -- determines where excitation pulls Vm down to"',
+        )
         self.Noise = float(0.0)
-        self.SetTags("Noise", 'min:"0" step:"0.01" desc:"the variance parameter for Gaussian noise added to unit activations on every cycle"')
+        self.SetTags(
+            "Noise",
+            'min:"0" step:"0.01" desc:"the variance parameter for Gaussian noise added to unit activations on every cycle"',
+        )
         self.KNaAdapt = True
-        self.SetTags("KNaAdapt", 'desc:"apply sodium-gated potassium adaptation mechanisms that cause the neuron to reduce spiking over time"')
+        self.SetTags(
+            "KNaAdapt",
+            'desc:"apply sodium-gated potassium adaptation mechanisms that cause the neuron to reduce spiking over time"',
+        )
         self.NCycles = int(200)
-        self.SetTags("NCycles", 'min:"10" def:"200" desc:"total number of cycles to run"')
+        self.SetTags(
+            "NCycles", 'min:"10" def:"200" desc:"total number of cycles to run"'
+        )
         self.OnCycle = int(10)
-        self.SetTags("OnCycle", 'min:"0" def:"10" desc:"when does excitatory input into neuron come on?"')
+        self.SetTags(
+            "OnCycle",
+            'min:"0" def:"10" desc:"when does excitatory input into neuron come on?"',
+        )
         self.OffCycle = int(160)
-        self.SetTags("OffCycle", 'min:"0" def:"160" desc:"when does excitatory input into neuron go off?"')
+        self.SetTags(
+            "OffCycle",
+            'min:"0" def:"160" desc:"when does excitatory input into neuron go off?"',
+        )
         self.UpdateInterval = int(10)
-        self.SetTags("UpdateInterval", 'min:"1" def:"10"  desc:"how often to update display (in cycles)"')
+        self.SetTags(
+            "UpdateInterval",
+            'min:"1" def:"10"  desc:"how often to update display (in cycles)"',
+        )
         self.Net = leabra.Network()
-        self.SetTags("Net", 'view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"')
+        self.SetTags(
+            "Net",
+            'view:"no-inline" desc:"the network -- click to view / edit parameters for layers, prjns, etc"',
+        )
         self.SpikeParams = spike.ActParams()
-        self.SetTags("SpikeParams", 'view:"no-inline" desc:"parameters for spiking funcion"')
+        self.SetTags(
+            "SpikeParams", 'view:"no-inline" desc:"parameters for spiking funcion"'
+        )
         self.TstCycLog = etable.Table()
-        self.SetTags("TstCycLog", 'view:"no-inline" desc:"testing trial-level log data -- click to see record of network\'s response to each input"')
+        self.SetTags(
+            "TstCycLog",
+            'view:"no-inline" desc:"testing trial-level log data -- click to see record of network\'s response to each input"',
+        )
         self.SpikeVsRateLog = etable.Table()
-        self.SetTags("SpikeVsRateLog", 'view:"no-inline" desc:"plot of measured spike rate vs. noisy X/X+1 rate function"')
+        self.SetTags(
+            "SpikeVsRateLog",
+            'view:"no-inline" desc:"plot of measured spike rate vs. noisy X/X+1 rate function"',
+        )
         self.Params = params.Sets()
-        self.SetTags("Params", 'view:"no-inline" desc:"full collection of param sets -- not really interesting for this model"')
+        self.SetTags(
+            "Params",
+            'view:"no-inline" desc:"full collection of param sets -- not really interesting for this model"',
+        )
         self.ParamSet = str()
-        self.SetTags("ParamSet", 'view:"-" desc:"which set of *additional* parameters to use -- always applies Base and optionaly this next if set -- can use multiple names separated by spaces (don\'t put spaces in ParamSet names!)"')
+        self.SetTags(
+            "ParamSet",
+            'view:"-" desc:"which set of *additional* parameters to use -- always applies Base and optionaly this next if set -- can use multiple names separated by spaces (don\'t put spaces in ParamSet names!)"',
+        )
 
         self.Cycle = int()
         self.SetTags("Cycle", 'inactive:"+" desc:"current cycle of updating"')
@@ -139,9 +225,9 @@ class Sim(pygiv.ClassViewObj):
         self.SetTags("IsRunning", 'view:"-" desc:"true if sim is running"')
         self.StopNow = False
         self.SetTags("StopNow", 'view:"-" desc:"flag to stop running"')
-        self.vp  = 0 
+        self.vp = 0
         self.SetTags("vp", 'view:"-" desc:"viewport"')
-   
+
     def InitParams(ss):
         """
         Sets the default set of parameters -- Base is always applied, and others can be optionally
@@ -229,8 +315,8 @@ class Sim(pygiv.ClassViewObj):
         inputOn = False
         for cyc in range(ss.NCycles):
             if ss.Win != 0:
-                ss.Win.PollEvents() # this is essential for GUI responsiveness while running
-                
+                ss.Win.PollEvents()  # this is essential for GUI responsiveness while running
+
             ss.Cycle = cyc
             if cyc == ss.OnCycle:
                 inputOn = True
@@ -241,14 +327,14 @@ class Sim(pygiv.ClassViewObj):
                 nrn.Ge = 1
             else:
                 nrn.Ge = 0
-            nrn.Ge += nrn.Noise # GeNoise
+            nrn.Ge += nrn.Noise  # GeNoise
             nrn.Gi = 0
             if ss.Spike:
                 ss.SpikeUpdate(ss.Net, inputOn)
             else:
                 ss.RateUpdate(ss.Net, inputOn)
             ss.LogTstCyc(ss.TstCycLog, ss.Cycle)
-            if ss.Cycle%ss.UpdateInterval == 0:
+            if ss.Cycle % ss.UpdateInterval == 0:
                 ss.UpdateView()
             if ss.StopNow:
                 break
@@ -342,7 +428,7 @@ class Sim(pygiv.ClassViewObj):
         ly.Act.Noise.Var = float(ss.Noise)
         ly.Act.KNa.On = ss.KNaAdapt
         ly.Act.Update()
-        ss.SpikeParams.CopyFromAct(ly.Act) # keep sync'd
+        ss.SpikeParams.CopyFromAct(ly.Act)  # keep sync'd
 
     def SetParamsSet(ss, setNm, sheet, setMsg):
         """
@@ -359,7 +445,7 @@ class Sim(pygiv.ClassViewObj):
 
         if sheet == "" or sheet == "Sim":
             if "Sim" in pset.Sheets:
-                simp= pset.SheetByNameTry("Sim")
+                simp = pset.SheetByNameTry("Sim")
                 pyparams.ApplyParams(ss, simp, setMsg)
 
     def LogTstCyc(ss, dt, cyc):
@@ -384,7 +470,7 @@ class Sim(pygiv.ClassViewObj):
         dt.SetCellFloat("AvgISI", row, float(nrn.ISIAvg))
 
         # note: essential to use Go version of update when called from another goroutine
-        if cyc%ss.UpdateInterval == 0:
+        if cyc % ss.UpdateInterval == 0:
             ss.TstCycPlot.GoUpdate()
 
     def ConfigTstCycLog(ss, dt):
@@ -393,17 +479,19 @@ class Sim(pygiv.ClassViewObj):
         dt.SetMetaData("read-only", "true")
         dt.SetMetaData("precision", str(LogPrec))
 
-        nt = ss.NCycles # max cycles
+        nt = ss.NCycles  # max cycles
         sch = etable.Schema(
-            [etable.Column("Cycle", etensor.INT64, go.nil, go.nil),
-            etable.Column("Ge", etensor.FLOAT64, go.nil, go.nil),
-            etable.Column("Inet", etensor.FLOAT64, go.nil, go.nil),
-            etable.Column("Vm", etensor.FLOAT64, go.nil, go.nil),
-            etable.Column("Act", etensor.FLOAT64, go.nil, go.nil),
-            etable.Column("Spike", etensor.FLOAT64, go.nil, go.nil),
-            etable.Column("Gk", etensor.FLOAT64, go.nil, go.nil),
-            etable.Column("ISI", etensor.FLOAT64, go.nil, go.nil),
-            etable.Column("AvgISI", etensor.FLOAT64, go.nil, go.nil)]
+            [
+                etable.Column("Cycle", etensor.INT64, go.nil, go.nil),
+                etable.Column("Ge", etensor.FLOAT64, go.nil, go.nil),
+                etable.Column("Inet", etensor.FLOAT64, go.nil, go.nil),
+                etable.Column("Vm", etensor.FLOAT64, go.nil, go.nil),
+                etable.Column("Act", etensor.FLOAT64, go.nil, go.nil),
+                etable.Column("Spike", etensor.FLOAT64, go.nil, go.nil),
+                etable.Column("Gk", etensor.FLOAT64, go.nil, go.nil),
+                etable.Column("ISI", etensor.FLOAT64, go.nil, go.nil),
+                etable.Column("AvgISI", etensor.FLOAT64, go.nil, go.nil),
+            ]
         )
 
         dt.SetFromSchema(sch, nt)
@@ -415,7 +503,7 @@ class Sim(pygiv.ClassViewObj):
         # order of params: on, fixMin, min, fixMax, max
         plt.SetColParams("Cycle", eplot.Off, eplot.FixMin, 0, eplot.FloatMax, 0)
         plt.SetColParams("Ge", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
-        plt.SetColParams("Inet", eplot.On, eplot.FixMin, -.2, eplot.FixMax, 1)
+        plt.SetColParams("Inet", eplot.On, eplot.FixMin, -0.2, eplot.FixMax, 1)
         plt.SetColParams("Vm", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
         plt.SetColParams("Act", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
         plt.SetColParams("Spike", eplot.On, eplot.FixMin, 0, eplot.FixMax, 1)
@@ -444,11 +532,13 @@ class Sim(pygiv.ClassViewObj):
         dt.SetMetaData("read-only", "true")
         dt.SetMetaData("precision", str(LogPrec))
 
-        nt = 24 # typical number
+        nt = 24  # typical number
         sch = etable.Schema(
-            [etable.Column("GBarE", etensor.FLOAT64, go.nil, go.nil),
-            etable.Column("Spike", etensor.FLOAT64, go.nil, go.nil),
-            etable.Column("Rate", etensor.FLOAT64, go.nil, go.nil)]
+            [
+                etable.Column("GBarE", etensor.FLOAT64, go.nil, go.nil),
+                etable.Column("Spike", etensor.FLOAT64, go.nil, go.nil),
+                etable.Column("Rate", etensor.FLOAT64, go.nil, go.nil),
+            ]
         )
         dt.SetFromSchema(sch, nt)
 
@@ -472,10 +562,12 @@ class Sim(pygiv.ClassViewObj):
         width = 1600
         height = 1200
 
-        gi.SetAppName("neuron")
-        gi.SetAppAbout('This simulation illustrates the basic properties of neural spiking and rate-code activation, reflecting a balance of excitatory and inhibitory influences (including leak and synaptic inhibition). See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch2/neuron/README.md">README.md on GitHub</a>.</p>')
+        core.SetAppName("neuron")
+        core.SetAppAbout(
+            'This simulation illustrates the basic properties of neural spiking and rate-code activation, reflecting a balance of excitatory and inhibitory influences (including leak and synaptic inhibition). See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch2/neuron/README.md">README.md on GitHub</a>.</p>'
+        )
 
-        win = gi.NewMainWindow("neuron", "Neuron", width, height)
+        win = core.NewMainWindow("neuron", "Neuron", width, height)
         ss.Win = win
 
         vp = win.WinViewport2D()
@@ -484,11 +576,11 @@ class Sim(pygiv.ClassViewObj):
 
         mfr = win.SetMainFrame()
 
-        tbar = gi.AddNewToolBar(mfr, "tbar")
+        tbar = core.AddNewToolBar(mfr, "tbar")
         tbar.SetStretchMaxWidth()
         ss.ToolBar = tbar
 
-        split = gi.AddNewSplitView(mfr, "split")
+        split = core.AddNewSplitView(mfr, "split")
         split.Dim = math32.X
         split.SetStretchMaxWidth()
         split.SetStretchMaxHeight()
@@ -497,7 +589,7 @@ class Sim(pygiv.ClassViewObj):
         cv.AddFrame(split)
         cv.Config()
 
-        tv = gi.AddNewTabView(split, "tv")
+        tv = core.AddNewTabView(split, "tv")
 
         nv = netview.NetView()
         tv.AddTab(nv, "NetView")
@@ -514,48 +606,112 @@ class Sim(pygiv.ClassViewObj):
         tv.AddTab(plt, "SpikeVsRatePlot")
         ss.SpikeVsRatePlot = ss.ConfigSpikeVsRatePlot(plt, ss.SpikeVsRateLog)
 
-        split.SetSplitsList(go.Slice_float32([.2, .8]))
+        split.SetSplitsList(go.Slice_float32([0.2, 0.8]))
 
         recv = win.This()
-        
-        tbar.AddAction(gi.ActOpts(Label="Init", Icon="update", Tooltip="Initialize everything including network weights, and start over.  Also applies current params.", UpdateFunc=UpdateFuncNotRunning), recv, InitCB)
 
-        tbar.AddAction(gi.ActOpts(Label="Stop", Icon="stop", Tooltip="Interrupts running.  Hitting Train again will pick back up where it left off.", UpdateFunc=UpdateFuncRunning), recv, StopCB)
-        
-        tbar.AddAction(gi.ActOpts(Label="Run Cycles", Icon="step-fwd", Tooltip="Runs neuron updating over NCycles.", UpdateFunc=UpdateFuncNotRunning), recv, RunCyclesCB)
-        
-        tbar.AddAction(gi.ActOpts(Label="Reset Plot", Icon="update", Tooltip="Reset TstCycPlot", UpdateFunc=UpdateFuncNotRunning), recv, ResetPlotCB)
+        tbar.AddAction(
+            core.ActOpts(
+                Label="Init",
+                Icon="update",
+                Tooltip="Initialize everything including network weights, and start over.  Also applies current params.",
+                UpdateFunc=UpdateFuncNotRunning,
+            ),
+            recv,
+            InitCB,
+        )
 
-        tbar.AddAction(gi.ActOpts(Label="Spike Vs Rate", Icon="play", Tooltip="Runs Spike vs Rate Test", UpdateFunc=UpdateFuncNotRunning), recv, SpikeVsRateCB)
+        tbar.AddAction(
+            core.ActOpts(
+                Label="Stop",
+                Icon="stop",
+                Tooltip="Interrupts running.  Hitting Train again will pick back up where it left off.",
+                UpdateFunc=UpdateFuncRunning,
+            ),
+            recv,
+            StopCB,
+        )
+
+        tbar.AddAction(
+            core.ActOpts(
+                Label="Run Cycles",
+                Icon="step-fwd",
+                Tooltip="Runs neuron updating over NCycles.",
+                UpdateFunc=UpdateFuncNotRunning,
+            ),
+            recv,
+            RunCyclesCB,
+        )
+
+        tbar.AddAction(
+            core.ActOpts(
+                Label="Reset Plot",
+                Icon="update",
+                Tooltip="Reset TstCycPlot",
+                UpdateFunc=UpdateFuncNotRunning,
+            ),
+            recv,
+            ResetPlotCB,
+        )
+
+        tbar.AddAction(
+            core.ActOpts(
+                Label="Spike Vs Rate",
+                Icon="play",
+                Tooltip="Runs Spike vs Rate Test",
+                UpdateFunc=UpdateFuncNotRunning,
+            ),
+            recv,
+            SpikeVsRateCB,
+        )
 
         tbar.AddSeparator("log")
-        
-        tbar.AddAction(gi.ActOpts(Label= "Defaults", Icon= "update", Tooltip= "Restore initial default parameters.", UpdateFunc= UpdateFuncNotRunning), recv, DefaultsCB)
 
-        tbar.AddAction(gi.ActOpts(Label="README", Icon="file-markdown", Tooltip="Opens your browser on the README file that contains instructions for how to run this model."), recv, ReadmeCB)
+        tbar.AddAction(
+            core.ActOpts(
+                Label="Defaults",
+                Icon="update",
+                Tooltip="Restore initial default parameters.",
+                UpdateFunc=UpdateFuncNotRunning,
+            ),
+            recv,
+            DefaultsCB,
+        )
+
+        tbar.AddAction(
+            core.ActOpts(
+                Label="README",
+                Icon="file-markdown",
+                Tooltip="Opens your browser on the README file that contains instructions for how to run this model.",
+            ),
+            recv,
+            ReadmeCB,
+        )
 
         # main menu
-        appnm = gi.AppName()
+        appnm = core.AppName()
         mmen = win.MainMenu
         mmen.ConfigMenus(go.Slice_string([appnm, "File", "Edit", "Window"]))
 
-        amen = gi.Action(win.MainMenu.ChildByName(appnm, 0))
+        amen = core.Action(win.MainMenu.ChildByName(appnm, 0))
         amen.Menu.AddAppMenu(win)
 
-        emen = gi.Action(win.MainMenu.ChildByName("Edit", 1))
+        emen = core.Action(win.MainMenu.ChildByName("Edit", 1))
         emen.Menu.AddCopyCutPaste(win)
 
         win.MainMenuUpdated()
         vp.UpdateEndNoSig(updt)
         win.GoStartEventLoop()
 
+
 # TheSim is the overall state for this simulation
 TheSim = Sim()
+
 
 def main(argv):
     TheSim.Config()
     TheSim.ConfigGui()
     TheSim.Init()
-    
-main(sys.argv[1:])
 
+
+main(sys.argv[1:])

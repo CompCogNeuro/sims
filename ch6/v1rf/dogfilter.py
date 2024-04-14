@@ -4,7 +4,8 @@
 
 from leabra import go, pygiv, etensor, dog, vfilter, image
 
-class Vis(pygiv.ClassViewObj):
+
+class Vis(pyviews.ClassViewObj):
     """
     Vis does DoG filtering on images
     """
@@ -12,13 +13,21 @@ class Vis(pygiv.ClassViewObj):
     def __init__(self):
         super(Vis, self).__init__()
         self.ClipToFit = True
-        self.SetTags("ClipToFit", 'desc:"if true, and input image is larger than target image size, central region is clipped out as the input -- otherwise image is sized to target size"')
+        self.SetTags(
+            "ClipToFit",
+            'desc:"if true, and input image is larger than target image size, central region is clipped out as the input -- otherwise image is sized to target size"',
+        )
         self.DoG = dog.Filter()
         self.SetTags("DoG", 'desc:"LGN DoG filter parameters"')
         self.Geom = vfilter.Geom()
-        self.SetTags("Geom", 'inactive:"+" view:"inline" desc:"geometry of input, output"')
+        self.SetTags(
+            "Geom", 'inactive:"+" view:"inline" desc:"geometry of input, output"'
+        )
         self.ImgSize = image.Point()
-        self.SetTags("ImgSize", 'desc:"target image size to use -- images will be rescaled to this size"')
+        self.SetTags(
+            "ImgSize",
+            'desc:"target image size to use -- images will be rescaled to this size"',
+        )
         self.DoGTsr = etensor.Float32()
         self.SetTags("DoGTsr", 'view:"no-inline" desc:"DoG filter tensor"')
         self.Img = image.Image()
@@ -55,12 +64,16 @@ class Vis(pygiv.ClassViewObj):
         if vi.ClipToFit and isz.X > insz.X and isz.Y > insz.Y:
             st = isz.Sub(insz).Div(2).Add(ibd.Min)
             ed = st.Add(insz)
-            vi.Img = image.RGBA(img).SubImage(image.Rectangle(Min= st, Max= ed))
+            vi.Img = image.RGBA(img).SubImage(image.Rectangle(Min=st, Max=ed))
             vfilter.RGBToGrey(vi.Img, vi.ImgTsr, 0, False)
         else:
             if isz != vi.ImgSize:
-                vi.Img = transform.Resize(vi.Img, vi.ImgSize.X, vi.ImgSize.Y, transform.Linear)
-                vfilter.RGBToGrey(vi.Img, vi.ImgTsr, vi.Geom.FiltRt.X, False) # pad for filt, bot zero
+                vi.Img = transform.Resize(
+                    vi.Img, vi.ImgSize.X, vi.ImgSize.Y, transform.Linear
+                )
+                vfilter.RGBToGrey(
+                    vi.Img, vi.ImgTsr, vi.Geom.FiltRt.X, False
+                )  # pad for filt, bot zero
                 vfilter.WrapPad(vi.ImgTsr, vi.Geom.FiltRt.X)
 
     def LGNDoG(vi):
@@ -71,7 +84,9 @@ class Vis(pygiv.ClassViewObj):
         flt = vi.DoG.FilterTensor(vi.DoGTsr, dog.Net)
         vfilter.Conv1(vi.Geom, flt, vi.ImgTsr, vi.OutTsr, vi.DoG.Gain)
 
-        vfilter.TensorLogNorm32(vi.OutTsr, 0) # 0 = renorm all, 1 = renorm within each on / off separately
+        vfilter.TensorLogNorm32(
+            vi.OutTsr, 0
+        )  # 0 = renorm all, 1 = renorm within each on / off separately
 
     def Filter(vi, img):
         """
@@ -79,4 +94,3 @@ class Vis(pygiv.ClassViewObj):
         """
         vi.SetImage(img)
         vi.LGNDoG()
-

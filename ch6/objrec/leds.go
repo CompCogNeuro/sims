@@ -7,7 +7,6 @@ package main
 import (
 	"image"
 
-	"cogentcore.org/core/gi"
 	"cogentcore.org/core/girl"
 )
 
@@ -20,9 +19,9 @@ type LEDraw struct {
 	// size of overall LED as proportion of overall image size
 	Size float32 `def:"0.6"`
 	// color name for drawing lines
-	LineColor gi.ColorName
+	LineColor core.ColorName
 	// color name for background
-	BgColor gi.ColorName
+	BgColor core.ColorName
 	// size of image to render
 	ImgSize image.Point
 	// rendered image

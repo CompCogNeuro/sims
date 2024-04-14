@@ -12,7 +12,6 @@ import (
 	"log"
 	"math/rand"
 
-	"cogentcore.org/core/gi"
 	"github.com/anthonynsimon/bild/clone"
 	"github.com/emer/emergent/v2/env"
 	"github.com/emer/etable/v2/etensor"
@@ -187,13 +186,13 @@ func (ev *ImgEnv) OpenImages() error {
 	}
 	var lsterr error
 	for i, fn := range ev.ImageFiles {
-		img, err := gi.OpenImage(fn)
+		img, err := core.OpenImage(fn)
 		if err != nil {
 			log.Println(err)
 			lsterr = err
 			continue
 		}
-		ev.Images[i] = gi.ImageToRGBA(img)
+		ev.Images[i] = core.ImageToRGBA(img)
 	}
 	return lsterr
 }

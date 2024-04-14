@@ -13,6 +13,7 @@ CenterH = 4
 CenterV = 5
 LEDSegsN = 6
 
+
 class LEDSegs(Enum):
     Bottom = 0
     Left = 1
@@ -22,6 +23,7 @@ class LEDSegs(Enum):
     CenterV = 5
     LEDSegsN = 6
 
+
 # These are the 20 different LED figures
 LEData = (
     (CenterH, CenterV, Right),
@@ -29,27 +31,25 @@ LEData = (
     (Top, Right, Bottom),
     (Bottom, CenterV, Right),
     (Left, CenterH, Right),
-
     (Left, CenterV, CenterH),
     (Left, CenterV, Right),
     (Left, CenterV, Bottom),
     (Left, CenterH, Top),
     (Left, CenterH, Bottom),
-
     (Top, CenterV, Right),
     (Bottom, CenterV, CenterH),
     (Right, CenterH, Bottom),
     (Top, CenterH, Bottom),
     (Left, Top, Right),
-
     (Top, CenterH, Right),
     (Left, CenterV, Top),
     (Top, Left, Bottom),
     (Left, Bottom, Right),
     (Top, CenterV, CenterH),
-    )
+)
 
-class LEDraw(pygiv.ClassViewObj):
+
+class LEDraw(pyviews.ClassViewObj):
     """
     LEDraw renders old-school "LED" style "letters" composed of a set of horizontal
     and vertical elements.  All possible such combinations of 3 out of 6 line segments are created.
@@ -59,9 +59,14 @@ class LEDraw(pygiv.ClassViewObj):
     def __init__(self):
         super(LEDraw, self).__init__()
         self.Width = float(4)
-        self.SetTags("Width", 'def:"4" desc:"line width of LEDraw as percent of display size"')
+        self.SetTags(
+            "Width", 'def:"4" desc:"line width of LEDraw as percent of display size"'
+        )
         self.Size = float(0.6)
-        self.SetTags("Size", 'def:"0.6" desc:"size of overall LED as proportion of overall image size"')
+        self.SetTags(
+            "Size",
+            'def:"0.6" desc:"size of overall LED as proportion of overall image size"',
+        )
         self.LineColor = "white"
         self.SetTags("LineColor", 'desc:"color name for drawing lines"')
         self.BgColor = "black"
@@ -93,7 +98,7 @@ class LEDraw(pygiv.ClassViewObj):
             if cs != ld.ImgSize:
                 ld.Image = 0
         if ld.Image == 0:
-            ld.Image = image.NewRGBA(image.Rectangle(Max= ld.ImgSize))
+            ld.Image = image.NewRGBA(image.Rectangle(Max=ld.ImgSize))
         ld.Render.Init(ld.ImgSize.X, ld.ImgSize.Y, ld.Image)
         ld.Paint.Defaults()
         ld.Paint.StrokeStyle.Width.SetPct(ld.Width)
@@ -120,17 +125,17 @@ class LEDraw(pygiv.ClassViewObj):
         szY = ctrY * ld.Size
 
         if seg == Bottom:
-            ld.Paint.DrawLine(rs, ctrX-szX, ctrY+szY, ctrX+szX, ctrY+szY)
+            ld.Paint.DrawLine(rs, ctrX - szX, ctrY + szY, ctrX + szX, ctrY + szY)
         if seg == Left:
-            ld.Paint.DrawLine(rs, ctrX-szX, ctrY-szY, ctrX-szX, ctrY+szY)
+            ld.Paint.DrawLine(rs, ctrX - szX, ctrY - szY, ctrX - szX, ctrY + szY)
         if seg == Right:
-            ld.Paint.DrawLine(rs, ctrX+szX, ctrY-szY, ctrX+szX, ctrY+szY)
+            ld.Paint.DrawLine(rs, ctrX + szX, ctrY - szY, ctrX + szX, ctrY + szY)
         if seg == Top:
-            ld.Paint.DrawLine(rs, ctrX-szX, ctrY-szY, ctrX+szX, ctrY-szY)
+            ld.Paint.DrawLine(rs, ctrX - szX, ctrY - szY, ctrX + szX, ctrY - szY)
         if seg == CenterH:
-            ld.Paint.DrawLine(rs, ctrX-szX, ctrY, ctrX+szX, ctrY)
+            ld.Paint.DrawLine(rs, ctrX - szX, ctrY, ctrX + szX, ctrY)
         if seg == CenterV:
-            ld.Paint.DrawLine(rs, ctrX, ctrY-szY, ctrX, ctrY+szY)
+            ld.Paint.DrawLine(rs, ctrX, ctrY - szY, ctrX, ctrY + szY)
         ld.Paint.Stroke(rs)
 
     def DrawLED(ld, num):
@@ -140,5 +145,3 @@ class LEDraw(pygiv.ClassViewObj):
         led = LEData[num]
         for seg in led:
             ld.DrawSeg(seg)
-
-

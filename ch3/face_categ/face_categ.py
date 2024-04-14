@@ -79,19 +79,19 @@ def TestTrialCB(recv, send, sig, data):
 
 
 def TestItemCB2(recv, send, sig, data):
-    win = gi.Window(handle=recv)
+    win = core.Window(handle=recv)
     vp = win.WinViewport2D()
-    dlg = gi.Dialog(handle=send)
-    if sig != gi.DialogAccepted:
+    dlg = core.Dialog(handle=send)
+    if sig != core.DialogAccepted:
         return
-    val = gi.StringPromptDialogValue(dlg)
+    val = core.StringPromptDialogValue(dlg)
     idxs = TheSim.TestEnv.Table.RowsByString(
         "Name", val, True, True
     )  # contains, ignoreCase
     if len(idxs) == 0:
-        gi.PromptDialog(
+        core.PromptDialog(
             vp,
-            gi.DlgOpts(
+            core.DlgOpts(
                 Title="Name Not Found", Prompt="No patterns found containing: " + val
             ),
             True,
@@ -109,12 +109,12 @@ def TestItemCB2(recv, send, sig, data):
 
 
 def TestItemCB(recv, send, sig, data):
-    win = gi.Window(handle=recv)
-    gi.StringPromptDialog(
+    win = core.Window(handle=recv)
+    core.StringPromptDialog(
         win.WinViewport2D(),
         "",
         "Test Item",
-        gi.DlgOpts(
+        core.DlgOpts(
             Title="Test Item",
             Prompt="Enter the Name of a given input pattern to test (case insensitive, contains given string.",
         ),
@@ -138,10 +138,10 @@ def SetInputCB2(recv, send, sig, data):
 
 
 def SetInputCB(recv, send, sig, data):
-    win = gi.Window(handle=recv)
-    gi.ChoiceDialog(
+    win = core.Window(handle=recv)
+    core.ChoiceDialog(
         win.WinViewport2D(),
-        gi.DlgOpts(
+        core.DlgOpts(
             Title="Set Input",
             Prompt="Set whether the input to the network comes in bottom-up (Input layer) or top-down (Higher-level category layers)",
         ),
@@ -159,10 +159,10 @@ def SetPatsCB2(recv, send, sig, data):
 
 
 def SetPatsCB(recv, send, sig, data):
-    win = gi.Window(handle=recv)
-    gi.ChoiceDialog(
+    win = core.Window(handle=recv)
+    core.ChoiceDialog(
         win.WinViewport2D(),
-        gi.DlgOpts(
+        core.DlgOpts(
             Title="Set Pats",
             Prompt="Set which set of patterns to present -- full or partial faces",
         ),
@@ -185,7 +185,7 @@ def DefaultsCB(recv, send, sig, data):
 
 
 def ReadmeCB(recv, send, sig, data):
-    gi.OpenURL(
+    core.OpenURL(
         "https://github.com/CompCogNeuro/sims/blob/master/ch3/face_categ/README.md"
     )
 
@@ -202,7 +202,7 @@ def UpdateFuncRunning(act):
 #     Sim
 
 
-class Sim(pygiv.ClassViewObj):
+class Sim(pyviews.ClassViewObj):
     """
     Sim encapsulates the entire simulation model, and we define all the
     functionality as methods on this struct.  This structure keeps all relevant
@@ -485,7 +485,7 @@ class Sim(pygiv.ClassViewObj):
 
     def SaveWeights(ss, filename):
         """
-        SaveWeights saves the network weights -- when called with giv.CallMethod
+        SaveWeights saves the network weights -- when called with views.CallMethod
         it will auto-prompt for filename
         """
         ss.Net.SaveWtsJSON(filename)
@@ -816,12 +816,12 @@ class Sim(pygiv.ClassViewObj):
         width = 1600
         height = 1200
 
-        gi.SetAppName("face_categ")
-        gi.SetAppAbout(
+        core.SetAppName("face_categ")
+        core.SetAppAbout(
             'face_categ: This project explores how sensory inputs (in this case simple cartoon faces) can be categorized in multiple different ways, to extract the relevant information and collapse across the irrelevant. It allows you to explore both bottom-up processing from face image to categories, and top-down processing from category values to face images (imagery), including the ability to dynamically iterate both bottom-up and top-down to cleanup partial inputs (partially occluded face images).  See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch3/face_categ/README.md">README.md on GitHub</a>.</p>'
         )
 
-        win = gi.NewMainWindow("face_categ", "Face Categorization", width, height)
+        win = core.NewMainWindow("face_categ", "Face Categorization", width, height)
         ss.Win = win
 
         vp = win.WinViewport2D()
@@ -830,11 +830,11 @@ class Sim(pygiv.ClassViewObj):
 
         mfr = win.SetMainFrame()
 
-        tbar = gi.AddNewToolBar(mfr, "tbar")
+        tbar = core.AddNewToolBar(mfr, "tbar")
         tbar.SetStretchMaxWidth()
         ss.ToolBar = tbar
 
-        split = gi.AddNewSplitView(mfr, "split")
+        split = core.AddNewSplitView(mfr, "split")
         split.Dim = math32.X
         split.SetStretchMax()
 
@@ -842,7 +842,7 @@ class Sim(pygiv.ClassViewObj):
         cv.AddFrame(split)
         cv.Config()
 
-        tv = gi.AddNewTabView(split, "tv")
+        tv = core.AddNewTabView(split, "tv")
 
         nv = netview.NetView()
         tv.AddTab(nv, "NetView")
@@ -861,7 +861,7 @@ class Sim(pygiv.ClassViewObj):
         recv = win.This()
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="Init",
                 Icon="update",
                 Tooltip="Initialize everything including network weights, and start over.  Also applies current params.",
@@ -872,7 +872,7 @@ class Sim(pygiv.ClassViewObj):
         )
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="Stop",
                 Icon="stop",
                 Tooltip="Interrupts running.  Hitting Train again will pick back up where it left off.",
@@ -883,7 +883,7 @@ class Sim(pygiv.ClassViewObj):
         )
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="Test Trial",
                 Icon="step-fwd",
                 Tooltip="Runs the next testing trial.",
@@ -894,7 +894,7 @@ class Sim(pygiv.ClassViewObj):
         )
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="Test Item",
                 Icon="step-fwd",
                 Tooltip="Prompts for a specific input pattern name to run, and runs it in testing mode.",
@@ -905,7 +905,7 @@ class Sim(pygiv.ClassViewObj):
         )
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="Test All",
                 Icon="fast-fwd",
                 Tooltip="Tests all of the testing trials.",
@@ -918,7 +918,7 @@ class Sim(pygiv.ClassViewObj):
         tbar.AddSeparator("log")
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="SetInput",
                 Icon="gear",
                 Tooltip="set whether the input to the network comes in bottom-up (Input layer) or top-down (Higher-level category layers)",
@@ -929,7 +929,7 @@ class Sim(pygiv.ClassViewObj):
         )
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="SetPats",
                 Icon="gear",
                 Tooltip="set which set of patterns to present -- full or partial faces",
@@ -940,7 +940,7 @@ class Sim(pygiv.ClassViewObj):
         )
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="Cluster Plots",
                 Icon="image",
                 Tooltip="generate cluster plots of the different layer patterns",
@@ -953,7 +953,7 @@ class Sim(pygiv.ClassViewObj):
         tbar.AddSeparator("misc")
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="Defaults",
                 Icon="update",
                 Tooltip="Restore initial default parameters.",
@@ -964,7 +964,7 @@ class Sim(pygiv.ClassViewObj):
         )
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="README",
                 Icon="file-markdown",
                 Tooltip="Opens your browser on the README file that contains instructions for how to run this model.",
@@ -974,14 +974,14 @@ class Sim(pygiv.ClassViewObj):
         )
 
         # main menu
-        appnm = gi.AppName()
+        appnm = core.AppName()
         mmen = win.MainMenu
         mmen.ConfigMenus(go.Slice_string([appnm, "File", "Edit", "Window"]))
 
-        amen = gi.Action(win.MainMenu.ChildByName(appnm, 0))
+        amen = core.Action(win.MainMenu.ChildByName(appnm, 0))
         amen.Menu.AddAppMenu(win)
 
-        emen = gi.Action(win.MainMenu.ChildByName("Edit", 1))
+        emen = core.Action(win.MainMenu.ChildByName("Edit", 1))
         emen.Menu.AddCopyCutPaste(win)
 
         win.MainMenuUpdated()

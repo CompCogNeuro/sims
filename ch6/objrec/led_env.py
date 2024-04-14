@@ -7,7 +7,8 @@ from leabra import go, pygiv, rand, env, etensor, vfilter, vxform
 from leds import LEDraw
 from v1filter import Vis
 
-class LEDEnv(pygiv.ClassViewObj):
+
+class LEDEnv(pyviews.ClassViewObj):
     """
     LEDEnv generates images of old-school "LED" style "letters" composed of a set of horizontal
     and vertical elements.  All possible such combinations of 3 out of 6 line segments are created.
@@ -25,9 +26,13 @@ class LEDEnv(pygiv.ClassViewObj):
         self.Vis = Vis()
         self.SetTags("Vis", 'desc:"visual processing params"')
         self.MinLED = int()
-        self.SetTags("MinLED", 'min:"0" max:"19" desc:"minimum LED number to draw (0-19)"')
+        self.SetTags(
+            "MinLED", 'min:"0" max:"19" desc:"minimum LED number to draw (0-19)"'
+        )
         self.MaxLED = int()
-        self.SetTags("MaxLED", 'min:"0" max:"19" desc:"maximum LED number to draw (0-19)"')
+        self.SetTags(
+            "MaxLED", 'min:"0" max:"19" desc:"maximum LED number to draw (0-19)"'
+        )
         self.CurLED = int()
         self.SetTags("CurLED", 'inactive:"+" desc:"current LED number that was drawn"')
         self.PrvLED = int()
@@ -37,11 +42,18 @@ class LEDEnv(pygiv.ClassViewObj):
         self.XForm = vxform.XForm()
         self.SetTags("XForm", 'desc:"current -- prev transforms"')
         self.Run = env.Ctr()
-        self.SetTags("Run", 'view:"inline" desc:"current run of model as provided during Init"')
+        self.SetTags(
+            "Run", 'view:"inline" desc:"current run of model as provided during Init"'
+        )
         self.Epoch = env.Ctr()
-        self.SetTags("Epoch", 'view:"inline" desc:"number of times through Seq.Max number of sequences"')
+        self.SetTags(
+            "Epoch",
+            'view:"inline" desc:"number of times through Seq.Max number of sequences"',
+        )
         self.Trial = env.Ctr()
-        self.SetTags("Trial", 'view:"inline" desc:"trial is the step counter within epoch"')
+        self.SetTags(
+            "Trial", 'view:"inline" desc:"trial is the step counter within epoch"'
+        )
         self.OrigImg = etensor.Float32()
         self.SetTags("OrigImg", 'desc:"original image prior to random transforms"')
         self.Output = etensor.Float32()
@@ -58,7 +70,9 @@ class LEDEnv(pygiv.ClassViewObj):
 
     def State(ev, element):
         if element == "Image":
-            vfilter.RGBToGrey(ev.Draw.Image, ev.OrigImg, 0, False) # pad for filt, bot zero
+            vfilter.RGBToGrey(
+                ev.Draw.Image, ev.OrigImg, 0, False
+            )  # pad for filt, bot zero
             return ev.OrigImg
         if element == "V1":
             return ev.Vis.V1AllTsr
@@ -83,12 +97,12 @@ class LEDEnv(pygiv.ClassViewObj):
         ev.Epoch.Init()
         ev.Trial.Init()
         ev.Run.Cur = run
-        ev.Trial.Cur = -1 # init state -- key so that first Step() = 0
+        ev.Trial.Cur = -1  # init state -- key so that first Step() = 0
         ev.Output.SetShape(go.Slice_int([4, 5]), go.nil, go.Slice_string(["Y", "X"]))
 
     def Step(ev):
-        ev.Epoch.Same()     # good idea to just reset all non-inner-most counters at start
-        if ev.Trial.Incr(): # if true, hit max, reset to 0
+        ev.Epoch.Same()  # good idea to just reset all non-inner-most counters at start
+        if ev.Trial.Incr():  # if true, hit max, reset to 0
             ev.Epoch.Incr()
         ev.DrawRndLED()
         ev.FilterImg()
@@ -168,5 +182,3 @@ class LEDEnv(pygiv.ClassViewObj):
         ev.XFormRand.Gen(ev.XForm)
         img = ev.XForm.Image(ev.Draw.Image)
         ev.Vis.Filter(img)
-
-

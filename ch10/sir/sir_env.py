@@ -6,16 +6,19 @@ from leabra import go, pygiv, env, rand, erand, etensor
 from enum import Enum
 import os
 
+
 class Actions(Enum):
     """
     Actions are SIR actions
     """
+
     Store = 0
     Ignore = 1
     Recall = 2
     ActionsN = 3
 
-class SIREnv(pygiv.ClassViewObj):
+
+class SIREnv(pyviews.ClassViewObj):
     """
     SIREnv implements the store-ignore-recall task
     """
@@ -27,9 +30,13 @@ class SIREnv(pygiv.ClassViewObj):
         self.Dsc = str()
         self.SetTags("Dsc", 'desc:"description of this environment"')
         self.NStim = int(4)
-        self.SetTags("NStim", 'desc:"number of different stimuli that can be maintained"')
+        self.SetTags(
+            "NStim", 'desc:"number of different stimuli that can be maintained"'
+        )
         self.RewVal = float(1)
-        self.SetTags("RewVal", 'desc:"value for reward, based on whether model output = target"')
+        self.SetTags(
+            "RewVal", 'desc:"value for reward, based on whether model output = target"'
+        )
         self.NoRewVal = float(0)
         self.SetTags("NoRewVal", 'desc:"value for non-reward"')
         self.Act = Actions.Store
@@ -47,11 +54,18 @@ class SIREnv(pygiv.ClassViewObj):
         self.Reward = etensor.Float64()
         self.SetTags("Reward", 'desc:"reward value"')
         self.Run = env.Ctr()
-        self.SetTags("Run", 'view:"inline" desc:"current run of model as provided during Init"')
+        self.SetTags(
+            "Run", 'view:"inline" desc:"current run of model as provided during Init"'
+        )
         self.Epoch = env.Ctr()
-        self.SetTags("Epoch", 'view:"inline" desc:"number of times through Seq.Max number of sequences"')
+        self.SetTags(
+            "Epoch",
+            'view:"inline" desc:"number of times through Seq.Max number of sequences"',
+        )
         self.Trial = env.Ctr()
-        self.SetTags("Trial", 'view:"inline" desc:"trial is the step counter within epoch"')
+        self.SetTags(
+            "Trial", 'view:"inline" desc:"trial is the step counter within epoch"'
+        )
 
     def Name(ev):
         return ev.Nm
@@ -65,7 +79,9 @@ class SIREnv(pygiv.ClassViewObj):
         """
         ev.NStim = n
         ev.Input.SetShape(go.Slice_int([n]), go.nil, go.Slice_string(["N"]))
-        ev.CtrlInput.SetShape(go.Slice_int([Actions.ActionsN.value]), go.nil, go.Slice_string(["N"]))
+        ev.CtrlInput.SetShape(
+            go.Slice_int([Actions.ActionsN.value]), go.nil, go.Slice_string(["N"])
+        )
         ev.Output.SetShape(go.Slice_int([n]), go.nil, go.Slice_string(["N"]))
         ev.Reward.SetShape(go.Slice_int([1]), go.nil, go.Slice_string(["1"]))
         if ev.RewVal == 0:
@@ -73,7 +89,9 @@ class SIREnv(pygiv.ClassViewObj):
 
     def Validate(ev):
         if ev.NStim <= 0:
-            return fmt.Errorf("SIREnv: %s NStim == 0 -- must set with SetNStim call", ev.Nm)
+            return fmt.Errorf(
+                "SIREnv: %s NStim == 0 -- must set with SetNStim call", ev.Nm
+            )
         return go.nil
 
     def State(ev, element):
@@ -91,13 +109,18 @@ class SIREnv(pygiv.ClassViewObj):
         """
         StimStr returns a letter string rep of stim (A, B...)
         """
-        return chr(ord('A') + stim)
+        return chr(ord("A") + stim)
 
     def String(ev):
         """
         String returns the current state as a string
         """
-        return "%s_%s_mnt_%s_rew_%g" % (ev.Act, ev.StimStr(ev.Stim), ev.StimStr(ev.Maint), ev.Reward.Values[0])
+        return "%s_%s_mnt_%s_rew_%g" % (
+            ev.Act,
+            ev.StimStr(ev.Stim),
+            ev.StimStr(ev.Maint),
+            ev.Reward.Values[0],
+        )
 
     def Init(ev, run):
         ev.Run.Scale = env.Run
@@ -188,4 +211,3 @@ class SIREnv(pygiv.ClassViewObj):
         if scale == env.Trial:
             return ev.Trial.Chg
         return -1
-

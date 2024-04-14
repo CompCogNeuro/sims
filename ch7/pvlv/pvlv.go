@@ -18,7 +18,6 @@ import (
 	"sync"
 	"time"
 
-	"cogentcore.org/core/giv"
 	"cogentcore.org/core/ki/ints"
 	"cogentcore.org/core/math32"
 	"github.com/emer/emergent/v2/env"
@@ -31,9 +30,6 @@ import (
 	_ "github.com/emer/etable/v2/split"
 	"github.com/goki/ki/kit"
 
-	"cogentcore.org/core/ki"
-
-	"cogentcore.org/core/gi"
 	"cogentcore.org/core/gimain"
 	"github.com/emer/emergent/v2/netview"
 	"github.com/emer/emergent/v2/params"
@@ -96,8 +92,8 @@ type Sim struct {
 	// stepping menu layout. Default is one button, true means original "wide" setup
 	devMenuSetup bool `view:"-" desc:"stepping menu layout. Default is one button, true means original \"wide\" setup"`
 	// number of StopStepGrain steps to execute before stopping
-	StepsToRun int         `view:"-"`
-	nStepsBox  *gi.SpinBox `view:"-"`
+	StepsToRun int           `view:"-"`
+	nStepsBox  *core.SpinBox `view:"-"`
 	// saved number of StopStepGrain steps to execute before stopping
 	OrigSteps int `view:"-"`
 	// granularity for the Step command
@@ -146,11 +142,11 @@ type Sim struct {
 	ContextModel ContextModel
 
 	// main GUI window
-	Win *gi.Window `view:"-"`
+	Win *core.Window `view:"-"`
 	// the network viewer
 	NetView *netview.NetView `view:"-"`
 	// the master toolbar
-	ToolBar *gi.ToolBar `view:"-"`
+	ToolBar *core.ToolBar `view:"-"`
 	// the weights grid view
 	WtsGrid *etview.TensorGrid `view:"-"`
 	// data for the TrialTypeData plot
@@ -200,8 +196,8 @@ type Sim struct {
 	// true iff running through the GUI
 	Interactive bool `view:"-"`
 	// structure view for this struct
-	StructView  *giv.StructView  `view:"-"`
-	InputShapes map[string][]int `view:"-"`
+	StructView  *views.StructView `view:"-"`
+	InputShapes map[string][]int  `view:"-"`
 
 	// master list of RunParams records
 	MasterRunParams data.RunParamsMap `view:"no-inline"`
@@ -219,7 +215,7 @@ type Sim struct {
 var KiT_Sim = kit.Types.AddType(&Sim{}, SimProps)
 
 func (ss *Sim) OpenCemerWeights(fName string) {
-	err := ss.Net.OpenWtsCpp(gi.FileName(fName))
+	err := ss.Net.OpenWtsCpp(core.FileName(fName))
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 	}
@@ -314,7 +310,7 @@ func (ss *Sim) ConfigEnv() {
 ////////////////////////////////////////////////////////////////////////////////
 // Init, utils
 
-func (ss *Sim) Init(aki ki.Ki) {
+func (ss *Sim) Init(aki tree.Ki) {
 	//ss.Layout.Init(aki)
 }
 
@@ -635,13 +631,13 @@ func (ss *Sim) Paused() bool {
 
 var CemerWtsFname = ""
 
-func FileViewLoadCemerWts(vp *gi.Viewport2D) {
-	giv.FileViewDialog(vp, CemerWtsFname, ".svg", giv.DlgOpts{Title: "Open SVG"}, nil,
-		vp.Win, func(recv, send ki.Ki, sig int64, data interface{}) {
-			if sig == int64(gi.DialogAccepted) {
-				dlg, _ := send.(*gi.Dialog)
-				CemerWtsFname = giv.FileViewDialogValue(dlg)
-				err := TheSim.Net.OpenWtsCpp(gi.FileName(CemerWtsFname))
+func FileViewLoadCemerWts(vp *core.Viewport2D) {
+	views.FileViewDialog(vp, CemerWtsFname, ".svg", views.DlgOpts{Title: "Open SVG"}, nil,
+		vp.Win, func(recv, send tree.Ki, sig int64, data interface{}) {
+			if sig == int64(core.DialogAccepted) {
+				dlg, _ := send.(*core.Dialog)
+				CemerWtsFname = views.FileViewDialogValue(dlg)
+				err := TheSim.Net.OpenWtsCpp(core.FileName(CemerWtsFname))
 				if err != nil {
 					fmt.Println(err)
 				}
@@ -649,13 +645,13 @@ func FileViewLoadCemerWts(vp *gi.Viewport2D) {
 		})
 }
 
-func (ss *Sim) ConfigGui() *gi.Window {
+func (ss *Sim) ConfigGui() *core.Window {
 	width := 1600
 	height := 1600
-	gi.SetAppName("pvlv")
-	gi.SetAppAbout(`Current version of the Primary Value Learned Value model of the phasic dopamine signaling system. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch7/pvlv/README.md">README.md on GitHub</a>.</p>`)
+	core.SetAppName("pvlv")
+	core.SetAppAbout(`Current version of the Primary Value Learned Value model of the phasic dopamine signaling system. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch7/pvlv/README.md">README.md on GitHub</a>.</p>`)
 
-	win := gi.NewMainWindow("pvlv", "PVLV", width, height)
+	win := core.NewMainWindow("pvlv", "PVLV", width, height)
 	ss.Win = win
 
 	vp := win.WinViewport2D()
@@ -663,18 +659,18 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	mfr := win.SetMainFrame()
 
-	tbar := gi.AddNewToolBar(mfr, "tbar")
+	tbar := core.AddNewToolBar(mfr, "tbar")
 	tbar.SetStretchMaxWidth()
 	ss.ToolBar = tbar
 
-	split := gi.AddNewSplitView(mfr, "split")
+	split := core.AddNewSplitView(mfr, "split")
 	split.Dim = math32.X
 
-	sv := giv.AddNewStructView(split, "sv")
+	sv := views.AddNewStructView(split, "sv")
 	sv.SetStruct(ss)
 	ss.StructView = sv
 
-	tv := gi.AddNewTabView(split, "tv")
+	tv := core.AddNewTabView(split, "tv")
 
 	nv := tv.AddNewTab(netview.KiT_NetView, "NetView").(*netview.NetView)
 	nv.Var = "Act"
@@ -684,14 +680,14 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	ss.NetView = nv
 	ss.ConfigNetView(nv)
 
-	cb := gi.AddNewComboBox(tbar, "RunParams")
+	cb := core.AddNewComboBox(tbar, "RunParams")
 	var seqKeys []string
 	for key := range ss.MasterRunParams {
 		seqKeys = append(seqKeys, key)
 	}
 	sort.Strings(seqKeys)
 	cb.ItemsFromStringList(seqKeys, false, 50)
-	cb.ComboSig.Connect(mfr.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+	cb.ComboSig.Connect(mfr.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
 		ss.RunParamsNm = data.(string)
 		err := ss.SetRunParams()
 		if err != nil {
@@ -708,8 +704,8 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	plt := tv.AddNewTab(eplot.KiT_Plot2D, "TrialTypeData").(*eplot.Plot2D)
 	ss.TrialTypeDataPlot = ss.ConfigTrialTypeDataPlot(plt, ss.TrialTypeData)
 
-	frm := tv.AddNewTab(gi.KiT_Frame, "TrialTypeBlockFirst").(*gi.Frame)
-	frm.Lay = gi.LayoutVert
+	frm := tv.AddNewTab(core.KiT_Frame, "TrialTypeBlockFirst").(*core.Frame)
+	frm.Lay = core.LayoutVert
 	frm.SetStretchMax()
 	pltCmp := frm.AddNewChild(eplot.KiT_Plot2D, "TrialTypeBlockFirst_cmp").(*eplot.Plot2D)
 	pltLower := frm.AddNewChild(eplot.KiT_Plot2D, "TrialTypeBlockFirst").(*eplot.Plot2D)
@@ -731,9 +727,9 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	split.SetSplits(.3, .7)
 
-	tbar.AddAction(gi.ActOpts{Label: "Init", Icon: "update", Tooltip: "Block init code. Global variables retain current values unless reset in the init code", UpdateFunc: func(act *gi.Action) {
+	tbar.AddAction(core.ActOpts{Label: "Init", Icon: "update", Tooltip: "Block init code. Global variables retain current values unless reset in the init code", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
 		ss.Stepper.Stop()
 		if !ss.InitHasRun {
 			ss.InitSim()
@@ -741,9 +737,9 @@ func (ss *Sim) ConfigGui() *gi.Window {
 		answeredInitWts := true // hack to workaround lack of a true modal dialog
 		if ss.SimHasRun {
 			answeredInitWts = false
-			gi.ChoiceDialog(ss.Win.Viewport, gi.DlgOpts{Title: "Init weights?", Prompt: "Initialize network weights?"},
+			core.ChoiceDialog(ss.Win.Viewport, core.DlgOpts{Title: "Init weights?", Prompt: "Initialize network weights?"},
 				[]string{"Yes", "No"}, ss.Win.This(),
-				func(recv, send ki.Ki, sig int64, data interface{}) {
+				func(recv, send tree.Ki, sig int64, data interface{}) {
 					if sig == 0 {
 						fmt.Println("initializing weights")
 						ss.Net.InitWts()
@@ -760,10 +756,10 @@ func (ss *Sim) ConfigGui() *gi.Window {
 		vp.SetNeedsFullRender()
 	})
 
-	tbar.AddAction(gi.ActOpts{Label: "Run", Icon: "run", Tooltip: "Run the currently selected scenario. If not initialized, will run initialization first",
-		UpdateFunc: func(act *gi.Action) {
+	tbar.AddAction(core.ActOpts{Label: "Run", Icon: "run", Tooltip: "Run the currently selected scenario. If not initialized, will run initialization first",
+		UpdateFunc: func(act *core.Action) {
 			act.SetActiveStateUpdate(!ss.IsRunning)
-		}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+		}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
 		ss.IsRunning = true
 		tbar.UpdateActions()
 		if !ss.InitHasRun {
@@ -784,9 +780,9 @@ func (ss *Sim) ConfigGui() *gi.Window {
 		}
 	})
 
-	tbar.AddAction(gi.ActOpts{Label: "Stop", Icon: "stop", Tooltip: "Stop the current program at its next natural stopping point (i.e., cleanly stopping when appropriate chunks of computation have completed).", UpdateFunc: func(act *gi.Action) {
+	tbar.AddAction(core.ActOpts{Label: "Stop", Icon: "stop", Tooltip: "Stop the current program at its next natural stopping point (i.e., cleanly stopping when appropriate chunks of computation have completed).", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(ss.IsRunning)
-	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
 		fmt.Println("STOP!")
 		ss.Stepper.Pause()
 		ss.IsRunning = false
@@ -796,63 +792,63 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	if ss.devMenuSetup {
 		tbar.AddSeparator("stepSep")
-		stepLabel := gi.AddNewLabel(tbar, "stepLabel", "Step to end of:")
+		stepLabel := core.AddNewLabel(tbar, "stepLabel", "Step to end of:")
 		stepLabel.SetProp("font-size", "large")
 
-		tbar.AddAction(gi.ActOpts{Label: "Cycle", Icon: "step-fwd", Tooltip: "Step to the end of a Cycle.",
-			UpdateFunc: func(act *gi.Action) {
+		tbar.AddAction(core.ActOpts{Label: "Cycle", Icon: "step-fwd", Tooltip: "Step to the end of a Cycle.",
+			UpdateFunc: func(act *core.Action) {
 				act.SetActiveStateUpdate(!ss.IsRunning)
-			}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+			}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
 			ss.RunSteps(Cycle, tbar)
 		})
 
-		tbar.AddAction(gi.ActOpts{Label: "Quarter", Icon: "step-fwd", Tooltip: "Step to the end of a Quarter.",
-			UpdateFunc: func(act *gi.Action) {
+		tbar.AddAction(core.ActOpts{Label: "Quarter", Icon: "step-fwd", Tooltip: "Step to the end of a Quarter.",
+			UpdateFunc: func(act *core.Action) {
 				act.SetActiveStateUpdate(!ss.IsRunning)
-			}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+			}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
 			ss.RunSteps(Quarter, tbar)
 		})
 
-		tbar.AddAction(gi.ActOpts{Label: "Minus Phase", Icon: "step-fwd", Tooltip: "Step to the end of the Minus Phase.",
-			UpdateFunc: func(act *gi.Action) {
+		tbar.AddAction(core.ActOpts{Label: "Minus Phase", Icon: "step-fwd", Tooltip: "Step to the end of the Minus Phase.",
+			UpdateFunc: func(act *core.Action) {
 				act.SetActiveStateUpdate(!ss.IsRunning)
-			}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+			}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
 			ss.RunSteps(AlphaMinus, tbar)
 		})
 
-		//tbar.AddAction(gi.ActOpts{Label: "Plus Phase", Icon: "step-fwd", Tooltip: "Step to the end of the Plus Phase.",
-		//	UpdateFunc: func(act *gi.Action) {
+		//tbar.AddAction(core.ActOpts{Label: "Plus Phase", Icon: "step-fwd", Tooltip: "Step to the end of the Plus Phase.",
+		//	UpdateFunc: func(act *core.Action) {
 		//		act.SetActiveStateUpdate(!ss.IsRunning)
-		//	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+		//	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
 		//	ss.RunSteps(AlphaPlus, tbar)
 		//})
 
-		tbar.AddAction(gi.ActOpts{Label: "Alpha Cycle", Icon: "step-fwd", Tooltip: "Step to the end of an Alpha Cycle.",
-			UpdateFunc: func(act *gi.Action) {
+		tbar.AddAction(core.ActOpts{Label: "Alpha Cycle", Icon: "step-fwd", Tooltip: "Step to the end of an Alpha Cycle.",
+			UpdateFunc: func(act *core.Action) {
 				act.SetActiveStateUpdate(!ss.IsRunning)
-			}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+			}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
 			ss.RunSteps(AlphaFull, tbar)
 		})
 
-		tbar.AddAction(gi.ActOpts{Label: "Selected grain -->", Icon: "fast-fwd", Tooltip: "Step by the selected granularity.",
-			UpdateFunc: func(act *gi.Action) {
+		tbar.AddAction(core.ActOpts{Label: "Selected grain -->", Icon: "fast-fwd", Tooltip: "Step by the selected granularity.",
+			UpdateFunc: func(act *core.Action) {
 				act.SetActiveStateUpdate(!ss.IsRunning)
-			}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+			}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
 			ss.RunSteps(ss.StepGrain, tbar)
 		})
 	} else {
-		tbar.AddAction(gi.ActOpts{Label: "StepRun", Icon: "fast-fwd", Tooltip: "Step by the selected granularity.",
-			UpdateFunc: func(act *gi.Action) {
+		tbar.AddAction(core.ActOpts{Label: "StepRun", Icon: "fast-fwd", Tooltip: "Step by the selected granularity.",
+			UpdateFunc: func(act *core.Action) {
 				act.SetActiveStateUpdate(!ss.IsRunning)
-			}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+			}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
 			ss.RunSteps(ss.StepGrain, tbar)
 		})
-		stepLabel := gi.AddNewLabel(tbar, "stepLabel", "StepGrain:")
+		stepLabel := core.AddNewLabel(tbar, "stepLabel", "StepGrain:")
 		stepLabel.SetProp("font-size", "large")
 
 	}
 
-	sg := gi.AddNewComboBox(tbar, "grainMenu")
+	sg := core.AddNewComboBox(tbar, "grainMenu")
 	sg.Editable = false
 	var stepKeys []string
 	maxLen := 0
@@ -862,56 +858,56 @@ func (ss *Sim) ConfigGui() *gi.Window {
 		stepKeys = append(stepKeys, s)
 	}
 	sg.ItemsFromStringList(stepKeys, false, maxLen)
-	sg.ComboSig.Connect(tbar, func(recv, send ki.Ki, sig int64, data interface{}) {
+	sg.ComboSig.Connect(tbar, func(recv, send tree.Ki, sig int64, data interface{}) {
 		ss.StepGrain = StepGrain(sig)
 	})
 	sg.SetCurValue(ss.StepGrain.String())
 
-	nLabel := gi.AddNewLabel(tbar, "n", "StepN:")
+	nLabel := core.AddNewLabel(tbar, "n", "StepN:")
 	nLabel.SetProp("font-size", "large")
-	ss.nStepsBox = gi.AddNewSpinBox(tbar, "nStepsSpinbox")
-	stepsProps := ki.Props{"has-min": true, "min": 1, "has-max": false, "step": 1, "pagestep": 10}
+	ss.nStepsBox = core.AddNewSpinBox(tbar, "nStepsSpinbox")
+	stepsProps := tree.Props{"has-min": true, "min": 1, "has-max": false, "step": 1, "pagestep": 10}
 	ss.nStepsBox.SetProps(stepsProps)
 	ss.nStepsBox.SetValue(1)
-	ss.nStepsBox.SpinBoxSig.Connect(tbar.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+	ss.nStepsBox.SpinBoxSig.Connect(tbar.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
 		ss.StepsToRun = int(ss.nStepsBox.Value)
 	})
 
-	tbar.AddAction(gi.ActOpts{Label: "README", Icon: "file-markdown", Tooltip: "Opens your browser on the README file that contains instructions for how to run this model."}, win.This(),
-		func(recv, send ki.Ki, sig int64, data interface{}) {
-			gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch7/pvlv/README.md")
+	tbar.AddAction(core.ActOpts{Label: "README", Icon: "file-markdown", Tooltip: "Opens your browser on the README file that contains instructions for how to run this model."}, win.This(),
+		func(recv, send tree.Ki, sig int64, data interface{}) {
+			core.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch7/pvlv/README.md")
 		})
 
 	vp.UpdateEndNoSig(updt)
 
 	// main menu
-	appnm := gi.AppName()
+	appnm := core.AppName()
 	mmen := win.MainMenu
 	mmen.ConfigMenus([]string{appnm, "File", "Edit", "Window"})
 
-	amen := win.MainMenu.ChildByName(appnm, 0).(*gi.Action)
+	amen := win.MainMenu.ChildByName(appnm, 0).(*core.Action)
 	amen.Menu.AddAppMenu(win)
 
-	emen := win.MainMenu.ChildByName("Edit", 1).(*gi.Action)
+	emen := win.MainMenu.ChildByName("Edit", 1).(*core.Action)
 	emen.Menu.AddCopyCutPaste(win)
 
-	fmen := win.MainMenu.ChildByName("File", 0).(*gi.Action)
+	fmen := win.MainMenu.ChildByName("File", 0).(*core.Action)
 
-	fmen.Menu.AddAction(gi.ActOpts{Label: "Load CEmer weights", Tooltip: "load a CEmer weights file", Data: ss}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+	fmen.Menu.AddAction(core.ActOpts{Label: "Load CEmer weights", Tooltip: "load a CEmer weights file", Data: ss}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
 		FileViewLoadCemerWts(vp)
 	})
 
 	inQuitPrompt := false
-	gi.SetQuitReqFunc(func() {
+	core.SetQuitReqFunc(func() {
 		if inQuitPrompt {
 			return
 		}
 		inQuitPrompt = true
-		gi.PromptDialog(vp, gi.DlgOpts{Title: "Really Quit?",
-			Prompt: "Are you <i>sure</i> you want to quit and lose any unsaved params, weights, logs, etc?"}, gi.AddOk, gi.AddCancel,
-			win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
-				if sig == int64(gi.DialogAccepted) {
-					gi.Quit()
+		core.PromptDialog(vp, core.DlgOpts{Title: "Really Quit?",
+			Prompt: "Are you <i>sure</i> you want to quit and lose any unsaved params, weights, logs, etc?"}, core.AddOk, core.AddCancel,
+			win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+				if sig == int64(core.DialogAccepted) {
+					core.Quit()
 				} else {
 					inQuitPrompt = false
 				}
@@ -919,31 +915,31 @@ func (ss *Sim) ConfigGui() *gi.Window {
 	})
 
 	inClosePrompt := false
-	win.SetCloseReqFunc(func(w *gi.Window) {
+	win.SetCloseReqFunc(func(w *core.Window) {
 		if inClosePrompt {
 			return
 		}
 		inClosePrompt = true
-		gi.PromptDialog(vp, gi.DlgOpts{Title: "Really Close Window?",
-			Prompt: "Are you <i>sure</i> you want to close the window?  This will Quit the App as well, losing all unsaved params, weights, logs, etc"}, gi.AddOk, gi.AddCancel,
-			win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
-				if sig == int64(gi.DialogAccepted) {
-					gi.Quit()
+		core.PromptDialog(vp, core.DlgOpts{Title: "Really Close Window?",
+			Prompt: "Are you <i>sure</i> you want to close the window?  This will Quit the App as well, losing all unsaved params, weights, logs, etc"}, core.AddOk, core.AddCancel,
+			win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+				if sig == int64(core.DialogAccepted) {
+					core.Quit()
 				} else {
 					inClosePrompt = false
 				}
 			})
 	})
 
-	win.SetCloseCleanFunc(func(w *gi.Window) {
-		go gi.Quit() // once main window is closed, quit
+	win.SetCloseCleanFunc(func(w *core.Window) {
+		go core.Quit() // once main window is closed, quit
 	})
 
 	win.MainMenuUpdated()
 	return win
 }
 
-func (ss *Sim) RunSteps(grain StepGrain, tbar *gi.ToolBar) {
+func (ss *Sim) RunSteps(grain StepGrain, tbar *core.ToolBar) {
 	//fmt.Printf("ss.StepsToRun=%d, widget=%d, stepper=%d\n", ss.StepsToRun, int(ss.nStepsBox.Value), ss.Stepper.StepsPer)
 	if !ss.IsRunning {
 		ss.IsRunning = true
@@ -1025,24 +1021,24 @@ func (ss *Sim) SetParamsSet(setNm string, sheet string, setMsg bool) error {
 }
 
 // These props register Save methods so they can be used
-var SimProps = ki.Props{
+var SimProps = tree.Props{
 	"max-width":  -1,
 	"max-height": -1,
-	"CallMethods": ki.PropSlice{
-		{"SaveWeights", ki.Props{
+	"CallMethods": tree.PropSlice{
+		{"SaveWeights", tree.Props{
 			"desc": "save network weights to file",
 			"icon": "file-save",
-			"Args": ki.PropSlice{
-				{"File Name", ki.Props{
+			"Args": tree.PropSlice{
+				{"File Name", tree.Props{
 					"ext": ".wts,.wts.gz",
 				}},
 			},
 		}},
-		{"OpenCemerWeights", ki.Props{
+		{"OpenCemerWeights", tree.Props{
 			"desc": "open network weights from CEmer-format file",
 			"icon": "file-open",
-			"Args": ki.PropSlice{
-				{"File Name", ki.Props{
+			"Args": tree.PropSlice{
+				{"File Name", tree.Props{
 					"ext": ".wts,.wts.gz",
 				}},
 			},
@@ -1127,7 +1123,7 @@ func (ss *Sim) SetRunParams() error {
 			newBlockParams, found := ss.GetConditionParams(ss.RunParams.Cond1Nm)
 			if !found {
 				err = errors.New(fmt.Sprintf("RunParams step 1 \"%v\" was not found!", ss.RunParams.Cond1Nm))
-				gi.PromptDialog(nil, gi.DlgOpts{Title: "RunParams step not found", Prompt: err.Error()}, gi.AddOk, gi.NoCancel, nil, nil)
+				core.PromptDialog(nil, core.DlgOpts{Title: "RunParams step not found", Prompt: err.Error()}, core.AddOk, core.NoCancel, nil, nil)
 				ss.RunParams = oldSeqParams
 				return err
 			} else {

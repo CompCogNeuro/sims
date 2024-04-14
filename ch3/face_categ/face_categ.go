@@ -17,9 +17,7 @@ import (
 	"strings"
 
 	"cogentcore.org/core/errors"
-	"cogentcore.org/core/gi"
 	"cogentcore.org/core/gimain"
-	"cogentcore.org/core/ki"
 	"cogentcore.org/core/math32"
 	"github.com/emer/emergent/v2/emer"
 	"github.com/emer/emergent/v2/env"
@@ -35,7 +33,6 @@ import (
 	"github.com/emer/etable/v2/simat"
 	"github.com/emer/leabra/v2/leabra"
 	"github.com/goki/ki/kit"
-	"goki.dev/gi/giv"
 )
 
 // this is the stub main for gogi that calls our actual mainrun function, at end of file
@@ -130,11 +127,11 @@ type Sim struct {
 	PrjnEmoteGend *eplot.Plot2D `view:"no-inline"`
 
 	// main GUI window
-	Win *gi.Window `view:"-"`
+	Win *core.Window `view:"-"`
 	// the network viewer
 	NetView *netview.NetView `view:"-"`
 	// the master toolbar
-	ToolBar *gi.ToolBar `view:"-"`
+	ToolBar *core.ToolBar `view:"-"`
 	// the test-trial plot
 	TstTrlPlot *eplot.Plot2D `view:"-"`
 	// for holding layer values
@@ -355,9 +352,9 @@ func (ss *Sim) Stopped() {
 	}
 }
 
-// SaveWeights saves the network weights -- when called with giv.CallMethod
+// SaveWeights saves the network weights -- when called with views.CallMethod
 // it will auto-prompt for filename
-func (ss *Sim) SaveWeights(filename gi.FileName) {
+func (ss *Sim) SaveWeights(filename core.FileName) {
 	ss.Net.SaveWtsJSON(filename)
 }
 
@@ -724,14 +721,14 @@ func (ss *Sim) ConfigNetView(nv *netview.NetView) {
 }
 
 // ConfigGui configures the GoGi gui interface for this simulation,
-func (ss *Sim) ConfigGui() *gi.Window {
+func (ss *Sim) ConfigGui() *core.Window {
 	width := 1600
 	height := 1200
 
-	gi.SetAppName("face_categ")
-	gi.SetAppAbout(`face_categ: This project explores how sensory inputs (in this case simple cartoon faces) can be categorized in multiple different ways, to extract the relevant information and collapse across the irrelevant. It allows you to explore both bottom-up processing from face image to categories, and top-down processing from category values to face images (imagery), including the ability to dynamically iterate both bottom-up and top-down to cleanup partial inputs (partially occluded face images).  See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch3/face_categ/README.md">README.md on GitHub</a>.</p>`)
+	core.SetAppName("face_categ")
+	core.SetAppAbout(`face_categ: This project explores how sensory inputs (in this case simple cartoon faces) can be categorized in multiple different ways, to extract the relevant information and collapse across the irrelevant. It allows you to explore both bottom-up processing from face image to categories, and top-down processing from category values to face images (imagery), including the ability to dynamically iterate both bottom-up and top-down to cleanup partial inputs (partially occluded face images).  See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch3/face_categ/README.md">README.md on GitHub</a>.</p>`)
 
-	win := gi.NewMainWindow("face_categ", "Face Categorization", width, height)
+	win := core.NewMainWindow("face_categ", "Face Categorization", width, height)
 	ss.Win = win
 
 	vp := win.WinViewport2D()
@@ -739,18 +736,18 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	mfr := win.SetMainFrame()
 
-	tbar := gi.AddNewToolBar(mfr, "tbar")
+	tbar := core.AddNewToolBar(mfr, "tbar")
 	tbar.SetStretchMaxWidth()
 	ss.ToolBar = tbar
 
-	split := gi.AddNewSplitView(mfr, "split")
+	split := core.AddNewSplitView(mfr, "split")
 	split.Dim = math32.X
 	split.SetStretchMax()
 
-	sv := giv.AddNewStructView(split, "sv")
+	sv := views.AddNewStructView(split, "sv")
 	sv.SetStruct(ss)
 
-	tv := gi.AddNewTabView(split, "tv")
+	tv := core.AddNewTabView(split, "tv")
 
 	nv := tv.AddNewTab(netview.KiT_NetView, "NetView").(*netview.NetView)
 	nv.Var = "Act"
@@ -769,22 +766,22 @@ func (ss *Sim) ConfigGui() *gi.Window {
 
 	split.SetSplits(.2, .8)
 
-	tbar.AddAction(gi.ActOpts{Label: "Init", Icon: "update", Tooltip: "Initialize everything including network weights, and start over.  Also applies current params.", UpdateFunc: func(act *gi.Action) {
+	tbar.AddAction(core.ActOpts{Label: "Init", Icon: "update", Tooltip: "Initialize everything including network weights, and start over.  Also applies current params.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
 		ss.Init()
 		vp.SetNeedsFullRender()
 	})
 
-	tbar.AddAction(gi.ActOpts{Label: "Stop", Icon: "stop", Tooltip: "Interrupts running.  Hitting Train again will pick back up where it left off.", UpdateFunc: func(act *gi.Action) {
+	tbar.AddAction(core.ActOpts{Label: "Stop", Icon: "stop", Tooltip: "Interrupts running.  Hitting Train again will pick back up where it left off.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(ss.IsRunning)
-	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
 		ss.Stop()
 	})
 
-	tbar.AddAction(gi.ActOpts{Label: "Test Trial", Icon: "step-fwd", Tooltip: "Runs the next testing trial.", UpdateFunc: func(act *gi.Action) {
+	tbar.AddAction(core.ActOpts{Label: "Test Trial", Icon: "step-fwd", Tooltip: "Runs the next testing trial.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.IsRunning = true
 			ss.TestTrial()
@@ -793,18 +790,18 @@ func (ss *Sim) ConfigGui() *gi.Window {
 		}
 	})
 
-	tbar.AddAction(gi.ActOpts{Label: "Test Item", Icon: "step-fwd", Tooltip: "Prompts for a specific input pattern name to run, and runs it in testing mode.", UpdateFunc: func(act *gi.Action) {
+	tbar.AddAction(core.ActOpts{Label: "Test Item", Icon: "step-fwd", Tooltip: "Prompts for a specific input pattern name to run, and runs it in testing mode.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
-		gi.StringPromptDialog(vp, "", "Test Item",
-			gi.DlgOpts{Title: "Test Item", Prompt: "Enter the Name of a given input pattern to test (case insensitive, contains given string."},
-			win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
-				dlg := send.(*gi.Dialog)
-				if sig == int64(gi.DialogAccepted) {
-					val := gi.StringPromptDialogValue(dlg)
+	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+		core.StringPromptDialog(vp, "", "Test Item",
+			core.DlgOpts{Title: "Test Item", Prompt: "Enter the Name of a given input pattern to test (case insensitive, contains given string."},
+			win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+				dlg := send.(*core.Dialog)
+				if sig == int64(core.DialogAccepted) {
+					val := core.StringPromptDialogValue(dlg)
 					idxs := ss.TestEnv.Table.RowsByString("Name", val, etable.Contains, etable.IgnoreCase)
 					if len(idxs) == 0 {
-						gi.PromptDialog(nil, gi.DlgOpts{Title: "Name Not Found", Prompt: "No patterns found containing: " + val}, gi.AddOk, gi.NoCancel, nil, nil)
+						core.PromptDialog(nil, core.DlgOpts{Title: "Name Not Found", Prompt: "No patterns found containing: " + val}, core.AddOk, core.NoCancel, nil, nil)
 					} else {
 						if !ss.IsRunning {
 							ss.IsRunning = true
@@ -818,9 +815,9 @@ func (ss *Sim) ConfigGui() *gi.Window {
 			})
 	})
 
-	tbar.AddAction(gi.ActOpts{Label: "Test All", Icon: "fast-fwd", Tooltip: "Tests all of the testing trials.", UpdateFunc: func(act *gi.Action) {
+	tbar.AddAction(core.ActOpts{Label: "Test All", Icon: "fast-fwd", Tooltip: "Tests all of the testing trials.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.IsRunning = true
 			tbar.UpdateActions()
@@ -828,78 +825,78 @@ func (ss *Sim) ConfigGui() *gi.Window {
 		}
 	})
 
-	tbar.AddAction(gi.ActOpts{Label: "SetInput", Icon: "gear", Tooltip: "set whether the input to the network comes in bottom-up (Input layer) or top-down (Higher-level category layers)"}, win.This(),
-		func(recv, send ki.Ki, sig int64, data interface{}) {
-			giv.CallMethod(ss, "SetInput", vp)
+	tbar.AddAction(core.ActOpts{Label: "SetInput", Icon: "gear", Tooltip: "set whether the input to the network comes in bottom-up (Input layer) or top-down (Higher-level category layers)"}, win.This(),
+		func(recv, send tree.Ki, sig int64, data interface{}) {
+			views.CallMethod(ss, "SetInput", vp)
 		})
-	tbar.AddAction(gi.ActOpts{Label: "SetPats", Icon: "gear", Tooltip: "set which set of patterns to present -- full or partial faces"}, win.This(),
-		func(recv, send ki.Ki, sig int64, data interface{}) {
-			giv.CallMethod(ss, "SetPats", vp)
+	tbar.AddAction(core.ActOpts{Label: "SetPats", Icon: "gear", Tooltip: "set which set of patterns to present -- full or partial faces"}, win.This(),
+		func(recv, send tree.Ki, sig int64, data interface{}) {
+			views.CallMethod(ss, "SetPats", vp)
 		})
-	tbar.AddAction(gi.ActOpts{Label: "Cluster Plots", Icon: "image", Tooltip: "generate cluster plots of the different layer patterns"}, win.This(),
-		func(recv, send ki.Ki, sig int64, data interface{}) {
+	tbar.AddAction(core.ActOpts{Label: "Cluster Plots", Icon: "image", Tooltip: "generate cluster plots of the different layer patterns"}, win.This(),
+		func(recv, send tree.Ki, sig int64, data interface{}) {
 			ss.ClusterPlots()
 			vp.SetNeedsFullRender()
 		})
 
-	tbar.AddAction(gi.ActOpts{Label: "README", Icon: "file-markdown", Tooltip: "Opens your browser on the README file that contains instructions for how to run this model."}, win.This(),
-		func(recv, send ki.Ki, sig int64, data interface{}) {
-			gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch3/face_categ/README.md")
+	tbar.AddAction(core.ActOpts{Label: "README", Icon: "file-markdown", Tooltip: "Opens your browser on the README file that contains instructions for how to run this model."}, win.This(),
+		func(recv, send tree.Ki, sig int64, data interface{}) {
+			core.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch3/face_categ/README.md")
 		})
 
 	vp.UpdateEndNoSig(updt)
 
 	// main menu
-	appnm := gi.AppName()
+	appnm := core.AppName()
 	mmen := win.MainMenu
 	mmen.ConfigMenus([]string{appnm, "File", "Edit", "Window"})
 
-	amen := win.MainMenu.ChildByName(appnm, 0).(*gi.Action)
+	amen := win.MainMenu.ChildByName(appnm, 0).(*core.Action)
 	amen.Menu.AddAppMenu(win)
 
-	emen := win.MainMenu.ChildByName("Edit", 1).(*gi.Action)
+	emen := win.MainMenu.ChildByName("Edit", 1).(*core.Action)
 	emen.Menu.AddCopyCutPaste(win)
 
 	inQuitPrompt := false
-	gi.SetQuitReqFunc(func() {
+	core.SetQuitReqFunc(func() {
 		if inQuitPrompt {
 			return
 		}
 		inQuitPrompt = true
-		gi.PromptDialog(vp, gi.DlgOpts{Title: "Really Quit?",
-			Prompt: "Are you <i>sure</i> you want to quit and lose any unsaved params, weights, logs, etc?"}, gi.AddOk, gi.AddCancel,
-			win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
-				if sig == int64(gi.DialogAccepted) {
-					gi.Quit()
+		core.PromptDialog(vp, core.DlgOpts{Title: "Really Quit?",
+			Prompt: "Are you <i>sure</i> you want to quit and lose any unsaved params, weights, logs, etc?"}, core.AddOk, core.AddCancel,
+			win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+				if sig == int64(core.DialogAccepted) {
+					core.Quit()
 				} else {
 					inQuitPrompt = false
 				}
 			})
 	})
 
-	// gi.SetQuitCleanFunc(func() {
+	// core.SetQuitCleanFunc(func() {
 	// 	fmt.Printf("Doing final Quit cleanup here..\n")
 	// })
 
 	inClosePrompt := false
-	win.SetCloseReqFunc(func(w *gi.Window) {
+	win.SetCloseReqFunc(func(w *core.Window) {
 		if inClosePrompt {
 			return
 		}
 		inClosePrompt = true
-		gi.PromptDialog(vp, gi.DlgOpts{Title: "Really Close Window?",
-			Prompt: "Are you <i>sure</i> you want to close the window?  This will Quit the App as well, losing all unsaved params, weights, logs, etc"}, gi.AddOk, gi.AddCancel,
-			win.This(), func(recv, send ki.Ki, sig int64, data interface{}) {
-				if sig == int64(gi.DialogAccepted) {
-					gi.Quit()
+		core.PromptDialog(vp, core.DlgOpts{Title: "Really Close Window?",
+			Prompt: "Are you <i>sure</i> you want to close the window?  This will Quit the App as well, losing all unsaved params, weights, logs, etc"}, core.AddOk, core.AddCancel,
+			win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+				if sig == int64(core.DialogAccepted) {
+					core.Quit()
 				} else {
 					inClosePrompt = false
 				}
 			})
 	})
 
-	win.SetCloseCleanFunc(func(w *gi.Window) {
-		go gi.Quit() // once main window is closed, quit
+	win.SetCloseCleanFunc(func(w *core.Window) {
+		go core.Quit() // once main window is closed, quit
 	})
 
 	win.MainMenuUpdated()
@@ -907,29 +904,29 @@ func (ss *Sim) ConfigGui() *gi.Window {
 }
 
 // These props register Save methods so they can be used
-var SimProps = ki.Props{
-	"CallMethods": ki.PropSlice{
-		{"SaveWeights", ki.Props{
+var SimProps = tree.Props{
+	"CallMethods": tree.PropSlice{
+		{"SaveWeights", tree.Props{
 			"desc": "save network weights to file",
 			"icon": "file-save",
-			"Args": ki.PropSlice{
-				{"File Name", ki.Props{
+			"Args": tree.PropSlice{
+				{"File Name", tree.Props{
 					"ext": ".wts",
 				}},
 			},
 		}},
-		{"SetInput", ki.Props{
+		{"SetInput", tree.Props{
 			"desc": "set whether the input to the network comes in bottom-up (Input layer) or top-down (Higher-level category layers)",
 			"icon": "gear",
-			"Args": ki.PropSlice{
-				{"Top Down", ki.Props{}},
+			"Args": tree.PropSlice{
+				{"Top Down", tree.Props{}},
 			},
 		}},
-		{"SetPats", ki.Props{
+		{"SetPats", tree.Props{
 			"desc": "set which set of patterns to present -- full or partial faces",
 			"icon": "gear",
-			"Args": ki.PropSlice{
-				{"Partial", ki.Props{}},
+			"Args": tree.PropSlice{
+				{"Partial", tree.Props{}},
 			},
 		}},
 	},

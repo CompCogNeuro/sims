@@ -84,7 +84,7 @@ def DefaultsCB(recv, send, sig, data):
 
 
 def ReadmeCB(recv, send, sig, data):
-    gi.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch3/inhib/README.md")
+    core.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch3/inhib/README.md")
 
 
 def UpdateFuncNotRunning(act):
@@ -99,7 +99,7 @@ def UpdateFuncRunning(act):
 #     Sim
 
 
-class Sim(pygiv.ClassViewObj):
+class Sim(pyviews.ClassViewObj):
     """
     Sim encapsulates the entire simulation model, and we define all the
     functionality as methods on this struct.  This structure keeps all relevant
@@ -620,12 +620,12 @@ class Sim(pygiv.ClassViewObj):
         width = 1600
         height = 1200
 
-        gi.SetAppName("inhib")
-        gi.SetAppAbout(
+        core.SetAppName("inhib")
+        core.SetAppAbout(
             'This simulation explores how inhibitory interneurons can dynamically control overall activity levels within the network, by providing both feedforward and feedback inhibition to excitatory pyramidal neurons. See <a href="https://github.com/CompCogNeuro/sims/ch3/inhib/README.md">README.md on GitHub</a>.</p>'
         )
 
-        win = gi.NewMainWindow("inhib", "Inhibition", width, height)
+        win = core.NewMainWindow("inhib", "Inhibition", width, height)
         ss.Win = win
 
         vp = win.WinViewport2D()
@@ -634,11 +634,11 @@ class Sim(pygiv.ClassViewObj):
 
         mfr = win.SetMainFrame()
 
-        tbar = gi.AddNewToolBar(mfr, "tbar")
+        tbar = core.AddNewToolBar(mfr, "tbar")
         tbar.SetStretchMaxWidth()
         ss.ToolBar = tbar
 
-        split = gi.AddNewSplitView(mfr, "split")
+        split = core.AddNewSplitView(mfr, "split")
         split.Dim = math32.X
         split.SetStretchMax()
 
@@ -646,7 +646,7 @@ class Sim(pygiv.ClassViewObj):
         cv.AddFrame(split)
         cv.Config()
 
-        tv = gi.AddNewTabView(split, "tv")
+        tv = core.AddNewTabView(split, "tv")
 
         nv = netview.NetView()
         tv.AddTab(nv, "FF Net")
@@ -672,7 +672,7 @@ class Sim(pygiv.ClassViewObj):
         recv = win.This()
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="Init",
                 Icon="update",
                 Tooltip="Initialize everything including network weights, and start over.  Also applies current params.",
@@ -683,7 +683,7 @@ class Sim(pygiv.ClassViewObj):
         )
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="Stop",
                 Icon="stop",
                 Tooltip="Interrupts running.  Hitting Train again will pick back up where it left off.",
@@ -694,7 +694,7 @@ class Sim(pygiv.ClassViewObj):
         )
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="Test Trial",
                 Icon="step-fwd",
                 Tooltip="Runs the next testing trial.",
@@ -707,7 +707,7 @@ class Sim(pygiv.ClassViewObj):
         tbar.AddSeparator("log")
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="Config Pats",
                 Icon="update",
                 Tooltip="Generates a new input pattern based on current InputPct amount.",
@@ -718,7 +718,7 @@ class Sim(pygiv.ClassViewObj):
         )
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="Defaults",
                 Icon="update",
                 Tooltip="Restore initial default parameters.",
@@ -729,7 +729,7 @@ class Sim(pygiv.ClassViewObj):
         )
 
         tbar.AddAction(
-            gi.ActOpts(
+            core.ActOpts(
                 Label="README",
                 Icon="file-markdown",
                 Tooltip="Opens your browser on the README file that contains instructions for how to run this model.",
@@ -739,14 +739,14 @@ class Sim(pygiv.ClassViewObj):
         )
 
         # main menu
-        appnm = gi.AppName()
+        appnm = core.AppName()
         mmen = win.MainMenu
         mmen.ConfigMenus(go.Slice_string([appnm, "File", "Edit", "Window"]))
 
-        amen = gi.Action(win.MainMenu.ChildByName(appnm, 0))
+        amen = core.Action(win.MainMenu.ChildByName(appnm, 0))
         amen.Menu.AddAppMenu(win)
 
-        emen = gi.Action(win.MainMenu.ChildByName("Edit", 1))
+        emen = core.Action(win.MainMenu.ChildByName("Edit", 1))
         emen.Menu.AddCopyCutPaste(win)
 
         win.MainMenuUpdated()

@@ -4,7 +4,8 @@
 
 from leabra import go, pygiv, env, rand, erand, etensor
 
-class BanditEnv(pygiv.ClassViewObj):
+
+class BanditEnv(pyviews.ClassViewObj):
     """
     BanditEnv simulates an n-armed bandit, where each of n inputs is associated with
     a specific probability of reward.
@@ -27,17 +28,27 @@ class BanditEnv(pygiv.ClassViewObj):
         self.Option = env.CurPrvInt()
         self.SetTags("Option", 'desc:"bandit option current / prev"')
         self.RndOpt = True
-        self.SetTags("RndOpt", 'desc:"if true, select option at random each Step -- otherwise must be set externally (e.g., by model)"')
+        self.SetTags(
+            "RndOpt",
+            'desc:"if true, select option at random each Step -- otherwise must be set externally (e.g., by model)"',
+        )
         self.Input = etensor.Float64()
         self.SetTags("Input", 'desc:"one-hot input representation of current option"')
         self.Reward = etensor.Float64()
         self.SetTags("Reward", 'desc:"single reward value"')
         self.Run = env.Ctr()
-        self.SetTags("Run", 'view:"inline" desc:"current run of model as provided during Init"')
+        self.SetTags(
+            "Run", 'view:"inline" desc:"current run of model as provided during Init"'
+        )
         self.Epoch = env.Ctr()
-        self.SetTags("Epoch", 'view:"inline" desc:"number of times through Seq.Max number of sequences"')
+        self.SetTags(
+            "Epoch",
+            'view:"inline" desc:"number of times through Seq.Max number of sequences"',
+        )
         self.Trial = env.Ctr()
-        self.SetTags("Trial", 'view:"inline" desc:"trial is the step counter within epoch"')
+        self.SetTags(
+            "Trial", 'view:"inline" desc:"trial is the step counter within epoch"'
+        )
 
     def Name(ev):
         return ev.Nm
@@ -145,7 +156,7 @@ class BanditEnv(pygiv.ClassViewObj):
         if scale == env.Trial:
             return ev.Trial.Prv
         return -1
-        
+
     def CounterChg(ev, scale):
         if scale == env.Run:
             return ev.Run.Chg
@@ -154,4 +165,3 @@ class BanditEnv(pygiv.ClassViewObj):
         if scale == env.Trial:
             return ev.Trial.Chg
         return False
-
