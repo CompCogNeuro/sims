@@ -668,20 +668,20 @@ feedforward and feedback inhibition to excitatory pyramidal neurons.
 
 	tbar.AddAction(core.ActOpts{Label: "Init", Icon: "update", Tooltip: "Initialize everything including network weights, and start over.  Also applies current params.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 		ss.Init()
 		vp.SetNeedsFullRender()
 	})
 
 	tbar.AddAction(core.ActOpts{Label: "Stop", Icon: "stop", Tooltip: "Interrupts running.  Hitting Train again will pick back up where it left off.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(ss.IsRunning)
-	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 		ss.Stop()
 	})
 
 	tbar.AddAction(core.ActOpts{Label: "Test Trial", Icon: "step-fwd", Tooltip: "Runs the next testing trial.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.IsRunning = true
 			ss.TestTrial() // show every update
@@ -692,7 +692,7 @@ feedforward and feedback inhibition to excitatory pyramidal neurons.
 
 	tbar.AddAction(core.ActOpts{Label: "Config Pats", Icon: "update", Tooltip: "Generates a new input pattern based on current InputPct amount.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.ConfigPats()
 			vp.SetNeedsFullRender()
@@ -701,14 +701,14 @@ feedforward and feedback inhibition to excitatory pyramidal neurons.
 
 	tbar.AddAction(core.ActOpts{Label: "Defaults", Icon: "update", Tooltip: "Restore initial default parameters.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 		ss.Defaults()
 		ss.Init()
 		vp.SetNeedsFullRender()
 	})
 
 	tbar.AddAction(core.ActOpts{Label: "README", Icon: "file-markdown", Tooltip: "Opens your browser on the README file that contains instructions for how to run this model."}, win.This(),
-		func(recv, send tree.Ki, sig int64, data interface{}) {
+		func(recv, send tree.Node, sig int64, data interface{}) {
 			core.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch3/inhib/README.md")
 		})
 
@@ -733,7 +733,7 @@ feedforward and feedback inhibition to excitatory pyramidal neurons.
 		inQuitPrompt = true
 		core.PromptDialog(vp, core.DlgOpts{Title: "Really Quit?",
 			Prompt: "Are you <i>sure</i> you want to quit and lose any unsaved params, weights, logs, etc?"}, core.AddOk, core.AddCancel,
-			win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+			win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 				if sig == int64(core.DialogAccepted) {
 					core.Quit()
 				} else {
@@ -754,7 +754,7 @@ feedforward and feedback inhibition to excitatory pyramidal neurons.
 		inClosePrompt = true
 		core.PromptDialog(vp, core.DlgOpts{Title: "Really Close Window?",
 			Prompt: "Are you <i>sure</i> you want to close the window?  This will Quit the App as well, losing all unsaved params, weights, logs, etc"}, core.AddOk, core.AddCancel,
-			win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+			win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 				if sig == int64(core.DialogAccepted) {
 					core.Quit()
 				} else {

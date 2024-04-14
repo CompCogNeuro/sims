@@ -551,20 +551,20 @@ func (ss *Sim) ConfigGui() *core.Window {
 
 	tbar.AddAction(core.ActOpts{Label: "Init", Icon: "update", Tooltip: "Initialize everything including network weights, and start over.  Also applies current params.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 		ss.Init()
 		vp.SetNeedsFullRender()
 	})
 
 	tbar.AddAction(core.ActOpts{Label: "Stop", Icon: "stop", Tooltip: "Interrupts running.  Hitting Train again will pick back up where it left off.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(ss.IsRunning)
-	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 		ss.Stop()
 	})
 
 	tbar.AddAction(core.ActOpts{Label: "Test Trial", Icon: "step-fwd", Tooltip: "Runs the next testing trial.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.IsRunning = true
 			ss.TestTrial()
@@ -575,10 +575,10 @@ func (ss *Sim) ConfigGui() *core.Window {
 
 	tbar.AddAction(core.ActOpts{Label: "Test Item", Icon: "step-fwd", Tooltip: "Prompts for a specific input pattern name to run, and runs it in testing mode.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 		core.StringPromptDialog(vp, "", "Test Item",
 			core.DlgOpts{Title: "Test Item", Prompt: "Enter the Name of a given input pattern to test (case insensitive, contains given string."},
-			win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+			win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 				dlg := send.(*core.Dialog)
 				if sig == int64(core.DialogAccepted) {
 					val := core.StringPromptDialogValue(dlg)
@@ -600,7 +600,7 @@ func (ss *Sim) ConfigGui() *core.Window {
 
 	tbar.AddAction(core.ActOpts{Label: "Test All", Icon: "fast-fwd", Tooltip: "Tests all of the testing trials.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.IsRunning = true
 			tbar.UpdateActions()
@@ -610,14 +610,14 @@ func (ss *Sim) ConfigGui() *core.Window {
 
 	tbar.AddAction(core.ActOpts{Label: "Defaults", Icon: "update", Tooltip: "Restore initial default parameters.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 		ss.Defaults()
 		ss.Init()
 		vp.SetNeedsFullRender()
 	})
 
 	tbar.AddAction(core.ActOpts{Label: "README", Icon: "file-markdown", Tooltip: "Opens your browser on the README file that contains instructions for how to run this model."}, win.This(),
-		func(recv, send tree.Ki, sig int64, data interface{}) {
+		func(recv, send tree.Node, sig int64, data interface{}) {
 			core.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch2/detector/README.md")
 		})
 
@@ -642,7 +642,7 @@ func (ss *Sim) ConfigGui() *core.Window {
 		inQuitPrompt = true
 		core.PromptDialog(vp, core.DlgOpts{Title: "Really Quit?",
 			Prompt: "Are you <i>sure</i> you want to quit and lose any unsaved params, weights, logs, etc?"}, core.AddOk, core.AddCancel,
-			win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+			win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 				if sig == int64(core.DialogAccepted) {
 					core.Quit()
 				} else {
@@ -663,7 +663,7 @@ func (ss *Sim) ConfigGui() *core.Window {
 		inClosePrompt = true
 		core.PromptDialog(vp, core.DlgOpts{Title: "Really Close Window?",
 			Prompt: "Are you <i>sure</i> you want to close the window?  This will Quit the App as well, losing all unsaved params, weights, logs, etc"}, core.AddOk, core.AddCancel,
-			win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+			win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 				if sig == int64(core.DialogAccepted) {
 					core.Quit()
 				} else {

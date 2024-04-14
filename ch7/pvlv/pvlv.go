@@ -310,7 +310,7 @@ func (ss *Sim) ConfigEnv() {
 ////////////////////////////////////////////////////////////////////////////////
 // Init, utils
 
-func (ss *Sim) Init(aki tree.Ki) {
+func (ss *Sim) Init(aki tree.Node) {
 	//ss.Layout.Init(aki)
 }
 
@@ -633,7 +633,7 @@ var CemerWtsFname = ""
 
 func FileViewLoadCemerWts(vp *core.Viewport2D) {
 	views.FileViewDialog(vp, CemerWtsFname, ".svg", views.DlgOpts{Title: "Open SVG"}, nil,
-		vp.Win, func(recv, send tree.Ki, sig int64, data interface{}) {
+		vp.Win, func(recv, send tree.Node, sig int64, data interface{}) {
 			if sig == int64(core.DialogAccepted) {
 				dlg, _ := send.(*core.Dialog)
 				CemerWtsFname = views.FileViewDialogValue(dlg)
@@ -687,7 +687,7 @@ func (ss *Sim) ConfigGui() *core.Window {
 	}
 	sort.Strings(seqKeys)
 	cb.ItemsFromStringList(seqKeys, false, 50)
-	cb.ComboSig.Connect(mfr.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+	cb.ComboSig.Connect(mfr.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 		ss.RunParamsNm = data.(string)
 		err := ss.SetRunParams()
 		if err != nil {
@@ -729,7 +729,7 @@ func (ss *Sim) ConfigGui() *core.Window {
 
 	tbar.AddAction(core.ActOpts{Label: "Init", Icon: "update", Tooltip: "Block init code. Global variables retain current values unless reset in the init code", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 		ss.Stepper.Stop()
 		if !ss.InitHasRun {
 			ss.InitSim()
@@ -739,7 +739,7 @@ func (ss *Sim) ConfigGui() *core.Window {
 			answeredInitWts = false
 			core.ChoiceDialog(ss.Win.Viewport, core.DlgOpts{Title: "Init weights?", Prompt: "Initialize network weights?"},
 				[]string{"Yes", "No"}, ss.Win.This(),
-				func(recv, send tree.Ki, sig int64, data interface{}) {
+				func(recv, send tree.Node, sig int64, data interface{}) {
 					if sig == 0 {
 						fmt.Println("initializing weights")
 						ss.Net.InitWts()
@@ -759,7 +759,7 @@ func (ss *Sim) ConfigGui() *core.Window {
 	tbar.AddAction(core.ActOpts{Label: "Run", Icon: "run", Tooltip: "Run the currently selected scenario. If not initialized, will run initialization first",
 		UpdateFunc: func(act *core.Action) {
 			act.SetActiveStateUpdate(!ss.IsRunning)
-		}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+		}}, win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 		ss.IsRunning = true
 		tbar.UpdateActions()
 		if !ss.InitHasRun {
@@ -782,7 +782,7 @@ func (ss *Sim) ConfigGui() *core.Window {
 
 	tbar.AddAction(core.ActOpts{Label: "Stop", Icon: "stop", Tooltip: "Stop the current program at its next natural stopping point (i.e., cleanly stopping when appropriate chunks of computation have completed).", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(ss.IsRunning)
-	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 		fmt.Println("STOP!")
 		ss.Stepper.Pause()
 		ss.IsRunning = false
@@ -798,49 +798,49 @@ func (ss *Sim) ConfigGui() *core.Window {
 		tbar.AddAction(core.ActOpts{Label: "Cycle", Icon: "step-fwd", Tooltip: "Step to the end of a Cycle.",
 			UpdateFunc: func(act *core.Action) {
 				act.SetActiveStateUpdate(!ss.IsRunning)
-			}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+			}}, win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 			ss.RunSteps(Cycle, tbar)
 		})
 
 		tbar.AddAction(core.ActOpts{Label: "Quarter", Icon: "step-fwd", Tooltip: "Step to the end of a Quarter.",
 			UpdateFunc: func(act *core.Action) {
 				act.SetActiveStateUpdate(!ss.IsRunning)
-			}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+			}}, win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 			ss.RunSteps(Quarter, tbar)
 		})
 
 		tbar.AddAction(core.ActOpts{Label: "Minus Phase", Icon: "step-fwd", Tooltip: "Step to the end of the Minus Phase.",
 			UpdateFunc: func(act *core.Action) {
 				act.SetActiveStateUpdate(!ss.IsRunning)
-			}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+			}}, win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 			ss.RunSteps(AlphaMinus, tbar)
 		})
 
 		//tbar.AddAction(core.ActOpts{Label: "Plus Phase", Icon: "step-fwd", Tooltip: "Step to the end of the Plus Phase.",
 		//	UpdateFunc: func(act *core.Action) {
 		//		act.SetActiveStateUpdate(!ss.IsRunning)
-		//	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+		//	}}, win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 		//	ss.RunSteps(AlphaPlus, tbar)
 		//})
 
 		tbar.AddAction(core.ActOpts{Label: "Alpha Cycle", Icon: "step-fwd", Tooltip: "Step to the end of an Alpha Cycle.",
 			UpdateFunc: func(act *core.Action) {
 				act.SetActiveStateUpdate(!ss.IsRunning)
-			}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+			}}, win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 			ss.RunSteps(AlphaFull, tbar)
 		})
 
 		tbar.AddAction(core.ActOpts{Label: "Selected grain -->", Icon: "fast-fwd", Tooltip: "Step by the selected granularity.",
 			UpdateFunc: func(act *core.Action) {
 				act.SetActiveStateUpdate(!ss.IsRunning)
-			}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+			}}, win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 			ss.RunSteps(ss.StepGrain, tbar)
 		})
 	} else {
 		tbar.AddAction(core.ActOpts{Label: "StepRun", Icon: "fast-fwd", Tooltip: "Step by the selected granularity.",
 			UpdateFunc: func(act *core.Action) {
 				act.SetActiveStateUpdate(!ss.IsRunning)
-			}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+			}}, win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 			ss.RunSteps(ss.StepGrain, tbar)
 		})
 		stepLabel := core.AddNewLabel(tbar, "stepLabel", "StepGrain:")
@@ -858,7 +858,7 @@ func (ss *Sim) ConfigGui() *core.Window {
 		stepKeys = append(stepKeys, s)
 	}
 	sg.ItemsFromStringList(stepKeys, false, maxLen)
-	sg.ComboSig.Connect(tbar, func(recv, send tree.Ki, sig int64, data interface{}) {
+	sg.ComboSig.Connect(tbar, func(recv, send tree.Node, sig int64, data interface{}) {
 		ss.StepGrain = StepGrain(sig)
 	})
 	sg.SetCurValue(ss.StepGrain.String())
@@ -869,12 +869,12 @@ func (ss *Sim) ConfigGui() *core.Window {
 	stepsProps := tree.Props{"has-min": true, "min": 1, "has-max": false, "step": 1, "pagestep": 10}
 	ss.nStepsBox.SetProps(stepsProps)
 	ss.nStepsBox.SetValue(1)
-	ss.nStepsBox.SpinBoxSig.Connect(tbar.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+	ss.nStepsBox.SpinBoxSig.Connect(tbar.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 		ss.StepsToRun = int(ss.nStepsBox.Value)
 	})
 
 	tbar.AddAction(core.ActOpts{Label: "README", Icon: "file-markdown", Tooltip: "Opens your browser on the README file that contains instructions for how to run this model."}, win.This(),
-		func(recv, send tree.Ki, sig int64, data interface{}) {
+		func(recv, send tree.Node, sig int64, data interface{}) {
 			core.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch7/pvlv/README.md")
 		})
 
@@ -893,7 +893,7 @@ func (ss *Sim) ConfigGui() *core.Window {
 
 	fmen := win.MainMenu.ChildByName("File", 0).(*core.Action)
 
-	fmen.Menu.AddAction(core.ActOpts{Label: "Load CEmer weights", Tooltip: "load a CEmer weights file", Data: ss}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+	fmen.Menu.AddAction(core.ActOpts{Label: "Load CEmer weights", Tooltip: "load a CEmer weights file", Data: ss}, win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 		FileViewLoadCemerWts(vp)
 	})
 
@@ -905,7 +905,7 @@ func (ss *Sim) ConfigGui() *core.Window {
 		inQuitPrompt = true
 		core.PromptDialog(vp, core.DlgOpts{Title: "Really Quit?",
 			Prompt: "Are you <i>sure</i> you want to quit and lose any unsaved params, weights, logs, etc?"}, core.AddOk, core.AddCancel,
-			win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+			win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 				if sig == int64(core.DialogAccepted) {
 					core.Quit()
 				} else {
@@ -922,7 +922,7 @@ func (ss *Sim) ConfigGui() *core.Window {
 		inClosePrompt = true
 		core.PromptDialog(vp, core.DlgOpts{Title: "Really Close Window?",
 			Prompt: "Are you <i>sure</i> you want to close the window?  This will Quit the App as well, losing all unsaved params, weights, logs, etc"}, core.AddOk, core.AddCancel,
-			win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+			win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 				if sig == int64(core.DialogAccepted) {
 					core.Quit()
 				} else {

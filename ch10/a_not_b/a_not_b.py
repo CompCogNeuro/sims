@@ -909,12 +909,12 @@ class Sim(pyviews.ClassViewObj):
         # Linux, Windows or Meta for MacOS
         # fmen := win.MainMenu.ChildByName("File", 0).(*core.Action)
         # fmen.Menu.AddAction(core.ActOpts{Label: "Open", Shortcut: "Command+O"},
-        #   win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+        #   win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
         #       FileViewOpenSVG(vp)
         #   })
         # fmen.Menu.AddSeparator("csep")
         # fmen.Menu.AddAction(core.ActOpts{Label: "Close Window", Shortcut: "Command+W"},
-        #   win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+        #   win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
         #       win.Close()
         #   })
 

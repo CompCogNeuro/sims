@@ -1991,7 +1991,7 @@ func (ss *Sim) ConfigGui() *core.Window {
 
 	tbar.AddAction(core.ActOpts{Label: "Init", Icon: "update", Tooltip: "Initialize everything including network weights, and start over.  Also applies current params.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 		ss.Init()
 		vp.SetNeedsFullRender()
 	})
@@ -1999,7 +1999,7 @@ func (ss *Sim) ConfigGui() *core.Window {
 	tbar.AddAction(core.ActOpts{Label: "Train", Icon: "run", Tooltip: "Starts the network training, picking up from wherever it may have left off.  If not stopped, training will complete the specified number of Runs through the full number of Epochs of training, with testing automatically occuring at the specified interval.",
 		UpdateFunc: func(act *core.Action) {
 			act.SetActiveStateUpdate(!ss.IsRunning)
-		}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+		}}, win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.IsRunning = true
 			tbar.UpdateActions()
@@ -2010,13 +2010,13 @@ func (ss *Sim) ConfigGui() *core.Window {
 
 	tbar.AddAction(core.ActOpts{Label: "Stop", Icon: "stop", Tooltip: "Interrupts running.  Hitting Train again will pick back up where it left off.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(ss.IsRunning)
-	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 		ss.Stop()
 	})
 
 	tbar.AddAction(core.ActOpts{Label: "Step Trial", Icon: "step-fwd", Tooltip: "Advances one training trial at a time.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.IsRunning = true
 			ss.TrainTrial()
@@ -2027,7 +2027,7 @@ func (ss *Sim) ConfigGui() *core.Window {
 
 	tbar.AddAction(core.ActOpts{Label: "Step Seq", Icon: "fast-fwd", Tooltip: "Advances one sequence (sentence) at a time.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.IsRunning = true
 			tbar.UpdateActions()
@@ -2037,7 +2037,7 @@ func (ss *Sim) ConfigGui() *core.Window {
 
 	tbar.AddAction(core.ActOpts{Label: "Step Epoch", Icon: "fast-fwd", Tooltip: "Advances one epoch (complete set of training patterns) at a time.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.IsRunning = true
 			tbar.UpdateActions()
@@ -2047,7 +2047,7 @@ func (ss *Sim) ConfigGui() *core.Window {
 
 	tbar.AddAction(core.ActOpts{Label: "Step Run", Icon: "fast-fwd", Tooltip: "Advances one full training Run at a time.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.IsRunning = true
 			tbar.UpdateActions()
@@ -2059,20 +2059,20 @@ func (ss *Sim) ConfigGui() *core.Window {
 
 	tbar.AddAction(core.ActOpts{Label: "Open Weights", Icon: "update", Tooltip: "Open trained weights ", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 		ss.OpenWts()
 	})
 
 	tbar.AddAction(core.ActOpts{Label: "Init Test", Icon: "update", Tooltip: "Initialize to start of testing items.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 		ss.InitTest()
 		vp.SetNeedsFullRender()
 	})
 
 	tbar.AddAction(core.ActOpts{Label: "Test Trial", Icon: "step-fwd", Tooltip: "Runs the next testing trial.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.IsRunning = true
 			ss.TestTrial(false) // don't return on change -- wrap
@@ -2083,7 +2083,7 @@ func (ss *Sim) ConfigGui() *core.Window {
 
 	tbar.AddAction(core.ActOpts{Label: "Test Seq", Icon: "fast-fwd", Tooltip: "Advances one sequence (sentence) at a time.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.IsRunning = true
 			tbar.UpdateActions()
@@ -2093,7 +2093,7 @@ func (ss *Sim) ConfigGui() *core.Window {
 
 	tbar.AddAction(core.ActOpts{Label: "Test All", Icon: "fast-fwd", Tooltip: "Tests all of the testing trials.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.IsRunning = true
 			tbar.UpdateActions()
@@ -2104,14 +2104,14 @@ func (ss *Sim) ConfigGui() *core.Window {
 	tbar.AddSeparator("log")
 
 	tbar.AddAction(core.ActOpts{Label: "Reset TstTrlLog", Icon: "update", Tooltip: "Reset the Testing trial log, so it is easier to read"}, win.This(),
-		func(recv, send tree.Ki, sig int64, data interface{}) {
+		func(recv, send tree.Node, sig int64, data interface{}) {
 			ss.TstTrlLog.SetNumRows(0)
 			ss.TstTrlPlot.Update()
 		})
 
 	tbar.AddAction(core.ActOpts{Label: "Probe All", Icon: "fast-fwd", Tooltip: "probe inputs.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
-	}}, win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+	}}, win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 		if !ss.IsRunning {
 			ss.ProbeAll()
 			vp.SetNeedsFullRender()
@@ -2121,12 +2121,12 @@ func (ss *Sim) ConfigGui() *core.Window {
 	tbar.AddSeparator("misc")
 
 	tbar.AddAction(core.ActOpts{Label: "New Seed", Icon: "new", Tooltip: "Generate a new initial random seed to get different results.  By default, Init re-establishes the same initial seed every time."}, win.This(),
-		func(recv, send tree.Ki, sig int64, data interface{}) {
+		func(recv, send tree.Node, sig int64, data interface{}) {
 			ss.NewRndSeed()
 		})
 
 	tbar.AddAction(core.ActOpts{Label: "README", Icon: "file-markdown", Tooltip: "Opens your browser on the README file that contains instructions for how to run this model."}, win.This(),
-		func(recv, send tree.Ki, sig int64, data interface{}) {
+		func(recv, send tree.Node, sig int64, data interface{}) {
 			core.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch9/sg/README.md")
 		})
 
@@ -2147,12 +2147,12 @@ func (ss *Sim) ConfigGui() *core.Window {
 	// Linux, Windows or Meta for MacOS
 	// fmen := win.MainMenu.ChildByName("File", 0).(*core.Action)
 	// fmen.Menu.AddAction(core.ActOpts{Label: "Open", Shortcut: "Command+O"},
-	// 	win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+	// 	win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 	// 		FileViewOpenSVG(vp)
 	// 	})
 	// fmen.Menu.AddSeparator("csep")
 	// fmen.Menu.AddAction(core.ActOpts{Label: "Close Window", Shortcut: "Command+W"},
-	// 	win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+	// 	win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 	// 		win.Close()
 	// 	})
 
@@ -2164,7 +2164,7 @@ func (ss *Sim) ConfigGui() *core.Window {
 		inQuitPrompt = true
 		core.PromptDialog(vp, core.DlgOpts{Title: "Really Quit?",
 			Prompt: "Are you <i>sure</i> you want to quit and lose any unsaved params, weights, logs, etc?"}, core.AddOk, core.AddCancel,
-			win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+			win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 				if sig == int64(core.DialogAccepted) {
 					core.Quit()
 				} else {
@@ -2185,7 +2185,7 @@ func (ss *Sim) ConfigGui() *core.Window {
 		inClosePrompt = true
 		core.PromptDialog(vp, core.DlgOpts{Title: "Really Close Window?",
 			Prompt: "Are you <i>sure</i> you want to close the window?  This will Quit the App as well, losing all unsaved params, weights, logs, etc"}, core.AddOk, core.AddCancel,
-			win.This(), func(recv, send tree.Ki, sig int64, data interface{}) {
+			win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 				if sig == int64(core.DialogAccepted) {
 					core.Quit()
 				} else {
