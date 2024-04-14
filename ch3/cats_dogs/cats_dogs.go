@@ -575,7 +575,7 @@ func (ss *Sim) ConfigNetView(nv *netview.NetView) {
 	nv.ViewDefaults()
 	nv.Params.Raster.Max = 100
 	nv.Scene().Camera.Pose.Pos.Set(0, 1.5, 3.0) // more "head on" than default which is more "top down"
-	nv.Scene().Camera.LookAt(math32.Vec3{0, 0, 0}, math32.Vec3{0, 1, 0})
+	nv.Scene().Camera.LookAt(math32.Vector3{0, 0, 0}, math32.Vector3{0, 1, 0})
 
 	labs := []string{" Morr Socks Sylv Garf Fuzz Rex Fido Spot Snoop Butch",
 		" black white brown orange", "bugs grass scraps shoe", "small  med  large", "cat     dog", "string feath bone shoe"}
@@ -589,7 +589,7 @@ func (ss *Sim) ConfigNetView(nv *netview.NetView) {
 		lbl.Pose = ly.Pose
 		lbl.Pose.Pos.Y += .2
 		lbl.Pose.Pos.Z += .02
-		lbl.Pose.Scale.SetMul(math32.Vec3{0.4, 0.08, 0.5})
+		lbl.Pose.Scale.SetMul(math32.Vector3{0.4, 0.08, 0.5})
 	}
 }
 

@@ -1353,7 +1353,7 @@ class Sim(pyviews.ClassViewObj):
         nv.ViewDefaults()
 
     # nv.Scene().Camera.Pose.Pos.Set(0, 1.25, 3.0)
-    # nv.Scene().Camera.LookAt(math32.Vec3{0, 0, 0}, math32.Vec3{0, 1, 0})
+    # nv.Scene().Camera.LookAt(math32.Vector3{0, 0, 0}, math32.Vector3{0, 1, 0})
 
     def ConfigGui(ss):
         """

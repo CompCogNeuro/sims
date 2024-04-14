@@ -1322,7 +1322,7 @@ class Sim(pyviews.ClassViewObj):
             lbl.Pose = ly.Pose
             lbl.Pose.Pos.Y += 0.08
             lbl.Pose.Pos.Z += 0.02
-            lbl.Pose.Scale.SetMul(math32.Vec3(1, 0.3, 0.5))
+            lbl.Pose.Scale.SetMul(math32.Vector3(1, 0.3, 0.5))
 
     def ConfigGui(ss):
         """

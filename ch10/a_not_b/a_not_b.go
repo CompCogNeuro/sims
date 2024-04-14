@@ -761,7 +761,7 @@ func (ss *Sim) ConfigNetView(nv *netview.NetView) {
 	nv.ViewDefaults()
 	nv.Params.Raster.Max = 25
 	nv.Scene().Camera.Pose.Pos.Set(0.1, 1.8, 3.5)
-	nv.Scene().Camera.LookAt(math32.Vec3{0.1, 0.15, 0}, math32.Vec3{0, 1, 0})
+	nv.Scene().Camera.LookAt(math32.Vector3{0.1, 0.15, 0}, math32.Vector3{0, 1, 0})
 }
 
 // ConfigGui configures the GoGi gui interface for this simulation,

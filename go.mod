@@ -42,7 +42,6 @@ require (
 	github.com/goki/go-difflib v1.2.1 // indirect
 	github.com/goki/gosl v1.0.17 // indirect
 	github.com/goki/kigen v1.0.2 // indirect
-	github.com/goki/math32 v1.0.18 // indirect
 	github.com/goki/pi v1.0.28 // indirect
 	github.com/goki/prof v1.0.1 // indirect
 	github.com/goki/vci v1.0.2 // indirect

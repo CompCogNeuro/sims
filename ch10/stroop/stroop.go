@@ -1348,7 +1348,7 @@ func (ss *Sim) ConfigRunPlot(plt *eplot.Plot2D, dt *etable.Table) *eplot.Plot2D 
 func (ss *Sim) ConfigNetView(nv *netview.NetView) {
 	nv.ViewDefaults()
 	nv.Scene().Camera.Pose.Pos.Set(0.1, 1.8, 3.5)
-	nv.Scene().Camera.LookAt(math32.Vec3{0.1, 0.15, 0}, math32.Vec3{0, 1, 0})
+	nv.Scene().Camera.LookAt(math32.Vector3{0.1, 0.15, 0}, math32.Vector3{0, 1, 0})
 
 	labs := []string{"     g      r", "   G       R", "  gr      rd", "     g      r         G      R", "  cn     wr"}
 	nv.ConfigLabels(labs)
@@ -1361,7 +1361,7 @@ func (ss *Sim) ConfigNetView(nv *netview.NetView) {
 		lbl.Pose = ly.Pose
 		lbl.Pose.Pos.Y += .2
 		lbl.Pose.Pos.Z += .02
-		lbl.Pose.Scale.SetMul(math32.Vec3{0.4, 0.06, 0.5})
+		lbl.Pose.Scale.SetMul(math32.Vector3{0.4, 0.06, 0.5})
 	}
 }
 

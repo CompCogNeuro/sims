@@ -1378,7 +1378,7 @@ class Sim(pyviews.ClassViewObj):
     def ConfigNetView(ss, nv):
         nv.ViewDefaults()
         nv.Scene().Camera.Pose.Pos.Set(0.1, 1.8, 3.5)
-        nv.Scene().Camera.LookAt(math32.Vec3(0.1, 0.15, 0), math32.Vec3(0, 1, 0))
+        nv.Scene().Camera.LookAt(math32.Vector3(0.1, 0.15, 0), math32.Vector3(0, 1, 0))
 
         labs = go.Slice_string(
             [
@@ -1399,7 +1399,7 @@ class Sim(pyviews.ClassViewObj):
             lbl.Pose = ly.Pose
             lbl.Pose.Pos.Y += 0.2
             lbl.Pose.Pos.Z += 0.02
-            lbl.Pose.Scale.SetMul(math32.Vec3(0.4, 0.06, 0.5))
+            lbl.Pose.Scale.SetMul(math32.Vector3(0.4, 0.06, 0.5))
 
     def ConfigGui(ss):
         """

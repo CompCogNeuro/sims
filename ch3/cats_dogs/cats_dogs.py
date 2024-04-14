@@ -662,7 +662,7 @@ class Sim(pyviews.ClassViewObj):
         nv.Scene().Camera.Pose.Pos.Set(
             0, 1.5, 3.0
         )  # more "head on" than default which is more "top down"
-        nv.Scene().Camera.LookAt(math32.Vec3(0, 0, 0), math32.Vec3(0, 1, 0))
+        nv.Scene().Camera.LookAt(math32.Vector3(0, 0, 0), math32.Vector3(0, 1, 0))
 
         labs = go.Slice_string(
             [
@@ -687,7 +687,7 @@ class Sim(pyviews.ClassViewObj):
             lbl.Pose = ly.Pose
             lbl.Pose.Pos.Y += 0.2
             lbl.Pose.Pos.Z += 0.02
-            lbl.Pose.Scale.SetMul(math32.Vec3(0.4, 0.08, 0.5))
+            lbl.Pose.Scale.SetMul(math32.Vector3(0.4, 0.08, 0.5))
             li += 1
 
     def ConfigGui(ss):

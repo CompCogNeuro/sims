@@ -1984,7 +1984,7 @@ class Sim(pyviews.ClassViewObj):
         nv.Scene().Camera.Pose.Pos.Set(
             0, 1.2, 3.0
         )  # more "head on" than default which is more "top down"
-        nv.Scene().Camera.LookAt(math32.Vec3(0, 0, 0), math32.Vec3(0, 1, 0))
+        nv.Scene().Camera.LookAt(math32.Vector3(0, 0, 0), math32.Vector3(0, 1, 0))
 
     def ConfigGui(ss):
         """
