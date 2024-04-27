@@ -2,11 +2,19 @@ Back to [All Sims](https://github.com/CompCogNeuro/sims) (also for general info 
 
 # Introduction
 
-This simulation explores the PVLV (Primary Value, Learned Value) learning algorithm, which considers the role of different brain areas in controlling dopamine cell firing during learning about reward and punishment in classical conditioning tasks [Mollick et al, 2020](#references).  It represents a more flexible and biologically-detailed approach to the computations explored in the `rl_cond` model.
+This simulation explores the PVLV (Primary Value, Learned Value) learning algorithm, which considers the role of different brain areas in controlling dopamine cell firing during learning about reward and punishment in classical conditioning tasks [Mollick et al, 2020](#references).  It represents a more flexible and biologically detailed approach to the computations explored in the `rl_cond` model.
 
-There are many brain areas involved in the phasic firing of dopaminecells in the VTA (ventral tegmental area) and SNc (substantia nigra,pars reticulata). The PVLV model integrates contributions from the most important of these areas within a coherent overall computationalframework including: 1) multiple sub-regions of the amygdala, an arealong implicated in affective processing of both positive and negativeemotion; 2) multiple pathways within the ventral striatum (VS, which includes the nucleus accumbens, NAc), alsoimportant in many aspects of emotional expression; and, 3) the lateralhabenula (LHb) pathway, recently identified as the substrate responsible for the inhibitory pausing (dipping) of dopamine neuron activity [Matsumoto & Hikosaka, 2007; Matsumoto & Hikosaka, 2009](#references).
+There are many brain areas involved in the phasic firing of dopamine
+cells in the VTA (ventral tegmental area) and SNc (substantia nigra,
+pars reticulata). The PVLV model integrates contributions from the most important of these areas within a coherent overall computational
+framework including: 1) multiple sub-regions of the amygdala, an area
+long implicated in affective processing of both positive and negative
+emotion; 2) multiple pathways within the ventral striatum (VS, which includes the nucleus accumbens, NAc), also
+important in many aspects of emotional expression; and, 3) the lateral
+habenula (LHb) pathway, recently identified as the substrate responsible for the inhibitory pausing (dipping) of dopamine neuron activity [Matsumoto & Hikosaka, 2007; Matsumoto & Hikosaka, 2009](#references).
 
-The basic functions of the model can be seen in Pavlovian conditioning tasks, where neutral cues (conditioned stimuli; CSs) are paired with rewards or punishments (unconditioned stimuli; USs), resulting in the acquisition of conditioned responses (CRs), for example: the sound of a bell producing salivation in anticipation of a tasty food reward in Pavlov's famous dog, or, the onset of a light producing freezing before being shocked. Critically, phasic dopamine responses that initially occur for unexpected USs come to occur at the time of the CS instead. PVLV models the neurobiological mechanisms that cause this change in dopamine signaling to occur and proposes that this system can account for much of the behavioral manifestations of Pavlovian conditioning as well. Also important is the idea that subjects come to anticipate the imminent occurrence of *specific* USs after experiencing particular CSs, representing the expected US in the form of a working memory-like goal-state in the orbital frontal cortex (OFC). This distinguishes the PVLV framework from more abstract models that treat affective outcomes as merely good orbad.
+The basic functions of the model can be seen in Pavlovian conditioning tasks, where neutral cues (conditioned stimuli; CSs) are paired with rewards or punishments (unconditioned stimuli; USs), resulting in the acquisition of conditioned responses (CRs), for example: the sound of a bell producing salivation in anticipation of a tasty food reward in Pavlov's famous dog, or, the onset of a light producing freezing before being shocked. Critically, phasic dopamine responses that initially occur for unexpected USs come to occur at the time of the CS instead. PVLV models the neurobiological mechanisms that cause this change in dopamine signaling to occur and proposes that this system can account for much of the behavioral manifestations of Pavlovian conditioning as well. Also important is the idea that subjects come to anticipate the imminent occurrence of *specific* USs after experiencing particular CSs, representing the expected US in the form of a working memory-like goal-state in the orbital frontal cortex (OFC). This distinguishes the PVLV framework from more abstract models that treat affective outcomes as merely good or
+bad.
 
 # Overview of the PVLV Network
 
@@ -14,7 +22,8 @@ The overarching idea behind the PVLV model [OReilly et al, 2007](#references) is
 
 ![PV.1](fig_bvpvlv_pv_lv_only.png?raw=true "PV.1")
 
-**Figure 1:** Simplified diagram of major components of the PVLV model, with the LV Learned Value component in the Amygdala and PV Primary Value component in the Ventral Striatum (principally the Nucleus Accumbens Core, NAc).  LHb: Lateral Habenula, RMTg: RostroMedial Tegmentum, PPTg: PendunculoPontine Tegmentum, LHA: Lateral Hypothalamus, PBN: Parabrachial Nucleus. See [PVLV Code](https://github.com/emer/leabra/tree/master/pvlv) for a more detailed figure and description of the implementation.
+**Figure 1:** Simplified diagram of major components of the PVLV model, with the LV Learned Value component in the Amygdala and PV Primary Value component in the Ventral Striatum (principally the Nucleus Accumbens Core, NAc).  LHb: Lateral Habenula, RMTg: RostroMedial Tegmentum, PPTg: PendunculoPontine Tegmentum, LHA: Lateral Hypothalamus, PBN: Parabrachial Nucleus.
+ See [PVLV Code](https://github.com/emer/leabra/tree/master/pvlv) for a more detailed figure and description of the implementation.
 
 # Basic Appetitive Conditioning
 
@@ -24,7 +33,8 @@ We begin our exploration with basic appetitive conditioning, which is the simple
 
 * To begin, confirm that `PosAcq` is selected in the leftmost button in the task bar (if something else is displayed click on the button and select PosAcq from the dropdown menu).  Also in the task bar find the `StepGrain` button and confirm it is set to `AlphaFull` and `StepN` is set to `1`.  Confirm that the `NetView` tab is active and the network is visible in the visualizer panel. Click `Init` and then `StepRun` once to step one alpha cycle (= 100 cycles). Now click `StepRun` a second time and you should see the `Stim_In` and `Context_In` input layers become active (t1 timestep). Click `StepRun` two more times to get to the t3 timestep.
 
-You should now see the first unit of the `PosPV` layer get active (assuming an A trial; PosPV may not be on if a B trial), representing a specific kind of reward being given to the network. Also, note which `USTime_In` unit is active along the horizontal (time) dimension when the reward is presented. Each USTime horizontal row encodes a temporally evolving representation hypothesized to be in orbitofrontal cortex (OFC), which allows the network to learn about specific temporal contingencies between CSs and and individual rewards or punishments. Overall, you can think of this scheme as just a more complex version of the complete serial compound (CSC)) temporal representation used in the`rl_cond` model.
+You should now see the first unit of the `PosPV` layer get active (assuming an A trial; PosPV may not be on if a B trial), representing a specific kind of reward being given to the network. Also, note which `USTime_In` unit is active along the horizontal (time) dimension when the reward is presented. Each USTime horizontal row encodes a temporally evolving representation hypothesized to be in orbitofrontal cortex (OFC), which allows the network to learn about specific temporal contingencies between CSs and and individual rewards or punishments. Overall, you can think of this scheme as just a more complex version of the complete serial compound (CSC)) temporal representation used in the
+`rl_cond` model.
 
 * Click `StepRun` several more times to step through enough A (100% reward) and B (50%) trials to get a good understanding of how their inputs differ. 
 
@@ -36,7 +46,8 @@ You will see the activity plotted for several key layers (different brain areas)
 
 As the network trains, pay attention first to the CS A (100%) trial on the left, noting especially `VTAp` activity (solid black line). You should see a big peak (phasic dopamine) initially when reward (US) is delivered (A_Rf_POS_t3; CS A = positive reinforcement, time step 3). Over time, this peak decreases, as the activity in `VSPatchPosD1` (solid green line) increases. This is the ventral striatum Primary Value (PV) substrate learning to expect the US, and it sends shunt-like inhibition to the VTA, mitigating bursting. This basic dynamic reflects the canonical Rescorla-Wagner delta learning rule as discussed in the main chapter.
 
-You should also note that `VTAp` activity progressively increases at the`A_Rf_POS_t1` timestep, which is when the A stimulus (CS) is turned on. Note that `CEl_Acq_Pos_D1` activity (part of amygdala; solid red line) also increases at that time step -- this is what drives `VTAp` bursting at CS onset and reflects Learned Value (LV) learning in the amygdala associating the CS with the US. This learning is facilitated by the phasic dopamine signal at the time of the US, and as that diminishes due to PV learning in the ventral striatum, so does learning in the LV pathway.
+You should also note that `VTAp` activity progressively increases at the
+`A_Rf_POS_t1` timestep, which is when the A stimulus (CS) is turned on. Note that `CEl_Acq_Pos_D1` activity (part of amygdala; solid red line) also increases at that time step -- this is what drives `VTAp` bursting at CS onset and reflects Learned Value (LV) learning in the amygdala associating the CS with the US. This learning is facilitated by the phasic dopamine signal at the time of the US, and as that diminishes due to PV learning in the ventral striatum, so does learning in the LV pathway.
 
 Thus, the two basic aspects of phasic dopamine firing, which result from the single TD equation in the `rl_cond` model, actually emerge from two brain systems working in concert. These are the key pathways for positive-valence acquisition. It is worth noting that the "D1" in the name of some layers reflects the fact that the D1 class of post-synaptic dopamine receptors respond to increased dopamine by strengthening glutamatergic synapses that happen to have been active just prior.
 
@@ -195,7 +206,8 @@ In PVLV, we use the `VSPatchPosD1` layer to control the dopamine for a US (you'l
 
 * Select `PosBlocking` in the task bar and then in `TrialTypeData` click OFF all the layer displays except `VTAp_act`. Then click `Init` and `Run` the network watching for when the initial A+ training transitions to the blocking training phase (AB+). 
 
-After the preliminary acquisition phase and the AB+ blocking training phase has started you should note that the dopamine for A and AB start out exactly the same and undergo virtually no change during training, indicating that there is no difference between prediction and expectation for both trial types. At the end of AB+ training a test trial is run in which the network is presented the blocked CS (B) alone. Note that `VTAp` activity is essentially a flat line, indicating that there has been little dopamine signaling acquired by the blocked CS, consistent withthe Waelti et al., 2001 data.
+After the preliminary acquisition phase and the AB+ blocking training phase has started you should note that the dopamine for A and AB start out exactly the same and undergo virtually no change during training, indicating that there is no difference between prediction and expectation for both trial types. At the end of AB+ training a test trial is run in which the network is presented the blocked CS (B) alone. Note that `VTAp` activity is essentially a flat line, indicating that there has been little dopamine signaling acquired by the blocked CS, consistent with
+the Waelti et al., 2001 data.
 
 ## Safety signal learning: negative conditioned inhibition
 

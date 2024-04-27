@@ -1425,7 +1425,7 @@ class Sim(pyviews.ClassViewObj):
             core.ActOpts(
                 Label="Wt Words",
                 Icon="search",
-                Tooltip="get words for currently-selected hidden-layer unit in netview.",
+                Tooltip="get words for currently selected hidden-layer unit in netview.",
                 UpdateFunc=UpdateFuncNotRunning,
             ),
             recv,

@@ -19,7 +19,7 @@ type ConditionParams struct {
 	NIters int
 	// number of blocks (1 block = one behavioral trial = sequence of CS, US) in each iteration -- needs to be higher if there are stochastic variables (probabilities).
 	BlocksPerIter int
-	// permute list of fully-instantiated trials after generation
+	// permute list of fully instantiated trials after generation
 	PermuteTrialGps bool
 	// save final weights after training
 	SaveFinalWts bool
@@ -124,7 +124,7 @@ func AllConditionParams() ConditionParamsMap {
 		},
 		"PosAcq_B50": {
 			Nm:              "PosAcq_B50",
-			Desc:            "Pavlovian conditioning w/ positively-valenced US: A_Rf_POS, B at 50%",
+			Desc:            "Pavlovian conditioning w/ positively valenced US: A_Rf_POS, B at 50%",
 			TrialBlkNm:      "PosAcq_B50",
 			FixedProb:       true,
 			NIters:          51,
@@ -143,7 +143,7 @@ func AllConditionParams() ConditionParamsMap {
 		},
 		"PosAcq_A50": {
 			Nm:              "PosAcq_A50",
-			Desc:            "Pavlovian conditioning w/ positively-valenced US: A_Rf_POS at 50%",
+			Desc:            "Pavlovian conditioning w/ positively valenced US: A_Rf_POS at 50%",
 			TrialBlkNm:      "PosAcq_A50",
 			FixedProb:       true,
 			NIters:          51,
@@ -181,7 +181,7 @@ func AllConditionParams() ConditionParamsMap {
 		},
 		"PosAcqPreSecondOrder": {
 			Nm:              "PosAcqPreSecondOrder",
-			Desc:            "Pavlovian conditioning w/ positively-valenced US: A_Rf_POS, B at 50%",
+			Desc:            "Pavlovian conditioning w/ positively valenced US: A_Rf_POS, B at 50%",
 			TrialBlkNm:      "PosAcqPreSecondOrder",
 			FixedProb:       true,
 			NIters:          51,
@@ -200,7 +200,7 @@ func AllConditionParams() ConditionParamsMap {
 		},
 		"PosAcq_B50Cont": {
 			Nm:              "PosAcq_B50Cont",
-			Desc:            "Pavlovian conditioning w/ positively-valenced US: A_Rf_POS, B at 50% reinf, continue using prior weights",
+			Desc:            "Pavlovian conditioning w/ positively valenced US: A_Rf_POS, B at 50% reinf, continue using prior weights",
 			TrialBlkNm:      "PosReacq",
 			FixedProb:       true,
 			NIters:          50,
@@ -219,7 +219,7 @@ func AllConditionParams() ConditionParamsMap {
 		},
 		"PosAcq_B100": {
 			Nm:              "PosAcq_B100",
-			Desc:            "Pavlovian conditioning w/ positively-valenced US: A_Rf_POS, B at 100%",
+			Desc:            "Pavlovian conditioning w/ positively valenced US: A_Rf_POS, B at 100%",
 			TrialBlkNm:      "PosAcq_B100",
 			FixedProb:       true,
 			NIters:          50,
@@ -238,7 +238,7 @@ func AllConditionParams() ConditionParamsMap {
 		},
 		"PosAcq_B100Cont": {
 			Nm:              "PosAcq_B100Cont",
-			Desc:            "Pavlovian conditioning w/ positively-valenced US: A_Rf_POS -- continue w/ wts",
+			Desc:            "Pavlovian conditioning w/ positively valenced US: A_Rf_POS -- continue w/ wts",
 			TrialBlkNm:      "PosAcq_B100_cont",
 			FixedProb:       true,
 			NIters:          50,
@@ -276,7 +276,7 @@ func AllConditionParams() ConditionParamsMap {
 		},
 		"PosAcq_B25": {
 			Nm:              "PosAcq_B25",
-			Desc:            "Pavlovian conditioning w/ positively-valenced US: A_Rf_POS",
+			Desc:            "Pavlovian conditioning w/ positively valenced US: A_Rf_POS",
 			TrialBlkNm:      "PosAcq_B25",
 			FixedProb:       true,
 			NIters:          200,
@@ -371,7 +371,7 @@ func AllConditionParams() ConditionParamsMap {
 		},
 		"NegAcq": {
 			Nm:              "NegAcq",
-			Desc:            "Pavlovian conditioning w/ negatively-valenced US: D_Rf_NEG",
+			Desc:            "Pavlovian conditioning w/ negatively valenced US: D_Rf_NEG",
 			TrialBlkNm:      "NegAcq",
 			FixedProb:       false,
 			NIters:          76,
@@ -390,7 +390,7 @@ func AllConditionParams() ConditionParamsMap {
 		},
 		"NegAcqFixedProb": {
 			Nm:              "NegAcqFixedProb",
-			Desc:            "Pavlovian conditioning w/ negatively-valenced US: A_Rf_NEG",
+			Desc:            "Pavlovian conditioning w/ negatively valenced US: A_Rf_NEG",
 			TrialBlkNm:      "NegAcq",
 			FixedProb:       true,
 			NIters:          150,
@@ -409,7 +409,7 @@ func AllConditionParams() ConditionParamsMap {
 		},
 		"PosAcqOmit": {
 			Nm:              "PosAcqOmit",
-			Desc:            "Pavlovian conditioning w/ positively-valenced US: A_Rf_POS, A_Rf_POS_omit trials, interleaved",
+			Desc:            "Pavlovian conditioning w/ positively valenced US: A_Rf_POS, A_Rf_POS_omit trials, interleaved",
 			TrialBlkNm:      "PosAcqOmit",
 			FixedProb:       false,
 			NIters:          10,
@@ -428,7 +428,7 @@ func AllConditionParams() ConditionParamsMap {
 		},
 		"NegCondInh": {
 			Nm:              "NegCondInh",
-			Desc:            "condition inhibition w/ negatively-valenced US: CZ_NRf_NEG, C_Rf_NEG interleaved; i.e.,  Z = security signal",
+			Desc:            "condition inhibition w/ negatively valenced US: CZ_NRf_NEG, C_Rf_NEG interleaved; i.e.,  Z = security signal",
 			TrialBlkNm:      "NegCondInhib",
 			FixedProb:       false,
 			NIters:          75,
@@ -447,7 +447,7 @@ func AllConditionParams() ConditionParamsMap {
 		},
 		"NegCondInh_test": {
 			Nm:              "NegCondInh_test",
-			Desc:            "condition inhibition w/ negatively-valenced US: CZ_NRf_NEG, C_Rf_NEG interleaved; i.e.,  Z = security signal",
+			Desc:            "condition inhibition w/ negatively valenced US: CZ_NRf_NEG, C_Rf_NEG interleaved; i.e.,  Z = security signal",
 			TrialBlkNm:      "NegCondInhib_test",
 			FixedProb:       false,
 			NIters:          5,
@@ -466,7 +466,7 @@ func AllConditionParams() ConditionParamsMap {
 		},
 		"NegExtinct": {
 			Nm:              "NegExtinct",
-			Desc:            "Pavlovian conditioning w/ negatively-valenced US: A_Rf_NEG",
+			Desc:            "Pavlovian conditioning w/ negatively valenced US: A_Rf_NEG",
 			TrialBlkNm:      "NegExtinct",
 			FixedProb:       false,
 			NIters:          75,
@@ -485,7 +485,7 @@ func AllConditionParams() ConditionParamsMap {
 		},
 		"PosAcq_contextA": {
 			Nm:              "PosAcq_contextA",
-			Desc:            "Pavlovian conditioning w/ positively-valenced US: A_Rf_POS, A_Rf_POS_omit trials, interleaved",
+			Desc:            "Pavlovian conditioning w/ positively valenced US: A_Rf_POS, A_Rf_POS_omit trials, interleaved",
 			TrialBlkNm:      "PosAcq_contextA",
 			FixedProb:       false,
 			NIters:          26,
@@ -504,7 +504,7 @@ func AllConditionParams() ConditionParamsMap {
 		},
 		"PosExtinct_contextB": {
 			Nm:              "PosExtinct_contextB",
-			Desc:            "Pavlovian conditioning w/ positively-valenced US: A_Rf_POS, A_Rf_POS_omit trials, interleaved",
+			Desc:            "Pavlovian conditioning w/ positively valenced US: A_Rf_POS, A_Rf_POS_omit trials, interleaved",
 			TrialBlkNm:      "PosExtinct_contextB",
 			FixedProb:       false,
 			NIters:          25,
@@ -523,7 +523,7 @@ func AllConditionParams() ConditionParamsMap {
 		},
 		"PosRenewal_contextA": {
 			Nm:              "PosRenewal_contextA",
-			Desc:            "Pavlovian conditioning w/ positively-valenced US: A_Rf_POS, A_Rf_POS_omit trials, interleaved",
+			Desc:            "Pavlovian conditioning w/ positively valenced US: A_Rf_POS, A_Rf_POS_omit trials, interleaved",
 			TrialBlkNm:      "PosRenewal_contextA",
 			FixedProb:       false,
 			NIters:          1,

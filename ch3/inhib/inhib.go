@@ -102,7 +102,7 @@ var ParamSets = params.Sets{
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
-	// if true, use the bidirectionally-connected network -- otherwise use the simpler feedforward network
+	// if true, use the bidirectionally connected network -- otherwise use the simpler feedforward network
 	BidirNet bool
 	// simulate trained weights by having higher variance and Gaussian distributed weight values -- otherwise lower variance, uniform
 	TrainedWts bool

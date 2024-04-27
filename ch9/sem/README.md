@@ -28,7 +28,7 @@ This property of the representation is interesting for two reasons. First, it in
 
 * Click on the unit one row behind the first row (still one column over from the left) -- this unit has a relatively strong lateral weight with the first unit we clicked on.  Then click `Wt Words` -- each such window continues to show its original results so you can put them next to each other to compare between these two units.
 
-You should observe a lot of overlap but also many differences between these two words.  This partially-overlapping coarse-coded distributed representation provides both some redundancy and more systematic coverage of a large high-dimensional semantic space.
+You should observe a lot of overlap but also many differences between these two words.  This partially overlapping coarse-coded distributed representation provides both some redundancy and more systematic coverage of a large high-dimensional semantic space.
 
 * View the `Wt Words` representations for several other units further away in the layer to get a better sense of the variety of neuron "word receptive fields".
 

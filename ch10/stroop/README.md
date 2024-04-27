@@ -2,7 +2,7 @@ Back to [All Sims](https://github.com/CompCogNeuro/sims) (also for general info 
 
 # Introduction
 
-This simulation illustrates how the prefrontal cortex (PFC) can produce top-down biasing for executive control, in the context of the widely-studied Stroop task.  This model is similar to the [Cohen et al., (1994)](#references) version of the classic [Cohen et al, (1990)](#references) Stroop model, with bidirectional excitatory connections and inhibitory competition.
+This simulation illustrates how the prefrontal cortex (PFC) can produce top-down biasing for executive control, in the context of the widely studied Stroop task.  This model is similar to the [Cohen et al., (1994)](#references) version of the classic [Cohen et al, (1990)](#references) Stroop model, with bidirectional excitatory connections and inhibitory competition.
 
 * Let's begin by exploring the connectivity of the StroopNet network using `r.Wt`
 

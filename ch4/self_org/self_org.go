@@ -156,7 +156,7 @@ type Sim struct {
 	TestInterval int
 	// names of layers to record activations etc of during testing
 	TstRecLays []string
-	// number of uniquely-coded line patterns, computed during testing -- maximum 10, higher is better
+	// number of uniquely coded line patterns, computed during testing -- maximum 10, higher is better
 	UniqPats float64 `inactive:"+"`
 
 	// main GUI window

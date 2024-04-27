@@ -19,7 +19,7 @@ package obsolete
 //		{"EnvProg", etensor.STRING, nil, nil}, // program to set up environment for this configuration
 //		{"TrainEpochs", etensor.INT, nil, nil}, // number of total epochs to train for
 //		{"UseTrialGp", etensor.BOOl, nil, nil}, // If true uses eco_trials_per_epoch as master; ELSE uses trials_per_epoch - avoids confusion since these two are logically interdependent. network.group member can be used to index and count the number of eco trials.
-//		{"TrialGpsPerEpoch", etensor.INT, nil, nil}, // If used (use_eco == true), assigns the number of ecologically-defined trials per epoch.  Thus, the eco_trial becomes the dominant "trial" of reference. An eco trial is defined as two or more conventional Leabra-like trials in sequence. This concept is meant to capture the temporally-extended nature of most learning episodes under ecological conditions. Eco trials can be tracked by the network variable network.group.
+//		{"TrialGpsPerEpoch", etensor.INT, nil, nil}, // If used (use_eco == true), assigns the number of ecologically defined trials per epoch.  Thus, the eco_trial becomes the dominant "trial" of reference. An eco trial is defined as two or more conventional Leabra-like trials in sequence. This concept is meant to capture the temporally extended nature of most learning episodes under ecological conditions. Eco trials can be tracked by the network variable network.group.
 //		{"PermuteTrialGps", etensor.BOOl, nil, nil}, // permute list of TrialInstance-level trials after generation
 //		{"TrialsPerEpoch", etensor.INT, nil, nil}, // number of trials per epoch
 //		{"SaveFinalWts", etensor.BOOl, nil, nil}, // save final weights after training
@@ -67,7 +67,7 @@ type RunConfig struct {
 	TrainEpochs int
 	// If true uses eco_trials_per_epoch as master; ELSE uses trials_per_epoch - avoids confusion since these two are logically interdependent. network.group member can be used to index and count the number of eco trials.
 	UseTrialGp bool
-	// If used (use_eco == true), assigns the number of ecologically-defined trials per epoch.  Thus, the eco_trial becomes the dominant 'trial' of reference. An eco trial is defined as two or more conventional Leabra-like trials in sequence. This concept is meant to capture the temporally-extended nature of most learning episodes under ecological conditions. Eco trials can be tracked by the network variable network.group.
+	// If used (use_eco == true), assigns the number of ecologically defined trials per epoch.  Thus, the eco_trial becomes the dominant 'trial' of reference. An eco trial is defined as two or more conventional Leabra-like trials in sequence. This concept is meant to capture the temporally extended nature of most learning episodes under ecological conditions. Eco trials can be tracked by the network variable network.group.
 	TrialGpsPerEpoch int
 	// Permute list of Trial-level trials after generation
 	PermuteTrialGps bool
@@ -99,7 +99,7 @@ func AllRunConfigs() RunConfigsMap {
 	sets := RunConfigsMap{
 		"PosAcq": {
 			ConfigId:         "PosAcq",
-			Desc:             "Pavlovian conditioning w/ positively-valenced USType: A_Rf_POS",
+			Desc:             "Pavlovian conditioning w/ positively valenced USType: A_Rf_POS",
 			Users:            "TH, JM",
 			ConfigSeqList:    "",
 			EnvParamsTable:   "PosAcq",
@@ -199,7 +199,7 @@ func AllRunConfigs() RunConfigsMap {
 		},
 		"NegAcq": {
 			ConfigId:         "NegAcq",
-			Desc:             "Pavlovian conditioning w/ negatively-valenced USType: A_Rf_NEG",
+			Desc:             "Pavlovian conditioning w/ negatively valenced USType: A_Rf_NEG",
 			Users:            "JM",
 			ConfigSeqList:    "",
 			EnvParamsTable:   "NegAcq",
@@ -249,7 +249,7 @@ func AllRunConfigs() RunConfigsMap {
 		},
 		"PosAcqOmit": {
 			ConfigId:         "PosAcqOmit",
-			Desc:             "Pavlovian conditioning w/ positively-valenced USType: A_Rf_POS, A_Rf_POS_omit trials, interleaved",
+			Desc:             "Pavlovian conditioning w/ positively valenced USType: A_Rf_POS, A_Rf_POS_omit trials, interleaved",
 			Users:            "JM",
 			ConfigSeqList:    "",
 			EnvParamsTable:   "PosAcqOmit",
@@ -274,7 +274,7 @@ func AllRunConfigs() RunConfigsMap {
 		},
 		"NegCondInh": {
 			ConfigId:         "NegCondInh",
-			Desc:             "condition inhibition w/ negatively-valenced USType: CZ_NRf_NEG, C_Rf_NEG interleaved; i.e.,  Z = security signal",
+			Desc:             "condition inhibition w/ negatively valenced USType: CZ_NRf_NEG, C_Rf_NEG interleaved; i.e.,  Z = security signal",
 			Users:            "JM",
 			ConfigSeqList:    "",
 			EnvParamsTable:   "NegCondInhib",
@@ -299,7 +299,7 @@ func AllRunConfigs() RunConfigsMap {
 		},
 		"NegCondInh_test": {
 			ConfigId:         "NegCondInh_test",
-			Desc:             "condition inhibition w/ negatively-valenced USType: CZ_NRf_NEG, C_Rf_NEG interleaved; i.e.,  Z = security signal",
+			Desc:             "condition inhibition w/ negatively valenced USType: CZ_NRf_NEG, C_Rf_NEG interleaved; i.e.,  Z = security signal",
 			Users:            "JM",
 			ConfigSeqList:    "",
 			EnvParamsTable:   "NegCondInhib_test",
@@ -324,7 +324,7 @@ func AllRunConfigs() RunConfigsMap {
 		},
 		"NegExtinct": {
 			ConfigId:         "NegExtinct",
-			Desc:             "Pavlovian conditioning w/ negatively-valenced USType: A_Rf_NEG",
+			Desc:             "Pavlovian conditioning w/ negatively valenced USType: A_Rf_NEG",
 			Users:            "JM, TH",
 			ConfigSeqList:    "",
 			EnvParamsTable:   "NegExtinct",
@@ -349,7 +349,7 @@ func AllRunConfigs() RunConfigsMap {
 		},
 		"PosAcq_contextA": {
 			ConfigId:         "PosAcq_contextA",
-			Desc:             "Pavlovian conditioning w/ positively-valenced USType: A_Rf_POS, A_Rf_POS_omit trials, interleaved",
+			Desc:             "Pavlovian conditioning w/ positively valenced USType: A_Rf_POS, A_Rf_POS_omit trials, interleaved",
 			Users:            "JM",
 			ConfigSeqList:    "",
 			EnvParamsTable:   "PosAcq_contextA",
@@ -374,7 +374,7 @@ func AllRunConfigs() RunConfigsMap {
 		},
 		"PosExtinct_contextB": {
 			ConfigId:         "PosExtinct_contextB",
-			Desc:             "Pavlovian conditioning w/ positively-valenced USType: A_Rf_POS, A_Rf_POS_omit trials, interleaved",
+			Desc:             "Pavlovian conditioning w/ positively valenced USType: A_Rf_POS, A_Rf_POS_omit trials, interleaved",
 			Users:            "JM",
 			ConfigSeqList:    "",
 			EnvParamsTable:   "PosExtinct_contextB",
@@ -399,7 +399,7 @@ func AllRunConfigs() RunConfigsMap {
 		},
 		"PosRenewal_contextA": {
 			ConfigId:         "PosRenewal_contextA",
-			Desc:             "Pavlovian conditioning w/ positively-valenced USType: A_Rf_POS, A_Rf_POS_omit trials, interleaved",
+			Desc:             "Pavlovian conditioning w/ positively valenced USType: A_Rf_POS, A_Rf_POS_omit trials, interleaved",
 			Users:            "JM",
 			ConfigSeqList:    "",
 			EnvParamsTable:   "PosRenewal_contextA",
@@ -699,7 +699,7 @@ func AllRunConfigs() RunConfigsMap {
 		},
 		"NegAcqFixedProb": {
 			ConfigId:         "NegAcqFixedProb",
-			Desc:             "Pavlovian conditioning w/ negatively-valenced USType: A_Rf_NEG",
+			Desc:             "Pavlovian conditioning w/ negatively valenced USType: A_Rf_NEG",
 			Users:            "",
 			ConfigSeqList:    "",
 			EnvParamsTable:   "NegAcq",
@@ -1024,7 +1024,7 @@ func AllRunConfigs() RunConfigsMap {
 		},
 		"NegAcqFixedProbX": {
 			ConfigId:         "NegAcqFixedProbX",
-			Desc:             "Pavlovian conditioning w/ negatively-valenced USType: A_Rf_NEG",
+			Desc:             "Pavlovian conditioning w/ negatively valenced USType: A_Rf_NEG",
 			Users:            "TH",
 			ConfigSeqList:    "",
 			EnvParamsTable:   "NegAcq",
@@ -1249,7 +1249,7 @@ func AllRunConfigs() RunConfigsMap {
 		},
 		"PosAcqCont": {
 			ConfigId:         "PosAcqCont",
-			Desc:             "Pavlovian conditioning w/ positively-valenced USType: A_Rf_POS -- continue w/ wts",
+			Desc:             "Pavlovian conditioning w/ positively valenced USType: A_Rf_POS -- continue w/ wts",
 			Users:            "TH, JM",
 			ConfigSeqList:    "",
 			EnvParamsTable:   "PosAcq",

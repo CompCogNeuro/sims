@@ -302,7 +302,7 @@ class Sim(pyviews.ClassViewObj):
         self.UniqPats = float(0)
         self.SetTags(
             "UniqPats",
-            'inactive:"+" desc:"number of uniquely-coded line patterns, computed during testing -- maximum 10, higher is better"',
+            'inactive:"+" desc:"number of uniquely coded line patterns, computed during testing -- maximum 10, higher is better"',
         )
 
         # internal state - view:"-"

@@ -1377,7 +1377,7 @@ func (ss *Sim) ConfigGui() *core.Window {
 		ss.OpenWts()
 	})
 
-	tbar.AddAction(core.ActOpts{Label: "Wt Words", Icon: "search", Tooltip: "get words for currently-selected hidden-layer unit in netview.", UpdateFunc: func(act *core.Action) {
+	tbar.AddAction(core.ActOpts{Label: "Wt Words", Icon: "search", Tooltip: "get words for currently selected hidden-layer unit in netview.", UpdateFunc: func(act *core.Action) {
 		act.SetActiveStateUpdate(!ss.IsRunning)
 	}}, win.This(), func(recv, send tree.Node, sig int64, data interface{}) {
 		views.CallMethod(ss, "WtWords", vp)

@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 /*
-stroop illustrates how the PFC can produce top-down biasing for executive control, in the context of the widely-studied Stroop task.
+stroop illustrates how the PFC can produce top-down biasing for executive control, in the context of the widely studied Stroop task.
 */
 package main
 
@@ -1371,7 +1371,7 @@ func (ss *Sim) ConfigGui() *core.Window {
 	height := 1200
 
 	core.SetAppName("stroop")
-	core.SetAppAbout(`illustrates how the PFC can produce top-down biasing for executive control, in the context of the widely-studied Stroop task. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch10/stroop/README.md">README.md on GitHub</a>.</p>`)
+	core.SetAppAbout(`illustrates how the PFC can produce top-down biasing for executive control, in the context of the widely studied Stroop task. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch10/stroop/README.md">README.md on GitHub</a>.</p>`)
 
 	win := core.NewMainWindow("stroop", "Stroop", width, height)
 	ss.Win = win

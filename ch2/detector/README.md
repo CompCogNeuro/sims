@@ -66,7 +66,7 @@ Ge = (1 / (17 / 35)) * (6 / 35) = .3529...
 
 That is not quite right.  The problem is that our `Input` activations are not quite 1, but rather .95, because it is impossible for our rate-coded neuron activations to get all the way to 1, so we clip them at a maximum of .95.  If you multiply the above number by .95, you indeed get the correct `Ge = .3352..`!  
 
-As a result of working through the Ge net input calculation, you should now have a detailed understanding of how the net excitatory input to the neuron reflects the degree of match between the input pattern and the weights. You have also observed how the activation value can ignore much of the graded information present in this input signal, due to the presence of the **threshold**.  This gives you a good sense for *why* neurons have these thresholds: it allows them to filter out all the "sub-threshold noise" and only communicate a clear, easily-interpreted signal when it has detected what it is looking for.
+As a result of working through the Ge net input calculation, you should now have a detailed understanding of how the net excitatory input to the neuron reflects the degree of match between the input pattern and the weights. You have also observed how the activation value can ignore much of the graded information present in this input signal, due to the presence of the **threshold**.  This gives you a good sense for *why* neurons have these thresholds: it allows them to filter out all the "sub-threshold noise" and only communicate a clear, easily interpreted signal when it has detected what it is looking for.
 
 # Manipulating Leak
 

@@ -113,7 +113,7 @@ class Sim(pyviews.ClassViewObj):
         self.BidirNet = False
         self.SetTags(
             "BidirNet",
-            'desc:"if true, use the bidirectionally-connected network -- otherwise use the simpler feedforward network"',
+            'desc:"if true, use the bidirectionally connected network -- otherwise use the simpler feedforward network"',
         )
         self.TrainedWts = False
         self.SetTags(

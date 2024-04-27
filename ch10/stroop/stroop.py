@@ -10,7 +10,7 @@
 # see main function at the end for startup args
 
 # stroop illustrates how the PFC can produce top-down biasing for executive control,
-# in the context of the widely-studied Stroop task.
+# in the context of the widely studied Stroop task.
 
 from leabra import (
     go,
@@ -1410,7 +1410,7 @@ class Sim(pyviews.ClassViewObj):
 
         core.SetAppName("stroop")
         core.SetAppAbout(
-            'illustrates how the PFC can produce top-down biasing for executive control, in the context of the widely-studied Stroop task. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch10/stroop/README.md">README.md on GitHub</a>.</p>'
+            'illustrates how the PFC can produce top-down biasing for executive control, in the context of the widely studied Stroop task. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch10/stroop/README.md">README.md on GitHub</a>.</p>'
         )
 
         win = core.NewMainWindow("stroop", "Stroop", width, height)

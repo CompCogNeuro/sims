@@ -4,7 +4,7 @@ Back to [All Sims](https://github.com/CompCogNeuro/sims) (also for general info 
 
 This simulation illustrates how object recognition (ventral, what) and spatial (dorsal, where) pathways interact to produce spatial attention effects, and accurately capture the effects of brain damage to the spatial pathway.
 
-The model is based on [Cohen, et al. (1994)](#references) with several improvements in terms of its overall biologically-based structure and the scope of data which it can explain.
+The model is based on [Cohen, et al. (1994)](#references) with several improvements in terms of its overall biologically based structure and the scope of data which it can explain.
 
 # Network Structure
 

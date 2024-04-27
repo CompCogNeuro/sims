@@ -56,7 +56,7 @@ You should observe that the network is able to identify correctly the roles of a
 
 * Hit `Reset TstTrlLog` and then `Test Trial` through the next sentence (Active syntactic) -- you can do `Test Seq` to zip through the entire sequence of one sentence and just look at the bar plot.
 
-This sentence has two animate nouns (busdriver and teacher), so the network must use the syntactic word order cues to infer that the busdriver is the agent, while using the "gave to" syntactic construction to recognize that the teacher is the recipient. Observe that through the multiple queries of Agent, it remembers correctly that it is the previously-seen busdriver, not the more recently-seen teacher.
+This sentence has two animate nouns (busdriver and teacher), so the network must use the syntactic word order cues to infer that the busdriver is the agent, while using the "gave to" syntactic construction to recognize that the teacher is the recipient. Observe that through the multiple queries of Agent, it remembers correctly that it is the previously seen busdriver, not the more recently seen teacher.
 
 In the next sentence, the passive construction is used, but this should be obvious from the semantic cue that `jelly` cannot be an agent.
 
