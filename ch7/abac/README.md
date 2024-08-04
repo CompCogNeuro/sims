@@ -32,7 +32,7 @@ The statistics taken at the end of the AC list training for each "subject" will 
 
 * Hit the `RunStats` `etable.Table` in the left control panel to see summary statistics across the 10 runs, including the mean, min and max final err for both AB and AC lists. This AB data is the overall measure of how much interference there was from training on the AC list.
 
-> **Question 8.1:** Report the `AB Err:Mean` and `Min` in the RunStats for your batch run of 10 simulated subjects. Also do another `Init` and `Step Run` while looking at the `TstEpcLog` and report the general relationship between AC learning and AB interference across runs -- does AC generally show any significant learning before AB performance has mostly evaporated?
+> **Question 7.1:** Report the `AB Err:Mean` and `Min` in the RunStats for your batch run of 10 simulated subjects. Also do another `Init` and `Step Run` while looking at the `TstEpcLog` and report the general relationship between AC learning and AB interference across runs -- does AC generally show any significant learning before AB performance has mostly evaporated?
 
 # Reducing Interference
 
@@ -48,7 +48,7 @@ This overlap seems obviously problematic from an interference perspective, becau
 
 This increased inhibition will make each activity pattern in the hidden layer smaller (fewer neurons active), which could result in less overlapping distributed representations.
 
-> **Question 8.2:** Click the `RunStats` and report the resulting `AB Err:Mean` and `Min` statistics -- did this reduce the amount of AB interference?
+> **Question 7.2:** Click the `RunStats` and report the resulting `AB Err:Mean` and `Min` statistics -- did this reduce the amount of AB interference?
 
 Another thing we can do to improve performance is to enhance the contribution of the `Context` layer inputs relative to the A stimulus, because this list context disambiguates the two different associates.
 
@@ -64,7 +64,7 @@ Now let's see if performance is improved by making these three parameter adjustm
 
 * Do `Init` and `Train` -- you can watch the `RunPlot` for results as they come in.
 
-> **Question 8.3:** Click the `RunStats` and report the resulting `AB Err:Mean` and `Min` statistics -- did these parameters reduce the amount of AB interference?  Informal testing has shown that this is close to the best performance that can be obtained in this network with these parameters -- is it now a good model of human performance?
+> **Question 7.3:** Click the `RunStats` and report the resulting `AB Err:Mean` and `Min` statistics -- did these parameters reduce the amount of AB interference?  Informal testing has shown that this is close to the best performance that can be obtained in this network with these parameters -- is it now a good model of human performance?
 
 The final level of interference on the AB list tends to be quite variable.  You can go back and observe the `TstEpcPlot` during training to see that these manipulations have also slowed the onset of the interference somewhat. Thus, we have some indication that these manipulations are having an effect in the right direction, providing some support for the principle of using sparse, non-overlapping representations to avoid interference. 
 

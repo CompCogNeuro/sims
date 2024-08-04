@@ -24,7 +24,7 @@ You will see the activation flow through the network, and it should settle into 
 
 The `ConAbs` column shows whether this item is concrete (*Con*) or abstract (*Abs*) (`ConAbs`=0 for concrete, 1 for abstract), and the columns after that indicate what type of error the network makes: `Vis` = visual errors, `Sem` = semantic errors, `VisSem` = both, `Blend` = not a clearly pronounced word, `Other` = some other hard-to-categorize error.  Concrete words have more distinctive features, whereas abstract words have fewer, which impacts their relative susceptibility to lesions.
 
-> **Question 9.1:** Do you think the initial phonological activation is caused by the "direct" input via orthography or the "indirect" input via semantics? Did you see any cases where the initial phonological pattern is subsequently altered when the later input arrives?  Provide an example word where this happened.
+> **Question 10.1:** Do you think the initial phonological activation is caused by the "direct" input via orthography or the "indirect" input via semantics? Did you see any cases where the initial phonological pattern is subsequently altered when the later input arrives?  Provide an example word where this happened.
 
 # Reading with Complete Pathway Lesions
 
@@ -38,17 +38,17 @@ You should see that only the direct pathway is activated, but likely it will sti
 
 * Do `Test All` to test all items, and look at the `TstTrlPlot` and `TstTrlLog` (just click the `Update` button to update the table view).  You can see a sum of all the testing results in the `TstEpcLog` which can be clicked in the control panel. This records a new row for each Test All run, along with the lesion and proportion setting.
 
-> **Question 9.2:** How many times did the network with only the direct pathway (SemanticsFull lesion) make a reading mistake overall (you can count the number of 1's in the various error columns, or look at the `TstEpcLog` sums, in the last row)?  Notice that the network does not produce any blend outputs, indicating that the phonological output closely matched a known word.
+> **Question 10.2:** How many times did the network with only the direct pathway (SemanticsFull lesion) make a reading mistake overall (you can count the number of 1's in the various error columns, or look at the `TstEpcLog` sums, in the last row)?  Notice that the network does not produce any blend outputs, indicating that the phonological output closely matched a known word.
 
 For each of the errors, compare the word the network produced (`Phon`) with the input word (`TrialName`). If the produced word is very similar orthographically (and phonologically) to the input word, this is called a *visual* error, because the error is based on the visual properties instead of the semantic properties of the word. The simulation automatically scores errors as visual if the input orthography and the response orthography (determined from the response phonology) overlap by two or more letters. You should see this reflected in the Vis column in the Table.
 
-> **Question 9.3:** How many of the semantically lesioned network's errors were visual, broken down by concrete and abstract, and overall?
+> **Question 10.3:** How many of the semantically lesioned network's errors were visual, broken down by concrete and abstract, and overall?
 
 Now, let's try the direct pathway lesion and retest the network.
 
 * Click `Lesion` in the toolbar at the top and select `DirectFull`, then do `TestAll` again.  Click `Update` in the tables to see the latest results.
 
-> **Question 9.4:** What was the total number of errors this time, and how many of these errors were visual, semantic, visual semantic, blend, and "other" for the concrete versus abstract categories (as reported in `TstEpcLog`)?.
+> **Question 10.4:** What was the total number of errors this time, and how many of these errors were visual, semantic, visual semantic, blend, and "other" for the concrete versus abstract categories (as reported in `TstEpcLog`)?.
 
 ![Semantics Cluster Plot](fig_dyslex_sem_clust.png?raw=true "Cluster Plot of Semantics similarity structure")
 
@@ -88,11 +88,11 @@ You should observe lots of visual errors, but interestingly, the network also ma
 
 Results across 25 repetitions can be found in Figure 3 for these same semantic pathway lesions in conjunction with a complete lesion of the direct pathway. This corresponds to the type of lesion studied by [Plaut & Shallice (1993)](#references) in their model of deep dyslexia. For all levels of semantic pathway lesion, we now see semantic errors, together with visual errors and a relatively large number of "other" (uncategorizable) errors. This pattern of errors is generally consistent with that of deep dyslexia, where all of these kinds of errors are observed. Comparing the effects of these lesions relative to the previous case, we see that the direct pathway was playing an important role in generating correct responses, particularly in overcoming the semantic confusions that the semantic pathway would have otherwise made.  
 
-> **Question 9.5:** Compare the first bar in each graph of Figure 3 (corresponding to the case with only a direct pathway lesion, and no damage to the semantic pathway) with the subsequent bars, which include increasing amounts of semantic pathway damage: Does additional semantic pathway damage appear to be necessary to produce the semantic error symptoms of deep dyslexia?  Focus specifically on the `Semantic` and `Vis + Sem` errors.
+> **Question 10.5:** Compare the first bar in each graph of Figure 3 (corresponding to the case with only a direct pathway lesion, and no damage to the semantic pathway) with the subsequent bars, which include increasing amounts of semantic pathway damage: Does additional semantic pathway damage appear to be necessary to produce the semantic error symptoms of deep dyslexia?  Focus specifically on the `Semantic` and `Vis + Sem` errors.
 
 Figure 3 also shows the relative number of semantic errors for the concrete versus abstract words. One characteristic of deep dyslexia is that patients make more semantic errors on abstract words relative to concrete words.
 
-> **Question 9.6:** Is there evidence in Figure 3 that the model also makes a differential number of errors for concrete vs. abstract words?
+> **Question 10.6:** Is there evidence in Figure 3 that the model also makes a differential number of errors for concrete vs. abstract words?
 
 
 ## Direct Pathway Lesions

@@ -56,7 +56,7 @@ You can repeat this experiment a couple more times, flipping the `a`'s back to `
 
 * Click the `TstEpcLog` button in the control panel on the left to see a table of all the testing results in summary form.  At the bottom are the priming test results, which have Epoch = 0.  You can see the average IsA (and IsB which is just 1-IsA) for each test.  Just above those, at Epoch = 99, are the "pre test" baselines.
 
-> **Question 8.7:** Report the IsA results for Epoch=99 and the following Epoch=0 lines.
+> **Question 7.7:** Report the IsA results for Epoch=99 and the following Epoch=0 lines.
 
 You can optionally explore turning the `Lrate` parameter down to .01 or even lower -- you should see that although the number of items that flip is reduced, even relatively low lrates can produce flips.
 
@@ -74,7 +74,7 @@ This is a baseline, because we are still clearing all of the activation out of t
 
 * Set `Decay` to 0 instead of 1, and do another `TestAll`.  You should now observe several trials in which the `a` pattern is activated, for the 2nd of the two repeated inputs.
 
-> **Question 8.8:** Report the number of times the network responded 'a' instead of 'b' for the 'b' test trials, relative to the baseline that you observed above with Decay set to 1. You can refer to the TstTrlLog for the trial type (‘a’ or ‘b’) and the response.
+> **Question 7.8:** Report the number of times the network responded 'a' instead of 'b' for the 'b' test trials, relative to the baseline that you observed above with Decay set to 1. You can refer to the TstTrlLog for the trial type (‘a’ or ‘b’) and the response.
 
 
 You can explore extent of residual activity needed to show this activation-based priming by adjusting the `Decay` parameter and running `TestAll` again (no learning takes place during testing so you can explore at will, and go back and verify that Decay = 1 still produces mostly `b`'s).  In our tests increasing Decay using this efficient search sequence: 0, .5, .8, .9, .95, .98, .99, we found a critical transition between .98 and .99 -- i.e., a very tiny amount of residual activation with .98 (= .02 residual activity) was capable of driving a surprisingly large amount of activation-based priming.  This suggests that the network is delicately balanced between the two attractor states and even a very tiny bias can push it one way or the other.  The similar susceptibility of the human brain to such activation-based priming effects suggestes that it too may exhibit a similar attractor balancing act.

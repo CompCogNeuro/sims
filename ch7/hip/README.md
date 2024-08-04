@@ -22,7 +22,7 @@ You will see an input pattern from the AB training set presented to the network.
 
 You should have observed that the `ECin` patterns overlap the most, with `CA1` overlapping the next most, then `CA3`, and finally `DG` overlaps the least. The levels of FFFB overall inhibition parallel this result, with DG having a very high level of inhibition, followed by CA3, then CA1, and finally EC.
 
-> **Question 8.4:** Using the explanation given earlier in the text about the pattern separation mechanism, and the relative levels of activity and inhibition in these different layers, explain the overlap results for each layer in terms of these activity levels, in qualitative terms.
+> **Question 7.4:** Using the explanation given earlier in the text about the pattern separation mechanism, and the relative levels of activity and inhibition in these different layers, explain the overlap results for each layer in terms of these activity levels, in qualitative terms.
 
 Each epoch of training consists of the 10 list items, followed by testing on 3 sets of testing events. The first testing set contains the AB list items, the second contains the AC list items, and the third contains a set of novel *Lure* items to make sure the network is treating novel items as such. The network automatically switches over to testing after each pass through the 10 training events.
 
@@ -38,7 +38,7 @@ In general, you should see `TrgOnWasOff` being larger than `TrgOffWasOn` -- the 
 
 * Do two more `Step Epoch` to do more learning on the AB items.  Press `TstStats` `etable.Table` in the control panel to pull up the exact numbers shown in the plot, summarized for each test case.
 
-> **Question 8.5:** Report the total proportion of `Mem` responses from your `TstStats` for the AB, AC, and Lure tests.
+> **Question 7.5:** Report the total proportion of `Mem` responses from your `TstStats` for the AB, AC, and Lure tests.
 
 
 # Detailed Testing: Pattern Completion in Action
@@ -57,7 +57,7 @@ You can now observe the amount of interference on AB after training on AC -- it 
 
 * Do `Train` to run 10 runs through AB / AC training.  Then click on the `RunStats` `Table` to get the final stats across all 10 runs.
 
-> **Question 8.6:** Again report the `Mem:Mean` (average) level for the AB, AC, and Lure tests in the `RunStats` table.  How well does this result compare to the human results shown in Figure 1?
+> **Question 7.6:** Again report the `Mem:Mean` (average) level for the AB, AC, and Lure tests in the `RunStats` table.  How well does this result compare to the human results shown in Figure 1?
 
 In summary, you should find that this hippocampal model is able to learn rapidly and with much reduced levels of interference compared to the prior cortical model of this same task. Thus, the specialized biological properties of the hippocampal formation, and its specialized role in episodic memory, can be understood from a computational and functional perspective.
 

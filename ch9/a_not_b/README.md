@@ -60,15 +60,15 @@ You will now see the `A` testing trials, where the network's tendency to reach t
 
 * Now scroll down to make the first B-trial event the first one displayed.  You can also click on the `TrnTrlPlot` tab to see a plot of the three Reach activations across time, to get a better quantitative sense of the relative activation levels (`Reach_00` is the A unit, `Reach_01` is the B unit).
 
-> **Question 10.4:** Describe what happens to the network's internal representations and output (gaze, reach) responses over the delay and choice trials for the B trials, and how this relates to Piaget's A-not-B data in infants.
+> **Question 9.4:** Describe what happens to the network's internal representations and output (gaze, reach) responses over the delay and choice trials for the B trials, and how this relates to Piaget's A-not-B data in infants.
 
 * Now increase the `RecurrentWt` parameter in the ControlPanel to .7 from the default of .4, and `Init`, `Train`.
 
-> **Question 10.5:** Describe how the network responds (i.e., in the gaze and reach outputs) this time, including a discussion of how the increased PFC (hidden) recurrent connection strength affected the network's behavior.
+> **Question 9.5:** Describe how the network responds (i.e., in the gaze and reach outputs) this time, including a discussion of how the increased PFC (hidden) recurrent connection strength affected the network's behavior.
 
 * Next, set `Delay` to `Delay5` and try it with the value of .7 for the recurrent weights.  You will have to scroll down a bit to see the final B test output. You may need to click `UpdateView`.
 
-> **Question 10.6:** What happens on the 'B' trials with those two delays -- why does delay have this effect on the network's behavior?
+> **Question 9.6:** What happens on the 'B' trials with those two delays -- why does delay have this effect on the network's behavior?
 
 You can also try to find a recurrent weight value that allows the network to succeed with the longer 5 delay condition.
 

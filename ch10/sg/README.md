@@ -122,7 +122,7 @@ These probe sentences systematically vary the agents, verbs, and patients to rev
 
 This cluster plot shows that the sentences are first clustered together according to verb, and when the verb is the same (ate), the patient (soup vs. steak) breaks apart the clusters.  Within each verb cluster, the grouping of the agents also is organized systematically -- busdriver and schoolgirl are the most different and they never group, whereas busdriver, teacher and pitcher, schoolgirl are most typically related. Thus, we can see that the gestalt representation encodes information in a systematic fashion, as we would expect from the network's behavior. 
 
-> **Question 9.12:** Does this cluster structure reflect purely syntactic information, purely semantic information, or a combination of both types of information? Try to articulate in your own words why this kind of representation would be useful for processing language.
+> **Question 10.12:** Does this cluster structure reflect purely syntactic information, purely semantic information, or a combination of both types of information? Try to articulate in your own words why this kind of representation would be useful for processing language.
 
 # References
 
