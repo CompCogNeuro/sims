@@ -59,7 +59,7 @@ Focus this time on the two trials on the right and watch the progression of `VTA
 
 * `Stop` again if need be and then switch to viewing `NetView` so we can examine some of the weights that have been learned. Click `r.Wt` in the vertical ribbon along the left border and then, in the network itself, click on the first unit (of four) in the `VSPatchPosD1` layer toward the lower right of the display, just above `LHbRMTg`.
 
-> **Question 7.7:** Which units from the `USTime_In` layer does the `VSPatchPosD1` receive weights from, and are these the same units that were active when the reward was presented? How do these weights (from USTime_In to VSPatchPosD1) allow the network to mitigate the dopamine burst at the time of an expected reward?
+> **Question 8.7:** Which units from the `USTime_In` layer does the `VSPatchPosD1` receive weights from, and are these the same units that were active when the reward was presented? How do these weights (from USTime_In to VSPatchPosD1) allow the network to mitigate the dopamine burst at the time of an expected reward?
 
 * When done change back to displaying the `Act` variable in the `NetView` display.
 
@@ -103,7 +103,7 @@ You should see two new lines come on in the `TrialTypeData` graph: dark blue = `
 
 * After extinction training is complete, click on the `NetView` tab and click on `r.Wt` in the vertical ribbon along the left border so we can look at the strength of individual receiving weights.  Click around on several units in the first (leftmost) unit pool in the `BLAmgPosD1` layer, and the first unit in `CElAcqPosD1`, taking note of which sending units display significant weights.
 
-> **Question 7.8:** Why do you think these units still have strong weights from `Stim_In`? How might this explain the idea that the original learning during acquisition is not completely erased after extinction? How might conditioned responses be extinguished (not expressed) if these weights are still strong? Hint: `BLAmygPosD2` activity inhibits `BLAmygPosD1` activity.
+> **Question 8.8:** Why do you think these units still have strong weights from `Stim_In`? How might this explain the idea that the original learning during acquisition is not completely erased after extinction? How might conditioned responses be extinguished (not expressed) if these weights are still strong? Hint: `BLAmygPosD2` activity inhibits `BLAmygPosD1` activity.
 
 * When you're done change back to displaying the `Act` variable in the `NetView` display.
 
@@ -137,7 +137,7 @@ Very quickly you should see a transition in the activity of different `Context_I
 
 In the `TrialTypeData` graph note the stark contrast in the CS-onset dopamine signals (`VTAp` activity; black line; timestep t1) when the CS is presented in context A (left trial) versus context B. The network has reproduced a version of the ABA renewal effect highlighting the context-specificity of extinction learning.
 
-> **Question 7.9:** From an evolutionary perspective, why would a separate extinction mechanism be preferable to an erasure-type mechanism of the original learning? Relate your answer to the special sensitivity of extinction learning to context.
+> **Question 8.9:** From an evolutionary perspective, why would a separate extinction mechanism be preferable to an erasure-type mechanism of the original learning? Relate your answer to the special sensitivity of extinction learning to context.
 
 # Aversive Conditioning
 
@@ -161,7 +161,7 @@ In parallel, the network is also acquiring dopamine dips in response to both CSs
 
 First, take note of the strong `VSPatchNegD2` activity (brown-red line) at the t3 timesteps. This is what mitigates `LHbRMT` responses to the negative US, and thus the amount of negative activity in `VTAp`. Next, note the activity level for the VSMatrixNegD2 layer (beige line). In explicit contrast to the appetitive case, the acquired response to CS-onset is not being driven by the amygdala, but is instead driven by the acquired activity in this layer via the LHbRMTg. Nonetheless, it is important to understand that the amygdala is critically involved in many aspects of aversive conditioning (e.g., see strong `CElAcqNegD2` activity; red), even if it does not directly drive dopamine signaling. Finally, note how the activity level in the `VTAn` layer (pink) is the exact mirror-image of VTAp, both of which are being driven by LHbRMTg activity in the model.
 
-> **Question 7.9a:** From an evolutionary perspective why would separate pathways for learning about aversive vs. appetitive primary outcomes be preferable to a single system for both?  Conversely, in terms of dopamine signaling, how might the positive responses to primary aversive outcomes in the `VTAn` layer be problematic if those signals were to be conveyed to downstream units that also receive signals from the `VTAp`?
+> **Question 8.9a:** From an evolutionary perspective why would separate pathways for learning about aversive vs. appetitive primary outcomes be preferable to a single system for both?  Conversely, in terms of dopamine signaling, how might the positive responses to primary aversive outcomes in the `VTAn` layer be problematic if those signals were to be conveyed to downstream units that also receive signals from the `VTAp`?
 
 
 ------------------------------------------------------------------------

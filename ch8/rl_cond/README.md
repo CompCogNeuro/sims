@@ -78,9 +78,9 @@ We can simulate extinction by simply turning off the US reward that appears at t
 
 * Now, hit `Reset Trl Log`  in toolbar to clear out the `TrnTrlPlot` (click on that to view it), and then `Step Trial`.  It can also be useful to click on the `RewPred` line in the plot, which shows the predicted reward value.  You can also `Step Event` and watch the NetView to see how the network behaves.
 
-> **Question 7.5:** What happened at the point where the reward was supposed to occur? Explain why this happened using the TD mechanisms of reward expectations compared to actual reward values received.
+> **Question 8.5:** What happened at the point where the reward was supposed to occur? Explain why this happened using the TD mechanisms of reward expectations compared to actual reward values received.
 
-> **Question 7.6:** Run the network and describe what occurs over the next several epochs of extinction training in terms of the TD error signals plotted in the graph view, and explain why TD does this. After the network is done learning again, does the stimulus still evoke an expectation of reward?
+> **Question 8.6:** Run the network and describe what occurs over the next several epochs of extinction training in terms of the TD error signals plotted in the graph view, and explain why TD does this. After the network is done learning again, does the stimulus still evoke an expectation of reward?
 
 Now, let's explore second order conditioning. We must first retrain the network on the stimulus 1 association.
 
