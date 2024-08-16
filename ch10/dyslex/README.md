@@ -6,7 +6,7 @@ This model simulates normal and disordered (dyslexic) reading performance in ter
 
 # Normal Reading Performance
 
-Because the network takes a bit of time to train (for 250 epochs), we will just load in a pre-trained network to begin with.
+Because the network takes a bit of time to train (for 250 epochs), we will just load in a pre-trained network to begin with. On each trial, this network was presented with one aspect of a word's representation (e.g., its orthography) and was trained to produce the other two representations (e.g., its phonology and semantics), so that the network ultimately learned to map from each word's visual form, speech output, or meaning to the other representations.  
 
 * Do `Open Trained Wts` in toolbar.
 
