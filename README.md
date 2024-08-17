@@ -190,7 +190,7 @@ $ git clone https://github.com/CompCogNeuro/sims   # get the code, makes a sims 
 $ cd sims        # go into it
 $ cd ch6/objrec  # this has the most dependencies -- test it
 $ go build       # this will get all the dependencies and build everything
-$ ./objrec &     # this will run the newly-build executable
+$ ./objrec &     # this will run the newly build executable
 ```
 
 All the dependencies (emergent packages, gogi gui packages, etc) will be installed in:

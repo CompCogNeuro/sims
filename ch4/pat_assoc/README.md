@@ -96,7 +96,7 @@ Learning occurs after the plus phase of activation.  You can recognize targets, 
 
 The critical difference between error-driven learning and Hebbian is that error-driven learning is based directly on this difference between the expectation or guess produced in the minus phase, and the correct target activation in the plus phase.
 
-* If your network did not make the wrong guess during the minus phase, keep doing `Step Trial` until it does, then click on the `r.DWt` variable to see the delta-weights (weight changes, i.e., learning) that occurred for incorrectly activated unit, versus the correctly activated one.  You should see that the weights go down for the erroneously-activated unit, and up for the one that *should* have been activated -- this is the essence of error correction and occurs because learning is proportional to the change in activity over time for each output unit.
+* If your network did not make the wrong guess during the minus phase, keep doing `Step Trial` until it does, then click on the `r.DWt` variable to see the delta-weights (weight changes, i.e., learning) that occurred for incorrectly activated unit, versus the correctly activated one.  You should see that the weights go down for the erroneously activated unit, and up for the one that *should* have been activated -- this is the essence of error correction and occurs because learning is proportional to the change in activity over time for each output unit.
 
 * Go ahead and `Step Run` the network to complete the training on the Easy task. 
 
