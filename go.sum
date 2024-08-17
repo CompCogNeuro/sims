@@ -1,5 +1,5 @@
-cogentcore.org/core v0.3.2-0.20240811064529-4a22c2f0a3e9 h1:Y7+KwE61bjyRjkmLOXksceatyKv+qv6vvP7qFgbb8j0=
-cogentcore.org/core v0.3.2-0.20240811064529-4a22c2f0a3e9/go.mod h1:dyArrrZBlucGMUCMl8dAX/22nY32Bv7Q16vwE0K/daY=
+cogentcore.org/core v0.3.2-0.20240817183803-4760cbf5532b h1:9gjLvmndOgtnzZzjGM1e635k4YSQmNzLfhvruzVVTbs=
+cogentcore.org/core v0.3.2-0.20240817183803-4760cbf5532b/go.mod h1:dg3uRsPcd8S1ZYvRD2TztCtjopRkrB5V/lbl54xsQd4=
 github.com/Bios-Marcel/wastebasket v0.0.4-0.20240213135800-f26f1ae0a7c4 h1:6lx9xzJAhdjq0LvVfbITeC3IH9Fzvo1aBahyPu2FuG8=
 github.com/Bios-Marcel/wastebasket v0.0.4-0.20240213135800-f26f1ae0a7c4/go.mod h1:FChzXi1izqzdPb6BiNZmcZLGyTYiT61iGx9Rxx9GNeI=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
@@ -24,8 +24,8 @@ github.com/c2h5oh/datasize v0.0.0-20220606134207-859f65c6625b h1:6+ZFm0flnudZzdS
 github.com/c2h5oh/datasize v0.0.0-20220606134207-859f65c6625b/go.mod h1:S/7n9copUssQ56c7aAgHqftWO4LTf4xY6CGWt8Bc+3M=
 github.com/chewxy/math32 v1.10.1 h1:LFpeY0SLJXeaiej/eIp2L40VYfscTvKh/FSEZ68uMkU=
 github.com/chewxy/math32 v1.10.1/go.mod h1:dOB2rcuFrCn6UHrze36WSLVPKtzPMRAQvBvUwkSsLqs=
-github.com/cogentcore/webgpu v0.0.0-20240809053032-52c74d0c674c h1:2z7O6f9N0WDOKlz4Pjf0VlGgwGrqdmM9PmK2Ug9h1yQ=
-github.com/cogentcore/webgpu v0.0.0-20240809053032-52c74d0c674c/go.mod h1:ciqaxChrmRRMU1SnI5OE12Cn3QWvOKO+e5nSy+N9S1o=
+github.com/cogentcore/webgpu v0.0.0-20240812054109-ca2e8adebe15 h1:Yg1VobUl2PWHzNsNVm5ong4u/zWDkucgwLvv7/qf1PU=
+github.com/cogentcore/webgpu v0.0.0-20240812054109-ca2e8adebe15/go.mod h1:ciqaxChrmRRMU1SnI5OE12Cn3QWvOKO+e5nSy+N9S1o=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/go-etcd v2.0.0+incompatible/go.mod h1:Jez6KQU2B/sWsbdaef3ED8NzMklzPG4d5KIOhIy30Tk=
 github.com/coreos/go-semver v0.2.0/go.mod h1:nnelYz7RCh+5ahJtPPxZlU+153eP4D4r3EedlOD2RNk=
@@ -36,10 +36,10 @@ github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dlclark/regexp2 v1.11.0 h1:G/nrcoOa7ZXlpoa/91N3X7mM3r8eIlMBBJZvsz/mxKI=
 github.com/dlclark/regexp2 v1.11.0/go.mod h1:DHkYz0B9wPfa6wondMfaivmHpzrQ3v9q8cnmRbL6yW8=
-github.com/emer/emergent/v2 v2.0.0-dev0.1.0.0.20240812035510-2e85a3e81ef5 h1:XL/P4VNxNl9+WaFyvZSrgfXB0DekryYfq5BgFa3vrhE=
-github.com/emer/emergent/v2 v2.0.0-dev0.1.0.0.20240812035510-2e85a3e81ef5/go.mod h1:MEQDHgggXD7fwVicUGBA2/t+t1EDgjr06gO79gi6URw=
-github.com/emer/leabra/v2 v2.0.0-20240816052732-af7a978e8d50 h1:2dg59AvrpoUWeQ0bmpMNFadPEpOom/oP08g0sNE70uw=
-github.com/emer/leabra/v2 v2.0.0-20240816052732-af7a978e8d50/go.mod h1:7Led+NVEh6+lZlOY9kdkbFO9osbSZpO0rA6dH85Z3ro=
+github.com/emer/emergent/v2 v2.0.0-dev0.1.0.0.20240817184051-b75266eed90a h1:RMk0HZbfVnSYfv7PW0kksvEQyU+KUq8wOpq7Ny+u9YI=
+github.com/emer/emergent/v2 v2.0.0-dev0.1.0.0.20240817184051-b75266eed90a/go.mod h1:d7I/V6OMyMeibKt9VA0lHgaPCGvq3Gen6tvZE6KJNu8=
+github.com/emer/leabra/v2 v2.0.0-20240817184441-8630076d69e4 h1:oA5+UWp25uBv3/1jZNAbwokeNwRQo34CSNFL+SQrgBg=
+github.com/emer/leabra/v2 v2.0.0-20240817184441-8630076d69e4/go.mod h1:ct7Ao78lGNkDJUWgBwnXcif2PMGe0bg22WcQJQ7J+ms=
 github.com/fsnotify/fsnotify v1.4.7/go.mod h1:jwhsz4b93w/PPRr/qN1Yymfu8t87LnFCMoQvtojpjFo=
 github.com/fsnotify/fsnotify v1.7.0 h1:8JEhPFa5W2WU7YfeZzPNqzMP6Lwt7L2715Ggo0nosvA=
 github.com/fsnotify/fsnotify v1.7.0/go.mod h1:40Bi/Hjc2AVfZrqy+aj+yEI+/bRxZnMJyTJwOpGvigM=

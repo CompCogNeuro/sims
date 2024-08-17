@@ -3,9 +3,9 @@ module github.com/CompCogNeuro/sims/v2
 go 1.22
 
 require (
-	cogentcore.org/core v0.3.2-0.20240811064529-4a22c2f0a3e9
-	github.com/emer/emergent/v2 v2.0.0-dev0.1.0.0.20240812035510-2e85a3e81ef5
-	github.com/emer/leabra/v2 v2.0.0-20240816052732-af7a978e8d50
+	cogentcore.org/core v0.3.2-0.20240817183803-4760cbf5532b
+	github.com/emer/emergent/v2 v2.0.0-dev0.1.0.0.20240817184051-b75266eed90a
+	github.com/emer/leabra/v2 v2.0.0-20240817184441-8630076d69e4
 )
 
 require (
@@ -17,7 +17,7 @@ require (
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/c2h5oh/datasize v0.0.0-20220606134207-859f65c6625b // indirect
 	github.com/chewxy/math32 v1.10.1 // indirect
-	github.com/cogentcore/webgpu v0.0.0-20240809053032-52c74d0c674c // indirect
+	github.com/cogentcore/webgpu v0.0.0-20240812054109-ca2e8adebe15 // indirect
 	github.com/dlclark/regexp2 v1.11.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20240506104042-037f3cc74f2a // indirect
