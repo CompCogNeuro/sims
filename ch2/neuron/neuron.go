@@ -14,17 +14,12 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
 	"reflect"
 
-	"cogentcore.org/core/base/mpi"
 	"cogentcore.org/core/core"
 	"cogentcore.org/core/icons"
 	"cogentcore.org/core/math32/minmax"
-	"cogentcore.org/core/tensor/table"
 	"cogentcore.org/core/tree"
-	"github.com/emer/emergent/v2/ecmd"
-	"github.com/emer/emergent/v2/econfig"
 	"github.com/emer/emergent/v2/egui"
 	"github.com/emer/emergent/v2/elog"
 	"github.com/emer/emergent/v2/emer"
@@ -34,23 +29,17 @@ import (
 	"github.com/emer/emergent/v2/params"
 	"github.com/emer/emergent/v2/paths"
 	"github.com/emer/leabra/v2/leabra"
+	"github.com/emer/leabra/v2/spike"
 )
 
 func main() {
 	sim := &Sim{}
 	sim.New()
 	sim.ConfigAll()
-	if sim.Config.GUI {
-		sim.RunGUI()
-	} else {
-		sim.RunNoGUI()
-	}
+	sim.RunGUI()
 }
 
-// see config.go for Config
-
-// ParamSets is the default set of parameters -- Base is always applied, and others can be optionally
-// selected to apply on top of that
+// ParamSets is the default set of parameters
 var ParamSets = params.Sets{
 	"Base": {
 		{Sel: "Path", Desc: "no learning",
@@ -59,15 +48,14 @@ var ParamSets = params.Sets{
 			}},
 		{Sel: "Layer", Desc: "generic params for all layers: lower gain, slower, soft clamp",
 			Params: params.Params{
-				"Layer.Inhib.Layer.On": "false",
-				"Layer.Acts.Init.Vm":   "0.3",
-			}},
-	},
-	"Testing": {
-		{Sel: "Layer", Desc: "",
-			Params: params.Params{
-				"Layer.Acts.NMDA.Gbar":  "0.0",
-				"Layer.Acts.GabaB.Gbar": "0.0",
+				"Layer.Inhib.Layer.On":  "false",
+				"Layer.Act.XX1.Gain":    "30",
+				"Layer.Act.XX1.NVar":    "0.01",
+				"Layer.Act.Init.Vm":     "0.3",
+				"Layer.Act.Noise.Dist":  "Gaussian",
+				"Layer.Act.Noise.Var":   "0",
+				"Layer.Act.Noise.Type":  "GeNoise",
+				"Layer.Act.Noise.Fixed": "false",
 			}},
 	},
 }
@@ -90,11 +78,44 @@ func (nrn *NeuronEx) Init() {
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
 
-	// simulation configuration parameters -- set by .toml config file and / or args
-	Config Config
+	// use discrete spiking equations -- otherwise use Noisy X-over-X-plus-1 rate code activation function
+	Spike bool
+
+	// excitatory conductance multiplier -- determines overall value of Ge which drives neuron to be more excited -- pushes up over threshold to fire if strong enough
+	GbarE float32 `min:"0" step:"0.01" def:"0.3"`
+
+	// leak conductance -- determines overall value of Gl which drives neuron to be less excited (inhibited) -- pushes back to resting membrane potential
+	GbarL float32 `min:"0" step:"0.01" def:"0.3"`
+
+	// excitatory reversal (driving) potential -- determines where excitation pushes Vm up to
+	ErevE float32 `min:"0" max:"1" step:"0.01" def:"1"`
+
+	// leak reversal (driving) potential -- determines where excitation pulls Vm down to
+	ErevL float32 `min:"0" max:"1" step:"0.01" def:"0.3"`
+
+	// the variance parameter for Gaussian noise added to unit activations on every cycle
+	Noise float32 `min:"0" step:"0.01"`
+
+	// apply sodium-gated potassium adaptation mechanisms that cause the neuron to reduce spiking over time
+	KNaAdapt bool
+
+	// total number of cycles to run
+	NCycles int `min:"10" def:"200"`
+
+	// when does excitatory input into neuron come on?
+	OnCycle int `min:"0" def:"10"`
+
+	// when does excitatory input into neuron go off?
+	OffCycle int `min:"0" def:"160"`
+
+	// how often to update display (in cycles)
+	UpdateInterval int `min:"1" def:"10"`
 
 	// the network -- click to view / edit parameters for layers, paths, etc
 	Net *leabra.Network `display:"no-inline"`
+
+	SpikeParams spike.ActParams `view:"no-inline"`
+	// testing trial-level log data -- click to see record of network's response to each input
 
 	// extra neuron state for additional channels: VGCC, AK
 	NeuronEx NeuronEx `display:"no-inline"`
@@ -127,39 +148,43 @@ type Sim struct {
 // New creates new blank elements and initializes defaults
 func (ss *Sim) New() {
 	ss.Net = leabra.NewNetwork("Neuron")
-	econfig.Config(&ss.Config, "config.toml")
-	ss.Params.Config(ParamSets, ss.Config.Params.Sheet, ss.Config.Params.Tag, ss.Net)
+	ss.Defaults()
 	ss.Stats.Init()
 	ss.ValMap = make(map[string]float32)
 }
 
 func (ss *Sim) Defaults() {
-	ss.Params.Config(ParamSets, ss.Config.Params.Sheet, ss.Config.Params.Tag, ss.Net)
+	ss.Params.Config(ParamSets, "", "", ss.Net)
+	ss.UpdateInterval = 10
+	ss.Cycle = 0
+	ss.Spike = true
+	ss.GbarE = 0.3
+	ss.GbarL = 0.3
+	ss.ErevE = 1
+	ss.ErevL = 0.3
+	ss.Noise = 0
+	ss.KNaAdapt = true
+	ss.NCycles = 200
+	ss.OnCycle = 10
+	ss.OffCycle = 160
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
 // 		Configs
 
 // ConfigAll configures all the elements using the standard functions
 func (ss *Sim) ConfigAll() {
 	ss.ConfigNet(ss.Net)
 	ss.ConfigLogs()
-	if ss.Config.Params.SaveAll {
-		ss.Config.Params.SaveAll = false
-		ss.Net.SaveParamsSnapshot(&ss.Params.Params, &ss.Config, ss.Config.Params.Good)
-		os.Exit(0)
-	}
 }
 
 func (ss *Sim) ConfigNet(net *leabra.Network) {
-	ctx := &ss.Context
-
 	in := net.AddLayer2D("Input", 1, 1, leabra.InputLayer)
 	hid := net.AddLayer2D("Neuron", 1, 1, leabra.SuperLayer)
 
 	net.ConnectLayers(in, hid, paths.NewFull(), leabra.ForwardPath)
 
-	err := net.Build(ctx)
+	err := net.Build()
 	if err != nil {
 		log.Println(err)
 		return
@@ -171,7 +196,7 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 
 // InitWeights loads the saved weights
 func (ss *Sim) InitWeights(net *leabra.Network) {
-	net.InitWeights(&ss.Context)
+	net.InitWeights()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -208,24 +233,36 @@ func (ss *Sim) RunCycles() {
 	ctx := &ss.Context
 	ss.Init()
 	ss.GUI.StopNow = false
-	ss.Net.InitActs(ctx)
-	ctx.NewState(etime.Train)
+	ss.Net.InitActs()
+	ctx.AlphaCycStart()
 	ss.SetParams("", false)
-	// ly := ss.Net.LayerByName("Neuron")
-	// nrn := &(ly.Neurons[0])
+	ly := ss.Net.LayerByName("Neuron")
+	nrn := &(ly.Neurons[0])
 	inputOn := false
-	for cyc := 0; cyc < ss.Config.NCycles; cyc++ {
+	for cyc := 0; cyc < ss.NCycles; cyc++ {
 		switch cyc {
-		case ss.Config.OnCycle:
+		case ss.OnCycle:
 			inputOn = true
-		case ss.Config.OffCycle:
+		case ss.OffCycle:
 			inputOn = false
 		}
-		ss.NeuronUpdate(ss.Net, inputOn)
-		ctx.Cycle = int32(cyc)
+		nrn.Noise = float32(ly.Act.Noise.Gen())
+		if inputOn {
+			nrn.Ge = 1
+		} else {
+			nrn.Ge = 0
+		}
+		nrn.Ge += nrn.Noise // GeNoise
+		nrn.Gi = 0
+		if ss.Spike {
+			ss.SpikeUpdate(ss.Net, inputOn)
+		} else {
+			ss.RateUpdate(ss.Net, inputOn)
+		}
+		ctx.Cycle = cyc
 		ss.Logs.LogRow(etime.Test, etime.Cycle, cyc)
 		ss.RecordValues(cyc)
-		if cyc%ss.Config.UpdateInterval == 0 {
+		if cyc%ss.UpdateInterval == 0 {
 			ss.UpdateView()
 		}
 		ss.Context.CycleInc()
@@ -236,59 +273,34 @@ func (ss *Sim) RunCycles() {
 	ss.UpdateView()
 }
 
+// RateUpdate updates the neuron in rate-code mode
+// this just calls the relevant activation code directly, bypassing most other stuff.
+func (ss *Sim) RateUpdate(nt *leabra.Network, inputOn bool) {
+	ly := ss.Net.LayerByName("Neuron")
+	nrn := &(ly.Neurons[0])
+	ly.Act.VmFromG(nrn)
+	ly.Act.ActFromG(nrn)
+	nrn.Ge = nrn.Ge * ly.Act.Gbar.E // display effective Ge
+}
+
+// SpikeUpdate updates the neuron in spiking mode
+// which is just computed directly as spiking is not yet implemented in main codebase
+func (ss *Sim) SpikeUpdate(nt *leabra.Network, inputOn bool) {
+	ly := ss.Net.LayerByName("Neuron")
+	nrn := &(ly.Neurons[0])
+	ss.SpikeParams.SpikeVmFromG(nrn)
+	ss.SpikeParams.SpikeActFromVm(nrn)
+	nrn.Ge = nrn.Ge * ly.Act.Gbar.E // display effective Ge
+}
+
 func (ss *Sim) RecordValues(cyc int) {
 	var vals []float32
 	ly := ss.Net.LayerByName("Neuron")
 	key := fmt.Sprintf("cyc: %03d", cyc)
-	for _, vnm := range leabra.NeuronVarNames {
+	for _, vnm := range leabra.NeuronVars {
 		ly.UnitValues(&vals, vnm, 0)
 		vkey := key + fmt.Sprintf("\t%s", vnm)
 		ss.ValMap[vkey] = vals[0]
-	}
-}
-
-// NeuronUpdate updates the neuron
-// this just calls the relevant code directly, bypassing most other stuff.
-func (ss *Sim) NeuronUpdate(nt *leabra.Network, inputOn bool) {
-	ctx := &ss.Context
-	ly := ss.Net.LayerByName("Neuron")
-	ni := ly.NeurStIndex
-	di := uint32(0)
-	ac := &ly.Params.Acts
-	nex := &ss.NeuronEx
-	// nrn.Noise = float32(ly.Params.Act.Noise.Gen(-1))
-	// nrn.Ge += nrn.Noise // GeNoise
-	// nrn.Gi = 0
-	if inputOn {
-		if ss.Config.GeClamp {
-			leabra.SetNrnV(ctx, ni, di, leabra.GeRaw, ss.Config.Ge)
-			leabra.SetNrnV(ctx, ni, di, leabra.GeSyn, ac.Dt.GeSynFromRawSteady(leabra.NrnV(ctx, ni, di, leabra.GeRaw)))
-		} else {
-			nex.InISI += 1
-			if nex.InISI > 1000/ss.Config.SpikeHz {
-				leabra.SetNrnV(ctx, ni, di, leabra.GeRaw, ss.Config.Ge)
-				nex.InISI = 0
-			} else {
-				leabra.SetNrnV(ctx, ni, di, leabra.GeRaw, 0)
-			}
-			leabra.SetNrnV(ctx, ni, di, leabra.GeSyn, ac.Dt.GeSynFromRaw(leabra.NrnV(ctx, ni, di, leabra.GeSyn), leabra.NrnV(ctx, ni, di, leabra.GeRaw)))
-		}
-	} else {
-		leabra.SetNrnV(ctx, ni, di, leabra.GeRaw, 0)
-		leabra.SetNrnV(ctx, ni, di, leabra.GeSyn, 0)
-	}
-	leabra.SetNrnV(ctx, ni, di, leabra.GiRaw, ss.Config.Gi)
-	leabra.SetNrnV(ctx, ni, di, leabra.GiSyn, ac.Dt.GiSynFromRawSteady(leabra.NrnV(ctx, ni, di, leabra.GiRaw)))
-
-	if ss.Net.GPU.On {
-		ss.Net.GPU.SyncStateToGPU()
-		ss.Net.GPU.RunPipelineWait("Cycle", 2)
-		ss.Net.GPU.SyncStateFromGPU()
-		ctx.CycleInc() // why is this not working!?
-	} else {
-		lpl := ly.Pool(0, di)
-		ly.GInteg(ctx, ni, di, lpl, ly.LayerValues(0))
-		ly.SpikeFromG(ctx, ni, di, lpl)
 	}
 }
 
@@ -307,19 +319,15 @@ func (ss *Sim) Stop() {
 func (ss *Sim) SetParams(sheet string, setMsg bool) {
 	ss.Params.SetAll()
 	ly := ss.Net.LayerByName("Neuron")
-	lyp := ly.Params
-	lyp.Acts.Gbar.E = 1
-	lyp.Acts.Gbar.L = 0.2
-	lyp.Acts.Erev.E = float32(ss.Config.ErevE)
-	lyp.Acts.Erev.I = float32(ss.Config.ErevI)
-	// lyp.Acts.Noise.Var = float64(ss.Config.Noise)
-	lyp.Acts.KNa.On.SetBool(ss.Config.KNaAdapt)
-	lyp.Acts.Mahp.Gbar = ss.Config.MahpGbar
-	lyp.Acts.NMDA.Gbar = ss.Config.NMDAGbar
-	lyp.Acts.GabaB.Gbar = ss.Config.GABABGbar
-	lyp.Acts.VGCC.Gbar = ss.Config.VGCCGbar
-	lyp.Acts.AK.Gbar = ss.Config.AKGbar
-	lyp.Acts.Update()
+	ly.Act.Gbar.E = float32(ss.GbarE)
+	ly.Act.Gbar.L = float32(ss.GbarL)
+	ly.Act.Erev.E = float32(ss.ErevE)
+	ly.Act.Erev.L = float32(ss.ErevL)
+	ly.Act.Noise.Var = float64(ss.Noise)
+	ly.Act.KNa.On = ss.KNaAdapt
+	ly.Act.Update()
+	ss.SpikeParams.ActParams = ly.Act // keep sync'd
+	ss.SpikeParams.KNa.On = ss.KNaAdapt
 }
 
 func (ss *Sim) ConfigLogs() {
@@ -457,56 +465,10 @@ func (ss *Sim) ConfigGUI() {
 		})
 	})
 	ss.GUI.FinalizeGUI(false)
-
-	if ss.Config.Run.GPU {
-		ss.Net.ConfigGPUnoGUI(&ss.Context)
-		core.TheApp.AddQuitCleanFunc(func() {
-			ss.Net.GPU.Destroy()
-		})
-	}
 }
 
 func (ss *Sim) RunGUI() {
 	ss.Init()
 	ss.ConfigGUI()
 	ss.GUI.Body.RunMainWindow()
-}
-
-func (ss *Sim) RunNoGUI() {
-	if ss.Config.Params.Note != "" {
-		mpi.Printf("Note: %s\n", ss.Config.Params.Note)
-	}
-	if ss.Config.Log.SaveWeights {
-		mpi.Printf("Saving final weights per run\n")
-	}
-	runName := ss.Params.RunName(ss.Config.Run.Run)
-	ss.Stats.SetString("RunName", runName) // used for naming logs, stats, etc
-	netName := ss.Net.Name
-
-	// netdata := ss.Config.Log.NetData
-	// if netdata {
-	// 	mpi.Printf("Saving NetView data from testing\n")
-	// 	ss.GUI.InitNetData(ss.Net, 200)
-	// }
-
-	ss.Init()
-
-	if ss.Config.Run.GPU {
-		ss.Net.ConfigGPUnoGUI(&ss.Context)
-	}
-	mpi.Printf("Set NThreads to: %d\n", ss.Net.NThreads)
-
-	ss.RunCycles()
-
-	if ss.Config.Log.Cycle {
-		dt := ss.Logs.Table(etime.Test, etime.Cycle)
-		fnm := ecmd.LogFilename("cyc", netName, runName)
-		dt.SaveCSV(core.Filename(fnm), table.Tab, table.Headers)
-	}
-
-	// if netdata {
-	// 	ss.GUI.SaveNetData(ss.Stats.String("RunName"))
-	// }
-
-	ss.Net.GPU.Destroy() // safe even if no GPU
 }
