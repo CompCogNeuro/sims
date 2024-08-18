@@ -40,7 +40,7 @@ jobs:
           go-version: '1.22'
 
       - name: Install Core
-        run: go install cogentcore.org/core/cmd/core@v0.3.2
+        run: go install cogentcore.org/core/cmd/core@main
 
       - name: Build Neuron
         run: core build web -dir ch2/neuron -o static/ch2/neuron
