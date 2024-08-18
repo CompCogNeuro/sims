@@ -1,6 +1,6 @@
 # Computational Cognitive Neuroscience Simulations
 
-This repository contains the neural network simulation models for the [CCN Textbook](https://CompCogNeuro.org), managed on a [GitHub Repository](https://github.com/CompCogNeuro/ed4).
+This repository contains the neural network simulation models for the [CCN Textbook](https://CompCogNeuro.org), managed on a [GitHub Repository](https://github.com/CompCogNeuro/book).
 
 To run these simulations on your computer, it is easiest to download the full set of executable programs for the type of computer you are using (Apple Mac, Microsoft Windows, or Linux):
 
