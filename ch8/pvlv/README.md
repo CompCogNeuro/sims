@@ -23,7 +23,7 @@ The overarching idea behind the PVLV model [OReilly et al, 2007](#references) is
 ![PV.1](fig_bvpvlv_pv_lv_only.png?raw=true "PV.1")
 
 **Figure 1:** Simplified diagram of major components of the PVLV model, with the LV Learned Value component in the Amygdala and PV Primary Value component in the Ventral Striatum (principally the Nucleus Accumbens Core, NAc).  LHb: Lateral Habenula, RMTg: RostroMedial Tegmentum, PPTg: PendunculoPontine Tegmentum, LHA: Lateral Hypothalamus, PBN: Parabrachial Nucleus.
- See [PVLV Code](https://github.com/emer/leabra/tree/master/pvlv) for a more detailed figure and description of the implementation.
+ See [PVLV Code](https://github.com/emer/leabra/tree/main/pvlv) for a more detailed figure and description of the implementation.
 
 # Basic Appetitive Conditioning
 
@@ -192,7 +192,7 @@ Note how the negative `VTAp_act` (black) and positive `LHbRMTg_act` (blue) activ
 
 **Tip:** You may want to switch back and forth with the `NetView` tab to watch the activity of the layers as stimuli are presented. If so, switch back to `TrialTypeData` to continue.
 
-At the end of conditioned inhibition training three test trials are run: A alone, X alone, and AX. (Reward is never presented in any case). Note that the network shows a dopamine dip to the conditioned inhibitor (X) meaning that it has acquired negative valence, in accordance with the [Tobler et al., 2003](#references) data. This is caused by activity in the `LHbRMTg`, which reflects activity of the `VSMatrixPosD2` that has learned an association of the X conditioned inhibitor with reward omission. See [PVLV Code](https://github.com/emer/leabra/tree/master/pvlv) if you wish to learn more about the computations of the various ventral striatum and amygdala layers in the network.
+At the end of conditioned inhibition training three test trials are run: A alone, X alone, and AX. (Reward is never presented in any case). Note that the network shows a dopamine dip to the conditioned inhibitor (X) meaning that it has acquired negative valence, in accordance with the [Tobler et al., 2003](#references) data. This is caused by activity in the `LHbRMTg`, which reflects activity of the `VSMatrixPosD2` that has learned an association of the X conditioned inhibitor with reward omission. See [PVLV Code](https://github.com/emer/leabra/tree/main/pvlv) if you wish to learn more about the computations of the various ventral striatum and amygdala layers in the network.
 
 > **Optional Question** Why does the network continue to show a partial dopamine burst to the A stimulus when it is presented alone? Hint: You may want to watch the network run again and note the different trial types. What is the purpose of interleaving A_Rf trials with the AX trials?
 
