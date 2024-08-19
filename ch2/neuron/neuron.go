@@ -456,11 +456,11 @@ func (ss *Sim) ConfigGUI() {
 			},
 		})
 		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "README",
-			Icon:    "file-markdown",
+			Icon:    icons.FileMarkdown,
 			Tooltip: "Opens your browser on the README file that contains instructions for how to run this model.",
 			Active:  egui.ActiveAlways,
 			Func: func() {
-				core.TheApp.OpenURL("https://github.com/emer/leabra/blob/master/examples/neuron/README.md")
+				core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/main/ch2/neuron/README.md")
 			},
 		})
 	})
