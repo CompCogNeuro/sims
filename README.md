@@ -1,6 +1,6 @@
 # Computational Cognitive Neuroscience Simulations
 
-This repository contains the neural network simulation models for the [CCN Textbook](https://compcogneuro.org). For more information, see the [sims website](https://compcogneuro.org/sims).
+This repository contains the neural network simulation models for the [CCN Textbook](https://compcogneuro.org). For more information, see the [simulations website](https://compcogneuro.org/simulations).
 
 ## Status
 
