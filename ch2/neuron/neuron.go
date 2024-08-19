@@ -60,17 +60,6 @@ var ParamSets = params.Sets{
 	},
 }
 
-// Extra state for neuron
-type NeuronEx struct {
-
-	// input ISI countdown for spiking mode -- counts up
-	InISI float32
-}
-
-func (nrn *NeuronEx) Init() {
-	nrn.InISI = 0
-}
-
 // Sim encapsulates the entire simulation model, and we define all the
 // functionality as methods on this struct.  This structure keeps all relevant
 // state information organized and available without having to pass everything around
@@ -116,9 +105,6 @@ type Sim struct {
 
 	SpikeParams spike.ActParams `view:"no-inline"`
 	// testing trial-level log data -- click to see record of network's response to each input
-
-	// extra neuron state for additional channels: VGCC, AK
-	NeuronEx NeuronEx `display:"no-inline"`
 
 	// leabra timing parameters and state
 	Context leabra.Context
@@ -207,7 +193,6 @@ func (ss *Sim) InitWeights(net *leabra.Network) {
 func (ss *Sim) Init() {
 	ss.Context.Reset()
 	ss.InitWeights(ss.Net)
-	ss.NeuronEx.Init()
 	ss.GUI.StopNow = false
 	ss.SetParams("", false) // all sheets
 }
@@ -342,7 +327,6 @@ func (ss *Sim) ConfigLogs() {
 
 func (ss *Sim) ConfigLogItems() {
 	ly := ss.Net.LayerByName("Neuron")
-	// nex := &ss.NeuronEx
 	lg := &ss.Logs
 
 	lg.AddItem(&elog.Item{
@@ -355,7 +339,7 @@ func (ss *Sim) ConfigLogItems() {
 				ctx.SetInt(int(ss.Context.Cycle))
 			}}})
 
-	vars := []string{"GeSyn", "Ge", "Gi", "Inet", "Vm", "Act", "Spike", "Gk", "ISI", "ISIAvg", "VmDend", "GnmdaSyn", "Gnmda", "GABAB", "GgabaB", "Gvgcc", "VgccM", "VgccH", "Gak", "MahpN", "GknaMed", "GknaSlow", "GiSyn"}
+	vars := []string{"Ge", "Inet", "Vm", "Act", "Spike", "Gk", "ISI", "AvgISI"}
 
 	for _, vnm := range vars {
 		cvnm := vnm // closure
