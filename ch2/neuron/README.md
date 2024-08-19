@@ -4,34 +4,34 @@
 
 This simulation illustrates the basic properties of neural spiking and rate-code activation, reflecting a balance of excitatory and inhibitory influences (including leak and synaptic inhibition).
 
-In this model, the `NetView` only shows a single neuron which is "injected" with excitatory current (as neuroscientists might do with an electrode injecting current into a single neuron).  If you do `Run Cycles` in the toolbar you will see it get activated, but to really understand what is going on, we need to see the relationship among multiple variables as shown in the `TstCycPlot`.
+In this model, the `Network` only shows a single neuron which is "injected" with excitatory current (as neuroscientists might do with an electrode injecting current into a single neuron).  If you do `Run Cycles` in the toolbar you will see it get activated, but to really understand what is going on, we need to see the relationship among multiple variables as shown in the `Test Cycle Plot`.
 
 # Plot of Neuron variables over time
 
-* Press the `TstCycPlot` tab in the right panel to display the graph view display.  If you haven't done `Run Cycles` yet, do it now so you can see the results of running with the default parameters.
+* Press the `Test Cycle Plot` tab in the right panel to display the graph view display.  If you haven't done `Run Cycles` yet, do it now so you can see the results of running with the default parameters.
 
 Only the excitatory and leak currents are operating here, with their conductances (`GbarE`, `GbarL`) as shown in the control panel.  You should
 see various lines plotted over 200 time steps (*cycles*) on the X axis.
 
 Here is a quick overview of each of the variables -- we'll go through them individually next (see for more details on how to determine what is being graphed, and how to configure it):
 
-* `Ge` (black line) = total excitatory input conductance to the neuron, which is generally a function of the number of open excitatory synaptic input channels at any given point in time (`Ge(t)`) and the overall strength of these input channels, which is given by `GbarE`.  In this simple model, `Ge(t))` goes from 0 prior to cycle 10, to 1 from 10-160, and back to 0 thereafter. Because `GBarE = .3` (by default), the net value goes up to .3 from cycle 10-160. The timing of the input is controlled by the `OnCycle` and `OffCycle` parameters.
+* `Ge` = total excitatory input conductance to the neuron, which is generally a function of the number of open excitatory synaptic input channels at any given point in time (`Ge(t)`) and the overall strength of these input channels, which is given by `GbarE`.  In this simple model, `Ge(t))` goes from 0 prior to cycle 10, to 1 from 10-160, and back to 0 thereafter. Because `GBarE = .3` (by default), the net value goes up to .3 from cycle 10-160. The timing of the input is controlled by the `OnCycle` and `OffCycle` parameters.
 
-* `Inet` (red line) = net current (sum of individual excitation and leak    currents), which is excitatory (upward) when the excitatory input comes on, and then oscillates as the action potential spikes fire. In general this reflects the net balance between the excitatory net input and the constant leak current (plus inhibition, which is not present in this simulation).
+* `Inet` = net current (sum of individual excitation and leak    currents), which is excitatory (upward) when the excitatory input comes on, and then oscillates as the action potential spikes fire. In general this reflects the net balance between the excitatory net input and the constant leak current (plus inhibition, which is not present in this simulation).
 
-* `Vm` (blue line) = membrane potential, which represents integration of all inputs into neuron. This starts out at the resting potential of .3 (= -70mV in biological units), and then increases with the excitatory input. As you can see, the net current (Inet) shows the *rate of change* of the membrane potential while it is elevated prior to spiking. When Vm gets above about .5, a spike is fired, and Vm is then reset back to .3, starting the cycle over again.
+* `Vm` = membrane potential, which represents integration of all inputs into neuron. This starts out at the resting potential of .3 (= -70mV in biological units), and then increases with the excitatory input. As you can see, the net current (Inet) shows the *rate of change* of the membrane potential while it is elevated prior to spiking. When Vm gets above about .5, a spike is fired, and Vm is then reset back to .3, starting the cycle over again.
 
-* `Act` (green line) = activation. This shows the amount of activation (rate of firing) -- by default the model is set to discrete spiking, so this value is computed from the running-average measured inter-spike-interval (*ISI*).  It is first computed after the *second* spike, as that is the only point when the ISI is available.  If you turn the `Spike` setting to off, then the Act value is computed directly.
+* `Act` = activation. This shows the amount of activation (rate of firing) -- by default the model is set to discrete spiking, so this value is computed from the running-average measured inter-spike-interval (*ISI*).  It is first computed after the *second* spike, as that is the only point when the ISI is available.  If you turn the `Spike` setting to off, then the Act value is computed directly.
 
-* `Spike` (purple line) = discrete spiking -- this goes to 1 when the neuron fires a discrete spike, and 0 otherwise.
+* `Spike` = discrete spiking -- this goes to 1 when the neuron fires a discrete spike, and 0 otherwise.
 
-* `Gk` (orange line) = conductance of sodium-gated potassium (k) channels, which drives adaptation -- this conductance increases during spikes, and decays somewhat in between, building up over time to cause the rate of spiking to adapt or slow down over time.
+* `Gk` = conductance of sodium-gated potassium (k) channels, which drives adaptation -- this conductance increases during spikes, and decays somewhat in between, building up over time to cause the rate of spiking to adapt or slow down over time.
 
 # Spiking Behavior
 
 The default parameters that you just ran show the spiking behavior of a neuron. This is implementing a modified version of the Adaptive Exponential function (see [CCN Textbook](https://github.com/CompCogNeuro/book)) or AdEx model, which has been shown to provide a very good reproduction of the firing behavior of real cortical pyramidal neurons. As such, this is a good representation of what real neurons do. We have turned off the exponential aspect of the AdEx model here to make parameter manipulations more reliable -- a spike is triggered when the membrane potential Vm crosses a simple threshold of .5. (In contrast, when exponential is activated (you can find it in the `SpikeParams`), the triggering of a spike is more of a dynamic exponential process around this .5 threshold level, reflecting the strong nonlinearity of the sodium channels that drive spiking.)
 
-At the broadest level, you can see the periodic purple spikes that fire as the membrane potential gets over the firing threshold, and it is then reset back to the rest level, from which it then climbs back up again, to repeat the process again and again. Looking at the overall rate of spiking as indexed by the spacing between spikes (i.e., the *ISI* or inter-spike-interval), you can see that the spacing increases over time, and thus the rate decreases over time.  This is due to the **adaptation** property of the AdEx model -- the spike rate adapts over time.
+At the broadest level, you can see the periodic spikes that fire as the membrane potential gets over the firing threshold, and it is then reset back to the rest level, from which it then climbs back up again, to repeat the process again and again. Looking at the overall rate of spiking as indexed by the spacing between spikes (i.e., the *ISI* or inter-spike-interval), you can see that the spacing increases over time, and thus the rate decreases over time.  This is due to the **adaptation** property of the AdEx model -- the spike rate adapts over time.
 
 From the tug-of-war model, you should expect that increasing the amount of excitation coming into the neuron will increase the rate of firing, by enabling the membrane potential to reach threshold faster, and conversely decreasing it will decrease the rate of firing. Furthermore, increasing the leak or inhibitory conductance will tug more strongly against a given level of excitation, causing it to reach threshold more slowly, and thus decreasing the rate of firing.
 
@@ -55,7 +55,7 @@ By systematically searching the parameter range for `GbarE` between .1 and .2, y
 
 > **Question 2.3:** To 2 decimal places (e.g., 0.15), what value of `GbarE` puts the neuron just over threshold, such that it spikes at this value, but not at the next value below it?
 
-* Note: If you want to see the precise numbers for the values in the graph, click on the `TstCycLog`.  Be sure to press `UpdateView` if you run again, to update to current results.  You don't need these yet but may want to look at them anyway -- the precise numbers you need here are for the `GbarE` parameter, but it might be useful to see the underlying Vm values.
+* Note: you can see the specific numerical values for any point in the graph by hovering the mouse over the point.  It will report which variable is being reported as well as the value.
 
 > **Question 2.4 (advanced):** Using one of the equations for the equilibrium membrane potential from the Neuron chapter, compute the exact value of excitatory input conductance required to keep Vm in equilibrium at the spiking threshold. Show your math. This means rearranging the equation to have excitatory conductance on one side, then substituting in known values. (note that: Gl is a constant = .3; Ge is 1 when the input is on; inhibition is not present here and can be ignored) -- this should agree with your empirically determined value.
 
@@ -78,13 +78,13 @@ You should see that decreasing `ErevE` reduces the spiking rate, because it make
 
 # Rate Coded Activations
 
-Next, we'll see how the discrete spiking behavior of the neuron can be approximated by a continuous rate-coded value. The green `Act` line in the graphs has been tracking the actual rate of spiking to this point, based on the inverse of the ISI.  The *Noisy X-over-X-plus-1* activation function can directly compute a rate-code activation value for the neuron, instead of just measuring the observed rate of spiking. As explained in the Neuron chapter, this rate code activation has several advantages (and a few disadvantages) for use in neural simulations, and is what we typically use.
+Next, we'll see how the discrete spiking behavior of the neuron can be approximated by a continuous rate-coded value. The `Act` line in the graphs has been tracking the actual rate of spiking to this point, based on the inverse of the ISI.  The *Noisy X-over-X-plus-1* activation function can directly compute a rate-code activation value for the neuron, instead of just measuring the observed rate of spiking. As explained in the Neuron chapter, this rate code activation has several advantages (and a few disadvantages) for use in neural simulations, and is what we typically use.
 
 * Press `Defaults` to start out with default parameters, then turn off the `Spike` parameter, and `Run Cycles` with the various parameter manipulations that you explored above. 
 
-You should see that the green line in the graph now rises up and then decreases slowly due to accommodation, without the discrete spiking values observed before. Similarly, the blue membrane potential value rises up and decreases slowly as well, instead of being reset after spiking.
+You should see that the Act line in the graph now rises up and then decreases slowly due to accommodation, without the discrete spiking values observed before. Similarly, the Vm membrane potential value rises up and decreases slowly as well, instead of being reset after spiking.
 
-> **Question 2.7:** Compare the spike rates with rate coded activations by reporting the act values just before cycle 160 (e.g., cycle 155) for GbarE = .2, .3, .4 with `Spike` = false, and the corresponding values in the `Spike` = true case for the same GbarE values. For now, you'll have to click on the `TstCycLog` and scroll to cycle 155 to see the exact numbers -- a future release will hopefully enable you to just hover over the line and see the value on the graph directly.
+> **Question 2.7:** Compare the spike rates with rate coded activations by reporting the `Act` values just before cycle 160 (e.g., cycle 155) for GbarE = .2, .3, .4 with `Spike` = false, and the corresponding values in the `Spike` = true case for the same GbarE values. Hover the mouse over the `Act` line to get the exact value.
 
 You should have observed that the `Act` value tracks the actual spiking rate reasonably well, indicating that *Noisy X-over-X-plus-1* is a resonable approximation to the actual neural spiking rate.
 
@@ -96,7 +96,7 @@ The resulting graph shows the `GbarE` values on the X axis plotted against the *
 
 An important aspect of spiking in real neurons is that the timing and intervals between spikes can be quite random, although the overall rate of firing remains predictable. This is obviously not evident with the single constant input used so far, which results in regular firing.  However, if we introduce noise by adding randomly generated values to the net input, then we can see a more realistic level of variability in neural firing. Note that this additional noise plays a similar role as the convolution of noise with the XX1 function in the noisy XX1 function, but in the case of the noisy XX1 we have a deterministic function that incorporates the averaged effects of noise, while here we are actually adding in the random values themselves, making the behavior stochastic.
 
-* Change the variance of the noise generator (`Noise` in the control panel) from 0 to .2, and do `Run Cycles`. You should see the `Ge` black line is now perturbed significantly with the noise.
+* Change the variance of the noise generator (`Noise` in the control panel) from 0 to .2, and do `Run Cycles`. You should see the `Ge` line is now perturbed significantly with the noise.
 
 It can be difficult to tell from a single run whether the spike timing is random -- the neuron still fires with some regularity.
 

@@ -27,7 +27,6 @@ import (
 	"github.com/emer/emergent/v2/etime"
 	"github.com/emer/emergent/v2/netview"
 	"github.com/emer/emergent/v2/params"
-	"github.com/emer/emergent/v2/paths"
 	"github.com/emer/leabra/v2/leabra"
 	"github.com/emer/leabra/v2/spike"
 )
@@ -42,10 +41,6 @@ func main() {
 // ParamSets is the default set of parameters
 var ParamSets = params.Sets{
 	"Base": {
-		{Sel: "Path", Desc: "no learning",
-			Params: params.Params{
-				"Path.Learn.Learn": "false",
-			}},
 		{Sel: "Layer", Desc: "generic params for all layers: lower gain, slower, soft clamp",
 			Params: params.Params{
 				"Layer.Inhib.Layer.On":  "false",
@@ -165,11 +160,7 @@ func (ss *Sim) ConfigAll() {
 }
 
 func (ss *Sim) ConfigNet(net *leabra.Network) {
-	in := net.AddLayer2D("Input", 1, 1, leabra.InputLayer)
-	hid := net.AddLayer2D("Neuron", 1, 1, leabra.SuperLayer)
-
-	net.ConnectLayers(in, hid, paths.NewFull(), leabra.ForwardPath)
-
+	net.AddLayer2D("Neuron", 1, 1, leabra.SuperLayer)
 	err := net.Build()
 	if err != nil {
 		log.Println(err)
@@ -205,7 +196,7 @@ func (ss *Sim) Counters() string {
 }
 
 func (ss *Sim) UpdateView() {
-	ss.GUI.UpdatePlot(etime.Test, etime.Cycle)
+	ss.GUI.GoUpdatePlot(etime.Test, etime.Cycle)
 	ss.GUI.ViewUpdate.Text = ss.Counters()
 	ss.GUI.ViewUpdate.UpdateCycle(int(ss.Context.Cycle))
 }
@@ -245,7 +236,7 @@ func (ss *Sim) RunCycles() {
 			ss.RateUpdate(ss.Net, inputOn)
 		}
 		ctx.Cycle = cyc
-		ss.Logs.LogRow(etime.Test, etime.Cycle, cyc)
+		ss.Logs.Log(etime.Test, etime.Cycle)
 		ss.RecordValues(cyc)
 		if cyc%ss.UpdateInterval == 0 {
 			ss.UpdateView()
@@ -357,7 +348,7 @@ func (ss *Sim) ConfigLogItems() {
 
 }
 
-func (ss *Sim) ResetTstCycPlot() {
+func (ss *Sim) ResetTestCyclePlot() {
 	ss.Logs.ResetLog(etime.Test, etime.Cycle)
 	ss.GUI.UpdatePlot(etime.Test, etime.Cycle)
 }
@@ -375,7 +366,7 @@ func (ss *Sim) ConfigGUI() {
 	ss.GUI.MakeBody(ss, "neuron", title, `This simulation illustrates the basic properties of neural spiking and rate-code activation, reflecting a balance of excitatory and inhibitory influences (including leak and synaptic inhibition). See <a href="https://github.com/emer/leabra/blob/main/examples/neuron/README.md">README.md on GitHub</a>.</p>`)
 	ss.GUI.CycleUpdateInterval = 10
 
-	nv := ss.GUI.AddNetView("NetView")
+	nv := ss.GUI.AddNetView("Network")
 	nv.Var = "Act"
 	nv.SetNet(ss.Net)
 	ss.ConfigNetView(nv) // add labels etc
@@ -383,11 +374,6 @@ func (ss *Sim) ConfigGUI() {
 	ss.GUI.ViewUpdate = &ss.ViewUpdate
 
 	ss.GUI.AddPlots(title, &ss.Logs)
-	// key := etime.Scope(etime.Test, etime.Cycle)
-	// plt := ss.GUI.NewPlot(key, ss.GUI.Tabs.NewTab("TstCycPlot"))
-	// plt.SetTable(ss.Logs.Table(etime.Test, etime.Cycle))
-	// egui.ConfigPlotFromLog("Neuron", plt, &ss.Logs, key)
-	// ss.TstCycPlot = plt
 
 	ss.GUI.Body.AddAppBar(func(p *tree.Plan) {
 		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Init", Icon: icons.Update,
@@ -406,7 +392,7 @@ func (ss *Sim) ConfigGUI() {
 				ss.GUI.UpdateWindow()
 			},
 		})
-		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Run Cycles", Icon: icons.PlayArrow,
+		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Run cycles", Icon: icons.PlayArrow,
 			Tooltip: "Runs neuron updating over NCycles.",
 			Active:  egui.ActiveStopped,
 			Func: func() {
@@ -421,11 +407,11 @@ func (ss *Sim) ConfigGUI() {
 			},
 		})
 		tree.Add(p, func(w *core.Separator) {})
-		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Reset Plot", Icon: icons.Update,
-			Tooltip: "Reset TstCycPlot.",
+		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Reset plot", Icon: icons.Update,
+			Tooltip: "Reset TestCyclePlot.",
 			Active:  egui.ActiveStopped,
 			Func: func() {
-				ss.ResetTstCycPlot()
+				ss.ResetTestCyclePlot()
 				ss.GUI.UpdateWindow()
 			},
 		})
@@ -436,6 +422,7 @@ func (ss *Sim) ConfigGUI() {
 			Func: func() {
 				ss.Defaults()
 				ss.Init()
+				ss.GUI.SimForm.Update()
 				ss.GUI.UpdateWindow()
 			},
 		})
