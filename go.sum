@@ -34,10 +34,10 @@ github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dlclark/regexp2 v1.11.0 h1:G/nrcoOa7ZXlpoa/91N3X7mM3r8eIlMBBJZvsz/mxKI=
 github.com/dlclark/regexp2 v1.11.0/go.mod h1:DHkYz0B9wPfa6wondMfaivmHpzrQ3v9q8cnmRbL6yW8=
-github.com/emer/emergent/v2 v2.0.0-dev0.1.0.0.20240819205648-250dd483d63c h1:lNof7cfU4uKjimEbe9+V8iZUOkU3WWr01PIAbBmcXwQ=
-github.com/emer/emergent/v2 v2.0.0-dev0.1.0.0.20240819205648-250dd483d63c/go.mod h1:xSMtRuFkyD27pk5+o9BupztSxz/B2rwVL8AGmTFK/6U=
-github.com/emer/leabra/v2 v2.0.0-20240820170610-78a264a7af82 h1:BdaL5rOartUXnBEprYKGm9OchXRqbVIN4YN9FU9PTHA=
-github.com/emer/leabra/v2 v2.0.0-20240820170610-78a264a7af82/go.mod h1:+3sD+Lq2GLyd1bMRU9aNn3fiBkwyKrjfYUb6TBWn1ro=
+github.com/emer/emergent/v2 v2.0.0-dev0.1.0.0.20240820174009-40d67f5b7c88 h1:XpAZVlv6MAq7IbCXvPV0O7D4c+uOQBw4KDXNP2+hkCA=
+github.com/emer/emergent/v2 v2.0.0-dev0.1.0.0.20240820174009-40d67f5b7c88/go.mod h1:xSMtRuFkyD27pk5+o9BupztSxz/B2rwVL8AGmTFK/6U=
+github.com/emer/leabra/v2 v2.0.0-20240820174545-ce22f6a30ef6 h1:6/d/+nNg8p2pT9LhS/QS+OdzNH6liwv/TnHCgLkkjH4=
+github.com/emer/leabra/v2 v2.0.0-20240820174545-ce22f6a30ef6/go.mod h1:b5WyOi8t/rW/zV5ixq/dZ/EO0QzmJ4U8XbtGtKfzpd0=
 github.com/fsnotify/fsnotify v1.4.7/go.mod h1:jwhsz4b93w/PPRr/qN1Yymfu8t87LnFCMoQvtojpjFo=
 github.com/fsnotify/fsnotify v1.7.0 h1:8JEhPFa5W2WU7YfeZzPNqzMP6Lwt7L2715Ggo0nosvA=
 github.com/fsnotify/fsnotify v1.7.0/go.mod h1:40Bi/Hjc2AVfZrqy+aj+yEI+/bRxZnMJyTJwOpGvigM=
