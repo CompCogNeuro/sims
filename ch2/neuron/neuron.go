@@ -2,11 +2,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-/*
-neuron: This simulation illustrates the basic properties of neural spiking and
-rate-code activation, reflecting a balance of excitatory and inhibitory
-influences (including leak and synaptic inhibition).
-*/
+// neuron: This simulation illustrates the basic properties of neural spiking and
+// rate-code activation, reflecting a balance of excitatory and inhibitory
+// influences (including leak and synaptic inhibition).
 package main
 
 //go:generate core generate -add-types
@@ -420,7 +418,7 @@ func (ss *Sim) ConfigNetView(nv *netview.NetView) {
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI() {
 	title := "Neuron"
-	ss.GUI.MakeBody(ss, "neuron", title, `This simulation illustrates the basic properties of neural spiking and rate-code activation, reflecting a balance of excitatory and inhibitory influences (including leak and synaptic inhibition). See <a href="https://github.com/emer/leabra/blob/main/examples/neuron/README.md">README.md on GitHub</a>.</p>`)
+	ss.GUI.MakeBody(ss, "neuron", title, `This simulation illustrates the basic properties of neural spiking and rate-code activation, reflecting a balance of excitatory and inhibitory influences (including leak and synaptic inhibition). See <a href="https://github.com/CompCogNeuro/sims/blob/main/ch2/neuron/README.md">README.md on GitHub</a>.</p>`)
 	ss.GUI.CycleUpdateInterval = 10
 
 	nv := ss.GUI.AddNetView("Network")
