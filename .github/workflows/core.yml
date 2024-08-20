@@ -45,6 +45,9 @@ jobs:
       - name: Build Neuron
         run: core build web -dir ch2/neuron -o static/ch2/neuron
 
+      - name: Build Detector
+        run: core build web -dir ch2/detector -o static/ch2/detector
+		
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v3
