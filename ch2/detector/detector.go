@@ -13,10 +13,12 @@ package main
 import (
 	"embed"
 	"log"
+	"reflect"
 
 	"cogentcore.org/core/base/randx"
 	"cogentcore.org/core/core"
 	"cogentcore.org/core/icons"
+	"cogentcore.org/core/math32/minmax"
 	"cogentcore.org/core/tensor/table"
 	"cogentcore.org/core/tree"
 	"github.com/emer/emergent/v2/egui"
@@ -111,7 +113,7 @@ type Sim struct {
 // New creates new blank elements and initializes defaults
 func (ss *Sim) New() {
 	ss.Defaults()
-	ss.Net = leabra.NewNetwork("RA25")
+	ss.Net = leabra.NewNetwork("Detector")
 	ss.Params.Config(ParamSets, "", "", ss.Net)
 	ss.Stats.Init()
 	ss.Pats = &table.Table{}
@@ -333,11 +335,28 @@ func (ss *Sim) ConfigLogs() {
 	ss.Logs.AddCounterItems(etime.Trial, etime.Cycle)
 	ss.Logs.AddStatStringItem(etime.Test, etime.Trial, "TrialName")
 
-	ss.Logs.AddLayerTensorItems(ss.Net, "Act", etime.Test, etime.Trial, "InputLayer")
+	// ss.Logs.AddLayerTensorItems(ss.Net, "Act", etime.Test, etime.Trial, "InputLayer")
+
+	ly := ss.Net.LayerByName("RecvNeuron")
+	vars := []string{"Ge", "Act"}
+
+	for _, vnm := range vars {
+		ss.Logs.AddItem(&elog.Item{
+			Name:   vnm,
+			Type:   reflect.Float64,
+			FixMax: false,
+			Range:  minmax.F32{Max: 1},
+			Write: elog.WriteMap{
+				etime.Scope(etime.Test, etime.Trial): func(ctx *elog.Context) {
+					vl := ly.UnitValue(vnm, []int{0, 0}, 0)
+					ctx.SetFloat32(vl)
+				}}})
+	}
 
 	ss.Logs.CreateTables()
 	ss.Logs.SetContext(&ss.Stats, ss.Net)
-	ss.Logs.NoPlot(etime.Test, etime.Run)
+	ss.Logs.NoPlot(etime.Test, etime.Cycle)
+	ss.Logs.PlotItems("Ge", "Act")
 }
 
 // Log is the main logging function, handles special things for different scopes
@@ -377,6 +396,7 @@ func (ss *Sim) ConfigGUI() {
 	nv.SetNet(ss.Net)
 	ss.ViewUpdate.Config(nv, etime.AlphaCycle, etime.AlphaCycle)
 	ss.GUI.ViewUpdate = &ss.ViewUpdate
+	nv.Current()
 
 	// nv.SceneXYZ().Camera.Pose.Pos.Set(0, 1, 2.75) // more "head on" than default which is more "top down"
 	// nv.SceneXYZ().Camera.LookAt(math32.Vec3(0, 0, 0), math32.Vec3(0, 1, 0))
@@ -407,6 +427,16 @@ func (ss *Sim) ConfigGUI() {
 			},
 		})
 		////////////////////////////////////////////////
+		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Defaults", Icon: icons.Update,
+			Tooltip: "Restore initial default parameters.",
+			Active:  egui.ActiveStopped,
+			Func: func() {
+				ss.Defaults()
+				ss.Init()
+				ss.GUI.SimForm.Update()
+				ss.GUI.UpdateWindow()
+			},
+		})
 		tree.Add(p, func(w *core.Separator) {})
 		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "README",
 			Icon:    icons.FileMarkdown,

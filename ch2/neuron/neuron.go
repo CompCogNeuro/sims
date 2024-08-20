@@ -390,15 +390,14 @@ func (ss *Sim) ConfigLogItems() {
 	vars := []string{"Ge", "Inet", "Vm", "Act", "Spike", "Gk", "ISI", "AvgISI"}
 
 	for _, vnm := range vars {
-		cvnm := vnm // closure
 		lg.AddItem(&elog.Item{
-			Name:   cvnm,
+			Name:   vnm,
 			Type:   reflect.Float64,
 			FixMax: false,
 			Range:  minmax.F32{Max: 1},
 			Write: elog.WriteMap{
 				etime.Scope(etime.Test, etime.Cycle): func(ctx *elog.Context) {
-					vl := ly.UnitValue(cvnm, []int{0, 0}, 0)
+					vl := ly.UnitValue(vnm, []int{0, 0}, 0)
 					ctx.SetFloat32(vl)
 				}}})
 	}

@@ -9,7 +9,7 @@ We will see how a particular pattern of weights makes a simulated neuron respond
 
 # The Network and Input Patterns
 
-We begin by examining the `NetView` tab, showing the Detector network. The network has an `Input` layer that will have patterns of activation in the shape of different digits, and these input neurons are connected to the receiving neuron (`RecvNeuron`) via a set of weighted synaptic connections. We can view the pattern of weights (synaptic strengths) that this receiving unit has from the input, which should give us an idea about what this unit will detect.
+We begin by examining the `Network` tab, showing the Detector network. The network has an `Input` layer that will have patterns of activation in the shape of different digits, and these input neurons are connected to the receiving neuron (`RecvNeuron`) via a set of weighted synaptic connections. We can view the pattern of weights (synaptic strengths) that this receiving unit has from the input, which should give us an idea about what this unit will detect.
 
 * Select `r.Wt` as the value you want to display (on the left side of the 3D network view) and then click on the `RecvNeuron` to view its receiving weights.
 
@@ -23,7 +23,7 @@ The display that comes up shows all of the different *input patterns* that will 
 
 To see the receiving neuron respond to these input patterns, we will present them one-by-one, and determine why the neuron responds as it does given its weights. Thus, we need to view the activations again in the network window.
 
-* Select `Act` in the `NetView` to view activations, then click `Test Trial` in the toolbar at the top of the window.
+* Select `Act` in the `Network` to view activations, then click `Test Trial` in the toolbar at the top of the window.
 
 This activates the pattern of a `0` (zero) in the `Input`, and shows 20 cycles of **settling** process where the activation of the receiving unit is iteratively updated over a series of **cycles** according to the point neuron activation function (just as the unit in the `neuron` simulation was updated over time).  We have selected 20 cycles as enough time for the receiving neuron to fully respond to the input.
 
