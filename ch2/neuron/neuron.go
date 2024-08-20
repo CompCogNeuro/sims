@@ -19,6 +19,7 @@ import (
 	"cogentcore.org/core/core"
 	"cogentcore.org/core/icons"
 	"cogentcore.org/core/math32/minmax"
+	"cogentcore.org/core/plot/plotcore"
 	"cogentcore.org/core/tree"
 	"github.com/emer/emergent/v2/egui"
 	"github.com/emer/emergent/v2/elog"
@@ -135,6 +136,7 @@ func (ss *Sim) New() {
 }
 
 func (ss *Sim) Defaults() {
+	ss.SpikeParams.Defaults()
 	ss.Params.Config(ParamSets, "", "", ss.Net)
 	ss.UpdateInterval = 10
 	ss.Cycle = 0
@@ -285,6 +287,54 @@ func (ss *Sim) Stop() {
 	ss.GUI.StopNow = true
 }
 
+// SpikeVsRate runs comparison between spiking vs. rate-code
+func (ss *Sim) SpikeVsRate() {
+	row := 0
+	nsamp := 100
+	// ss.KNaAdapt = false
+	tcl := ss.Logs.Table(etime.Test, etime.Cycle)
+	svr := ss.Logs.MiscTable("SpikeVsRate")
+	for gbarE := 0.1; gbarE <= 0.7; gbarE += 0.025 {
+		ss.GbarE = float32(gbarE)
+		spike := float64(0)
+		ss.Noise = 0.1 // RunCycles calls SetParams to set this
+		ss.Spike = true
+		for ns := 0; ns < nsamp; ns++ {
+			tcl.Rows = 0
+			ss.RunCycles()
+			if ss.GUI.StopNow {
+				break
+			}
+			act := tcl.Float("Act", 159)
+			spike += act
+		}
+		rate := float64(0)
+		ss.Spike = false
+		// ss.Noise = 0 // doesn't make much diff
+		for ns := 0; ns < nsamp; ns++ {
+			tcl.Rows = 0
+			ss.RunCycles()
+			if ss.GUI.StopNow {
+				break
+			}
+			act := tcl.Float("Act", 159)
+			rate += act
+		}
+		if ss.GUI.StopNow {
+			break
+		}
+		spike /= float64(nsamp)
+		rate /= float64(nsamp)
+		svr.AddRows(1)
+		svr.SetFloat("GBarE", row, gbarE)
+		svr.SetFloat("Spike", row, spike)
+		svr.SetFloat("Rate", row, rate)
+		row++
+	}
+	ss.Defaults()
+	ss.GUI.Plots[etime.ScopeKey("SpikeVsRate")].UpdatePlot()
+}
+
 /////////////////////////////////////////////////////////////////////////
 //   Params setting
 
@@ -304,16 +354,23 @@ func (ss *Sim) SetParams(sheet string, setMsg bool) {
 	ly.Act.Update()
 	ss.SpikeParams.ActParams = ly.Act // keep sync'd
 	ss.SpikeParams.KNa.On = ss.KNaAdapt
+	ly.UpdateParams()
 }
 
 func (ss *Sim) ConfigLogs() {
 	ss.ConfigLogItems()
 	ss.Logs.CreateTables()
 
-	ss.Logs.PlotItems("Vm", "Spike")
+	ss.Logs.PlotItems("Ge", "Inet", "Vm", "Act", "Spike", "Gk")
 
 	ss.Logs.SetContext(&ss.Stats, ss.Net)
 	ss.Logs.ResetLog(etime.Test, etime.Cycle)
+
+	svr := ss.Logs.MiscTable("SpikeVsRate")
+	svr.AddFloat64Column("GBarE")
+	svr.AddFloat64Column("Spike")
+	svr.AddFloat64Column("Rate")
+	svr.SetMetaData("Rate:On", "+")
 }
 
 func (ss *Sim) ConfigLogItems() {
@@ -375,6 +432,14 @@ func (ss *Sim) ConfigGUI() {
 
 	ss.GUI.AddPlots(title, &ss.Logs)
 
+	svr := "SpikeVsRate"
+	dt := ss.Logs.MiscTable(svr)
+	plt := plotcore.NewSubPlot(ss.GUI.Tabs.NewTab(svr + " Plot"))
+	ss.GUI.Plots[etime.ScopeKey(svr)] = plt
+	plt.Options.Title = svr
+	plt.Options.XAxis = "GBarE"
+	plt.SetTable(dt)
+
 	ss.GUI.Body.AddAppBar(func(p *tree.Plan) {
 		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Init", Icon: icons.Update,
 			Tooltip: "Initialize everything including network weights, and start over.  Also applies current params.",
@@ -412,6 +477,14 @@ func (ss *Sim) ConfigGUI() {
 			Active:  egui.ActiveStopped,
 			Func: func() {
 				ss.ResetTestCyclePlot()
+				ss.GUI.UpdateWindow()
+			},
+		})
+		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Spike Vs Rate", Icon: icons.PlayArrow,
+			Tooltip: "Generate a plot of actual spiking rate vs computed NXX1 rate code.",
+			Active:  egui.ActiveStopped,
+			Func: func() {
+				ss.SpikeVsRate()
 				ss.GUI.UpdateWindow()
 			},
 		})
