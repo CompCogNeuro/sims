@@ -3,7 +3,7 @@ module github.com/CompCogNeuro/sims/v2
 go 1.22
 
 require (
-	cogentcore.org/core v0.3.3-0.20240819201856-14e5d78556c3
+	cogentcore.org/core v0.3.3-0.20240820000827-b7efbcd96c73
 	github.com/emer/emergent/v2 v2.0.0-dev0.1.0.0.20240819205648-250dd483d63c
 	github.com/emer/leabra/v2 v2.0.0-20240820071506-d51ea1f829b7
 )
