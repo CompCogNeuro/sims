@@ -205,7 +205,7 @@ func (ss *Sim) UpdateView() {
 // 	    Running the Network, starting bottom-up..
 
 // RunCycles updates neuron over specified number of cycles
-func (ss *Sim) RunCycles() {
+func (ss *Sim) RunCycles(updt bool) {
 	ctx := &ss.Context
 	ss.Init()
 	ss.GUI.StopNow = false
@@ -238,7 +238,7 @@ func (ss *Sim) RunCycles() {
 		ctx.Cycle = cyc
 		ss.Logs.Log(etime.Test, etime.Cycle)
 		ss.RecordValues(cyc)
-		if cyc%ss.UpdateInterval == 0 {
+		if updt && cyc%ss.UpdateInterval == 0 {
 			ss.UpdateView()
 		}
 		ss.Context.CycleInc()
@@ -246,7 +246,9 @@ func (ss *Sim) RunCycles() {
 			break
 		}
 	}
-	ss.UpdateView()
+	if updt {
+		ss.UpdateView()
+	}
 }
 
 // RateUpdate updates the neuron in rate-code mode
@@ -299,7 +301,7 @@ func (ss *Sim) SpikeVsRate() {
 		ss.Spike = true
 		for ns := 0; ns < nsamp; ns++ {
 			tcl.Rows = 0
-			ss.RunCycles()
+			ss.RunCycles(false)
 			if ss.GUI.StopNow {
 				break
 			}
@@ -311,7 +313,7 @@ func (ss *Sim) SpikeVsRate() {
 		// ss.Noise = 0 // doesn't make much diff
 		for ns := 0; ns < nsamp; ns++ {
 			tcl.Rows = 0
-			ss.RunCycles()
+			ss.RunCycles(false)
 			if ss.GUI.StopNow {
 				break
 			}
@@ -462,7 +464,7 @@ func (ss *Sim) ConfigGUI() {
 				if !ss.GUI.IsRunning {
 					go func() {
 						ss.GUI.IsRunning = true
-						ss.RunCycles()
+						ss.RunCycles(true)
 						ss.GUI.IsRunning = false
 						ss.GUI.UpdateWindow()
 					}()
