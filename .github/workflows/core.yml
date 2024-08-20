@@ -40,13 +40,10 @@ jobs:
           go-version: '1.22'
 
       - name: Install Core
-        run: go install cogentcore.org/core/cmd/core@main
+        run: go install cogentcore.org/core/cmd/core@main && go install cogentcore.org/shell/cmd/cosh@main
 
-      - name: Build Neuron
-        run: core build web -dir ch2/neuron -o static/ch2/neuron
-
-      - name: Build Detector
-        run: core build web -dir ch2/detector -o static/ch2/detector
+      - name: Build Sims
+        run: ./make
 
       - name: Setup Pages
         id: pages
