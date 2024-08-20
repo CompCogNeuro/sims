@@ -23,23 +23,23 @@ The display that comes up shows all of the different *input patterns* that will 
 
 To see the receiving neuron respond to these input patterns, we will present them one-by-one, and determine why the neuron responds as it does given its weights. Thus, we need to view the activations again in the network window.
 
-* Select `Act` in the `Network` to view activations, then click `Test Trial` in the toolbar at the top of the window.
+* Select `Act` in the `Network` to view activations, then click the `Step` button in the toolbar at the top of the window, which will step one `Trial` as indicated.
 
 This activates the pattern of a `0` (zero) in the `Input`, and shows 20 cycles of **settling** process where the activation of the receiving unit is iteratively updated over a series of **cycles** according to the point neuron activation function (just as the unit in the `neuron` simulation was updated over time).  We have selected 20 cycles as enough time for the receiving neuron to fully respond to the input.
 
 The receiving unit showed an activity value of 0 because it was not activated above threshold by the `0` input pattern.  Before getting into the nitty-gritty of why the unit responded this way, let's proceed through the remaining digits and observe how it responds to other inputs.
 
-* Press `Test Trial` for each of the other digits, until the number `8` shows up. 
+* Press `Step` for each of the other digits, until the number `8` shows up. 
 
 You should have seen the receiving unit finally activated when the digit `8` was presented, with an activation of zero for all the other digits. Thus, as expected, the receiving unit acts like an `8` detector: only when the input perfectly matches the input weights is there enough excitatory input to drive the receiving neuron above its firing threshold.
 
-* You can use the "VCR" style buttons after the `Time` label at the bottom right of the `NetView` to review each cycle of updating, to see the progression of activation over time.
+* You can use the "VCR" style buttons after the `Time` label at the bottom right of the `Network` to review each cycle of updating, to see the progression of activation over time.
 
-* Go ahead and do one more `Test Trial` to see what happens with `9`.
+* Go ahead and do one more `Step` to see what happens with `9`.
 
 We can use a graph to view the pattern of receiving unit activation across the different input patterns.
 
-* Click on the `TstTrlPlot` (test trial plot) tab.
+* Click on the `Test Trial Plot` tab.
 
 The graph shows the activation (`Act`) for the unit as a function of trial (and digit) number along the X axis. You should see a flat line with a single peak at 8.  
 
@@ -47,9 +47,9 @@ The graph shows the activation (`Act`) for the unit as a function of trial (and 
 
 Now, let's try to understand exactly why the unit responds as it does. The key to doing so is to understand the relationship between the pattern of weights and the input pattern.
 
-* Click the `DigitPats` button again (or find the already-open window if you had not closed it) and scroll inside so that the `8` digit is visible. Now resize the whole window so it is roughly big enough to only show the `8` and position the window so it is next to the main window that includes the `Netview` display. The idea is that you can see both side-by-side, so you may want/need to shrink the main window to prevent occlusion of the `DigitPats` window.  Then do `Init` in the toolbar and `Test Trial` for each input digit in turn.
+* Click the `DigitPats` button again, holding down the `Shift` key while clicking (on desktop platforms) and scroll inside so that the `8` digit is visible. Now resize the whole window so it is roughly big enough to only show the `8` and position the window so it is next to the main window that includes the `Netview` display. The idea is that you can see both side-by-side, so you may want/need to shrink the main window to prevent occlusion of the `DigitPats` window.  Then do `Init` in the toolbar and `Step` for each input digit in turn.
 
-> **Question 2.8:** For each digit, report the number of active `Input` units where there is also a weight of 1 according to the `8` digit pattern.  In other words, report the *overlap* between the input activity and the weight pattern. *HINT: Strictly speaking, the `8` display in the `DigitPats` window is NOT representing the weights per se, but as we saw earlier using the `r.Wt` functionality in `NetView,` they are the same pattern -- and displaying the windows side-by-side just makes the counting easier.* 
+> **Question 2.8:** For each digit, report the number of active `Input` units where there is also a weight of 1 according to the `8` digit pattern.  In other words, report the *overlap* between the input activity and the weight pattern. *HINT: Strictly speaking, the `8` display in the `DigitPats` window is NOT representing the weights per se, but as we saw earlier using the `r.Wt` functionality in `Network,` they are the same pattern -- and displaying the windows side-by-side just makes the counting easier.* 
 
 The number of inputs having a weight of 1 that you just calculated should correspond to the total excitatory input `Ge`, also called the **net input**, going into the receiving unit, which is a function of the average of the sending activation `Act` times the weight `Wt` over all the units, with a correction factor for the expected activity level in the layer, `Alpha`:
 
@@ -57,9 +57,9 @@ The number of inputs having a weight of 1 that you just calculated should corres
 Ge = (1 / Alpha) * [Sum(Act * Wt) / N]
 ```
 
-You can click on `Ge` in the `NetView` to see these values as you step through the inputs.
+You can click on `Ge` in the `Network` to see these values as you step through the inputs.
 
-* Do `Init` and `Test Trial` to see the `0` input again.  If you hover over the RecvUnit with your mouse, you should see it has a value of `Ge = .3352..`.  To apply the above equation, you should have observed that `0` has 6 units in common with `8`, and `N` = 35 (7*5), so that is about .1714.  Next, we need to apply the `Alpha` correction factor, which we set to be the activity level of the `8`, which is 17 of the 35 units active.  Thus, we should get:
+* Do `Init` and `Step` to see the `0` input again.  If you hover over the RecvUnit with your mouse, you should see it has a value of `Ge = .3352..`.  To apply the above equation, you should have observed that `0` has 6 units in common with `8`, and `N` = 35 (7*5), so that is about .1714.  Next, we need to apply the `Alpha` correction factor, which we set to be the activity level of the `8`, which is 17 of the 35 units active.  Thus, we should get:
 
 ```
 Ge = (1 / (17 / 35)) * (6 / 35) = .3529...
@@ -75,7 +75,7 @@ Next, we will explore how we can change how much information is conveyed by the 
 
 **IMPORTANT:** you must press `Init` for changes in `GbarL` to take effect!
 
-* Reduce the `GbarL` value from 2 to 1.8, and do `Init` then `Test Trial` (you might want to change `ViewUpdate` to `AlphaCycle` instead of `Cycle` so it only shows the final result of setting for each input).  You can alternatively just hit `Test All` and look at the `TstTrlPlot`.
+* Reduce the `GbarL` value from 2 to 1.8, and do `Init` then `Step` (you might want to change `View update` `Test` to `AlphaCycle` instead of `Cycle` so it only shows the final result of setting for each input).  You can alternatively just hit `Test Run` and look at the `Test Trial Plot`.
 
 > **Question 2.9:** What happens to the pattern of receiving neuron activity over the different digits when you change GbarL to 1.8, 1.5, and 2.3 -- which input digits does it respond to for each case?  In terms of the tug-of-war model between excitatory and inhibition & leak (i.e., GbarL = leak), why does changing leak have this effect (a simple one-sentence answer is sufficient)?
 

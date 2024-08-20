@@ -218,9 +218,9 @@ func (ss *Sim) ConfigLoops() {
 	man.AddStack(etime.Test).
 		AddTime(etime.Epoch, 1).
 		AddTime(etime.Trial, 10).
-		AddTime(etime.Cycle, 100)
+		AddTime(etime.Cycle, 20)
 
-	leabra.LooperStdPhases(man, &ss.Context, ss.Net, 75, 99)
+	leabra.LooperStdPhases(man, &ss.Context, ss.Net, 15, 19)
 	leabra.LooperSimCycleAndLearn(man, ss.Net, &ss.Context, &ss.ViewUpdate) // std algo code
 
 	for m, _ := range man.Stacks {
@@ -394,7 +394,7 @@ func (ss *Sim) ConfigGUI() {
 	nv := ss.GUI.AddNetView("Network")
 	nv.Params.MaxRecs = 300
 	nv.SetNet(ss.Net)
-	ss.ViewUpdate.Config(nv, etime.AlphaCycle, etime.AlphaCycle)
+	ss.ViewUpdate.Config(nv, etime.Cycle, etime.Cycle)
 	ss.GUI.ViewUpdate = &ss.ViewUpdate
 	nv.Current()
 
