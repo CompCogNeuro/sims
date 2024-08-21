@@ -1,5 +1,5 @@
-cogentcore.org/core v0.3.3-0.20240820000827-b7efbcd96c73 h1:/49imHmv8zOd6La/MEmmPCeOEbCMLt+S9eSrQhepNds=
-cogentcore.org/core v0.3.3-0.20240820000827-b7efbcd96c73/go.mod h1:dg3uRsPcd8S1ZYvRD2TztCtjopRkrB5V/lbl54xsQd4=
+cogentcore.org/core v0.3.3-0.20240821175244-e58d15222272 h1:Rg4+pPgZmyuwdVIPlvInNnub4eF4CN0e6n4vRepfj3M=
+cogentcore.org/core v0.3.3-0.20240821175244-e58d15222272/go.mod h1:dg3uRsPcd8S1ZYvRD2TztCtjopRkrB5V/lbl54xsQd4=
 github.com/Bios-Marcel/wastebasket v0.0.4-0.20240213135800-f26f1ae0a7c4 h1:6lx9xzJAhdjq0LvVfbITeC3IH9Fzvo1aBahyPu2FuG8=
 github.com/Bios-Marcel/wastebasket v0.0.4-0.20240213135800-f26f1ae0a7c4/go.mod h1:FChzXi1izqzdPb6BiNZmcZLGyTYiT61iGx9Rxx9GNeI=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
@@ -34,8 +34,8 @@ github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dlclark/regexp2 v1.11.0 h1:G/nrcoOa7ZXlpoa/91N3X7mM3r8eIlMBBJZvsz/mxKI=
 github.com/dlclark/regexp2 v1.11.0/go.mod h1:DHkYz0B9wPfa6wondMfaivmHpzrQ3v9q8cnmRbL6yW8=
-github.com/emer/emergent/v2 v2.0.0-dev0.1.0.0.20240820174009-40d67f5b7c88 h1:XpAZVlv6MAq7IbCXvPV0O7D4c+uOQBw4KDXNP2+hkCA=
-github.com/emer/emergent/v2 v2.0.0-dev0.1.0.0.20240820174009-40d67f5b7c88/go.mod h1:xSMtRuFkyD27pk5+o9BupztSxz/B2rwVL8AGmTFK/6U=
+github.com/emer/emergent/v2 v2.0.0-dev0.1.0.0.20240820233032-1964b3fa466c h1:pynKWFRyQILIElBZZdgMeBG4OxPwgTMkk6rGcLeGfQk=
+github.com/emer/emergent/v2 v2.0.0-dev0.1.0.0.20240820233032-1964b3fa466c/go.mod h1:xSMtRuFkyD27pk5+o9BupztSxz/B2rwVL8AGmTFK/6U=
 github.com/emer/leabra/v2 v2.0.0-20240820174545-ce22f6a30ef6 h1:6/d/+nNg8p2pT9LhS/QS+OdzNH6liwv/TnHCgLkkjH4=
 github.com/emer/leabra/v2 v2.0.0-20240820174545-ce22f6a30ef6/go.mod h1:b5WyOi8t/rW/zV5ixq/dZ/EO0QzmJ4U8XbtGtKfzpd0=
 github.com/fsnotify/fsnotify v1.4.7/go.mod h1:jwhsz4b93w/PPRr/qN1Yymfu8t87LnFCMoQvtojpjFo=

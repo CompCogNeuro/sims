@@ -77,31 +77,31 @@ type Sim struct {
 	GbarL float32 `default:"2" min:"0" max:"4" step:"0.05"`
 
 	// the network -- click to view / edit parameters for layers, paths, etc
-	Net *leabra.Network `display:"no-inline"`
+	Net *leabra.Network `new-window:"+" display:"no-inline"`
 
 	// network parameter management
-	Params emer.NetParams `display:"inline"`
+	Params emer.NetParams `display:"-"`
 
 	// contains looper control loops for running sim
-	Loops *looper.Manager `display:"no-inline"`
+	Loops *looper.Manager `display:"-"`
 
 	// contains computed statistic values
-	Stats estats.Stats
+	Stats estats.Stats `display:"-"`
 
 	// Contains all the logs and information about the logs.'
-	Logs elog.Logs
+	Logs elog.Logs `display:"-"`
 
 	// the training patterns to use
-	Pats *table.Table `display:"no-inline"`
+	Patterns *table.Table `new-window:"+" display:"no-inline"`
 
 	// Environments
-	Envs env.Envs `display:"no-inline"`
+	Envs env.Envs `display:"-"`
 
 	// leabra timing parameters and state
-	Context leabra.Context
+	Context leabra.Context `display:"-"`
 
 	// netview update parameters
-	ViewUpdate netview.ViewUpdate `display:"inline"`
+	ViewUpdate netview.ViewUpdate `display:"add-fields"`
 
 	// manages all the gui elements
 	GUI egui.GUI `display:"-"`
@@ -116,7 +116,7 @@ func (ss *Sim) New() {
 	ss.Net = leabra.NewNetwork("Detector")
 	ss.Params.Config(ParamSets, "", "", ss.Net)
 	ss.Stats.Init()
-	ss.Pats = &table.Table{}
+	ss.Patterns = &table.Table{}
 	ss.RandSeeds.Init(100) // max 100 runs
 	ss.InitRandSeed(0)
 	ss.Context.Defaults()
@@ -131,7 +131,7 @@ func (ss *Sim) Defaults() {
 
 // ConfigAll configures all the elements using the standard functions
 func (ss *Sim) ConfigAll() {
-	ss.OpenPats()
+	ss.OpenPatterns()
 	ss.ConfigEnv()
 	ss.ConfigNet(ss.Net)
 	ss.ConfigLogs()
@@ -148,7 +148,7 @@ func (ss *Sim) ConfigEnv() {
 	}
 
 	tst.Name = etime.Test.String()
-	tst.Config(table.NewIndexView(ss.Pats))
+	tst.Config(table.NewIndexView(ss.Patterns))
 	tst.Sequential = true
 	tst.Init(0)
 
@@ -174,7 +174,7 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 func (ss *Sim) InitWeights(net *leabra.Network) {
 	net.InitWeights()
 	digit := 8
-	pats := ss.Pats
+	pats := ss.Patterns
 	dpat := pats.Tensor("Input", digit)
 	recv := net.LayerByName("RecvNeuron")
 	pthi, _ := recv.RecvPathBySendName("Input")
@@ -280,11 +280,11 @@ func (ss *Sim) NewRun() {
 }
 
 /////////////////////////////////////////////////////////////////////////
-//   Pats
+//   Patterns
 
-func (ss *Sim) OpenPats() {
-	dt := ss.Pats
-	dt.SetMetaData("name", "DigitPats")
+func (ss *Sim) OpenPatterns() {
+	dt := ss.Patterns
+	dt.SetMetaData("name", "Digits")
 	dt.SetMetaData("desc", "Digit testing patterns")
 	err := dt.OpenFS(patsfs, "digits.tsv", table.Tab)
 	if err != nil {

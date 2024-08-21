@@ -13,11 +13,13 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"time"
 
 	"cogentcore.org/core/core"
 	"cogentcore.org/core/icons"
 	"cogentcore.org/core/math32/minmax"
 	"cogentcore.org/core/plot/plotcore"
+	"cogentcore.org/core/system"
 	"cogentcore.org/core/tree"
 	"github.com/emer/emergent/v2/egui"
 	"github.com/emer/emergent/v2/elog"
@@ -95,28 +97,25 @@ type Sim struct {
 	UpdateInterval int `min:"1" def:"10"`
 
 	// the network -- click to view / edit parameters for layers, paths, etc
-	Net *leabra.Network `display:"no-inline"`
+	Net *leabra.Network `display:"-"`
 
 	SpikeParams spike.ActParams `view:"no-inline"`
 	// testing trial-level log data -- click to see record of network's response to each input
 
 	// leabra timing parameters and state
-	Context leabra.Context
+	Context leabra.Context `display:"-"`
 
 	// contains computed statistic values
-	Stats estats.Stats
+	Stats estats.Stats `display:"-"`
 
 	// logging
-	Logs elog.Logs `display:"no-inline"`
+	Logs elog.Logs `display:"-"`
 
 	// all parameter management
-	Params emer.NetParams `display:"inline"`
-
-	// current cycle of updating
-	Cycle int `edit:"-"`
+	Params emer.NetParams `display:"-"`
 
 	// netview update parameters
-	ViewUpdate netview.ViewUpdate `display:"inline"`
+	ViewUpdate netview.ViewUpdate `display:"add-fields"`
 
 	// manages all the gui elements
 	GUI egui.GUI `display:"-"`
@@ -137,7 +136,6 @@ func (ss *Sim) Defaults() {
 	ss.SpikeParams.Defaults()
 	ss.Params.Config(ParamSets, "", "", ss.Net)
 	ss.UpdateInterval = 10
-	ss.Cycle = 0
 	ss.Spike = true
 	ss.GbarE = 0.3
 	ss.GbarL = 0.3
@@ -294,6 +292,7 @@ func (ss *Sim) SpikeVsRate() {
 	// ss.KNaAdapt = false
 	tcl := ss.Logs.Table(etime.Test, etime.Cycle)
 	svr := ss.Logs.MiscTable("SpikeVsRate")
+	svp := ss.GUI.Plots[etime.ScopeKey("SpikeVsRate")]
 	for gbarE := 0.1; gbarE <= 0.7; gbarE += 0.025 {
 		ss.GbarE = float32(gbarE)
 		spike := float64(0)
@@ -319,6 +318,9 @@ func (ss *Sim) SpikeVsRate() {
 			}
 			act := tcl.Float("Act", 159)
 			rate += act
+			if core.TheApp.Platform() == system.Web {
+				time.Sleep(time.Millisecond) // critical to prevent hanging!
+			}
 		}
 		if ss.GUI.StopNow {
 			break
@@ -329,10 +331,13 @@ func (ss *Sim) SpikeVsRate() {
 		svr.SetFloat("GBarE", row, gbarE)
 		svr.SetFloat("Spike", row, spike)
 		svr.SetFloat("Rate", row, rate)
+		svp.GoUpdatePlot()
 		row++
 	}
 	ss.Defaults()
-	ss.GUI.Plots[etime.ScopeKey("SpikeVsRate")].UpdatePlot()
+	svp.GoUpdatePlot()
+	ss.GUI.IsRunning = false
+	ss.GUI.UpdateWindow()
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -483,7 +488,8 @@ func (ss *Sim) ConfigGUI() {
 			Tooltip: "Generate a plot of actual spiking rate vs computed NXX1 rate code.",
 			Active:  egui.ActiveStopped,
 			Func: func() {
-				ss.SpikeVsRate()
+				ss.GUI.IsRunning = true
+				go ss.SpikeVsRate()
 				ss.GUI.UpdateWindow()
 			},
 		})
