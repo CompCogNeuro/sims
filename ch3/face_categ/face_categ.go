@@ -270,9 +270,12 @@ func (ss *Sim) InitRandSeed(run int) {
 func (ss *Sim) ConfigLoops() {
 	man := looper.NewManager()
 
+	ev := ss.Envs.ByMode(etime.Test).(*env.FixedTable)
+	ntrls := ev.Table.Len()
+
 	man.AddStack(etime.Test).
 		AddTime(etime.Epoch, 1).
-		AddTime(etime.Trial, 10).
+		AddTime(etime.Trial, ntrls).
 		AddTime(etime.Cycle, 20)
 
 	leabra.LooperStdPhases(man, &ss.Context, ss.Net, 15, 19)
@@ -424,20 +427,21 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 
 // ClusterPlots computes all the cluster plots from the faces input data
 func (ss *Sim) ClusterPlots() {
-	ss.ClusterPlot(ss.GUI.Plots[etime.ScopeKey("ClustFaces")], ss.Patterns, "Input")
-	ss.ClusterPlot(ss.GUI.Plots[etime.ScopeKey("ClustEmote")], ss.Patterns, "Emotion")
-	ss.ClusterPlot(ss.GUI.Plots[etime.ScopeKey("ClustGend")], ss.Patterns, "Gender")
-	ss.ClusterPlot(ss.GUI.Plots[etime.ScopeKey("ClustIdent")], ss.Patterns, "Identity")
-
-	ss.PrjnPlot()
+	// ss.Envs.ByMode(etime.Test).Init(0)
+	// ss.Loops.ResetAndRun(etime.Test)
+	ss.ClusterPlot(ss.GUI.PlotByName("ClustFaces"), ss.Patterns, "Input")
+	ss.ClusterPlot(ss.GUI.PlotByName("ClustEmote"), ss.Patterns, "Emotion")
+	ss.ClusterPlot(ss.GUI.PlotByName("ClustGend"), ss.Patterns, "Gender")
+	ss.ClusterPlot(ss.GUI.PlotByName("ClustIdent"), ss.Patterns, "Identity")
+	ss.ProjectionPlot()
 }
 
 // ClusterPlot does one cluster plot on given table column
 func (ss *Sim) ClusterPlot(plt *plotcore.PlotEditor, dt *table.Table, colNm string) {
 	ix := table.NewIndexView(dt)
-	smat := &simat.SimMat{}
+	smat := simat.NewSimMat()
 	smat.TableColStd(ix, colNm, "Name", false, metric.Euclidean)
-	pt := &table.Table{}
+	pt := table.NewTable()
 	clust.Plot(pt, clust.Glom(smat, clust.MinDist), smat)
 	plt.Options.Title = "Cluster Plot of Faces " + colNm
 	plt.Options.XAxis = "X"
@@ -448,8 +452,7 @@ func (ss *Sim) ClusterPlot(plt *plotcore.PlotEditor, dt *table.Table, colNm stri
 	plt.SetColumnOptions("Label", plotcore.On, plotcore.FixMin, 0, plotcore.FloatMax, 0)
 }
 
-func (ss *Sim) PrjnPlot() {
-	// ss.TestAll()
+func (ss *Sim) ProjectionPlot() {
 	rvec0 := ss.Stats.F32Tensor("rvec0")
 	rvec1 := ss.Stats.F32Tensor("rvec1")
 	rvec0.SetShape([]int{256})
@@ -461,15 +464,15 @@ func (ss *Sim) PrjnPlot() {
 
 	tst := ss.Logs.Table(etime.Test, etime.Trial)
 	nr := tst.Rows
-	dt := ss.Logs.MiscTable("PrjnTable")
-	ss.ConfigPrjnTable(dt)
+	dt := ss.Logs.MiscTable("ProjectionTable")
+	ss.ConfigProjectionTable(dt)
 
 	for r := 0; r < nr; r++ {
 		// single emotion dimension from sad to happy
-		emote := 0.5*tst.TensorFloat1D("Emotion", r, 0) + -0.5*tst.TensorFloat1D("Emotion", r, 1)
+		emote := 0.5*tst.TensorFloat1D("Emotion_Act", r, 0) + -0.5*tst.TensorFloat1D("Emotion_Act", r, 1)
 		emote += .1 * (2*rand.Float64() - 1) // some jitter so labels are readable
 		// single geneder dimension from male to femail
-		gend := 0.5*tst.TensorFloat1D("Gender", r, 0) + -0.5*tst.TensorFloat1D("Gender", r, 1)
+		gend := 0.5*tst.TensorFloat1D("Gender_Act", r, 0) + -0.5*tst.TensorFloat1D("Gender_Act", r, 1)
 		gend += .1 * (2*rand.Float64() - 1) // some jitter so labels are readable
 		input := tst.Tensor("Input_Act", r).(*tensor.Float32)
 		rprjn0 := metric.InnerProduct32(rvec0.Values, input.Values)
@@ -482,40 +485,42 @@ func (ss *Sim) PrjnPlot() {
 		dt.SetFloat("RndPrjn1", r, float64(rprjn1))
 	}
 
-	plt := ss.GUI.Plots[etime.ScopeKey("PrjnRandom")]
-	plt.Options.Title = "Face Random Prjn Plot"
+	plt := ss.GUI.PlotByName("ProjectionRandom")
+	plt.Options.Title = "Face Random Projection Plot"
 	plt.Options.XAxis = "RndPrjn0"
 	plt.SetTable(dt)
 	plt.Options.Lines = false
 	plt.Options.Points = true
 	// order of params: on, fixMin, min, fixMax, max
-	plt.SetColumnOptions("TrialName", plotcore.On, plotcore.FixMin, 0, plotcore.FloatMax, 0)
+	plt.SetColumnOptions("TrialName", plotcore.On, plotcore.FloatMin, 0, plotcore.FloatMax, 0)
 	plt.SetColumnOptions("RndPrjn0", plotcore.Off, plotcore.FixMin, -1, plotcore.FixMax, 1)
 	plt.SetColumnOptions("RndPrjn1", plotcore.On, plotcore.FixMin, -1, plotcore.FixMax, 1)
 
-	plt = ss.GUI.Plots[etime.ScopeKey("PrjnEmoteGend")]
-	plt.Options.Title = "Face Emotion / Gender Prjn Plot"
+	plt = ss.GUI.PlotByName("ProjectionEmoteGend")
+	plt.Options.Title = "Face Emotion / Gender Projection Plot"
 	plt.Options.XAxis = "GendPrjn"
 	plt.SetTable(dt)
 	plt.Options.Lines = false
 	plt.Options.Points = true
 	// order of params: on, fixMin, min, fixMax, max
-	plt.SetColumnOptions("TrialName", plotcore.On, plotcore.FixMin, 0, plotcore.FloatMax, 0)
+	plt.SetColumnOptions("TrialName", plotcore.On, plotcore.FloatMin, 0, plotcore.FloatMax, 0)
 	plt.SetColumnOptions("GendPrjn", plotcore.Off, plotcore.FixMin, -1, plotcore.FixMax, 1)
 	plt.SetColumnOptions("EmotePrjn", plotcore.On, plotcore.FixMin, -1, plotcore.FixMax, 1)
 }
 
-func (ss *Sim) ConfigPrjnTable(dt *table.Table) {
-	dt.SetMetaData("name", "PrjnTable")
+func (ss *Sim) ConfigProjectionTable(dt *table.Table) {
+	dt.SetMetaData("name", "ProjectionTable")
 	dt.SetMetaData("desc", "projection of data onto dimension")
 	dt.SetMetaData("read-only", "true")
 
-	dt.AddIntColumn("Trial")
-	dt.AddStringColumn("TrialName")
-	dt.AddFloat64Column("GendPrjn")
-	dt.AddFloat64Column("EmotePrjn")
-	dt.AddFloat64Column("RndPrjn0")
-	dt.AddFloat64Column("RndPrjn1")
+	if dt.NumColumns() == 0 {
+		dt.AddIntColumn("Trial")
+		dt.AddStringColumn("TrialName")
+		dt.AddFloat64Column("GendPrjn")
+		dt.AddFloat64Column("EmotePrjn")
+		dt.AddFloat64Column("RndPrjn0")
+		dt.AddFloat64Column("RndPrjn1")
+	}
 	ev := ss.Envs.ByMode(etime.Test).(*env.FixedTable)
 	nt := ev.Table.Len() // number in indexview
 	dt.SetNumRows(nt)
@@ -569,12 +574,12 @@ func (ss *Sim) ConfigGUI() {
 
 	ss.GUI.AddPlots(title, &ss.Logs)
 
-	ss.GUI.Plots[etime.ScopeKey("ClustFaces")] = plotcore.NewSubPlot(ss.GUI.Tabs.NewTab("ClustFaces"))
-	ss.GUI.Plots[etime.ScopeKey("ClustEmote")] = plotcore.NewSubPlot(ss.GUI.Tabs.NewTab("ClustEmote"))
-	ss.GUI.Plots[etime.ScopeKey("ClustGend")] = plotcore.NewSubPlot(ss.GUI.Tabs.NewTab("ClustGend"))
-	ss.GUI.Plots[etime.ScopeKey("ClustIdent")] = plotcore.NewSubPlot(ss.GUI.Tabs.NewTab("ClustIdent"))
-	ss.GUI.Plots[etime.ScopeKey("PrjnRandom")] = plotcore.NewSubPlot(ss.GUI.Tabs.NewTab("PrjnRandom"))
-	ss.GUI.Plots[etime.ScopeKey("PrjnEmoteGend")] = plotcore.NewSubPlot(ss.GUI.Tabs.NewTab("PrjnEmoteGend"))
+	ss.GUI.AddMiscPlotTab("ClustFaces")
+	ss.GUI.AddMiscPlotTab("ClustEmote")
+	ss.GUI.AddMiscPlotTab("ClustGend")
+	ss.GUI.AddMiscPlotTab("ClustIdent")
+	ss.GUI.AddMiscPlotTab("ProjectionRandom")
+	ss.GUI.AddMiscPlotTab("ProjectionEmoteGend")
 
 	ss.GUI.Body.AddAppBar(func(p *tree.Plan) {
 		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Init", Icon: icons.Update,

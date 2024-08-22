@@ -215,9 +215,12 @@ func (ss *Sim) InitRandSeed(run int) {
 func (ss *Sim) ConfigLoops() {
 	man := looper.NewManager()
 
+	ev := ss.Envs.ByMode(etime.Test).(*env.FixedTable)
+	ntrls := ev.Table.Len()
+
 	man.AddStack(etime.Test).
 		AddTime(etime.Epoch, 1).
-		AddTime(etime.Trial, 10).
+		AddTime(etime.Trial, ntrls).
 		AddTime(etime.Cycle, 20)
 
 	leabra.LooperStdPhases(man, &ss.Context, ss.Net, 15, 19)

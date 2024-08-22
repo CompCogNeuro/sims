@@ -18,7 +18,6 @@ import (
 	"cogentcore.org/core/core"
 	"cogentcore.org/core/icons"
 	"cogentcore.org/core/math32/minmax"
-	"cogentcore.org/core/plot/plotcore"
 	"cogentcore.org/core/system"
 	"cogentcore.org/core/tree"
 	"github.com/emer/emergent/v2/egui"
@@ -415,7 +414,7 @@ func (ss *Sim) ResetTestCyclePlot() {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
-// 		Gui
+// 		GUI
 
 func (ss *Sim) ConfigNetView(nv *netview.NetView) {
 	// nv.ViewDefaults()
@@ -438,8 +437,7 @@ func (ss *Sim) ConfigGUI() {
 
 	svr := "SpikeVsRate"
 	dt := ss.Logs.MiscTable(svr)
-	plt := plotcore.NewSubPlot(ss.GUI.Tabs.NewTab(svr + " Plot"))
-	ss.GUI.Plots[etime.ScopeKey(svr)] = plt
+	plt := ss.GUI.AddMiscPlotTab(svr + " Plot")
 	plt.Options.Title = svr
 	plt.Options.XAxis = "GBarE"
 	plt.SetTable(dt)
