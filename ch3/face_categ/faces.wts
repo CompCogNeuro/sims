@@ -7,7 +7,7 @@
 				"ActMAvg": "0.4857",
 				"ActPAvg": "0.4857"
 			},
-			"Prjns": [
+			"Paths": [
 				{
 					"From": "Emotion",
 					"MetaData": {
@@ -4648,7 +4648,7 @@
 				"ActMAvg": "0.15",
 				"ActPAvg": "0.15"
 			},
-			"Prjns": [
+			"Paths": [
 				{
 					"From": "Input",
 					"MetaData": {
@@ -4677,7 +4677,7 @@
 				"ActMAvg": "0.15",
 				"ActPAvg": "0.15"
 			},
-			"Prjns": [
+			"Paths": [
 				{
 					"From": "Input",
 					"MetaData": {
@@ -4706,7 +4706,7 @@
 				"ActMAvg": "0.15",
 				"ActPAvg": "0.15"
 			},
-			"Prjns": [
+			"Paths": [
 				{
 					"From": "Input",
 					"MetaData": {
