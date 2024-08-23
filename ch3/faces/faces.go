@@ -494,6 +494,7 @@ func (ss *Sim) ProjectionPlot() {
 	plt.Options.Points = true
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColumnOptions("TrialName", plotcore.On, plotcore.FloatMin, 0, plotcore.FloatMax, 0)
+	plt.SetColumnOptions("GendPrjn", plotcore.Off, plotcore.FixMin, -1, plotcore.FixMax, 1)
 	plt.SetColumnOptions("RndPrjn0", plotcore.Off, plotcore.FixMin, -1, plotcore.FixMax, 1)
 	plt.SetColumnOptions("RndPrjn1", plotcore.On, plotcore.FixMin, -1, plotcore.FixMax, 1)
 

@@ -97,3 +97,8 @@ At a technical level, the ability of the network to fill in the missing parts of
 
 Also, you might be surprised to know that most of the neural networks currently powering modern AI applications do *not* have this bidirectional connectivity, and thus lack the corresponding flexibilty of human knowledge and memory.
 
+# Weights as a Projection operation
+
+TODO:
+
+
