@@ -23,6 +23,7 @@ import (
 	"cogentcore.org/core/base/randx"
 	"cogentcore.org/core/core"
 	"cogentcore.org/core/icons"
+	"cogentcore.org/core/math32"
 	"cogentcore.org/core/plot/plotcore"
 	"cogentcore.org/core/tensor"
 	"cogentcore.org/core/tensor/stats/clust"
@@ -553,6 +554,9 @@ func (ss *Sim) ConfigNetView(nv *netview.NetView) {
 	nms.Pose.Pos.Y += .1
 	nms.Pose.Scale.SetMulScalar(0.5)
 	nms.Pose.RotateOnAxis(0, 1, 0, 180)
+
+	nv.SceneXYZ().Camera.Pose.Pos.Set(0, 1.7, 2.37)
+	nv.SceneXYZ().Camera.LookAt(math32.Vec3(0, 0, 0), math32.Vec3(0, 1, 0))
 }
 
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
@@ -568,9 +572,6 @@ func (ss *Sim) ConfigGUI() {
 	ss.GUI.ViewUpdate = &ss.ViewUpdate
 	nv.Current()
 	ss.ConfigNetView(nv)
-
-	// nv.SceneXYZ().Camera.Pose.Pos.Set(0, 1, 2.75) // more "head on" than default which is more "top down"
-	// nv.SceneXYZ().Camera.LookAt(math32.Vec3(0, 0, 0), math32.Vec3(0, 1, 0))
 
 	ss.GUI.AddPlots(title, &ss.Logs)
 
