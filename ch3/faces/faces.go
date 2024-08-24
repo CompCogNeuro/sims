@@ -184,9 +184,13 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 	net.SetRandSeed(ss.RandSeeds[0]) // init new separate random seed, using run = 0
 
 	inp := net.AddLayer2D("Input", 16, 16, leabra.InputLayer)
+	inp.Info = "Input represents visual image inputs in a simple cartoon form."
 	emo := net.AddLayer2D("Emotion", 1, 2, leabra.CompareLayer)
+	emo.Info = "Emotion has synaptic weights that detect the facial features in the eyes and mouth that specifically reflect emotions."
 	gend := net.AddLayer2D("Gender", 1, 2, leabra.CompareLayer)
+	gend.Info = "Gender has synaptic weights that detect the hair and face features that discriminate male vs female gender in this simplified cartoon set of inputs."
 	iden := net.AddLayer2D("Identity", 1, 10, leabra.CompareLayer)
+	iden.Info = "Identity detects individual faces."
 
 	full := paths.NewFull()
 

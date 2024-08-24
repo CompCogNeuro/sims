@@ -160,7 +160,9 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 	net.SetRandSeed(ss.RandSeeds[0]) // init new separate random seed, using run = 0
 
 	inp := net.AddLayer2D("Input", 7, 5, leabra.InputLayer)
+	inp.Info = "Input represents the visual appearance of different digits."
 	recv := net.AddLayer2D("RecvNeuron", 1, 1, leabra.SuperLayer)
+	recv.Info = "RecvNeuron represents an individual neuron with synaptic weights tuned to detect the digit 8."
 
 	net.ConnectLayers(inp, recv, paths.NewFull(), leabra.ForwardPath)
 
