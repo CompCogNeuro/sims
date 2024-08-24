@@ -108,7 +108,12 @@ In the brain (or large networks of simulated spiking neurons), there are high le
 
 # Adaptation
 
-Cortical pyramidal neurons exhibit the property of spike rate adaptation. We are now using a more advanced form of adaptation than the form from the original AdEx model, based on sodium-gated potassium channels (K_na), which is turned on by the `KNaAdpat` parameter in the control panel. You can explore the basic effect of adaptation by turning this on and off.
+Cortical pyramidal neurons exhibit the property of spike rate adaptation. We are now using a more advanced form of adaptation than the form from the original AdEx model, based on sodium-gated potassium channels (K_na), which is turned on by the `KNaAdpat` parameter in the control panel. You can explore the basic effect of adaptation by turning this on and off. 
 
-You should observe that spiking is perfectly regular throughout the entire period of activity without adaptation, whereas with adaptation the rate decreases significantly over time. One benefit of adaptation is to make the system overall more sensitive to changes in the input -- the biggest signal strength is present at the onset of a new input, and then it "habituates" to any constant input. This is also more efficient, by not continuing to communicate spikes at a high rate for a constant input signal that presumably has already been processed after some point.
+You should observe that spiking is perfectly regular throughout the entire period of activity without adaptation, whereas with adaptation the rate decreases significantly over time. One benefit of adaptation is to make the system overall more sensitive to changes in the input -- the biggest signal strength is present at the onset of a new input, and then it "habituates" to any constant input. This is also more efficient, by not continuing to communicate spikes at a high rate for a constant input signal that presumably has already been processed after some point. As we will see in some other simulations later on, this adaptation also allows us to account for various perceptual and cognitive phenomena. 
+
+For those who want to explore the software a but more: If you want to make the adaptation effect more extreme, you can click on the "Neuron" label in the Netview, and a dialog box will open up. If you scroll down, you will see various parameters associated with the neuron layer, including GBarE and GBarL (which should be the same values as those you altered in the control panel). But you will also see others that were not in the control panel. To increase the effect of adaptation you can increase GBarK -- the mangitude of KNA adaptation effect as a conductance. Increase that from the default of 1 to a much larger value (e.g., 10) and you should see much stronger adaptation effects. 
+
+
+
 
