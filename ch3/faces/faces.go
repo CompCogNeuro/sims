@@ -495,8 +495,8 @@ func (ss *Sim) ProjectionPlot() {
 	// order of params: on, fixMin, min, fixMax, max
 	plt.SetColumnOptions("TrialName", plotcore.On, plotcore.FloatMin, 0, plotcore.FloatMax, 0)
 	plt.SetColumnOptions("GendPrjn", plotcore.Off, plotcore.FixMin, -1, plotcore.FixMax, 1)
-	plt.SetColumnOptions("RndPrjn0", plotcore.Off, plotcore.FixMin, -1, plotcore.FixMax, 1)
-	plt.SetColumnOptions("RndPrjn1", plotcore.On, plotcore.FixMin, -1, plotcore.FixMax, 1)
+	plt.SetColumnOptions("RndPrjn0", plotcore.Off, plotcore.FloatMin, -1, plotcore.FloatMax, 1)
+	plt.SetColumnOptions("RndPrjn1", plotcore.On, plotcore.FloatMin, -1, plotcore.FloatMax, 1)
 
 	plt = ss.GUI.PlotByName("ProjectionEmoteGend")
 	plt.Options.Title = "Face Emotion / Gender Projection Plot"

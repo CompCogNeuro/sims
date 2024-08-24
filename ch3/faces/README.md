@@ -99,6 +99,12 @@ Also, you might be surprised to know that most of the neural networks currently 
 
 # Weights as a Projection operation
 
-TODO:
+![How synaptic weights act to *project* input patterns along specific *dimensions* or bases, in this case projecting the inputs along the dimensions of Emotion and Gender.  In the left panel, the very high-dimensional face inputs (256 dimensions for a 16x16 image) are projected along two random weight vectors, allowing us to visualize this high-dimensional input space in a 2D plot.  In the right panel, the specific synaptic weights trained for discriminating along the emotion vs. gender dimensions have *transformed* or *rotated* the input space into a much more systematic and well-organized, low-dimensional space.  This is fundamentally what neurons do: organize and transform input patterns along relevant dimensions, and that is another way of stating that neurons detect stimuli along these dimensions. ](fig_face_categ_dim_prjn.png){#fig:fig-face-categ-dim-prjn width=100% }
+
+[@fig:fig-face-categ-dim-prjn], which is Figure 3.8 in the textbook, illustrates how synaptic weights function to *project input patterns along a specific **dimension** in a high-dimensional space*. This process is illustrated in the `ProjectionRandom` and `ProjectionEmoteGend` plots that were generated with the `Cluster Plot` action.  The `ProjectionRandom` plot shows what happens when the face inputs are projected along random dimensions, using random weights.  Specifically, each axis plots the *dot product* of the input face times the random weight values generated for each axis.  If you press `Cluster Plot` again, you can see a different random projection.  
+
+In general, you can see that the points for each person tend to land nearby to each other, which makes sense because the faces for the different emotions are overall relatively similar.  Further, you can also see a general grouping of the same emotion.  However, it is not systematically organized along the different dimensions.  By contrast, when you look at `ProjectionEmoteGend` plot, you can see that the X axis, which projects the input faces along the gender dimensions systematically sorts male vs female faces.  Likewise, the Y axis systematically separates sad vs. happy emotions.
+
+As noted in the textbook the neural weights *rotate* the input space along a new *basis set* which provides a different way of *encoding* the inputs that emphasizes certain relevant dimensions while collapsing across other less relevant dimensions.
 
 
