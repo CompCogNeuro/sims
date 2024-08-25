@@ -101,7 +101,7 @@ type Sim struct {
 	Net *leabra.Network `new-window:"+" display:"no-inline"`
 
 	// network parameter management
-	Params emer.NetParams `display:"-"`
+	Params emer.NetParams `display:"add-fields"`
 
 	// contains looper control loops for running sim
 	Loops *looper.Manager `display:"-"`
