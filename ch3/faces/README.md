@@ -20,7 +20,7 @@ Let's first examine the network, shown in the tab in the right 3D panel.  It has
 
 * `Identity` with 6 labeled units with the names given to the different faces in the input (Alberto, Betty, Lisa, Mark, Wendy, Zane) -- the network can categorize the individual despite differences in emotional expression. Four additional units are available if you want to explore further by adding new faces.
 
-* Select the `r.Wt` variable to view in the `Network` tab, and click on each of the different output category neurons in the network. This will display the weight values going into each neuron. 
+* Select the `Wts/r.Wt` variable to view in the `Network` tab, and click on each of the different output category neurons in the network. This will display the weight values going into each neuron. 
 
 These weights were learned in a way that makes their representations particularly obvious by looking at these weights, so you can hopefully see sensible-looking patterns for each unit. To further understand how this network works, we can look at the input face patterns and corresponding categorization values that it was trained on (this learning process is explained in the chapter on *Learning* in the textbook).
 
@@ -30,7 +30,7 @@ These weights were learned in a way that makes their representations particularl
 
 The next step in understanding the basics of the network is to see it respond to the inputs.
 
-* Select the `Act` value to view the neuron activities in the Network tab, and then change the `Step` level from `Trial` to `Cycle`, and click on the `Step` button to see the network respond to the first face, `Alberto_happy`, one cycle of updating at a time.  You can also use the VCR buttons in the lower-right of the Network tab, after the `Time` label, to review how the network responded cycle-by-cycle -- use the fast-reverse to skip back to the start and then single-step forward in time to see things unfolding cycle-by-cycle.
+* Select the `Act/Act` value to view the neuron activities in the Network tab, and then change the `Step` level from `Trial` to `Cycle`, and click on the `Step` button to see the network respond to the first face, `Alberto_happy`, one cycle of updating at a time.  You can also use the VCR buttons in the lower-right of the Network tab, after the `Time` label, to review how the network responded cycle-by-cycle -- use the fast-reverse to skip back to the start and then single-step forward in time to see things unfolding cycle-by-cycle.
 
 You should see the network process the face input and activate the appropriate output categories for it (e.g., for the first pattern, it will activate `happy`, `male`, and `Alberto`). 
 

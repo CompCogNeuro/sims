@@ -11,7 +11,7 @@ We will see how a particular pattern of weights makes a simulated neuron respond
 
 We begin by examining the `Network` tab, showing the Detector network. The network has an `Input` layer that will have patterns of activation in the shape of different digits, and these input neurons are connected to the receiving neuron (`RecvNeuron`) via a set of weighted synaptic connections. We can view the pattern of weights (synaptic strengths) that this receiving unit has from the input, which should give us an idea about what this unit will detect.
 
-* Select `r.Wt` as the value you want to display (on the left side of the 3D network view) and then click on the `RecvNeuron` to view its receiving weights.
+* Select the `Wts` tab at the top of the list of network variables at the left of the Network view, then click `r.Wt` as the value you want to display, and then click on the `RecvNeuron` to view its receiving weights.
 
 You should now see the `Input` grid lit up in the pattern of an `8`. This is the weight pattern for the receiving unit for connections from the input units, with the weight value displayed in the corresponding sending (input) unit. Thus, when the input units have an activation pattern that matches this weight pattern, the receiving unit will be maximally activated. Input patterns that are close to the target `8` input will produce graded activations as a function of how close they are. Thus, this pattern of weights determines what the unit detects, as we will see. First, we will examine the patterns of inputs that will be presented to the network.
 
@@ -23,7 +23,7 @@ The display that comes up shows all of the different *input patterns* that will 
 
 To see the receiving neuron respond to these input patterns, we will present them one-by-one, and determine why the neuron responds as it does given its weights. Thus, we need to view the activations again in the network window.
 
-* Select `Act` in the `Network` to view activations, then click the `Step` button in the toolbar at the top of the window, which will step one `Trial` as indicated.
+* Select `Act` in the `Network` (under the `Act` tab) to view activations, then click the `Step` button in the toolbar at the top of the window, which will step one `Trial` as indicated.
 
 This activates the pattern of a `0` (zero) in the `Input`, and shows 20 cycles of **settling** process where the activation of the receiving unit is iteratively updated over a series of **cycles** according to the point neuron activation function (just as the unit in the `neuron` simulation was updated over time).  We have selected 20 cycles as enough time for the receiving neuron to fully respond to the input.
 
@@ -47,9 +47,9 @@ The graph shows the activation (`Act`) for the unit as a function of trial (and 
 
 Now, let's try to understand exactly why the unit responds as it does. The key to doing so is to understand the relationship between the pattern of weights and the input pattern.
 
-* Click the `Digits` button again (if the window was closed) and scroll inside so that the `8` digit is visible. Now resize the whole window so it is roughly big enough to only show the `8` and position the window so it is next to the main window that includes the `Network` display. The idea is that you can see both side-by-side, so you may want/need to shrink the main window to prevent occlusion of the `Digits` window.  Then do `Init` in the toolbar and `Step` for each input digit in turn.
+* Go back to the `Wts/r.Wt` display in the Network, then click the `Digits` button again (if the window was closed), and make sure you can see the weights as well.  The idea is to compare the weights with the digit patterns.
 
-> **Question 2.8:** For each digit, report the number of active `Input` units where there is also a weight of 1 according to the `8` digit pattern.  In other words, report the *overlap* between the input activity and the weight pattern. *HINT: Strictly speaking, the `8` display in the `Digits` window is NOT representing the weights per se, but as we saw earlier using the `r.Wt` functionality in `Network,` they are the same pattern -- and displaying the windows side-by-side just makes the counting easier.* 
+> **Question 2.8:** For each digit pattern, report the number of active units in the pattern where there is also a weight of 1 according to the `8` digit pattern shown in the `r.Wt` view in the Network.  In other words, report the *overlap* between the digit input activity and the weight pattern.
 
 The number of inputs having a weight of 1 that you just calculated should correspond to the total excitatory input `Ge`, also called the **net input**, going into the receiving unit, which is a function of the average of the sending activation `Act` times the weight `Wt` over all the units, with a correction factor for the expected activity level in the layer, `Alpha`:
 
@@ -75,7 +75,7 @@ Next, we will explore how we can change how much information is conveyed by the 
 
 **IMPORTANT:** you must press `Init` for changes in `GbarL` to take effect!
 
-* Reduce the `GbarL` value from 2 to 1.8, and do `Init` then `Step` (you might want to change `View update` `Test` to `AlphaCycle` instead of `Cycle` so it only shows the final result of setting for each input).  You can alternatively just hit `Test Run` and look at the `Test Trial Plot`.
+* Reduce the `GbarL` value from 2 to 1.8, and do `Init` then `Step` (you might want to change `View update` `Test` to `AlphaCycle` instead of `Cycle` so it only shows the final result of setting for each input, and go back to viewing `Act`).  You can alternatively just hit `Test Run` and look at the `Test Trial Plot`.
 
 > **Question 2.9:** What happens to the pattern of receiving neuron activity over the different digits when you change GbarL to 1.8, 1.5, and 2.3 -- which input digits does it respond to for each case?  In terms of the tug-of-war model between excitatory and inhibition & leak (i.e., GbarL = leak), why does changing leak have this effect (a simple one-sentence answer is sufficient)?
 
