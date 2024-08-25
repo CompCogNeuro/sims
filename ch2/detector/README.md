@@ -71,7 +71,7 @@ As a result of working through the Ge net input calculation, you should now have
 
 # Manipulating Leak
 
-Next, we will explore how we can change how much information is conveyed by the activation signal. We will manipulate the leak current (`GbarL`), which has a default value of 2. Without a strong leak, the excitatory inputs for many of the other input patterns might put the receiving unit above threshold. For this simple detector, we want only the strongest (best fitting) input pattern (the 8) to activate the unit.
+Next, we will explore how we can change how much information is conveyed by the activation signal. We will manipulate the leak current (`GbarL`), which has a default value of 2. With this leak, only the strongest (best fitting) input pattern (the 8) activates the unit. Without a strong leak like this, the excitatory inputs for many of the other input patterns might put the receiving unit above threshold. 
 
 **IMPORTANT:** you must press `Init` for changes in `GbarL` to take effect!
 
