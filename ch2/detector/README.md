@@ -47,7 +47,7 @@ The graph shows the activation (`Act`) for the unit as a function of trial (and 
 
 Now, let's try to understand exactly why the unit responds as it does. The key to doing so is to understand the relationship between the pattern of weights and the input pattern.
 
-* Click the `Digits` button again (it the window was closed) and scroll inside so that the `8` digit is visible. Now resize the whole window so it is roughly big enough to only show the `8` and position the window so it is next to the main window that includes the `Network` display. The idea is that you can see both side-by-side, so you may want/need to shrink the main window to prevent occlusion of the `Digits` window.  Then do `Init` in the toolbar and `Step` for each input digit in turn.
+* Click the `Digits` button again (if the window was closed) and scroll inside so that the `8` digit is visible. Now resize the whole window so it is roughly big enough to only show the `8` and position the window so it is next to the main window that includes the `Network` display. The idea is that you can see both side-by-side, so you may want/need to shrink the main window to prevent occlusion of the `Digits` window.  Then do `Init` in the toolbar and `Step` for each input digit in turn.
 
 > **Question 2.8:** For each digit, report the number of active `Input` units where there is also a weight of 1 according to the `8` digit pattern.  In other words, report the *overlap* between the input activity and the weight pattern. *HINT: Strictly speaking, the `8` display in the `Digits` window is NOT representing the weights per se, but as we saw earlier using the `r.Wt` functionality in `Network,` they are the same pattern -- and displaying the windows side-by-side just makes the counting easier.* 
 
@@ -71,7 +71,7 @@ As a result of working through the Ge net input calculation, you should now have
 
 # Manipulating Leak
 
-Next, we will explore how we can change how much information is conveyed by the activation signal. We will manipulate the leak current (`GbarL`), which has a default value of 2, which is sufficient to oppose the strength of the excitatory inputs for all but the strongest (best fitting) input pattern (the 8).
+Next, we will explore how we can change how much information is conveyed by the activation signal. We will manipulate the leak current (`GbarL`), which has a default value of 2. Without a strong leak, the excitatory inputs for many of the other input patterns might put the receiving unit above threshold. For this simple detector, we want only the strongest (best fitting) input pattern (the 8) to activate the unit.
 
 **IMPORTANT:** you must press `Init` for changes in `GbarL` to take effect!
 
