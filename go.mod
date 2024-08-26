@@ -4,8 +4,8 @@ go 1.22
 
 require (
 	cogentcore.org/core v0.3.3-0.20240825182959-fe4840922a21
-	github.com/emer/emergent/v2 v2.0.0-dev0.1.0.0.20240825183141-a2d399e6a078
-	github.com/emer/leabra/v2 v2.0.0-20240825183321-e6490fc351ea
+	github.com/emer/emergent/v2 v2.0.0-dev0.1.0.0.20240826102207-14a576d51386
+	github.com/emer/leabra/v2 v2.0.0-20240826103107-b5138f8099e6
 )
 
 require (
