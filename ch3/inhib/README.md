@@ -4,39 +4,43 @@ Back to [All Sims](https://github.com/CompCogNeuro/sims) (also for general info 
 
 This simulation explores how inhibitory interneurons can dynamically control overall activity levels within the network, by providing both feedforward and feedback inhibition to excitatory pyramidal neurons.  This inhibition is critical when neurons have bidirectional excitatory connections, as otherwise the positive feedback loops will result in the equivalent of epileptic seizures -- runaway excitatory activity.
 
-The network in the right view panel contains a 10x10 unit `Input` layer, which projects to both the 10x10 hidden layer of excitatory units, and a layer of 20 inhibitory neurons. These inhibitory neurons will regulate the activation level of the hidden layer units, and should be thought of as the inhibitory units for the hidden layer (even though they are in their own layer for the purposes of this simulation). The ratio of 20 inhibitory units to 120 total hidden units (17 percent) is like that found in the cortex, which is commonly cited as roughly 15 percent (White, 1989a; Zilles, 1990). The inhibitory neurons are just like the excitatory neurons, except that their outputs contribute to the inhibitory conductance of a neuron instead of its excitatory conductance. We have also set one of the activation parameters to be different for these inhibitory neurons, as discussed below.
+We begin with a simpler *feedforward* (FF) network as shown in the `FF Net` tab, which contains a 10x10 unit `Input` layer that projects to both the 10x10 `Hidden` layer of excitatory units, and a layer of 20 `Inhib` inhibitory neurons. These inhibitory neurons will regulate the activation level of the hidden layer units, and should be thought of as the inhibitory units for the hidden layer (even though they are in their own layer for the purposes of this simulation). The ratio of 20 inhibitory units to 120 total hidden units (17 percent) is like that found in the cortex, which is commonly cited as roughly 15 percent (White, 1989a; Zilles, 1990). The inhibitory neurons are just like the excitatory neurons, except that their outputs contribute to the inhibitory conductance of a neuron instead of its excitatory conductance. We have also set one of the activation parameters to be different for these inhibitory neurons, as discussed below.
+
+After exploring this simpler FF network, we'll explore the `Bidir Net`, which has two hidden layers with mutual bidirectional excitatory connections.
 
 # Exploration
 
-Let's begin as usual by viewing the weights of the network.
+Let's begin as usual by viewing the connectivity and weights of the network.  First, you can observe the overall connectivity via the pathway arrows in the `FF Net` tab, showing excitatory projections from the `Input` to both the `Hidden` and `Inhib` layers, and bidirectional connectivity between these latter two layers, where the `Inhib` layer sends inhibition to itself and `Hidden`, while `Hidden` excites `Inhib`.
 
-* Select `r.Wt` in the `FF Net` netview and then click on some of the `Hidden` layer and `Inhib` layer units.
+* Select `Wts / r.Wt` in the `FF Net` netview and then click on some of the `Hidden` layer and `Inhib` layer units.
 
-Most of the weights are random, except for those from the inhibitory units, which are fixed at a constant value of .5. Notice also that the hidden layer excitatory units receive from the input and inhibitory units, while the inhibitory units receive feedforward connections from the input layer, and feedback connections from the excitatory hidden units, as well as inhibitory connections from themselves.
+Most of the weights are random, except for those from the inhibitory units, which are fixed at a constant value of .5, which is consistent with their more uniform impact across larger numbers of excitatory neurons.
 
 Now, we will run the network. Note the graph view above the network, which will record the overall levels of activation (average activation) in the hidden and inhibitory units.
 
-* Select `Act` to view activations in the network window, and press `Init` and `Test Trial` in the toolbar.
+* Select `Acts / Act` to view activations in the network window, and select `Cycle` for the `FF: Step` button, and then click that `Step` button to update over cycles (note that there are separate controls for the FF vs Bidir networks).
 
-You will see the input units activated by a random activity pattern, and after several cycles of activation updating, the hidden and inhibitory units will become active. The activation appears quite controlled, as the inhibition counterbalances the excitation from the input layer.
+You will see the input units activated by a random activity pattern, and after several cycles of activation updating, the inhibitory and then hidden units will become active. The activation appears quite controlled, as the inhibition anticipates and counterbalances the excitation from the input layer.
 
-* Select the `TstCycPlot` tab to view a plot of average activity in both the Inhib and Hidden layers -- you should see that the hidden layer (black line) has somewhere between 10-20 percent activation once it stabilizes after some initial oscillations.
+* Select the `Test Cycle Plot` tab to view a plot of average activity in both the Inhib and Hidden layers. You should see that the hidden layer has somewhere between 10-20 percent activation once it stabilizes after some initial oscillations.
 
 In the next sections, we manipulate some of the parameters in the control panel to get a better sense of the principles underlying the inhibitory dynamics in the network -- you can just stay with this plot view to see the results more quickly than watching the network view update.
+
+* Set the `FF Step` back to `Trial`.
 
 # Strength of Inhibitory Conductances
 
 Let's start by manipulating the maximal conductance for the inhibitory current into the excitatory units, `HiddenGbarI`, which multiplies the level of inhibition coming into the hidden layer (excitatory) neurons (this sets the `Act.Gbar.I` parameter in the Hidden layer). Clearly, one would predict that this plays an important role.
 
-* Decrease `HiddenGbarI` from .4 to .3 and do `Test Trial`. Then increase it to .5 and test again.
+* Decrease `HiddenGbarI` from .4 to .3 and do `Step`. Then increase it to .5 and test again.  Note that we are automatically applying the parameters at the start of each step, so you do not have to press `Init`.  You can also refer to the `Test Trial Plot` to see the final activity level for each trial, to see the parameter manipulation effects.
 
 > **Question 3.6:** What effects does decreasing and increasing `HiddenGbarI` have on the average level of excitation of the hidden units and of the inhibitory units, and why does it have these effects (simple one-sentence answer)?
 
-* Set `HiddenGBarI` back to .4 (or just hit the `Defaults` button). 
+* Set `HiddenGBarI` back to .4 (or just hit the `Defaults` button).  You can also double-click on the blue highlighted label for any parameter that is not at its default setting, to restore it to the default value.
 
 Now, let's see what happens when we manipulate the corresponding parameter for the inhibition coming into the inhibitory neurons, `InhibGbarI`. You might expect to get results similar to those just obtained for `HiddenGbarI`, but be careful -- inhibition upon inhibitory neurons could have interesting consequences.
 
-* First run with a `InhibGbarI` of .75 for comparison. Then decrease `InhibGbarI` to .6 and Run, and next increase `InhibGbarI` to 1.0 and Run. 
+* First run with a `InhibGbarI` of .75 for comparison. Then decrease `InhibGbarI` to .6 and Step, and next increase `InhibGbarI` to 1.0 and Step.
 
 With a `InhibGbarI` of .6, you should see that the excitatory activation drops, but the inhibitory level stays roughly the same! With a value of 1.0, the excitatory activation level increases, but the inhibition again remains the same. This is a difficult phenomenon to understand, but the following provide a few ways of thinking about what is going on.
 
@@ -85,7 +89,7 @@ One of the important things that inhibition must do is to compensate adequately 
 
 In this case, the network's weights are produced by generating random numbers with a mean of .25, and a uniform variance around that mean of .2.
 
-* Next, set the `TrainedWts` button on, do `Init` (this change does not take effect unless you do that, to initialize the network weights), and `Test Trial`.
+* Next, set the `TrainedWts` button on, do `Init` (this change does not take effect unless you do that, to initialize the network weights), and `Step Trial`.
 
 The weights are then initialized with the same mean but a variance of .7 using Gaussian (normally) distributed values. This produces a much higher variance of excitatory net inputs for units in the hidden layer.  There is also an increase in the total overall weight strength with the increase in variance because there is more room for larger weights above the .25 mean, but not much more below it.
 
@@ -99,19 +103,19 @@ You should observe a greater level of excitation using the trained weights compa
 
 To make things simpler at the outset, we have so far been exploring a relatively easy case for inhibition where the network does not have bidirectional excitatory connectivity, which is where inhibition really becomes essential to prevent runaway positive feedback dynamics. Now, let's try running a network with two bidirectionally connected hidden layers.
 
-* First, select Defaults to get back the default parameters, do a Run for comparison, and then click on the `BidirNet`, and click on the `Bidir Net` tab to view this network. 
+* First, select `Defaults` to get back the default parameters, then click on the `BidirNet` switch in the left panel, and click on the `Bidir Net` tab to view this network. 
 
 In extending the network to the bidirectional case, we also have to extend our notions of what feedforward inhibition is. In general, the role of feedforward inhibition is to anticipate and counterbalance the level of excitatory input coming into a layer. Thus, in a network with bidirectional excitatory connectivity, the inhibitory neurons for a given layer also have to receive the top-down excitatory connections, which play the role of "feedforward" inhibition.
 
 ⇒ Verify that this network has both bidirectional excitatory connectivity and the "feedforward" inhibition coming back from the second hidden layer by examining the `r.Wt` weights as usual. 
 
-* Now `Init` and `Test Trial` this network.  Then click back over to `TstCycPlot` to see average activity over time.
+* Now `Init` and `Step Trial` this network.  Then click back over to `Test Cycle Plot` to see average activity over time.
 
 The plot shows the average activity for only the first hidden and inhibitory layers (as before). Note that the initial part up until the point where the second hidden layer begins to be active is the same as before, but as the second layer activates, it feeds back to the first layer inhibitory neurons, which become more active, as do the excitatory neurons. However, the overall activity level remains quite under control and not substantially different than before.  Thus, the inhibition is able to keep the positive feedback dynamics fully in check.
 
 Next, we will see that inhibition is differentially important for bidirectionally connected networks.
 
-* Set the `HiddenGbarI` parameter to .35, and `Test Trial`.
+* Set the `HiddenGbarI` parameter to .35, and `Step Trial`.
 
 This reduces the amount of inhibition on the excitatory neurons. Note that this has a relatively small impact on the initial, feedforward portion of the activity curve, but when the second hidden layer becomes active, the network becomes catastrophically over activated -- an epileptic fit!
 
@@ -125,15 +129,15 @@ You should run this section after having read the *FFFB Inhibition Function* sec
 
 * Now, set `FFFBInhib` on to use the FFFB function described in the main text. Also set the `HiddenGbarI` and `InhibGbarI` parameters to 1 (otherwise the computed inhibition will be inaccurate), and the rate constant parameters to their defaults for normal (non unit inhib) operation, which is `HiddenGTau` and `InhibGTau` both to 1.4. Finally, you need to turn off the inhibitory projections (when present, these will contribute in addition to whatever is computed by FFFB - but we want to see how FFFB can do on its own): set `FmInhibWtScaleAbs` to 0 (this sets the absolute scaling factor of the connections from inhibitory neurons to 0, effectively nullifying these connections).  
 
-* Press `Test Trial`.
+* Press `Step Trial`.
 
 The activations should be right around the 10-15% activity level. How does this change with trained weights as compared to the default untrained weights?
 
-* Set `TrainedWts` on, do `Init`, and `Test Trial`.
+* Set `TrainedWts` on, do `Init`, and `Step Trial`.
 
 You should see the hidden activities approach the 20% level now -- this shows that FFFB inhibition is relatively flexible and overall activity levels are sensitive to overall input strength. You should also notice that FFFB dynamics allow the network to settle relatively quickly -- this is due to using direct and accurate statistics for the incoming netinput and average activations, as compared to the more approximate sampling available to interneurons. Thus, FFFB is probably still more powerful and effective than the real biological system, but this does allow us to run our models very efficiently -- for a small number of cycles per input.
 
-* To test the set point behavior of the FFFB functions, we can vary the amount of excitatory input by changing the `InputPct` levels, to 10 and 30 instead of the 20% default. After you change `InputPct`, you need to do `ConfigPats` in the toolbar (this makes a new input pattern with this percent of neurons active), and then `Test Trial`. 
+* To test the set point behavior of the FFFB functions, we can vary the amount of excitatory input by changing the `InputPct` levels, to 10 and 30 instead of the 20% default. After you change `InputPct`, you need to do `ConfigPats` in the toolbar (this makes a new input pattern with this percent of neurons active), and then `Step Trial`. 
 
 > **Question 3.8:** How much does the hidden average activity level vary as a function of the different `InputPct` levels (10, 20, 30). What does this reveal about the set point nature of the FFFB inhibition mechanism (i.e., the extent to which it works like an air conditioner that works to maintain a fixed set-point temperature)?
 

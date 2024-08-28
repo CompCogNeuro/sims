@@ -15,12 +15,10 @@ import (
 	"cogentcore.org/core/base/randx"
 	"cogentcore.org/core/core"
 	"cogentcore.org/core/icons"
-	"cogentcore.org/core/tensor/table"
 	"cogentcore.org/core/tree"
 	"github.com/emer/emergent/v2/egui"
 	"github.com/emer/emergent/v2/elog"
 	"github.com/emer/emergent/v2/emer"
-	"github.com/emer/emergent/v2/env"
 	"github.com/emer/emergent/v2/estats"
 	"github.com/emer/emergent/v2/etime"
 	"github.com/emer/emergent/v2/looper"
@@ -100,12 +98,6 @@ type Sim struct {
 	// Contains all the logs and information about the logs.'
 	Logs elog.Logs `display:"+"`
 
-	// the patterns to use
-	Patterns *table.Table `new-window:"+" display:"no-inline"`
-
-	// Environments
-	Envs env.Envs `display:"-"`
-
 	// leabra timing parameters and state
 	Context leabra.Context `display:"-"`
 
@@ -125,7 +117,6 @@ func (ss *Sim) New() {
 	ss.Net = leabra.NewNetwork("NeckerCube")
 	ss.Params.Config(ParamSets, "", "", ss.Net)
 	ss.Stats.Init()
-	ss.Patterns = &table.Table{}
 	ss.RandSeeds.Init(100) // max 100 runs
 	ss.InitRandSeed(0)
 	ss.Context.Defaults()
