@@ -8,16 +8,16 @@ Cats and Dogs Semantics:
 
 | Species | Name      | Color         | Size   | Food   | Toy     |
 |---------|-----------|---------------|--------|--------|---------|
-| Cat     | Morris    | Orange        | Small  | Grass  | String  |
+| Cat     | Chloe    | Orange        | Small  | Grass  | String  |
 |         | Socks     | Black & White | Small  | Bugs   | Feather |
 |         | Sylvester | Black & White | Small  | Grass  | String  |
 |         | Garfield  | Orange        | Medium | Scraps | String  |
 |         | Fuzzy     | White         | Medium | Grass  | Feather |
-| Dog     | Rex       | Black         | Large  | Scraps | Bone    |
+| Dog     | Daisy       | Black         | Large  | Scraps | Bone    |
 |         | Fido      | Brown         | Medium | Shoe   | Shoe    |
 |         | Spot      | Black & White | Medium | Scraps | Bone    |
 |         | Snoopy    | Black & White | Medium | Scraps | Bone    |
-|         | Butch     | Brown         | Large  | Shoe   | Shoe    |
+|         | Penny     | Brown         | Large  | Shoe   | Shoe    |
 
 The knowledge embedded in the network is summarized in the above table. This knowledge is encoded by simply setting a weight of 1 between an *instance* (`Identity`) node representing an individual cat or dog and thecorresponding feature value that this individual possesses (c.f., the Jets and Sharks model from McClelland & Rumelhart, 1988). Each of the groups of features (i.e., values within one column of the table) are represented within distinct layers that have their own within-layer inhibition. In additon, all of the identity units and the name units are within their own separate layers as well. We use the `FFFB` inhibitory function here which allows considerable flexibility in the actual number of active units per layer.
 
@@ -27,9 +27,9 @@ The knowledge embedded in the network is summarized in the above table. This kno
 
 Let's first verify that when we present an individual's name as input, it will recall all of the information about that individual. This is a form of pattern completion with a single unique input cue. 
 
-* Set `Step` to `Cycle` instead of `Trial` and press `Step` repeatedly to present the default input patterns to the network, which activates the `Morris` name unit.
+* Set `Step` to `Cycle` instead of `Trial` and press `Step` repeatedly to present the default input patterns to the network, which activates the `Chloe` name unit.
 
-You should see that the network activates the appropriate features for Morris. You can think about this process as finding the most harmonious activation state given the input constraint of Morris, and the constraints in the network's weights. Equivalently, you can think about it as settling into the Morris attractor.
+You should see that the network activates the appropriate features for Chloe. You can think about this process as finding the most harmonious activation state given the input constraint of Chloe, and the constraints in the network's weights. Equivalently, you can think about it as settling into the Chloe attractor.
 
 * Click on the `CatsAndDogPats` button in the left control panel, and double-click on the pattern for the Name layer, which brings up an edit window where you can edit the values.  Zero out the first cell and add a 1 into the second one (Socks).  Do `Init` and `Test Trial` responds to this (should be as expected from the above table).  Go ahead and try a few other name activations (change the appropriate value from 0 to 1).
 
@@ -55,7 +55,7 @@ Now, let's make some more *specific* queries for the network.
 
 * Activate the `large` size input (last unit in `Size` column) in addition to `cat`, and test that. 
 
-You should see that the final harmony value is lower than that for just `cat` alone (even though it starts out higher initially). This lower harmony reflects the fact that you provided discordant, inconsistent constraints, which the network was not able to satisfy as well (indeed if you look network, it ended up struggling for a long time and then flipping over to representing a *dog*, Rex).
+You should see that the final harmony value is lower than that for just `cat` alone (even though it starts out higher initially). This lower harmony reflects the fact that you provided discordant, inconsistent constraints, which the network was not able to satisfy as well (indeed if you look network, it ended up struggling for a long time and then flipping over to representing a *dog*, Daisy).
 
 * Turn off the `large` size input and turn on the `medium` one (middle unit in Size column) in addition to `cat`, and test again.
 
