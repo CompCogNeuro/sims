@@ -41,6 +41,7 @@ import (
 	"github.com/emer/emergent/v2/netview"
 	"github.com/emer/emergent/v2/params"
 	"github.com/emer/emergent/v2/paths"
+	"github.com/emer/emergent/v2/relpos"
 	"github.com/emer/leabra/v2/leabra"
 )
 
@@ -199,8 +200,10 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 	net.BidirConnectLayers(inp, iden, full)
 
 	emo.PlaceAbove(inp)
-	gend.PlaceRightOf(emo, 6)
+	gend.PlaceAbove(inp)
+	gend.Pos.XAlign = relpos.Right
 	iden.PlaceBehind(emo, 4)
+	iden.Pos.XOffset = 3
 
 	net.Build()
 	net.Defaults()
