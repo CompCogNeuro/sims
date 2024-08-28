@@ -484,7 +484,7 @@ func (ss *Sim) ConfigGUI() {
 			Tooltip: "Opens your browser on the README file that contains instructions for how to run this model.",
 			Active:  egui.ActiveAlways,
 			Func: func() {
-				core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/main/ch3/cat_dogs/README.md")
+				core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/main/ch3/cats_dogs/README.md")
 			},
 		})
 	})
