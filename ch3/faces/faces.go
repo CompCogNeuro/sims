@@ -628,28 +628,6 @@ func (ss *Sim) ConfigGUI() {
 				ss.ClusterPlots()
 			},
 		})
-		////////////////////////////////////////////////
-		tree.Add(p, func(w *core.Separator) {})
-		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Reset Plot",
-			Icon:    icons.Reset,
-			Tooltip: "Reset the trial plot",
-			Active:  egui.ActiveAlways,
-			Func: func() {
-				ss.Logs.ResetLog(etime.Test, etime.Trial)
-				ss.GUI.UpdatePlot(etime.Test, etime.Trial)
-			},
-		})
-		////////////////////////////////////////////////
-		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Defaults", Icon: icons.Update,
-			Tooltip: "Restore initial default parameters.",
-			Active:  egui.ActiveStopped,
-			Func: func() {
-				ss.Defaults()
-				ss.Init()
-				ss.GUI.SimForm.Update()
-				ss.GUI.UpdateWindow()
-			},
-		})
 		tree.Add(p, func(w *core.Separator) {})
 		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "README",
 			Icon:    icons.FileMarkdown,

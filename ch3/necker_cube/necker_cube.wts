@@ -7,7 +7,7 @@
 				"ActMAvg": "0.35",
 				"ActPAvg": "0.35"
 			},
-			"Prjns": [
+			"Paths": [
 				{
 					"From": "NeckerCube",
 					"MetaData": {
