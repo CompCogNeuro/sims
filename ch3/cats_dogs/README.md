@@ -19,7 +19,7 @@ Cats and Dogs Semantics:
 |         | Snoopy    | Black & White | Medium | Scraps | Bone    |
 |         | Penny     | Brown         | Large  | Shoe   | Shoe    |
 
-The knowledge embedded in the network is summarized in the above table. This knowledge is encoded by simply setting a weight of 1 between an *instance* (`Identity`) node representing an individual cat or dog and thecorresponding feature value that this individual possesses (c.f., the Jets and Sharks model from McClelland & Rumelhart, 1988). Each of the groups of features (i.e., values within one column of the table) are represented within distinct layers that have their own within-layer inhibition. In additon, all of the identity units and the name units are within their own separate layers as well. We use the `FFFB` inhibitory function here which allows considerable flexibility in the actual number of active units per layer.
+The knowledge embedded in the network is summarized in the above table. Although in later networks we will see how this knowledge can be learned with experience (e.g., with individual cats and dogs), here this knowledge is encoded by simply setting a strong weight (usually 1) between an *instance* (`Identity`) node representing an individual cat or dog and the corresponding feature (e.g., brown) that this individual possesses (c.f., the Jets and Sharks model from McClelland & Rumelhart, 1988).  Each of the groups of features (i.e., values within one column of the table) are represented within distinct layers that have their own within-layer inhibition, so that units in each layer compete to best represent the input. In addition, all of the identity units and the name units are within their own separate layers as well. We use the `FFFB` inhibitory function here which allows considerable flexibility in the actual number of active units per layer.
 
 # Exploration
 
@@ -29,11 +29,11 @@ Let's first verify that when we present an individual's name as input, it will r
 
 * Set `Step` to `Cycle` instead of `Trial` and press `Step` repeatedly to present the default input patterns to the network, which activates the `Chloe` name unit.
 
-You should see that the network activates the appropriate features for Chloe. You can think about this process as finding the most harmonious activation state given the input constraint of Chloe, and the constraints in the network's weights. Equivalently, you can think about it as settling into the Chloe attractor.
+You should see that after this input is processed over time, the network activates the appropriate features for Chloe. You can think about this process as finding the most harmonious activation state given the input constraint of Chloe, and the constraints in the network's weights. Equivalently, you can think about it as settling into the Chloe attractor.
 
-* Click on the `CatsAndDogPats` button in the left control panel, and double-click on the pattern for the Name layer, which brings up an edit window where you can edit the values.  Zero out the first cell and add a 1 into the second one (Socks).  Do `Init` and `Test Trial` responds to this (should be as expected from the above table).  Go ahead and try a few other name activations (change the appropriate value from 0 to 1).
+* Click on the `CatsAndDogPats` button in the left control panel, and double-click on the pattern for the Name layer, which brings up an edit window where you can edit the values.  Zero out the first cell and add a 1 into the second one (this is akin to now showing the network the name 'Socks' instead of Chloe).  Do `Init` and `Test Trial` responds to this (should be as expected from the above table).  Go ahead and try a few other name activations (change the appropriate value from 0 to 1).
 
-Now, let's see how this network can give us general information about cats versus dogs, even though at some level it just has information about a set of individuals.
+Now, let's see how this network can give us *general* information about cats versus dogs, even though at some level it just has information about a set of individuals (i.e., the knowledge in weights from identities to each feature).
 
 * Set all the Name inputs to 0, and then double-click on the Species inputs, and set the first unit to 1 (Cat), and do `Init` and `Step` through the cycles again.  You can also use the VCR `Time` buttons at the bottom-right to go back and replay the cycle-by-cycle activation settling. 
 
