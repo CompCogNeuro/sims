@@ -14,8 +14,8 @@ In the Network view, you can see two pools of neurons, each 2x4 in size, which r
 
 Notice that each unit is connected to its local neighborhood of vertices. Thus, when one vertex gets active, it will tend to activate the others, leading to the activation of a consistent interpretation of the entire cube. However, at the same time, the other interpretation of the cube is also activating its vertices, and, via the inhibition, competing to get active.
 
-* Return to viewing `Act` in the network, and we'll run it. Press `Init` in the toolbar and set `Step` to `Cycle` instead of `Trial` and `Step` through the settling process, to view the competition process in action.
-
+* Return to viewing `Act` in the network, and we'll run it. Press `Init` in the toolbar and set `Step` to `Cycle` instead of `Trial` and `Step` through the settling process, to view the competition process in action. This will allow you to see the network evolve over time within a trial (otherwise it happens too quickly to see). You can also set the number next to Cycle to e.g., 5 to step 5 cycles at a time so you don't have to click through every single cycle.
+  
 During running, both interpretations receive equal but weak amounts of excitatory input. You should see that as the network settles there is some flickering of the units in both cubes, with some wavering of strength back and forth until one cube eventually wins out and is fully active while the other remains inactive.
 
 * Set `Step` back to `Trial` and `Step` several more times, to see which way it tends to go. 
