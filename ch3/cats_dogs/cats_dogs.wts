@@ -7,7 +7,7 @@
 				"ActMAvg": "0.15",
 				"ActPAvg": "0.15"
 			},
-			"Prjns": [
+			"Paths": [
 				{
 					"From": "Identity",
 					"MetaData": {
@@ -84,7 +84,7 @@
 				"ActMAvg": "0.15",
 				"ActPAvg": "0.15"
 			},
-			"Prjns": [
+			"Paths": [
 				{
 					"From": "Name",
 					"MetaData": {
@@ -501,7 +501,7 @@
 				"ActMAvg": "0.15",
 				"ActPAvg": "0.15"
 			},
-			"Prjns": [
+			"Paths": [
 				{
 					"From": "Identity",
 					"MetaData": {
@@ -542,7 +542,7 @@
 				"ActMAvg": "0.15",
 				"ActPAvg": "0.15"
 			},
-			"Prjns": [
+			"Paths": [
 				{
 					"From": "Identity",
 					"MetaData": {
@@ -583,7 +583,7 @@
 				"ActMAvg": "0.15",
 				"ActPAvg": "0.15"
 			},
-			"Prjns": [
+			"Paths": [
 				{
 					"From": "Identity",
 					"MetaData": {
@@ -618,7 +618,7 @@
 				"ActMAvg": "0.15",
 				"ActPAvg": "0.15"
 			},
-			"Prjns": [
+			"Paths": [
 				{
 					"From": "Identity",
 					"MetaData": {
@@ -647,7 +647,7 @@
 				"ActMAvg": "0.15",
 				"ActPAvg": "0.15"
 			},
-			"Prjns": [
+			"Paths": [
 				{
 					"From": "Identity",
 					"MetaData": {
