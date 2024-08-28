@@ -408,7 +408,7 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 // 		GUI
 
 func (ss *Sim) ConfigNetView(nv *netview.NetView) {
-	labs := []string{" Morr Socks Sylv Garf Fuzz Rex Fido Spot Snoop Butch",
+	labs := []string{" Chloe Socks Sylv Garf Fuzz Daisy Fido Spot Snoop Penny",
 		" black white brown orange", "bugs grass scraps shoe", "small  med  large", "cat     dog", "string feath bone shoe"}
 	nv.ConfigLabels(labs)
 

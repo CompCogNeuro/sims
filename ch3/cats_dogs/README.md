@@ -8,12 +8,12 @@ Cats and Dogs Semantics:
 
 | Species | Name      | Color         | Size   | Food   | Toy     |
 |---------|-----------|---------------|--------|--------|---------|
-| Cat     | Chloe    | Orange        | Small  | Grass  | String  |
+| Cat     | Chloe     | Orange        | Small  | Grass  | String  |
 |         | Socks     | Black & White | Small  | Bugs   | Feather |
 |         | Sylvester | Black & White | Small  | Grass  | String  |
 |         | Garfield  | Orange        | Medium | Scraps | String  |
 |         | Fuzzy     | White         | Medium | Grass  | Feather |
-| Dog     | Daisy       | Black         | Large  | Scraps | Bone    |
+| Dog     | Daisy     | Black         | Large  | Scraps | Bone    |
 |         | Fido      | Brown         | Medium | Shoe   | Shoe    |
 |         | Spot      | Black & White | Medium | Scraps | Bone    |
 |         | Snoopy    | Black & White | Medium | Scraps | Bone    |

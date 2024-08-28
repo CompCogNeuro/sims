@@ -401,17 +401,6 @@ func (ss *Sim) ConfigGUI() {
 		ss.GUI.AddLooperCtrl(p, ss.Loops, []etime.Modes{etime.Test})
 
 		////////////////////////////////////////////////
-		tree.Add(p, func(w *core.Separator) {})
-		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Reset Plot",
-			Icon:    icons.Reset,
-			Tooltip: "Reset the trial plot",
-			Active:  egui.ActiveAlways,
-			Func: func() {
-				ss.Logs.ResetLog(etime.Test, etime.Trial)
-				ss.GUI.UpdatePlot(etime.Test, etime.Trial)
-			},
-		})
-		////////////////////////////////////////////////
 		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Defaults", Icon: icons.Update,
 			Tooltip: "Restore initial default parameters.",
 			Active:  egui.ActiveStopped,
@@ -428,7 +417,7 @@ func (ss *Sim) ConfigGUI() {
 			Tooltip: "Opens your browser on the README file that contains instructions for how to run this model.",
 			Active:  egui.ActiveAlways,
 			Func: func() {
-				core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/main/ch3/cats_dogs/README.md")
+				core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/main/ch3/necker_cube/README.md")
 			},
 		})
 	})
