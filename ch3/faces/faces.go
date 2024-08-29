@@ -26,9 +26,7 @@ import (
 	"cogentcore.org/core/math32"
 	"cogentcore.org/core/plot/plotcore"
 	"cogentcore.org/core/tensor"
-	"cogentcore.org/core/tensor/stats/clust"
 	"cogentcore.org/core/tensor/stats/metric"
-	"cogentcore.org/core/tensor/stats/simat"
 	"cogentcore.org/core/tensor/table"
 	"cogentcore.org/core/tree"
 	"github.com/emer/emergent/v2/egui"
@@ -433,31 +431,14 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 	ss.Logs.LogRow(mode, time, row) // also logs to file, etc
 }
 
-// ClusterPlots computes all the cluster plots from the faces input data
+// ClusterPlots computes all the cluster plots from the faces input data.
 func (ss *Sim) ClusterPlots() {
-	// ss.Envs.ByMode(etime.Test).Init(0)
-	// ss.Loops.ResetAndRun(etime.Test)
-	ss.ClusterPlot(ss.GUI.PlotByName("ClustFaces"), ss.Patterns, "Input")
-	ss.ClusterPlot(ss.GUI.PlotByName("ClustEmote"), ss.Patterns, "Emotion")
-	ss.ClusterPlot(ss.GUI.PlotByName("ClustGend"), ss.Patterns, "Gender")
-	ss.ClusterPlot(ss.GUI.PlotByName("ClustIdent"), ss.Patterns, "Identity")
+	ptix := table.NewIndexView(ss.Patterns)
+	estats.ClusterPlot(ss.GUI.PlotByName("ClustFaces"), ptix, "Input", "Name")
+	estats.ClusterPlot(ss.GUI.PlotByName("ClustEmote"), ptix, "Emotion", "Name")
+	estats.ClusterPlot(ss.GUI.PlotByName("ClustGend"), ptix, "Gender", "Name")
+	estats.ClusterPlot(ss.GUI.PlotByName("ClustIdent"), ptix, "Identity", "Name")
 	ss.ProjectionPlot()
-}
-
-// ClusterPlot does one cluster plot on given table column
-func (ss *Sim) ClusterPlot(plt *plotcore.PlotEditor, dt *table.Table, colNm string) {
-	ix := table.NewIndexView(dt)
-	smat := simat.NewSimMat()
-	smat.TableColStd(ix, colNm, "Name", false, metric.Euclidean)
-	pt := table.NewTable()
-	clust.Plot(pt, clust.Glom(smat, clust.MinDist), smat)
-	plt.Options.Title = "Cluster Plot of Faces " + colNm
-	plt.Options.XAxis = "X"
-	plt.SetTable(pt)
-	// order of params: on, fixMin, min, fixMax, max
-	plt.SetColumnOptions("X", plotcore.Off, plotcore.FixMin, 0, plotcore.FloatMax, 0)
-	plt.SetColumnOptions("Y", plotcore.On, plotcore.FixMin, 0, plotcore.FloatMax, 0)
-	plt.SetColumnOptions("Label", plotcore.On, plotcore.FixMin, 0, plotcore.FloatMax, 0)
 }
 
 func (ss *Sim) ProjectionPlot() {

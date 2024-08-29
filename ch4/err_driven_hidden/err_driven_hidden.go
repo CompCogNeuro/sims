@@ -206,6 +206,18 @@ func (ss *Sim) ConfigAll() {
 	ss.ConfigLoops()
 }
 
+func (ss *Sim) OpenPatterns() {
+	ss.Easy.SetMetaData("name", "Easy")
+	ss.Easy.SetMetaData("desc", "Easy Training patterns")
+	errors.Log(ss.Easy.OpenFS(content, "easy.tsv", table.Tab))
+	ss.Hard.SetMetaData("name", "Hard")
+	ss.Hard.SetMetaData("desc", "Hard Training patterns")
+	errors.Log(ss.Hard.OpenFS(content, "hard.tsv", table.Tab))
+	ss.Impossible.SetMetaData("name", "Impossible")
+	ss.Impossible.SetMetaData("desc", "Impossible Training patterns")
+	errors.Log(ss.Impossible.OpenFS(content, "impossible.tsv", table.Tab))
+}
+
 func (ss *Sim) ConfigEnv() {
 	// Can be called multiple times -- don't re-create
 	var trn, tst *env.FixedTable
@@ -431,22 +443,7 @@ func (ss *Sim) TestAll() {
 	ss.Loops.Mode = etime.Train // Important to reset Mode back to Train because this is called from within the Train Run.
 }
 
-/////////////////////////////////////////////////////////////////////////
-//   Patterns
-
-func (ss *Sim) OpenPatterns() {
-	ss.Easy.SetMetaData("name", "Easy")
-	ss.Easy.SetMetaData("desc", "Easy Training patterns")
-	errors.Log(ss.Easy.OpenFS(content, "easy.tsv", table.Tab))
-	ss.Hard.SetMetaData("name", "Hard")
-	ss.Hard.SetMetaData("desc", "Hard Training patterns")
-	errors.Log(ss.Hard.OpenFS(content, "hard.tsv", table.Tab))
-	ss.Impossible.SetMetaData("name", "Impossible")
-	ss.Impossible.SetMetaData("desc", "Impossible Training patterns")
-	errors.Log(ss.Impossible.OpenFS(content, "impossible.tsv", table.Tab))
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
 // 		Stats
 
 // InitStats initializes all the statistics.
@@ -557,8 +554,8 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 	}
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////
-// 		Gui
+//////////////////////////////////////////////////////////////////////
+// 		GUI
 
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI() {
