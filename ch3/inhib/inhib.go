@@ -587,9 +587,7 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI() {
 	title := "Inhib"
-	ss.GUI.MakeBody(ss, "inhib", title, `inhib: This simulation explores how inhibitory interneurons can dynamically
-control overall activity levels within the network, by providing both
-feedforward and feedback inhibition to excitatory pyramidal neurons. See <a href="https://github.com/CompCogNeuro/sims/blob/main/ch3/inhib/README.md">README.md on GitHub</a>.</p>`)
+	ss.GUI.MakeBody(ss, "inhib", title, `inhib: This simulation explores how inhibitory interneurons can dynamically control overall activity levels within the network, by providing both feedforward and feedback inhibition to excitatory pyramidal neurons. See <a href="https://github.com/CompCogNeuro/sims/blob/main/ch3/inhib/README.md">README.md on GitHub</a>.</p>`)
 	ss.GUI.CycleUpdateInterval = 10
 
 	nv := ss.GUI.AddNetView("FF Net")
