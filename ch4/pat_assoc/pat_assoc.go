@@ -109,7 +109,7 @@ type Config struct {
 	NRuns int `default:"10" min:"1"`
 
 	// total number of epochs per run
-	NEpochs int `default:"500"`
+	NEpochs int `default:"100"`
 
 	// stop run after this number of perfect, zero-error epochs.
 	NZero int `default:"5"`
@@ -253,6 +253,11 @@ func (ss *Sim) ApplyParams() {
 	case ErrorDriven:
 		ss.Params.SetAllSheet("ErrorDriven")
 	}
+	if ss.Loops != nil {
+		trn := ss.Loops.Stacks[etime.Train]
+		trn.Loops[etime.Run].Counter.Max = ss.Config.NRuns
+		trn.Loops[etime.Epoch].Counter.Max = ss.Config.NEpochs
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -359,6 +364,14 @@ func (ss *Sim) ApplyInputs() {
 	net := ss.Net
 	ev := ss.Envs.ByMode(ctx.Mode).(*env.FixedTable)
 	ev.Step()
+
+	out := ss.Net.LayerByName("Output")
+	if ctx.Mode == etime.Test {
+		out.Type = leabra.CompareLayer // don't clamp plus phase
+	} else {
+		out.Type = leabra.TargetLayer
+	}
+
 	lays := net.LayersByType(leabra.InputLayer, leabra.TargetLayer)
 	net.InitExt()
 	ss.Stats.SetString("TrialName", ev.TrialName.Cur)
@@ -549,8 +562,10 @@ func (ss *Sim) ConfigGUI() {
 	nv := ss.GUI.AddNetView("Network")
 	nv.Options.MaxRecs = 300
 	nv.SetNet(ss.Net)
-	ss.ViewUpdate.Config(nv, etime.AlphaCycle, etime.AlphaCycle)
+	nv.Options.PathWidth = 0.005
+	ss.ViewUpdate.Config(nv, etime.GammaCycle, etime.GammaCycle)
 	ss.GUI.ViewUpdate = &ss.ViewUpdate
+	nv.Current()
 
 	nv.SceneXYZ().Camera.Pose.Pos.Set(0.1, 1.5, 4) // more "head on" than default which is more "top down"
 	nv.SceneXYZ().Camera.LookAt(math32.Vec3(0.1, 0.1, 0), math32.Vec3(0, 1, 0))
@@ -570,6 +585,14 @@ func (ss *Sim) ConfigGUI() {
 		})
 
 		ss.GUI.AddLooperCtrl(p, ss.Loops, []etime.Modes{etime.Train, etime.Test})
+
+		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Test Init", Icon: icons.Update,
+			Tooltip: "Initialize testing to start over -- if Test Step doesn't work, then do this.",
+			Active:  egui.ActiveStopped,
+			Func: func() {
+				ss.Loops.ResetCountersByMode(etime.Test)
+			},
+		})
 
 		////////////////////////////////////////////////
 		tree.Add(p, func(w *core.Separator) {})
@@ -597,7 +620,7 @@ func (ss *Sim) ConfigGUI() {
 			Tooltip: "Opens your browser on the README file that contains instructions for how to run this model.",
 			Active:  egui.ActiveAlways,
 			Func: func() {
-				core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/main/ch4/err_driven_hidden/README.md")
+				core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/main/ch4/pat_assoc/README.md")
 			},
 		})
 	})

@@ -18,15 +18,15 @@ The network is trained on this task by simply clamping both the input and output
 
 * Press `Init` and then `Step Trial` 4 times while you watch the network. 
 
-You should see all 4 events from the environment presented in a random order.
+You should see all 4 events from the environment presented in a random order.  The synaptic weights are updated according to the BCM hebbian learning rule after each item.
 
-* Now do `Test Trial` 4 times to test the network's responses to each input.
+* Now do the `Test` `Step Trial` (2nd Step button in the toolbar) 4 times to test the network's responses to each input.
 
-You will see the activations in the output units are different this time, because the output activations are not clamped to the correct answer, and are instead updated solely according to their current weights from the input units.  Thus, testing records the current *actual* performance of the network on this task, when it is not being "coached" (that is why it's a test).  This is equivalent to the *minus phase activations* during training, which can be viewed using the `ActM` variable in the NetView.
+You will see the activations in the output units are different this time, because the output activations are not clamped to the correct answer, and are instead updated solely according to their current weights from the input units.  Thus, testing records the current *actual* performance of the network on this task, when it is not being "coached" (that is why it's a test).  This is equivalent to the *minus phase activations* during training, which can be viewed using the `ActM` variable in the Network.
 
-* Now click on the `TstTrlLog` button to see a record of all the testing trials.
+* Now click on the `Test Trial` tab to see a record of all the testing trials.
 
-The results of the test run you just ran are displayed. Each row represents one of the four events, with the input pattern and the actual output activations shown on the right. The `SSE` column reports the **summed squared error** (SSE), which is simply the summed difference between the actual output activation during testing (`o`) and the *target* value (`t`) that was clamped during training:
+The results of the test trials you just ran are displayed. Each row represents one of the four events, with the input pattern and the actual output activations shown on the right. The `SSE` column reports the **summed squared error** (SSE), which is simply the summed difference between the actual output activation during testing (`o`) and the *target* value (`t`) that was clamped during training:
 
 ```
    SSE = Sum (t - o)^2
@@ -36,17 +36,17 @@ where the sum is over the 2 output units. We are actually computing the *thresho
 
 With only a single training epoch (one *epoch* is one pass through all the training patterns), the output unit is likely making some errors.
 
-* Click on the `TrnEpcPlot` tab to see a plot of SSE (summed also over all 4 training patterns) as the network trains.  Hit `Step Run` to see the network iterate over training patterns.  
+* Click on the `Train Epoch Plot` tab to see a plot of SSE (summed also over all 4 training patterns) as the network trains.  Change the `Train Step` level to `Run` and `Step` that to see the network iterate over training patterns.  
 
-Now you will see a summary plot across epochs of the sum of the thresholded SSE measure across all the events in the epoch. This shows what is often referred to as the **learning curve** for the network, and it should have decreased steadily down to zero, indicating that the network has learned the task.  Training will stop automatically after the network has exhibited 5 correct epochs in a row (`NZeroStop`) just to make sure it has really learned the problem), or it stops after 40 epochs (`MaxEpcs`) if it fails to learn.
+Now you will see a summary plot across epochs of the sum of the thresholded SSE measure across all the events in the epoch. This shows what is often referred to as the **learning curve** for the network, and it should have decreased steadily down to zero, indicating that the network has learned the task.  Training will stop automatically after the network has exhibited 5 correct epochs in a row (determined by the `Config` settings, `NZero` = 5) just to make sure it has really learned the problem), or it stops after 100 epochs (`NEpochs`) if it fails to learn.
 
 Let's see what the network has learned.
 
-* Click back on the `NetView` and then do `Test Trial` to see each of the different input patterns and the network's response.
+* Click back on the `Network` and then do `Test Init` (needed to restart the testing) and then `Test Step` to see each of the different input patterns and the network's response.
 
-You should see that it is producing the correct output units for each input pattern. You can also look at the `TstTrlLog` to see the behavior of the network across all four trials, all at once. You should see that the network has learned this easy task, turning on the left output for the first two patterns, and the right one for the next two. Now, let's take a look at the weights for the output unit to see exactly how this happened.
+You should see that it is producing the correct output units for each input pattern. You can also look at the `Test Trial` to see the behavior of the network across all four trials, all at once. You should see that the network has learned this easy task, turning on the left output for the first two patterns, and the right one for the next two. Now, let's take a look at the weights for the output unit to see exactly how this happened.
 
-* In the `NetView`, click on `r.Wt` and then select the left `Output` unit to see its weights from the `Input`, then do the same for the right.
+* In the `Network`, click on `Wts / r.Wt` and then select the left `Output` unit to see its weights from the `Input`, then do the same for the right.
 
 > **Question 4.3:** Describe the pattern of weights in qualitative terms for each of the two output units (e.g., left output has strong weights from the ?? input units, and weaker weights from the ?? input units).
 
@@ -56,7 +56,7 @@ You should see that it is producing the correct output units for each input patt
 
 Now, let's try a more difficult task.
 
-* Set `Pats` to `Hard` instead of `Easy`.  Click the `Hard` button below that to pull up a view of the Hard patterns.
+* Set `Patterns` to `Hard` instead of `Easy`, and hit `Init`.  Click the `Hard` button below that to pull up a view of the Hard patterns.
 
 In this harder environment, there is overlap among the input patterns for cases where the left output should be on, and where it should be off (and the right output on). This overlap makes the task hard because the unit has to somehow figure out what the most distinguishing or *task relevant* input units are, and set its weights accordingly.
 
@@ -64,35 +64,35 @@ This task reveals a problem with Hebbian learning: it is only driven by the corr
 
 Let's see what happens when we run the network on this task.
 
-* After making sure you are still viewing the `r.Wt` receiving weights of the left output unit in the `NetView`, press the `Init` and `Step Run` buttons. After training (or even during), click back and forth between the left and right output units. Try multiple Runs to see what generally tends to happen. 
+* After making sure you are still viewing the `r.Wt` receiving weights of the left output unit in the `Network`, press the `Init` and `Step Run` buttons. After training (or even during), click back and forth between the left and right output units. Try multiple Runs to see what generally tends to happen. 
 
 You should see that the weights into the left output unit increase, often with the two middle ones being more strongly increasing due to the higher correlation. The right output tends to have a strong weight from the 2nd input unit, and then somewhat weaker weights to the right two inputs, again reflecting the input correlations. Note that in contrast to a purely Hebbian learning mechanism, the BCM learning does not strictly follow the input correlations, as it depends significantly on the output unit activations over time as well, which determine the floating threshold for weight increase vs. decrease.
 
-* Return to viewing the `Act` variable do `Test Trial` to see the network's response to the inputs.
+* Return to viewing the `Act` variable do `Test Step` (with `Test Init` first) to see the network's response to the inputs.
 
-You should see that the network is not getting all the right answers (you can also look at the `TstTrlLog` to see all events at once.)  This is also evident in the training SSE shown in the network view.
+You should see that the network is not getting all the right answers (you can also look at the `Test Trial` to see all events at once.)  This is also evident in the training SSE shown in the network view.
 
-* Do several more `Step Run`s on this Hard task. You can try increasing the `MaxEpcs` to 50, or even 100, to give it more time to learn.
+* Do several more `Step Run`s on this Hard task. You can try increasing the `Config / NEpochs` to 200, or even 500, to give it more time to learn -- press `Init` after changing these parameters to get them to take.
 
-> **Question 4.5:** Does the network ever solve the task? Run the network several times. Report the final SSE at the end of training for each run (it is visible as `EpcSSE` in the left panel at the end of every `Step Run`).
+> **Question 4.5:** Does the network ever solve the task? Run the network several times. Report the final SSE at the end of training for each run (hover on the last point in the `Train Epoch Plot` to see the value).
 
 Hebbian learning does not seem to be able to solve tasks where the correlations do not provide the appropriate weight values. In the broad space of tasks that people learn (e.g., naming objects, reading words, etc) it seems unlikely that there will always be a coincidence between correlational structure and the task solution. Thus, we must conclude that Hebbian learning by itself is of limited use for task learning. In contrast, we will see in the next section that error-driven learning, which specifically adapts the weights precisely to solve input/output mappings, can handle this Hard task without much difficulty.
 
 # Exploration of Error-Driven Task Learning
 
-* Select `ErrorDriven` instead of `Hebbian` for the `Learn` value in the left control panel, go back to `Easy` for the `Pats`, and then press `Init` to have it take effect.  Also set `MaxEpcs` to 100 -- error-driven learning can sometimes be a bit slow.
+* Select `ErrorDriven` instead of `Hebbian` for the `Learn` value in the left control panel, go back to `Easy` for the `Patterns`, and then press `Init` to have it take effect.
 
 This will switch weight updating from the purely Hebbian (BCM) form of learning, to the form that is purely error driven, in terms of the contrast between plus (short term average) and minus (medium term) phases of activation. In this simple two-layer network, this form of learning is effectively equivalent to the Delta rule error-driven learning algorithm.   This sets the `Learn` params on the connections between Input and Output to have 0 amount of learning driven by the long-term running average activation (which corresponds to BCM Hebbian learning) and 100% of the learning driven by the medium-term floating threshold (which corresponds to error-driven learning).
 
 Before training the network, we will explore how the minus-plus activation phases work in the simulator.
 
-* Make sure that you are viewing activations in the network by selecting the `Act` button in the `NetView`, and do `Step Trial` to present a Hard training pattern.  
+* Make sure that you are viewing activations in the network by selecting the `Act` button in the `Network`, and do `Step Trial` to present a Hard training pattern.  
 
-The activity will flicker over 4 **quarters** of time, where each quarter represents 25 msec, and the first 75 msec (3 quarters) of a 100 msec trial period constitutes the *expectation* or *minus phase*, followed by the final 25 msec which is the *outcome* or *plus phase*.
+The activity will flicker over 4 **quarters** of time, where each quarter represents 25 msec (aka the `Gamma cycle`), and the first 75 msec (3 quarters) of a 100 msec trial period constitutes the *expectation* or *minus phase*, followed by the final 25 msec which is the *outcome* or *plus phase*.
 
-* To see the activation at each of these time points, you can use the VCR-like buttons at the bottom-right of the NetView, by the `Time` label -- step back and you'll see the cycle counter going back through each quarter increment.  Step forward to see it unfold in the proper order.  You can also click on the `ActQ1`, `ActQ2`, `ActM` and `ActP` variables to see the activity at the end of each quarter as well.
+* To see the activation at each of these time points, you can use the VCR-like buttons at the bottom-right of the Network, by the `Time` label -- step back and you'll see the cycle counter going back through each quarter increment.  Step forward to see it unfold in the proper order.  You can also click on the `Phase` category of variables and select `ActQ1`, `ActQ2`, `ActM` and `ActP` to see the activity at the end of each quarter as well.
 
-Learning occurs after the plus phase of activation.  You can recognize targets, like all external inputs, because their activations are exactly .95 or 0 -- note that we are clamping activations to .95 (not 1.0) because units cannot easily produce activations above .95 with typical net input values due to the saturating nonlinearity of the rate code activation function. You can also switch to viewing the `Targ` value, which will show you the target inputs prior to the activation clamping. In addition, the minus phase activation is always viewable as `ActM` and the plus phase as `ActP`.
+Learning occurs after the plus phase of activation.  You can recognize targets, like all external inputs, because their activations are exactly .95 or 0 -- note that we are clamping activations to .95 (not 1.0) because units cannot easily produce activations above .95 with typical net input values due to the saturating nonlinearity of the rate code activation function. You can also switch to viewing the `Act / Targ` value, which will show you the target inputs prior to the activation clamping. In addition, the minus phase activation is always viewable as `ActM` and the plus phase as `ActP`.
 
 The critical difference between error-driven learning and Hebbian is that error-driven learning is based directly on this difference between the expectation or guess produced in the minus phase, and the correct target activation in the plus phase.
 
@@ -100,19 +100,19 @@ The critical difference between error-driven learning and Hebbian is that error-
 
 * Go ahead and `Step Run` the network to complete the training on the Easy task. 
 
-The network should have no trouble learning this task, as you can see in the `TrnEpcPlot`. You can do more `Step Run`s to see how reliably and rapidly it learns this problem. Compared to Hebbian, it learns this Easy task more slowly.
+The network should have no trouble learning this task, as you can see in the `Train Epoch Plot`. You can do more `Step Run`s to see how reliably and rapidly it learns this problem. Compared to Hebbian, it learns this Easy task more slowly.
 
 But the real challenge is whether it can learn the Hard task, which Hebbian could not learn at all.
 
-* Set `Learn` to `Hard`, press `Init` and `Step Run`. Do multiple repeated Runs, to see how reliably and quickly it learns overall (monitor `TrnEpcPlot` to make it run faster).
+* Set `Patterns` to `Hard`, press `Init` and `Step Run`. Do multiple repeated Runs, to see how reliably and quickly it learns overall (monitor `Train Epoch Plot` to make it run faster).
 
 You should see that the network learns this task without much difficulty, because error-driven learning is directly a function of how well the network is actually doing, driving the weights specifically to solve the task, instead of doing something else like encoding correlational structure. Now we'll push the limits of even this powerful error-driven learning.
 
-* Set `Learn` to `Impossible`, and click on the `Impossible` button to view the patterns.
+* Set `Patterns` to `Impossible`, and click on the `Impossible` button to view the patterns.
 
 Notice that each input unit in this environment is active equally often when the output is active as when it is inactive. That is, there is complete overlap among the patterns that activate the different output units. These kinds of problems are called *ambiguous cue* problems, or *nonlinear discrimination* problems (e.g., Sutherland & Rudy, 1989).  This kind of problem might prove difficult, because every input unit will end up being equivocal about what the output should do. Nevertheless, the input patterns are not all the same -- people could learn to solve this task fairly trivially by just paying attention to the overall patterns of activation. Let's see if the network can do this.
 
-* Press `Init` and `Step Run`. Do it again, and again.. Increase the `MaxEpcs` higher than 100. 
+* Press `Init` and `Step Run`. Do it again, and again.. Increase the `Config / NEpochs` higher than 100. 
 
 > **Question 4.6:** Does the network ever learn to solve this "Impossible" problem? Report the final SSE values for your runs.
 
