@@ -33,6 +33,7 @@ import (
 	"github.com/emer/emergent/v2/params"
 	"github.com/emer/emergent/v2/paths"
 	"github.com/emer/leabra/v2/leabra"
+	"gonum.org/v1/gonum/mat"
 )
 
 //go:embed family_trees.tsv
@@ -501,41 +502,42 @@ func (ss *Sim) RepsAnalysis() {
 		nmtsr.Values[i] = nnm
 	}
 
-	// todo: change Simat, svd names to Column instead of Col
+	ss.Stats.SVD.Kind = mat.SVDFull // critical
 	rels := table.NewIndexView(trl)
 	rels.SortColumnName("TrialName", table.Ascending)
-	ss.Stats.SimMat("HiddenRel").TableCol(rels, "Hidden_ActM", "TrialName", true, metric.Correlation64)
-	ss.Stats.SVD.TableCol(rels, "Hidden_ActM", metric.Covariance64)
+	ss.Stats.SimMat("HiddenRel").TableColumn(rels, "Hidden_ActM", "TrialName", true, metric.Correlation64)
+	errors.Log(ss.Stats.SVD.TableColumn(rels, "Hidden_ActM", metric.Covariance64))
 	svt := ss.Logs.MiscTable("HiddenRelPCA")
-	ss.Stats.SVD.ProjectColToTable(svt, rels, "Hidden_ActM", "TrialName", []int{0, 1})
+	ss.Stats.SVD.ProjectColumnToTable(svt, rels, "Hidden_ActM", "TrialName", []int{0, 1})
 	estats.ConfigPCAPlot(ss.GUI.PlotByName("HiddenRelPCA"), svt, "Hidden Rel PCA")
 	estats.ClusterPlot(ss.GUI.PlotByName("HiddenRelClust"), rels, "Hidden_ActM", "TrialName")
 
-	/*
-		// replace name with just agent
-		for i, nm := range names {
-			nnm := nm[:strings.Index(nm, ".")]
-			nmtsr.Values[i] = nnm
-		}
-		ags := table.NewIndexView(trl)
-		ags.SortCol(trl.ColIndex("TrialName"), true)
-		ss.HiddenAgent.SimMat.TableCol(ags, "Hidden", "TrialName", true, metric.Correlation64)
-		ss.HiddenAgent.PCA.TableCol(ags, "Hidden", metric.Covariance64)
-		ss.HiddenAgent.PCA.ProjectColToTable(ss.HiddenAgent.PCAPrjn, ags, "Hidden", "TrialName", []int{2, 3})
-		ss.ConfigPCAPlot(ss.HiddenAgent.PCAPlot, ss.HiddenAgent.PCAPrjn, "Hidden Agent")
-		ss.HiddenAgent.PCAPlot.SetColParams("Prjn3", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0)
-		ss.HiddenAgent.PCAPlot.Params.XAxisCol = "Prjn2"
-		ss.ClustPlot(ss.HiddenAgent.ClustPlot, ags, "Hidden")
+	// replace name with just agent
+	for i, nm := range names {
+		nnm := nm[:strings.Index(nm, ".")]
+		nmtsr.Values[i] = nnm
+	}
+	ags := table.NewIndexView(trl)
+	ags.SortColumnName("TrialName", table.Ascending)
 
-		ss.AgentAgent.SimMat.TableCol(ags, "AgentCode", "TrialName", true, metric.Correlation64)
-		ss.AgentAgent.PCA.TableCol(ags, "AgentCode", metric.Covariance64)
-		ss.AgentAgent.PCA.ProjectColToTable(ss.AgentAgent.PCAPrjn, ags, "AgentCode", "TrialName", []int{0, 1})
-		ss.ConfigPCAPlot(ss.AgentAgent.PCAPlot, ss.AgentAgent.PCAPrjn, "AgentCode")
-		ss.ClustPlot(ss.AgentAgent.ClustPlot, ags, "AgentCode")
+	ss.Stats.SimMat("HiddenAgent").TableColumn(ags, "Hidden_ActM", "TrialName", true, metric.Correlation64)
+	errors.Log(ss.Stats.SVD.TableColumn(ags, "Hidden_ActM", metric.Covariance64))
+	svt = ss.Logs.MiscTable("HiddenAgentPCA")
+	ss.Stats.SVD.ProjectColumnToTable(svt, ags, "Hidden_ActM", "TrialName", []int{2, 3})
+	estats.ConfigPCAPlot(ss.GUI.PlotByName("HiddenAgentPCA"), svt, "Hidden Agent PCA")
+	estats.ClusterPlot(ss.GUI.PlotByName("HiddenAgentClust"), ags, "Hidden_ActM", "TrialName")
 
-		copy(nmtsr.Values, names) // restore
-		ss.Stopped()
-	*/
+	// ss.HiddenAgent.PCAPlot.SetColParams("Prjn3", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0)
+	// ss.HiddenAgent.PCAPlot.Params.XAxisCol = "Prjn2"
+
+	ss.Stats.SimMat("AgentCode").TableColumn(ags, "AgentCode_ActM", "TrialName", true, metric.Correlation64)
+	errors.Log(ss.Stats.SVD.TableColumn(ags, "AgentCode_ActM", metric.Covariance64))
+	svt = ss.Logs.MiscTable("AgentCodePCA")
+	ss.Stats.SVD.ProjectColumnToTable(svt, ags, "AgentCode_ActM", "TrialName", []int{0, 1})
+	estats.ConfigPCAPlot(ss.GUI.PlotByName("AgentCodePCA"), svt, "AgentCode Agent PCA")
+	estats.ClusterPlot(ss.GUI.PlotByName("AgentCodeClust"), ags, "AgentCode_ActM", "TrialName")
+
+	copy(nmtsr.Values, names) // restore
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -624,6 +626,10 @@ func (ss *Sim) ConfigGUI() {
 
 	ss.GUI.AddMiscPlotTab("HiddenRelPCA")
 	ss.GUI.AddMiscPlotTab("HiddenRelClust")
+	ss.GUI.AddMiscPlotTab("HiddenAgentPCA")
+	ss.GUI.AddMiscPlotTab("HiddenAgentClust")
+	ss.GUI.AddMiscPlotTab("AgentCodePCA")
+	ss.GUI.AddMiscPlotTab("AgentCodeClust")
 
 	ss.GUI.Body.AddAppBar(func(p *tree.Plan) {
 		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Init", Icon: icons.Update,
