@@ -561,7 +561,7 @@ func (ss *Sim) ConfigLogs() {
 	ss.Logs.AddLayerTensorItems(ss.Net, "ActM", etime.Test, etime.Trial, "InputLayer", "SuperLayer", "TargetLayer")
 	ss.Logs.AddLayerTensorItems(ss.Net, "Targ", etime.Test, etime.Trial, "TargetLayer")
 
-	ss.Logs.PlotItems("SSE", "FirstZero", "LastZero")
+	ss.Logs.PlotItems("PctErr", "FirstZero", "LastZero")
 
 	ss.Logs.CreateTables()
 	ss.Logs.SetContext(&ss.Stats, ss.Net)
