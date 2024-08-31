@@ -18,9 +18,7 @@ In this exploration, the network learns about a simple world that consists purel
 
 Let's take a look at the network. The 5x5 input projects to a hidden layer of 20 units, which are all fully connected to the input with random initial weights, and have standard FFFB inhibitory competition dynamics operating amongst them.
 
-* As usual, select `r.Wt` and view the initialized weights for these units by clicking on several hidden units. You will see that the initial wts have been randomized to different values. 
-
-Because viewing the pattern of weights over all the hidden units will be of primary concern as the network learns, we have a special grid view showing on the upper left of the network display, which displays the weights for all hidden units. In addition, there is a graph view in the upper right, which will display key information as the network learns.
+* As usual, select `Wts / r.Wt` and view the initialized weights for these units by clicking on several hidden units. You will see that the initial wts have been randomized to different values. 
 
 Let's see the environment the network will be experiencing.
 
@@ -30,11 +28,11 @@ This will bring up a display showing the training items, which are composed of t
 
 It should be clear that if we computed the correlations between individual pixels across all of these images, everything would be equally (weakly) correlated with everything else. Thus, learning must be conditional on the particular type of line for any meaningful correlations to be extracted. We will see that this conditionality will simply self-organize through the interactions of the learning rule and the FFFB inhibitory competition. Note also that because two lines are present in every image, the network will require at least two active hidden units per input, assuming each unit is representing a particular line.
 
-* Return to viewing `Act` in the `NetView`. Then, do `Init` and `Step Trial` in the toolbar, to present a single pattern to the network. 
+* Return to viewing `Act` in the `Network`. Then, do `Init` and `Step Trial` in the toolbar, to present a single pattern to the network. 
 
-You should see one of the event patterns containing two lines in the input of the network, and a pattern of roughly two or more active hidden units (the FFFB inhibition is very approximate in determining how many units are active).
+You should see one of the event patterns containing two lines in the input of the network, and a pattern of roughly two or more active hidden units (the FFFB inhibition is approximate in determining how many units are active).
 
-* You can `Step Trial` some more. When you tire of single stepping, just press the `Step Run` button.  You should switch to viewing the `TrnEpcPlot` tab so it runs faster.
+* You can `Step Trial` some more. When you tire of single stepping, just switch from `Trial` to `Ru` and do `Step Run`.  You should switch to viewing the `Train Epoch Plot` tab so it runs faster.
 
 After 30 *epochs* (passes through all 45 different events in the environment) of learning, the network will stop. 
 
@@ -42,9 +40,9 @@ After 30 *epochs* (passes through all 45 different events in the environment) of
 
 The larger-scale 5x4 grid is topographically arranged in the same layout as the `Hidden` layer of the network. Within each of these 20 grid elements is a smaller 5x5 grid representing the input units, showing the weights for each unit. By clicking on the hidden units in the network window with the `r.Wt` variable selected, you should be able to verify this correspondence.  You should see that the network has extracted the individual line elements from these input patterns.
 
-* Click on the `TrnEpcLog` and scroll down to see how these weight patterns evolved over the course of training, epoch-by-epoch, in the `HidFmInputWts` column.
+* Go back to the `Weights` tab, set the `Step` to `Epoch`, and `Step` to see how these weight patterns evolved over the course of training, epoch-by-epoch.
 
-As training proceded, the weights came to more and more clearly reflect the lines present in the environment. Thus, individual units developed *selective* representations of the correlations present within individual lines, or two lines in some cases. The BCM-based XCAL learning algorithm does not alter weights from inactive inputs, so it tends to accumulate a bit of "cruft" (a historical trace of the learning process) in the weights, but the weights to the dominant inputs for each unit get very strong and stand out. This lack of learning to inactive inputs (which differs significantly from more standard forms of Hebbian learning, e.g., as used in the previous version of the Leabra learning algorithm) is not only biologically supported, but also significantly increases the overall storage capacity of the network, by reducing interference from prior learning.
+As training proceeded, the weights came to more and more clearly reflect the lines present in the environment. Thus, individual units developed *selective* representations of the correlations present within individual lines, or two lines in some cases. The BCM-based XCAL learning algorithm does not alter weights from inactive inputs, so it tends to accumulate a bit of "cruft" (a historical trace of the learning process) in the weights, but the weights to the dominant inputs for each unit get very strong and stand out. This lack of learning to inactive inputs (which differs significantly from more standard forms of Hebbian learning, e.g., as used in the previous version of the Leabra learning algorithm) is not only biologically supported, but also significantly increases the overall storage capacity of the network, by reducing interference from prior learning.
 
 These line representations developed as a result of the interaction between learning and inhibitory competition as follows. Early on, the units that won the inhibitory competition were those that happened to have larger random weights for the input pattern. Learning then tuned these weights to be more selective for that input pattern, causing them to be more likely to respond to that pattern and others that overlap with it (i.e., other patterns sharing one of the two lines). To the extent that the weights are stronger for one of the two lines in the input, the unit will be more likely to respond to inputs having this line, and the weights will continue to increase. If a unit gets over active, then its long-term average activity level, which sets the floating threshold for the BCM-style learning, will result in weight decreases that help to refine its response properties.
 
@@ -58,7 +56,7 @@ From a biological perspective, we know that the cortex does not produce a lot of
 
 # Unique Pattern Statistic
 
-Although looking at the weights is informative, we could use a more concise measure of how well the network's internal model matches the underlying structure of the environment. We one such measure is plotted in the `TrnEpcPlot` as the network learns.
+Although looking at the weights is informative, we could use a more concise measure of how well the network's internal model matches the underlying structure of the environment. We one such measure is plotted in the `Train Epoch Plot` as the network learns.
 
 This shows the results of the **unique pattern statistic** (`UniqPats`), which records the number of unique hidden unit activity patterns that were produced as a result of probing the network with all 10 different types of horizontal and vertical lines (presented individually). Thus, there is a separate testing process which, after each epoch of learning, tests the network on all 10 lines, records the resulting hidden unit activity patterns (with the FFFB inhibition cranked up to 3 so that typically 1 unit is active, so we can find the *most active* response to each input), and then counts up the number of unique such patterns (subject to thresholding so we only care about binary patterns of activity).
 
@@ -66,14 +64,11 @@ The logic behind this measure is that if each line is encoded by (at least) one 
 
 Also, for most runs, if you use the lower level of inhibition used during training, there will always be a unique pattern of activity -- in the brain, distributed representations are much more efficient for encoding unique patterns via different patterns of active units -- so this `UniqPats` statistic is really a strict, simple measure of learning performance.
 
-The performance of the model on any given run can be quite variable, depending on the random initial weights. Almost always the uniq_pats statistic is above 5, and often it is a perfect 10, and typically it climbs up over training. Because of this variability, we need to run multiple batches of training to get a better sense of how well the network learns in general.
+The performance of the model on any given run can be quite variable, depending on the random initial weights. Almost always the `UniqPats` statistic is above 5, and often it is a perfect 10, and typically it climbs up over training. Because of this variability, we need to run multiple runs of training to get a better sense of how well the network learns in general.
 
-* Hit `New Seed` and `Train` to run, and switch to viewing the `RunPlot` to see a record of the `UniqPats` statistic for each of the 8 runs. 
+* Switch `Step` to `Run` and `Step` through multiple runs, each of which starts with different random initial weights.  Switch to viewing the `Train Run Plot` to see a record of the `UniqPats` statistic for each of the 8 runs. 
 
-After the 8 training runs, you can click on the `RunStats` button to view summary statistics about the average (mean), maximum, minimum, etc of the `UniqPats` statistic at the end of each network training run.  Hover the mouse over the header labels to see the full name of the field.
-
-> **Question 4.1:** What statistics (Mean, Min, Max) for the number of uniquely represented lines did you obtain in your 8 runs with default parameters?
-
+> **Question 4.1:** How many times across the 8 runs was there a less-than-10 result for the UniqPats number of uniquely represented lines, with the default parameters?
 
 # Parameter Manipulations
 
@@ -81,15 +76,15 @@ Now, let's explore the effects of some of the parameters in the control panel.
 
 One of the most important parameters for BCM-style Hebbian learning is how high the `AvgL` long-term running average threshold goes as a function of neural activity (this is denoted by theta in the textbook figures).  The higher this value goes, the stronger the homeostasis force is that balances against the Hebbian rich-get-richer positive feedback loop, which can result in neurons that are more finely tuned to distinctive patterns, versus more broadly tuned neurons that respond to many different things.
 
-* The parameter that controls how high `AvgL` goes is `AvgLGain`, with a default value of 2.5.  To see how important this factor is, reduce it to 1.5 or 1 and note the effects on the `UniqPats` in `RunStats` and also on the learned synaptic weights.
+* The parameter that controls how high `AvgL` goes is `AvgLGain`, with a default value of 2.5.  To see how important this factor is, reduce it to 1.5 and 1.  Press `Init` to have the parameter change take effect and restart the train process, and `Train Run` will run through all 8 runs.  Note the effects on the `UniqPats` and also on the learned synaptic weights.
 
-It is also entertaining and informative to watch the `AvgL` value in the `NetView`, to see how this updates over time and is affected by these parameter changes.
+It is also entertaining and informative to watch the `Learn / AvgL` value in the `Network`, to see how this updates over time and is affected by these parameter changes.
 
 One thing that is a bit unrealistic about this model is the lack of any activity at all in the units that are off. In the real brain, inactive neurons always have some low level of activity. This can affect the extent to which weights decrease to the less active inputs, potentially leading to cleaner overall patterns of weights.
 
-* To add some noise activity in the input, set the InputNoise to .2, and do `New Seed` and then `Init` and `Train` (you can `Step Trial` to see the noise in the input).  
+* To add some noise activity in the input, set the InputNoise to .2, and `Init` and `Train Run` (you can `Step Trial` to see the noise in the input).  
 
-> **Question 4.2:** Now what did you get for the `UniqPats` stats in the `RunStats`? Is this an improvement over the no-noise case? (This effect should be easier to see if you leave the AvgLGain to be reduced at 1.5 or 1 compared to default of 2.5). Describe what difference you observe in the weights of the no-noise and noise simulations. Why do you see this difference?
+> **Question 4.2:** Now how many sub-10 `UniqPats` stats did you get? Is this an improvement over the no-noise case? (This effect should be easier to see if you leave the AvgLGain to be reduced at 1.5 or 1 compared to default of 2.5). Describe what difference you observe in the weights of the no-noise and noise simulations. Why do you see this difference?
 
 In conclusion, this exercise should give you a feel for the dynamics that underlie self-organizing learning, and also for the importance of how the floating threshold level and homeostasis dynamic plays a key role in this form of learning.
 

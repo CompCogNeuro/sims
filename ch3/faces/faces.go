@@ -262,8 +262,8 @@ func (ss *Sim) Init() {
 	ss.GUI.StopNow = false
 	ss.ApplyParams()
 	ss.NewRun()
-	ss.ViewUpdate.Update()
 	ss.ViewUpdate.RecordSyns()
+	ss.ViewUpdate.Update()
 }
 
 // InitRandSeed initializes the random seed based on current training run number
