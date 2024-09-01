@@ -63,7 +63,7 @@ By systematically searching the parameter range for `GbarE` between .1 and .2, y
 
 You can also manipulate the value of the leak conductance, , which controls the size of the leak current -- recall that this pulls the opposite direction as the excitatory conductance in the neural tug-of-war.
 
-* Press the Defaults button on the control panel to restore the default parameters, then manipulate the GbarL parameter in .1 increments (.4, .5, .2 etc) and observe the effects on neural spiking. 
+* Press the `Defaults` button in the toolbar to restore the default parameters, then manipulate the `GbarL` parameter in .1 increments (.4, .5, .2 etc) and observe the effects on neural spiking. 
 
 > **Question 2.5:** What value of GbarL just prevents the neuron from being able to spike (in .1 increments) -- explain this result in terms of the tug-of-war model relative to the GbarE excitatory conductance.
 
