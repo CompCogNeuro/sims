@@ -1,7 +1,7 @@
 // Copyright (c) 2024, The Emergent Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
- 
+
 // hebberr_combo shows how XCal hebbian learning in shallower
 // layers of a network can aid an error driven learning network
 // to generalize to unseen combinations of patterns.
@@ -33,11 +33,12 @@ import (
 	"github.com/emer/emergent/v2/netview"
 	"github.com/emer/emergent/v2/params"
 	"github.com/emer/emergent/v2/paths"
-//	"github.com/emer/etable/split"
+
+	//	"github.com/emer/etable/split"
 	"github.com/emer/leabra/v2/leabra"
 )
 
-//go:embed lines2out1.tsv  
+//go:embed lines2out1.tsv
 var content embed.FS
 
 // LearnType is the type of learning to use
@@ -56,7 +57,6 @@ func main() {
 	sim.RunGUI()
 }
 
-
 // ParamSets is the default set of parameters.
 // Base is always applied, and others can be optionally
 // selected to apply on top of that.
@@ -64,13 +64,13 @@ var ParamSets = params.Sets{
 	"Base": {
 		{Sel: "Path", Desc: "no extra learning factors",
 			Params: params.Params{
-				"Path.Learn.Norm.On":      "false",
-				"Path.Learn.Momentum.On":  "false",
-				"Path.Learn.WtBal.On":     "false", // note: was on!
+				"Path.Learn.Norm.On":     "false",
+				"Path.Learn.Momentum.On": "false",
+				"Path.Learn.WtBal.On":    "false", // note: was on!
 			}},
 		{Sel: "Layer", Desc: "pretty much defaults",
 			Params: params.Params{
-				"Layer.Learn.AvgL.Gain":    "3", //  
+				"Layer.Learn.AvgL.Gain":    "3",   //
 				"Layer.Inhib.Layer.Gi":     "1.5", // default
 				"Layer.Inhib.ActAvg.Init":  "0.2",
 				"Layer.Inhib.ActAvg.Fixed": "true",
@@ -86,7 +86,7 @@ var ParamSets = params.Sets{
 			}},
 	},
 
-	"ErrorDriven":{
+	"ErrorDriven": {
 		{Sel: "Path", Desc: "",
 			Params: params.Params{
 				"Path.Learn.XCal.MLrn":    "1",
@@ -95,11 +95,11 @@ var ParamSets = params.Sets{
 			}},
 		{Sel: "#Output", Desc: "out inhib",
 			Params: params.Params{
-			"Layer.Inhib.Layer.Gi": "1.8",
+				"Layer.Inhib.Layer.Gi": "1.8",
 			}},
-  },
-         "Hebbian": {
-	 	{Sel: "Path", Desc: "",
+	},
+	"Hebbian": {
+		{Sel: "Path", Desc: "",
 			Params: params.Params{
 				"Path.Learn.XCal.MLrn":    "0",
 				"Path.Learn.XCal.SetLLrn": "true",
@@ -107,13 +107,12 @@ var ParamSets = params.Sets{
 			}},
 		{Sel: "#Output", Desc: "out inhib",
 			Params: params.Params{
-			"Layer.Inhib.Layer.Gi": "1.8",
+				"Layer.Inhib.Layer.Gi": "1.8",
 			}},
-			
 	},
 
 	"ErrorHebbIn": {
-	 	{Sel: "Path", Desc: "Error-driven output, hebb from input to hidden",
+		{Sel: "Path", Desc: "Error-driven output, hebb from input to hidden",
 			Params: params.Params{
 				"Path.Learn.XCal.MLrn":    "1",
 				"Path.Learn.XCal.SetLLrn": "true",
@@ -126,15 +125,13 @@ var ParamSets = params.Sets{
 				"Path.Learn.XCal.LLrn":    "1",
 				"Path.Learn.Lrate":        "0.02",
 				"Path.Learn.WtBal.On":     "true", // note: was on!
-				}},
-			
+			}},
+
 		{Sel: "#Output", Desc: "out inhib",
 			Params: params.Params{
-			"Layer.Inhib.Layer.Gi": "1.8",
+				"Layer.Inhib.Layer.Gi": "1.8",
 			}},
-			
-	},    
- 
+	},
 }
 
 // Config has config parameters related to running the sim
@@ -157,10 +154,10 @@ type Config struct {
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
 
-        // select which type of learning to use
+	// select which type of learning to use
 	Learn LearnType
 
-     	// key BCM hebbian learning parameter, that determines how high the
+	// key BCM hebbian learning parameter, that determines how high the
 	// floating threshold goes -- higher = more homeostatic pressure
 	// against rich-get-richer feedback loops.
 	AvgLGain float32 `min:"0.1" step:"0.5" default:"2.5"`
@@ -186,7 +183,7 @@ type Sim struct {
 
 	// 2 active lines for training
 	Lines2 *table.Table `new-window:"+" display:"no-inline"`
-	
+
 	// contains looper control loops for running sim
 	Loops *looper.Manager `new-window:"+" display:"no-inline"`
 
@@ -263,26 +260,23 @@ func (ss *Sim) ConfigEnv() {
 
 	// note: names must be standard here!
 
-
-	 
-	
-//	ss.TrainEnv.Table = splits.Splits[0]
-//	ss.TestEnv.Table = splits.Splits[1]
+	//	ss.TrainEnv.Table = splits.Splits[0]
+	//	ss.TestEnv.Table = splits.Splits[1]
 
 	trn.Name = etime.Train.String()
 	trn.Config(table.NewIndexView(ss.Lines2))
 	trn.Validate()
 
 	tst.Name = etime.Test.String()
-	tst.Config(table.NewIndexView(ss.Lines2)) 
+	tst.Config(table.NewIndexView(ss.Lines2))
 	tst.Sequential = true
 	tst.Validate()
 
-//	all := table.NewIndexView(ss.Lines2)
-//	splits, _ := split.Permuted(all, []float64{.9, .1}, []string{"Train", "Test"})
-//	trn.Table = splits.Splits[0]
-//	tst.Table = splits.Splits[1]
-	
+	//	all := table.NewIndexView(ss.Lines2)
+	//	splits, _ := split.Permuted(all, []float64{.9, .1}, []string{"Train", "Test"})
+	//	trn.Table = splits.Splits[0]
+	//	tst.Table = splits.Splits[1]
+
 	trn.Init(0)
 	tst.Init(0)
 
@@ -301,7 +295,6 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 	net.ConnectLayers(inp, hid, full, leabra.ForwardPath)
 	net.BidirConnectLayers(hid, out, full)
 
-
 	net.Build()
 	net.Defaults()
 	ss.ApplyParams()
@@ -316,14 +309,13 @@ func (ss *Sim) ApplyParams() {
 	case ErrorDriven:
 		ss.Params.SetAllSheet("ErrorDriven")
 	case ErrorHebbIn:
-		ss.Params.SetAllSheet("ErrorHebbIn") 
+		ss.Params.SetAllSheet("ErrorHebbIn")
 	}
 	if ss.Loops != nil {
 		trn := ss.Loops.Stacks[etime.Train]
 		trn.Loops[etime.Run].Counter.Max = ss.Config.NRuns
 		trn.Loops[etime.Epoch].Counter.Max = ss.Config.NEpochs
 	}
-
 
 	ly := ss.Net.LayerByName("Hidden")
 	ly.Learn.AvgL.Gain = ss.AvgLGain
@@ -414,12 +406,12 @@ func (ss *Sim) ConfigLoops() {
 		ss.Logs.RunStats("PctCor", "FirstZero", "LastZero")
 	})
 
-// logs from self org
-//	man.AddOnEndToAll("Log", ss.Log)
-//	leabra.LooperResetLogBelow(man, &ss.Logs)
-//	man.GetLoop(etime.Train, etime.Run).OnEnd.Add("RunStats", func() {
-//		ss.Logs.RunStats("UniqPats")
-//	})
+	// logs from self org
+	//	man.AddOnEndToAll("Log", ss.Log)
+	//	leabra.LooperResetLogBelow(man, &ss.Logs)
+	//	man.GetLoop(etime.Train, etime.Run).OnEnd.Add("RunStats", func() {
+	//		ss.Logs.RunStats("UniqPats")
+	//	})
 
 	////////////////////////////////////////////
 	// GUI
@@ -434,7 +426,7 @@ func (ss *Sim) ConfigLoops() {
 // It is good practice to have this be a separate method with appropriate
 // args so that it can be used for various different contexts
 // (training, testing, etc).
- 
+
 func (ss *Sim) ApplyInputs() {
 	ctx := &ss.Context
 	net := ss.Net
@@ -534,7 +526,6 @@ func (ss *Sim) TrialStats() {
 		ss.Stats.SetFloat("TrlErr", 0)
 	}
 }
- 
 
 // UniquePatStat analyzes the hidden activity patterns for the single-line test inputs
 // to determine how many such lines have a distinct hidden pattern, as computed
@@ -592,7 +583,6 @@ func (ss *Sim) HiddenFromInput() {
 //////////////////////////////////////////////////////////////////////////////
 // 		Logging
 
-
 func (ss *Sim) ConfigLogs() {
 	ss.Stats.SetString("RunName", ss.Params.RunName(0)) // used for naming logs, stats, etc
 
@@ -622,7 +612,6 @@ func (ss *Sim) ConfigLogs() {
 	ss.Logs.NoPlot(etime.Test, etime.Run)
 	ss.Logs.SetMeta(etime.Train, etime.Run, "LegendCol", "RunName")
 }
-
 
 // Log is the main logging function, handles special things for different scopes
 func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
@@ -670,7 +659,7 @@ func (ss *Sim) ConfigGUI() {
 	ss.ViewUpdate.Config(nv, etime.GammaCycle, etime.GammaCycle)
 	ss.GUI.ViewUpdate = &ss.ViewUpdate
 	nv.Current()
-	
+
 	nv.SceneXYZ().Camera.Pose.Pos.Set(0.1, 1.5, 4) // more "head on" than default which is more "top down"
 	nv.SceneXYZ().Camera.LookAt(math32.Vec3(0.1, 0.1, 0), math32.Vec3(0, 1, 0))
 
@@ -683,57 +672,58 @@ func (ss *Sim) ConfigGUI() {
 	wg.SetShape([]int{4, 5, 5, 5})
 	wgv.SetTensor(wg)
 
-	ss.GUI.Body.AddAppBar(func(p *tree.Plan) {
-		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Init", Icon: icons.Update,
-			Tooltip: "Initialize everything including network weights, and start over.  Also applies current params.",
-			Active:  egui.ActiveStopped,
-			Func: func() {
-				ss.Init()
-				ss.GUI.UpdateWindow()
-			},
-		})
-
-		ss.GUI.AddLooperCtrl(p, ss.Loops, []etime.Modes{etime.Train, etime.Test})
-
-		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Test Init", Icon: icons.Update,
-			Tooltip: "Initialize testing to start over -- if Test Step doesn't work, then do this.",
-			Active:  egui.ActiveStopped,
-			Func: func() {
-				ss.Loops.ResetCountersByMode(etime.Test)
-			},
-		})
-
-		////////////////////////////////////////////////
-		tree.Add(p, func(w *core.Separator) {})
-		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Reset RunLog",
-			Icon:    icons.Reset,
-			Tooltip: "Reset the accumulated log of all Runs, which are tagged with the ParamSet used",
-			Active:  egui.ActiveAlways,
-			Func: func() {
-				ss.Logs.ResetLog(etime.Train, etime.Run)
-				ss.GUI.UpdatePlot(etime.Train, etime.Run)
-			},
-		})
-		////////////////////////////////////////////////
-		tree.Add(p, func(w *core.Separator) {})
-		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "New Seed",
-			Icon:    icons.Add,
-			Tooltip: "Generate a new initial random seed to get different results.  By default, Init re-establishes the same initial seed every time.",
-			Active:  egui.ActiveAlways,
-			Func: func() {
-				ss.RandSeeds.NewSeeds()
-			},
-		})
-		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "README",
-			Icon:    icons.FileMarkdown,
-			Tooltip: "Opens your browser on the README file that contains instructions for how to run this model.",
-			Active:  egui.ActiveAlways,
-			Func: func() {
-				core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/main/ch4/hebberr_combo/README.md")
-			},
-		})
-	})
 	ss.GUI.FinalizeGUI(false)
+}
+
+func (ss *Sim) MakeToolbar(p *tree.Plan) {
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Init", Icon: icons.Update,
+		Tooltip: "Initialize everything including network weights, and start over.  Also applies current params.",
+		Active:  egui.ActiveStopped,
+		Func: func() {
+			ss.Init()
+			ss.GUI.UpdateWindow()
+		},
+	})
+
+	ss.GUI.AddLooperCtrl(p, ss.Loops, []etime.Modes{etime.Train, etime.Test})
+
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Test Init", Icon: icons.Update,
+		Tooltip: "Initialize testing to start over -- if Test Step doesn't work, then do this.",
+		Active:  egui.ActiveStopped,
+		Func: func() {
+			ss.Loops.ResetCountersByMode(etime.Test)
+		},
+	})
+
+	////////////////////////////////////////////////
+	tree.Add(p, func(w *core.Separator) {})
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Reset RunLog",
+		Icon:    icons.Reset,
+		Tooltip: "Reset the accumulated log of all Runs, which are tagged with the ParamSet used",
+		Active:  egui.ActiveAlways,
+		Func: func() {
+			ss.Logs.ResetLog(etime.Train, etime.Run)
+			ss.GUI.UpdatePlot(etime.Train, etime.Run)
+		},
+	})
+	////////////////////////////////////////////////
+	tree.Add(p, func(w *core.Separator) {})
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "New Seed",
+		Icon:    icons.Add,
+		Tooltip: "Generate a new initial random seed to get different results.  By default, Init re-establishes the same initial seed every time.",
+		Active:  egui.ActiveAlways,
+		Func: func() {
+			ss.RandSeeds.NewSeeds()
+		},
+	})
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "README",
+		Icon:    icons.FileMarkdown,
+		Tooltip: "Opens your browser on the README file that contains instructions for how to run this model.",
+		Active:  egui.ActiveAlways,
+		Func: func() {
+			core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/main/ch4/hebberr_combo/README.md")
+		},
+	})
 }
 
 func (ss *Sim) RunGUI() {

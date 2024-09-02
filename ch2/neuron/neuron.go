@@ -442,76 +442,77 @@ func (ss *Sim) ConfigGUI() {
 	plt.Options.XAxis = "GBarE"
 	plt.SetTable(dt)
 
-	ss.GUI.Body.AddAppBar(func(p *tree.Plan) {
-		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Init", Icon: icons.Update,
-			Tooltip: "Initialize everything including network weights, and start over.  Also applies current params.",
-			Active:  egui.ActiveStopped,
-			Func: func() {
-				ss.Init()
-				ss.GUI.UpdateWindow()
-			},
-		})
-		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Stop", Icon: icons.Stop,
-			Tooltip: "Stops running.",
-			Active:  egui.ActiveRunning,
-			Func: func() {
-				ss.Stop()
-				ss.GUI.UpdateWindow()
-			},
-		})
-		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Run cycles", Icon: icons.PlayArrow,
-			Tooltip: "Runs neuron updating over NCycles.",
-			Active:  egui.ActiveStopped,
-			Func: func() {
-				if !ss.GUI.IsRunning {
-					go func() {
-						ss.GUI.IsRunning = true
-						ss.RunCycles(true)
-						ss.GUI.IsRunning = false
-						ss.GUI.UpdateWindow()
-					}()
-				}
-			},
-		})
-		tree.Add(p, func(w *core.Separator) {})
-		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Reset plot", Icon: icons.Update,
-			Tooltip: "Reset TestCyclePlot.",
-			Active:  egui.ActiveStopped,
-			Func: func() {
-				ss.ResetTestCyclePlot()
-				ss.GUI.UpdateWindow()
-			},
-		})
-		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Spike Vs Rate", Icon: icons.PlayArrow,
-			Tooltip: "Generate a plot of actual spiking rate vs computed NXX1 rate code.",
-			Active:  egui.ActiveStopped,
-			Func: func() {
-				ss.GUI.IsRunning = true
-				go ss.SpikeVsRate()
-				ss.GUI.UpdateWindow()
-			},
-		})
-
-		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Defaults", Icon: icons.Update,
-			Tooltip: "Restore initial default parameters.",
-			Active:  egui.ActiveStopped,
-			Func: func() {
-				ss.Defaults()
-				ss.Init()
-				ss.GUI.SimForm.Update()
-				ss.GUI.UpdateWindow()
-			},
-		})
-		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "README",
-			Icon:    icons.FileMarkdown,
-			Tooltip: "Opens your browser on the README file that contains instructions for how to run this model.",
-			Active:  egui.ActiveAlways,
-			Func: func() {
-				core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/main/ch2/neuron/README.md")
-			},
-		})
-	})
 	ss.GUI.FinalizeGUI(false)
+}
+
+func (ss *Sim) MakeToolbar(p *tree.Plan) {
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Init", Icon: icons.Update,
+		Tooltip: "Initialize everything including network weights, and start over.  Also applies current params.",
+		Active:  egui.ActiveStopped,
+		Func: func() {
+			ss.Init()
+			ss.GUI.UpdateWindow()
+		},
+	})
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Stop", Icon: icons.Stop,
+		Tooltip: "Stops running.",
+		Active:  egui.ActiveRunning,
+		Func: func() {
+			ss.Stop()
+			ss.GUI.UpdateWindow()
+		},
+	})
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Run cycles", Icon: icons.PlayArrow,
+		Tooltip: "Runs neuron updating over NCycles.",
+		Active:  egui.ActiveStopped,
+		Func: func() {
+			if !ss.GUI.IsRunning {
+				go func() {
+					ss.GUI.IsRunning = true
+					ss.RunCycles(true)
+					ss.GUI.IsRunning = false
+					ss.GUI.UpdateWindow()
+				}()
+			}
+		},
+	})
+	tree.Add(p, func(w *core.Separator) {})
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Reset plot", Icon: icons.Update,
+		Tooltip: "Reset TestCyclePlot.",
+		Active:  egui.ActiveStopped,
+		Func: func() {
+			ss.ResetTestCyclePlot()
+			ss.GUI.UpdateWindow()
+		},
+	})
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Spike Vs Rate", Icon: icons.PlayArrow,
+		Tooltip: "Generate a plot of actual spiking rate vs computed NXX1 rate code.",
+		Active:  egui.ActiveStopped,
+		Func: func() {
+			ss.GUI.IsRunning = true
+			go ss.SpikeVsRate()
+			ss.GUI.UpdateWindow()
+		},
+	})
+
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Defaults", Icon: icons.Update,
+		Tooltip: "Restore initial default parameters.",
+		Active:  egui.ActiveStopped,
+		Func: func() {
+			ss.Defaults()
+			ss.Init()
+			ss.GUI.SimForm.Update()
+			ss.GUI.UpdateWindow()
+		},
+	})
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "README",
+		Icon:    icons.FileMarkdown,
+		Tooltip: "Opens your browser on the README file that contains instructions for how to run this model.",
+		Active:  egui.ActiveAlways,
+		Func: func() {
+			core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/main/ch2/neuron/README.md")
+		},
+	})
 }
 
 func (ss *Sim) RunGUI() {

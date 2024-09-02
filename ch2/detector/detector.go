@@ -408,51 +408,52 @@ func (ss *Sim) ConfigGUI() {
 
 	ss.GUI.AddPlots(title, &ss.Logs)
 
-	ss.GUI.Body.AddAppBar(func(p *tree.Plan) {
-		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Init", Icon: icons.Update,
-			Tooltip: "Initialize everything including network weights, and start over.  Also applies current params.",
-			Active:  egui.ActiveStopped,
-			Func: func() {
-				ss.Init()
-				ss.GUI.UpdateWindow()
-			},
-		})
-
-		ss.GUI.AddLooperCtrl(p, ss.Loops, []etime.Modes{etime.Test})
-
-		////////////////////////////////////////////////
-		tree.Add(p, func(w *core.Separator) {})
-		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Reset Plot",
-			Icon:    icons.Reset,
-			Tooltip: "Reset the trial plot",
-			Active:  egui.ActiveAlways,
-			Func: func() {
-				ss.Logs.ResetLog(etime.Test, etime.Trial)
-				ss.GUI.UpdatePlot(etime.Test, etime.Trial)
-			},
-		})
-		////////////////////////////////////////////////
-		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Defaults", Icon: icons.Update,
-			Tooltip: "Restore initial default parameters.",
-			Active:  egui.ActiveStopped,
-			Func: func() {
-				ss.Defaults()
-				ss.Init()
-				ss.GUI.SimForm.Update()
-				ss.GUI.UpdateWindow()
-			},
-		})
-		tree.Add(p, func(w *core.Separator) {})
-		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "README",
-			Icon:    icons.FileMarkdown,
-			Tooltip: "Opens your browser on the README file that contains instructions for how to run this model.",
-			Active:  egui.ActiveAlways,
-			Func: func() {
-				core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/main/ch2/detector/README.md")
-			},
-		})
-	})
 	ss.GUI.FinalizeGUI(false)
+}
+
+func (ss *Sim) MakeToolbar(p *tree.Plan) {
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Init", Icon: icons.Update,
+		Tooltip: "Initialize everything including network weights, and start over.  Also applies current params.",
+		Active:  egui.ActiveStopped,
+		Func: func() {
+			ss.Init()
+			ss.GUI.UpdateWindow()
+		},
+	})
+
+	ss.GUI.AddLooperCtrl(p, ss.Loops, []etime.Modes{etime.Test})
+
+	////////////////////////////////////////////////
+	tree.Add(p, func(w *core.Separator) {})
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Reset Plot",
+		Icon:    icons.Reset,
+		Tooltip: "Reset the trial plot",
+		Active:  egui.ActiveAlways,
+		Func: func() {
+			ss.Logs.ResetLog(etime.Test, etime.Trial)
+			ss.GUI.UpdatePlot(etime.Test, etime.Trial)
+		},
+	})
+	////////////////////////////////////////////////
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Defaults", Icon: icons.Update,
+		Tooltip: "Restore initial default parameters.",
+		Active:  egui.ActiveStopped,
+		Func: func() {
+			ss.Defaults()
+			ss.Init()
+			ss.GUI.SimForm.Update()
+			ss.GUI.UpdateWindow()
+		},
+	})
+	tree.Add(p, func(w *core.Separator) {})
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "README",
+		Icon:    icons.FileMarkdown,
+		Tooltip: "Opens your browser on the README file that contains instructions for how to run this model.",
+		Active:  egui.ActiveAlways,
+		Func: func() {
+			core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/main/ch2/detector/README.md")
+		},
+	})
 }
 
 func (ss *Sim) RunGUI() {

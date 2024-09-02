@@ -571,55 +571,56 @@ func (ss *Sim) ConfigGUI() {
 	ss.GUI.AddMiscPlotTab("ProjectionRandom")
 	ss.GUI.AddMiscPlotTab("ProjectionEmoteGend")
 
-	ss.GUI.Body.AddAppBar(func(p *tree.Plan) {
-		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Init", Icon: icons.Update,
-			Tooltip: "Initialize everything including network weights, and start over.  Also applies current params.",
-			Active:  egui.ActiveStopped,
-			Func: func() {
-				ss.Init()
-				ss.GUI.UpdateWindow()
-			},
-		})
-
-		ss.GUI.AddLooperCtrl(p, ss.Loops, []etime.Modes{etime.Test})
-
-		////////////////////////////////////////////////
-		tree.Add(p, func(w *core.Separator) {})
-		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Set Input",
-			Icon:    icons.Image,
-			Tooltip: "set whether the input comes from the bottom-up (Input layer) or top-down (higher-level Category layers)",
-			Active:  egui.ActiveAlways,
-			Func: func() {
-				core.CallFunc(ss.GUI.Body, ss.SetInput)
-			},
-		})
-		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Set Patterns",
-			Icon:    icons.Image,
-			Tooltip: "set which set of patterns to present: full or partial faces",
-			Active:  egui.ActiveAlways,
-			Func: func() {
-				core.CallFunc(ss.GUI.Body, ss.SetPatterns)
-			},
-		})
-		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Cluster Plot",
-			Icon:    icons.Image,
-			Tooltip: "tests all the patterns and generates cluster plots and projections onto different dimensions",
-			Active:  egui.ActiveAlways,
-			Func: func() {
-				ss.ClusterPlots()
-			},
-		})
-		tree.Add(p, func(w *core.Separator) {})
-		ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "README",
-			Icon:    icons.FileMarkdown,
-			Tooltip: "Opens your browser on the README file that contains instructions for how to run this model.",
-			Active:  egui.ActiveAlways,
-			Func: func() {
-				core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/main/ch3/faces/README.md")
-			},
-		})
-	})
 	ss.GUI.FinalizeGUI(false)
+}
+
+func (ss *Sim) MakeToolbar(p *tree.Plan) {
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Init", Icon: icons.Update,
+		Tooltip: "Initialize everything including network weights, and start over.  Also applies current params.",
+		Active:  egui.ActiveStopped,
+		Func: func() {
+			ss.Init()
+			ss.GUI.UpdateWindow()
+		},
+	})
+
+	ss.GUI.AddLooperCtrl(p, ss.Loops, []etime.Modes{etime.Test})
+
+	////////////////////////////////////////////////
+	tree.Add(p, func(w *core.Separator) {})
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Set Input",
+		Icon:    icons.Image,
+		Tooltip: "set whether the input comes from the bottom-up (Input layer) or top-down (higher-level Category layers)",
+		Active:  egui.ActiveAlways,
+		Func: func() {
+			core.CallFunc(ss.GUI.Body, ss.SetInput)
+		},
+	})
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Set Patterns",
+		Icon:    icons.Image,
+		Tooltip: "set which set of patterns to present: full or partial faces",
+		Active:  egui.ActiveAlways,
+		Func: func() {
+			core.CallFunc(ss.GUI.Body, ss.SetPatterns)
+		},
+	})
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Cluster Plot",
+		Icon:    icons.Image,
+		Tooltip: "tests all the patterns and generates cluster plots and projections onto different dimensions",
+		Active:  egui.ActiveAlways,
+		Func: func() {
+			ss.ClusterPlots()
+		},
+	})
+	tree.Add(p, func(w *core.Separator) {})
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "README",
+		Icon:    icons.FileMarkdown,
+		Tooltip: "Opens your browser on the README file that contains instructions for how to run this model.",
+		Active:  egui.ActiveAlways,
+		Func: func() {
+			core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/main/ch3/faces/README.md")
+		},
+	})
 }
 
 func (ss *Sim) RunGUI() {
