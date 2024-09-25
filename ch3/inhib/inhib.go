@@ -635,6 +635,14 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 			ss.GUI.UpdateWindow()
 		},
 	})
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "ConfigPats",
+		Icon:    icons.Image,
+		Tooltip: "config patterns",
+		Active:  egui.ActiveAlways,
+		Func: func() {
+			core.CallFunc(ss.GUI.Body, ss.ConfigPatterns)
+		},
+	})
 	tree.Add(p, func(w *core.Separator) {})
 	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "README",
 		Icon:    icons.FileMarkdown,
