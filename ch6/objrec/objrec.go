@@ -24,6 +24,7 @@ import (
 	"cogentcore.org/core/icons"
 	"cogentcore.org/core/math32"
 	"cogentcore.org/core/math32/minmax"
+	"cogentcore.org/core/system"
 	"cogentcore.org/core/tensor/stats/split"
 	"cogentcore.org/core/tensor/stats/stats"
 	"cogentcore.org/core/tensor/table"
@@ -189,8 +190,8 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 	it := net.AddLayer2D("IT", 10, 10, leabra.SuperLayer)
 	out := net.AddLayer2D("Output", 4, 5, leabra.TargetLayer)
 
-	// v1.SetSampleIndexesShape(emer.CenterPoolIndexes(v1, 2), emer.CenterPoolShape(v1, 2))
-	// v4.SetSampleIndexesShape(emer.CenterPoolIndexes(v4, 2), emer.CenterPoolShape(v4, 2))
+	v1.SetSampleIndexesShape(emer.CenterPoolIndexes(v1, 2), emer.CenterPoolShape(v1, 2))
+	v4.SetSampleIndexesShape(emer.CenterPoolIndexes(v4, 2), emer.CenterPoolShape(v4, 2))
 
 	full := paths.NewFull()
 
@@ -330,12 +331,18 @@ func (ss *Sim) ConfigLoops() {
 		man.GetLoop(etime.Test, etime.Trial).OnEnd.Add("ActRFs", func() {
 			ss.Stats.UpdateActRFs(ss.Net, "ActM", 0.01, 0)
 		})
-		// man.GetLoop(etime.Train, etime.Trial).OnStart.Add("UpdateImage", func() {
-		// 	ss.GUI.Grid("Image").NeedsRender()
-		// })
-		// man.GetLoop(etime.Test, etime.Trial).OnStart.Add("UpdateImage", func() {
-		// 	ss.GUI.Grid("Image").NeedsRender()
-		// })
+		man.GetLoop(etime.Train, etime.Trial).OnStart.Add("UpdateImage", func() {
+			if system.TheApp.Platform() == system.Web { // todo: hangs on web
+				return
+			}
+			ss.GUI.Grid("Image").NeedsRender()
+		})
+		man.GetLoop(etime.Test, etime.Trial).OnStart.Add("UpdateImage", func() {
+			if system.TheApp.Platform() == system.Web {
+				return
+			}
+			ss.GUI.Grid("Image").NeedsRender()
+		})
 
 		leabra.LooperUpdateNetView(man, &ss.ViewUpdate, ss.Net, ss.NetViewCounters)
 		leabra.LooperUpdatePlots(man, &ss.GUI)
@@ -592,7 +599,7 @@ func (ss *Sim) ConfigGUI() {
 	nv.Options.MaxRecs = 300
 	nv.Options.LayerNameSize = 0.03
 	nv.SetNet(ss.Net)
-	ss.ViewUpdate.Config(nv, etime.Phase, etime.Phase)
+	ss.ViewUpdate.Config(nv, etime.GammaCycle, etime.GammaCycle)
 
 	cam := &(nv.SceneXYZ().Camera)
 	cam.Pose.Pos.Set(0.0, 1.733, 2.3)
@@ -650,6 +657,8 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 		Active:  egui.ActiveStopped,
 		Func: func() {
 			ss.Net.OpenWeightsFS(content, "objrec_train1.wts.gz")
+			ss.ViewUpdate.RecordSyns()
+			ss.ViewUpdate.Update()
 		},
 	})
 

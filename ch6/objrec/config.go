@@ -65,7 +65,7 @@ type RunConfig struct { //types:add
 	NRuns int `default:"1" min:"1"`
 
 	// total number of epochs per run
-	NEpochs int `default:"100"`
+	NEpochs int `default:"50"`
 
 	// total number of trials per epoch.  Should be an even multiple of NData.
 	NTrials int `default:"100"`

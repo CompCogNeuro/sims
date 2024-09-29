@@ -8,9 +8,9 @@ The model simulates a small patch of the LGN to V1 network, which processes a co
 
 # Network Structure
 
-You will notice that the network has the two input layers, each 12x12 in size, one representing a small patch of on-center LGN neurons (`LGNon`), and the other representing a similar patch of off-center LGN neurons (`LGNoff`). Specific input patterns are produced by randomly sampling a patch from a set of four larger (800x600 pixels) images of natural scenes (you can view these scenes by clicking on the images v1rf_img1.png, etc in this directory in your file browser). The single V1 layer is 14x14 in size.
+You will notice that the network has the two input layers, each 12x12 in size, one representing a small patch of on-center LGN neurons (`LGNon`), and the other representing a similar patch of off-center LGN neurons (`LGNoff`). Specific input patterns are produced by randomly sampling a patch from a set of four larger (800x600 pixels) images of natural scenes (you can view these scenes by clicking on the images `v1rf_img1.jpg`, etc in this directory in your file browser). The single V1 layer is 14x14 in size.
 
-* Let's examine the weights of the Network by clicking on `r.Wt` and then on a V1 unit.
+* Let's examine the weights of the Network by clicking on `Wts / r.Wt` and then on a V1 unit.
 
 You should observe that the unit is fully, randomly connected with the input layers, and that it has a circular *neighborhood* of lateral excitatory (*recurrent*) connectivity, which is key for inducing topographic representations. We have also added a lateral inhibitory projection, with 0 initial weights, which learns (as do the excitatory lateral connections) -- these two lateral projections allow the model to develop more complex topographic representations compared to a single fixed excitatory projection.
 
@@ -34,11 +34,11 @@ This loads network weights that were trained for 100 epochs of 100 image present
 
 * Select `r.Wt`, and then click on the lower left-most V1 unit.
 
-You should see in the weights projected onto the input layers some indication of a right-diagonal orientation coding (i.e., a diagonal bar of stronger weight values), with the on-center (`LGNon`) bar in the upper-left of the input patch, and the off-center (`LGNoff`) bar just below and right of it. Note that the network always has these on- and off-center bars in adjacent locations, never in the same location, because they are complementary (both are never active in the same place). Also, these on- and off-center bars will always be parallel to each other and perpendicular to the direction of light change, because they encode edges, where the change in illumination is perpendicular to the orientation of the edge.
+You should see in the weights projected onto the input layers some indication of a left-diagonal orientation coding (i.e., a diagonal bar of stronger weight values), with the on-center (`LGNon`) bar in the middle-right of the input patch, and the off-center (`LGNoff`) bar just above and right of it. Note that the network always has these on- and off-center bars in adjacent locations, never in the same location, because they are complementary (both are never active in the same place). Also, these on- and off-center bars will always be parallel to each other and perpendicular to the direction of light change, because they encode edges, where the change in illumination is perpendicular to the orientation of the edge.
 
 * Then click on the next unit to the right, and then the next one over, and click back and forth between these 3 units.
 
-You should observe subtle changes in the weights, which look to be rotating to the right, to a horizontal orientation. As you click around to other units, you might also see a transition in the *polarity* of the receptive field, with some having a *bipolar* organization with one on-center and one off-center region, while others have a *tripolar* organization with one on-center region and two off-center ones. Further, they may vary in size and location.
+You should observe subtle changes in the weights, which look to be rotating to the right, toward a vertical orientation. As you click around to other units, you might also see a transition in the *polarity* of the receptive field, with some having a *bipolar* organization with one on-center and one off-center region, while others have a *tripolar* organization with one on-center region and two off-center ones. Further, they may vary in size and location.
 
 # Receptive Field View
 
