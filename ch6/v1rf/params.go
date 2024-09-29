@@ -36,10 +36,6 @@ var ParamSets = params.Sets{
 				"Layer.Act.Noise.Type":    "GeNoise",
 				"Layer.Act.Noise.Fixed":   "false",
 			}},
-		{Sel: ".BackPath", Desc: "top-down back-projections MUST have lower relative weight scale, otherwise network hallucinates",
-			Params: params.Params{
-				"Path.WtScale.Rel": "0.2",
-			}},
 		{Sel: ".ExciteLateral", Desc: "lateral excitatory connection",
 			Params: params.Params{
 				"Path.WtInit.Mean": ".5",

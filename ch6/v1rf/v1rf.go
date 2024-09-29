@@ -525,8 +525,8 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI() {
-	title := "Object Recognition"
-	ss.GUI.MakeBody(ss, "objrec", title, `This simulation explores how a hierarchy of areas in the ventral stream of visual processing (up to inferotemporal (IT) cortex) can produce robust object recognition that is invariant to changes in position, size, etc of retinal input images. See <a href="https://github.com/CompCogNeuro/sims/blob/main/ch6/objrec/README.md">README.md on GitHub</a>.</p>`)
+	title := "V1RF"
+	ss.GUI.MakeBody(ss, "v1rf", title, `This simulation illustrates how self-organizing learning in response to natural images produces the oriented edge detector receptive field properties of neurons in primary visual cortex (V1). This provides insight into why the visual system encodes information in the way it does, while also providing an important test of the biological relevance of our computational models. See <a href="https://github.com/CompCogNeuro/sims/blob/main/ch6/objrec/README.md">README.md on GitHub</a>.</p>`)
 	ss.GUI.CycleUpdateInterval = 10
 
 	nv := ss.GUI.AddNetView("Network")
@@ -589,11 +589,27 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 		},
 	})
 
-	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Open Trained Wts", Icon: icons.Open,
-		Tooltip: "Opened weights from the first phase of training, which excludes novel objects",
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "V1RFs", Icon: icons.Open,
+		Tooltip: "update the V1 receptive fields display",
 		Active:  egui.ActiveStopped,
 		Func: func() {
-			ss.Net.OpenWeightsFS(content, "objrec_train1.wts.gz")
+			ss.V1RFs()
+		},
+	})
+
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Open Rec=0.2 Wts", Icon: icons.Open,
+		Tooltip: "Opened weights from the recurrent weights = 0.2 case",
+		Active:  egui.ActiveStopped,
+		Func: func() {
+			ss.Net.OpenWeightsFS(content, "v1rf_rec2.wts.gz")
+		},
+	})
+
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Open Rec=0.05 Wts", Icon: icons.Open,
+		Tooltip: "Opened weights from the recurrent weights = 0.05 case",
+		Active:  egui.ActiveStopped,
+		Func: func() {
+			ss.Net.OpenWeightsFS(content, "v1rf_rec05.wts.gz")
 		},
 	})
 
