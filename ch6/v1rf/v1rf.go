@@ -23,6 +23,7 @@ import (
 	"cogentcore.org/core/core"
 	"cogentcore.org/core/icons"
 	"cogentcore.org/core/math32"
+	"cogentcore.org/core/system"
 	"cogentcore.org/core/tensor"
 	"cogentcore.org/core/tensor/table"
 	"cogentcore.org/core/tensor/tensorcore"
@@ -327,9 +328,15 @@ func (ss *Sim) ConfigLoops() {
 			ss.Stats.UpdateActRFs(ss.Net, "ActM", 0.01, 0)
 		})
 		man.GetLoop(etime.Train, etime.Trial).OnStart.Add("UpdateImage", func() {
+			if system.TheApp.Platform() == system.Web { // todo: hangs on web
+				return
+			}
 			ss.GUI.Grid("Image").NeedsRender()
 		})
 		man.GetLoop(etime.Test, etime.Trial).OnStart.Add("UpdateImage", func() {
+			if system.TheApp.Platform() == system.Web {
+				return
+			}
 			ss.GUI.Grid("Image").NeedsRender()
 		})
 
@@ -475,7 +482,9 @@ func (ss *Sim) V1RFs() {
 			}
 		}
 	}
-	ss.GUI.Grid("V1RFs").NeedsRender()
+	if system.TheApp.Platform() != system.Web { // todo: hangs on web
+		ss.GUI.Grid("V1RFs").NeedsRender()
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////////

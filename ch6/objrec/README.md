@@ -23,7 +23,7 @@ Neighboring groups process half-overlapping regions of the image. In addition to
 
 The V4 layer is also organized into a grid of hypercolumns (pools), this time 5x5 in size, with each hypercolumn having 49 units (7x7). As with V1, inhibition operates at both the hypercolumn and entire layer scales here. Each hypercolumn of V4 units receives from 4x4 V1 hypercolumns, with neighboring columns again having half-overlapping receptive fields. Next, the IT layer represents just a single hypercolumn of units (10x10 or 100 units) within a single inhibitory group, and receives from the entire V4 layer. Finally, the Output layer has 20 units, one for each of the different objects. Figure 2 shows which object each unit represents; the 5x4 array of output units corresponds to the 5x4 array of objects in Figure 2.
 
-* You can view the patterns of connectivity described above by clicking on `r.Wt`, and then on units in the various layers.
+* You can view the patterns of connectivity described above by clicking on `Wts / r.Wt`, and then on units in the various layers.
 
 # Training
 
@@ -39,17 +39,17 @@ You will see the 3 quarters of the *minus phase* of settling for the input image
 
 * You can continue to `Step Trial` to see a few more trials, to see what kind of variation is present in the inputs.
 
-Because it takes a while for this network to be trained (maybe only about 2 minutes depending on how new and powerful your computer is), we can just load the weights from a trained network. The network was trained for 50 epochs of 100 object inputs per epoch, or 5,000 object presentations.  However, it took only roughly 25 epochs (2,500 object presentations) for performance to approach asymptote (you can see this by training it yourself, or opening the `objrec_train1.epc.csv` file in the `TrnEpcPlot` if you are working from the original source). With all of the variation in the way a given input can be presented, this does not represent all that much sampling of the space of variability.
+Because it takes a while for this network to be trained (especially on the web; on desktop it is only a couple of minutes depending on how new and powerful your computer is), we can just load the weights from a trained network. The network was trained for 50 epochs of 100 object inputs per epoch, or 5,000 object presentations.  However, it took only roughly 25 epochs (2,500 object presentations) for performance to approach asymptote. With all of the variation in the way a given input can be presented, this does not represent all that much sampling of the space of variability.
 
-* Load the weights using `Open Trained Wts` in the toolbar. Then, `Step Trial` a couple of times to see the minus and plus phases of the trained network as it performs the object recognition task.  You can click back and forth between `ActM` and `ActP` to see the difference between the network's answer and the correct one.
+* Load the weights using `Open Trained Wts` in the toolbar. Then, `Step Trial` a couple of times to see the minus and plus phases of the trained network as it performs the object recognition task.  You can click back and forth between `ActM` and `ActP` (in `Phase`) to see the difference between the network's answer and the correct one.
 
 You should see that the plus and minus phase output states are usually the same, meaning that the network is correctly recognizing most of the objects being presented.
 
 To provide a more comprehensive test of its performance, you can run the testing program, which runs through 500 presentations of the objects and records the overall level of error. 
 
-* Hit the `Test All` button, and select `TstEpcPlot` to speed up processing while waiting for the results.  You can click on `TstTrlPlot` to see trial-by-trial results, but watching this will slow processing.
+* Hit the `Test All` button, and select `Test Epoch Plot` to speed up processing while waiting for the results.  You can click on `Test Trial Plot` to see trial-by-trial results, but watching this will slow processing.  On the web version, this may take a while depending on how fast your computer is.
 
-You will see that error rates are generally below 5% (and often zero) except for the two final objects which the network was never trained on (which it always gets wrong). Thus, the network shows quite good performance at this challenging task of recognizing objects in a location-invariant and size-invariant manner.
+You will see that error rates are generally below 5% (and often zero) except for the two final objects which the network was never trained on (which it always gets wrong). Thus, the network shows reasonable performance at this challenging task of recognizing objects in a location-invariant and size-invariant manner.
 
 # Receptive Field Analysis
 
@@ -65,7 +65,7 @@ In this procedure, we present all the input patterns to the network and record h
 
 **Figure 4:** All IT activation-based receptive fields for the Image and the Output layer, with each unit in the corresponding outer-grid 
 
-* After the `Test All` is complete, the tabs starting with `V4:Image` contain the resulting activation-based receptive fields.  Click on each of them in turn.  `V4:Image` shows all of the V4 units in the outer large-scale grid (in their respective locations as they show up in the NetView) and their weighted-average response to Images in each inner grid.  Because this is so large it requires scrolling -- so we captured a 10x10 sample of V4 units in Figure 3, also showing the same units for `V4:Output`.  Likewise, the IT tabs show corresponding receptive fields, also shown in Figure 4.
+* After the `Test All` is complete, the tabs starting with `V4:Image` contain the resulting activation-based receptive fields.  Click on each of them in turn (it may take a while to render the Image ones).  `V4:Image` shows all of the V4 units in the outer large-scale grid (in their respective locations as they show up in the NetView) and their weighted-average response to Images in each inner grid.  Because this is so large it typically requires scrolling -- so we captured a 10x10 sample of V4 units in Figure 3, also showing the same units for `V4:Output`.  Likewise, the IT tabs show corresponding receptive fields, also shown in Figure 4.
 
 You should see that the V4 units are encoding simple conjunctions of line elements, in a relatively small range of locations within the retinal input.  The fact that they respond across multiple locations makes the weight patterns seem somewhat smeared out -- that is a good indication that they are performing a critical invariance role, even though it makes it somewhat difficult to see.  You can also see the correspondence between the Image and Output activations -- for example the lower left V4 unit in Figure 3 looks like it responds to a "rotated F" according to the Image pattern, and indeed the most active Output unit corresponds to LED Object 10, which is that rotated F.  The fact that each V4 unit responds to multiple different Objects is evident by the crowded, colorful patterns in the Output panel.  This means that V4 is producing a coarse-coded distributed representation of objects, not a localist one (as discussed in Chapter 3).
 
@@ -93,7 +93,7 @@ In addition to all of the above receptive field measures of the network's perfor
 
 In addition to presenting the novel objects during training, we also need to present familiar objects; otherwise the network will suffer from *catastrophic interference*. The following procedure was used. On each trial, there was a 50% chance that a novel object would be presented (`PNovel` in the panel). If a novel object was presented, its location, scaling and rotation parameters were chosen using .5 of the maximum range of these values in the original training. Given that these 4 factors (translation in x, translation in y, size, and rotation) are combinatorial, that means that roughly .5^4 or .0625 of the total combinatorial space was explored. If a familiar object was presented, then its size and position was chosen completely at random from all the possibilities. This procedure was repeated for just 10 epochs of 100 objects per epoch. Importantly, the learning rate in everything but the IT and Output connections was set to zero, to ensure that the results were due to IT-level learning and not in earlier pathways. In the brain, it is very likely that these earlier areas of the visual system experience less plasticity than higher areas as the system matures.
 
-* To setup the system for this form of generalization training, click the `Train Novel` button in the toolbar. This loads the trained weights, sets the epoch counter to 40 to get it to train for 10 epochs up to the 50 epoch stopping point, and sets the environment generation to be of the form described above.  Once you do this, do `Step Run` to continue the training run for 10 epochs.
+* To setup the system for this form of generalization training, click `Init` and then the `Train Novel` button in the toolbar. This loads the trained weights and sets the environment generation to be of the form described above. Next, set the `Step` button to `Epoch` instead of trial, and set it to step 10 epochs at a time instead of just 1.  Then, click the `Step` button, and switch to the `Train Epoch Plot` to watch the training.
 
 * After the network is trained, you can then run the testing by doing `Test All`.
 
