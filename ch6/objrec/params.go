@@ -55,10 +55,10 @@ var ParamSets = params.Sets{
 				"Path.Learn.Lrate":     "0",
 				"Path.Learn.LrateInit": "0", // make sure for sched
 			}},
-		{Sel: ".NovLearn", Desc: "lr = 0.04",
+		{Sel: ".NovLearn", Desc: "lr = 0.02",
 			Params: params.Params{
-				"Path.Learn.Lrate":     "0.04",
-				"Path.Learn.LrateInit": "0.04", // double sure
+				"Path.Learn.Lrate":     "0.02",
+				"Path.Learn.LrateInit": "0.02", // double sure
 			}},
 	},
 }

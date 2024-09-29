@@ -65,6 +65,8 @@ func main() {
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
+	// Probability of training on novel items (0 for first phase, then .5 = 50%)
+	PNovel float64
 
 	// simulation configuration parameters -- set by .toml config file and / or args
 	Config Config `new-window:"+"`
@@ -256,7 +258,7 @@ func (ss *Sim) ConfigLoops() {
 
 	man.AddStack(etime.Test).
 		AddTime(etime.Epoch, 1).
-		AddTime(etime.Trial, trls).
+		AddTime(etime.Trial, 500). // enough to get a better sample for actrf
 		AddTime(etime.Cycle, 100)
 
 	leabra.LooperStdPhases(man, &ss.Context, ss.Net, 75, 99)                // plus phase timing
@@ -353,9 +355,13 @@ func (ss *Sim) ApplyInputs() {
 	ctx := &ss.Context
 	net := ss.Net
 	ev := ss.Envs.ByMode(ctx.Mode).(*LEDEnv)
+	if ctx.Mode == etime.Train && randx.BoolP(ss.PNovel) {
+		ev = ss.Envs.ByMode(etime.Analyze).(*LEDEnv)
+	}
 	net.InitExt()
 	lays := net.LayersByType(leabra.InputLayer, leabra.TargetLayer)
 	ev.Step()
+
 	ss.Stats.SetInt("Cat", ev.CurLED) // note: must save relevant state for stats later
 	ss.Stats.SetString("TrialName", ev.String())
 	for _, lnm := range lays {
@@ -408,8 +414,8 @@ func (ss *Sim) RunTestAll() {
 // InitStats initializes all the statistics.
 // called at start of new run
 func (ss *Sim) InitStats() {
-	ss.Stats.SetFloat("UnitErr", 0.0)
-	ss.Stats.SetFloat("CorSim", 0.0)
+	ss.Stats.SetFloat("SSE", 0.0)
+	ss.Stats.SetInt("Cat", 0)
 	ss.Stats.SetString("Cat", "0")
 	ss.Stats.SetString("TrialName", "0")
 	ss.Logs.InitErrStats() // inits TrlErr, FirstZero, LastZero, NZero
@@ -428,7 +434,7 @@ func (ss *Sim) StatCounters() {
 	ss.Stats.SetInt("Trial", trl)
 	ss.Stats.SetInt("Cycle", int(ctx.Cycle))
 	ss.Stats.SetString("TrialName", ss.Stats.String("TrialName"))
-	ss.Stats.SetString("Cat", fmt.Sprintf("%d", ss.Stats.Int("Cat")))
+	ss.Stats.SetString("Cat", fmt.Sprintf("%02d", ss.Stats.Int("Cat")))
 }
 
 func (ss *Sim) NetViewCounters(tm etime.Times) {
@@ -439,17 +445,17 @@ func (ss *Sim) NetViewCounters(tm etime.Times) {
 		ss.TrialStats() // get trial stats for current di
 	}
 	ss.StatCounters()
-	ss.ViewUpdate.Text = ss.Stats.Print([]string{"Run", "Epoch", "Trial", "Cat", "TrialName", "Cycle", "UnitErr", "TrlErr", "CorSim"})
+	ss.ViewUpdate.Text = ss.Stats.Print([]string{"Run", "Epoch", "Trial", "Cat", "TrialName", "Cycle", "SSE", "TrlErr"})
 }
 
 // TrialStats computes the trial-level statistics.
 // Aggregation is done directly from log data.
 func (ss *Sim) TrialStats() {
 	ctx := &ss.Context
-	// out := ss.Net.LayerByName("Output")
-	// ss.Stats.SetFloat("CorSim", float64(out.Values[di].CorSim.Cor))
-	// ss.Stats.SetFloat("UnitErr", out.PctUnitErr(ctx)[di])
-
+	out := ss.Net.LayerByName("Output")
+	sse, avgsse := out.MSE(0.5) // 0.5 = per-unit tolerance -- right side of .5
+	ss.Stats.SetFloat("SSE", sse)
+	ss.Stats.SetFloat("AvgSSE", avgsse)
 	ev := ss.Envs.ByMode(ctx.Mode).(*LEDEnv)
 	ovt := ss.Stats.SetLayerTensor(ss.Net, "Output", "ActM", 0)
 	cat := ss.Stats.Int("Cat")
@@ -471,13 +477,13 @@ func (ss *Sim) ConfigLogs() {
 	ss.Logs.AddStatStringItem(etime.AllModes, etime.AllTimes, "RunName")
 	ss.Logs.AddStatStringItem(etime.AllModes, etime.Trial, "Cat", "TrialName")
 
-	ss.Logs.AddStatAggItem("CorSim", etime.Run, etime.Epoch, etime.Trial)
-	ss.Logs.AddStatAggItem("UnitErr", etime.Run, etime.Epoch, etime.Trial)
+	ss.Logs.AddStatAggItem("SSE", etime.Run, etime.Epoch, etime.Trial)
+	ss.Logs.AddStatAggItem("AvgSSE", etime.Run, etime.Epoch, etime.Trial)
 	ss.Logs.AddErrStatAggItems("TrlErr", etime.Run, etime.Epoch, etime.Trial)
 
 	ss.ConfigLogItems()
 
-	ss.Logs.AddCopyFromFloatItems(etime.Train, []etime.Times{etime.Epoch, etime.Run}, etime.Test, etime.Epoch, "Tst", "CorSim", "UnitErr", "PctCor", "PctErr")
+	ss.Logs.AddCopyFromFloatItems(etime.Train, []etime.Times{etime.Epoch, etime.Run}, etime.Test, etime.Epoch, "Tst", "SSE", "PctCor", "PctErr")
 
 	ss.ConfigActRFs()
 
@@ -492,7 +498,7 @@ func (ss *Sim) ConfigLogs() {
 	// this was useful during development of trace learning:
 	// leabra.LogAddCaLrnDiagnosticItems(&ss.Logs, ss.Net, etime.Epoch, etime.Trial)
 
-	ss.Logs.PlotItems("CorSim", "PctErr", "PctErr2")
+	ss.Logs.PlotItems("PctErr")
 
 	ss.Logs.CreateTables()
 	ss.Logs.SetContext(&ss.Stats, ss.Net)
@@ -617,6 +623,14 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 
 	ss.GUI.AddLooperCtrl(p, ss.Loops, []etime.Modes{etime.Train, etime.Test})
 
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Test Init", Icon: icons.Update,
+		Tooltip: "Initialize testing to start over -- if Test Step doesn't work, then do this.",
+		Active:  egui.ActiveStopped,
+		Func: func() {
+			ss.Loops.ResetCountersByMode(etime.Test)
+		},
+	})
+
 	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Test All",
 		Icon:    icons.PlayArrow,
 		Tooltip: "Tests a large same of testing items and records ActRFs.",
@@ -627,6 +641,30 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 				ss.GUI.UpdateWindow()
 				go ss.RunTestAll()
 			}
+		},
+	})
+
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Open Trained Wts", Icon: icons.Open,
+		Tooltip: "Opened weights from the first phase of training, which excludes novel objects",
+		Active:  egui.ActiveStopped,
+		Func: func() {
+			ss.Net.OpenWeightsFS(content, "objrec_train1.wts.gz")
+		},
+	})
+
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Train Novel", Icon: icons.Update,
+		Tooltip: "Configure for training novel objects: loads phase 1 weights and sets PNovel = .5, etc",
+		Active:  egui.ActiveStopped,
+		Func: func() {
+			ss.NewRun()
+			ss.Params.SetAllSheet("NovelLearn")
+			ss.PNovel = 0.5
+			ss.GUI.SimForm.Update()
+			ss.GUI.UpdateWindow()
+			go func() {
+				ss.Loops.Step(etime.Train, 1, etime.Trial)
+				ss.Net.OpenWeightsFS(content, "objrec_train1.wts.gz")
+			}()
 		},
 	})
 
