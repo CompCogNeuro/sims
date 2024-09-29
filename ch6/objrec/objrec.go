@@ -330,12 +330,12 @@ func (ss *Sim) ConfigLoops() {
 		man.GetLoop(etime.Test, etime.Trial).OnEnd.Add("ActRFs", func() {
 			ss.Stats.UpdateActRFs(ss.Net, "ActM", 0.01, 0)
 		})
-		man.GetLoop(etime.Train, etime.Trial).OnStart.Add("UpdateImage", func() {
-			ss.GUI.Grid("Image").NeedsRender()
-		})
-		man.GetLoop(etime.Test, etime.Trial).OnStart.Add("UpdateImage", func() {
-			ss.GUI.Grid("Image").NeedsRender()
-		})
+		// man.GetLoop(etime.Train, etime.Trial).OnStart.Add("UpdateImage", func() {
+		// 	ss.GUI.Grid("Image").NeedsRender()
+		// })
+		// man.GetLoop(etime.Test, etime.Trial).OnStart.Add("UpdateImage", func() {
+		// 	ss.GUI.Grid("Image").NeedsRender()
+		// })
 
 		leabra.LooperUpdateNetView(man, &ss.ViewUpdate, ss.Net, ss.NetViewCounters)
 		leabra.LooperUpdatePlots(man, &ss.GUI)
