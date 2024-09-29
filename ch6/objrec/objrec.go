@@ -168,8 +168,8 @@ func (ss *Sim) ConfigEnv() {
 	tst.Name = etime.Test.String()
 	tst.Defaults()
 	tst.MinLED = 0
-	tst.MaxLED = 19    // all by default
-	tst.Trial.Max = 64 // 0 // 1000 is too long!
+	tst.MaxLED = 19     // all by default
+	tst.Trial.Max = 500 // 0 // 1000 is too long!
 	if ss.Config.Env.Env != nil {
 		params.ApplyMap(tst, ss.Config.Env.Env, ss.Config.Debug)
 	}
@@ -504,6 +504,7 @@ func (ss *Sim) ConfigLogs() {
 	ss.Logs.SetContext(&ss.Stats, ss.Net)
 	// don't plot certain combinations we don't use
 	ss.Logs.NoPlot(etime.Train, etime.Cycle)
+	ss.Logs.NoPlot(etime.Test, etime.Cycle)
 	ss.Logs.NoPlot(etime.Test, etime.Run)
 	// note: Analyze not plotted by default
 	ss.Logs.SetMeta(etime.Train, etime.Run, "LegendCol", "RunName")
