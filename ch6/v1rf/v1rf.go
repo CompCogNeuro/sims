@@ -111,7 +111,7 @@ func (ss *Sim) New() {
 	ss.Config.Defaults()
 	ss.Defaults()
 	econfig.Config(&ss.Config, "config.toml")
-	ss.Net = leabra.NewNetwork("V1RF")
+	ss.Net = leabra.NewNetwork("V1 RF")
 	ss.Probes = table.NewTable()
 	ss.Params.Config(ParamSets, ss.Config.Params.Sheet, ss.Config.Params.Tag, ss.Net)
 	ss.Stats.Init()
@@ -305,10 +305,6 @@ func (ss *Sim) ConfigLoops() {
 	/////////////////////////////////////////////
 	// Logging
 
-	man.GetLoop(etime.Test, etime.Epoch).OnEnd.Add("LogTestErrors", func() {
-		leabra.LogTestErrors(&ss.Logs)
-	})
-
 	man.AddOnEndToAll("Log", ss.Log)
 	leabra.LooperResetLogBelow(man, &ss.Logs)
 
@@ -361,18 +357,20 @@ func (ss *Sim) ConfigLoops() {
 func (ss *Sim) ApplyInputs() {
 	ctx := &ss.Context
 	net := ss.Net
-	ev := ss.Envs.ByMode(ctx.Mode).(*ImgEnv)
 	net.InitExt()
 	lays := net.LayersByType(leabra.InputLayer, leabra.TargetLayer)
-	ev.Step()
 
-	// ss.Stats.SetString("TrialName", ev.String())
+	ev := ss.Envs.ByMode(ctx.Mode)
+	ev.Step()
 	for _, lnm := range lays {
 		ly := ss.Net.LayerByName(lnm)
 		pats := ev.State(ly.Name)
 		if pats != nil {
 			ly.ApplyExt(pats)
 		}
+	}
+	if str, ok := ev.(fmt.Stringer); ok {
+		ss.Stats.SetString("TrialName", str.String())
 	}
 }
 
@@ -518,6 +516,9 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 		ss.Context.Mode = mode // Also set specifically in a Loop callback.
 	}
 	dt := ss.Logs.Table(mode, time)
+	if dt == nil {
+		return
+	}
 	row := dt.Rows
 
 	switch {
@@ -556,7 +557,7 @@ func (ss *Sim) ConfigGUI() {
 
 	ss.GUI.AddPlots(title, &ss.Logs)
 
-	itb, _ := ss.GUI.Tabs.NewTab("V1RFs")
+	itb, _ := ss.GUI.Tabs.NewTab("V1 RFs")
 	tg := tensorcore.NewTensorGrid(itb).
 		SetTensor(ss.Stats.F32Tensor("V1Wts"))
 	ss.GUI.SetGrid("V1RFs", tg)
@@ -602,7 +603,7 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 		},
 	})
 
-	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "V1RFs", Icon: icons.Open,
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "V1 RFs", Icon: icons.Open,
 		Tooltip: "update the V1 receptive fields display",
 		Active:  egui.ActiveStopped,
 		Func: func() {
