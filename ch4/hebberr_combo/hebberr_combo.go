@@ -11,6 +11,7 @@ package main
 
 import (
 	"embed"
+	"math/rand/v2"
 
 	"cogentcore.org/core/base/errors"
 	"cogentcore.org/core/base/randx"
@@ -258,24 +259,23 @@ func (ss *Sim) ConfigEnv() {
 		tst = ss.Envs.ByMode(etime.Test).(*env.FixedTable)
 	}
 
-	// note: names must be standard here!
+	n := ss.Lines2.Rows
+	order := rand.Perm(n)
+	ntrn := int(0.9 * float64(n))
 
-	//	ss.TrainEnv.Table = splits.Splits[0]
-	//	ss.TestEnv.Table = splits.Splits[1]
+	trnEnv := table.NewIndexView(ss.Lines2)
+	tstEnv := table.NewIndexView(ss.Lines2)
+	trnEnv.Indexes = order[:ntrn]
+	tstEnv.Indexes = order[ntrn:]
 
 	trn.Name = etime.Train.String()
-	trn.Config(table.NewIndexView(ss.Lines2))
+	trn.Config(trnEnv)
 	trn.Validate()
 
 	tst.Name = etime.Test.String()
-	tst.Config(table.NewIndexView(ss.Lines2))
+	tst.Config(tstEnv)
 	tst.Sequential = true
 	tst.Validate()
-
-	//	all := table.NewIndexView(ss.Lines2)
-	//	splits, _ := split.Permuted(all, []float64{.9, .1}, []string{"Train", "Test"})
-	//	trn.Table = splits.Splits[0]
-	//	tst.Table = splits.Splits[1]
 
 	trn.Init(0)
 	tst.Init(0)
