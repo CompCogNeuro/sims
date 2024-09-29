@@ -23,6 +23,7 @@ import (
 	"cogentcore.org/core/core"
 	"cogentcore.org/core/icons"
 	"cogentcore.org/core/math32"
+	"cogentcore.org/core/tensor"
 	"cogentcore.org/core/tensor/table"
 	"cogentcore.org/core/tensor/tensorcore"
 	"cogentcore.org/core/tree"
@@ -207,7 +208,7 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 	net.Build()
 	net.Defaults()
 	ss.ApplyParams()
-	net.InitWeights()
+	ss.InitWeights()
 }
 
 func (ss *Sim) ApplyParams() {
@@ -223,6 +224,11 @@ func (ss *Sim) ApplyParams() {
 	if ss.Config.Params.Network != nil {
 		ss.Params.SetNetworkMap(ss.Net, ss.Config.Params.Network)
 	}
+}
+
+func (ss *Sim) InitWeights() {
+	ss.Net.InitWeights()
+	ss.Net.InitTopoScales()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -284,6 +290,7 @@ func (ss *Sim) ConfigLoops() {
 	// Add Testing
 	trainEpoch := man.GetLoop(etime.Train, etime.Epoch)
 	trainEpoch.OnStart.Add("TestAtInterval", func() {
+		ss.V1RFs()
 		if (ss.Config.Run.TestInterval > 0) && ((trainEpoch.Counter.Cur+1)%ss.Config.Run.TestInterval == 0) {
 			// Note the +1 so that it doesn't occur at the 0th timestep.
 			ss.TestAll()
@@ -367,7 +374,7 @@ func (ss *Sim) NewRun() {
 	ss.Envs.ByMode(etime.Test).Init(0)
 	ctx.Reset()
 	ctx.Mode = etime.Train
-	ss.Net.InitWeights()
+	ss.InitWeights()
 	ss.InitStats()
 	ss.StatCounters()
 	ss.Logs.ResetLog(etime.Train, etime.Epoch)
@@ -400,6 +407,17 @@ func (ss *Sim) RunTestAll() {
 // called at start of new run
 func (ss *Sim) InitStats() {
 	ss.Stats.SetString("TrialName", "0")
+	onValues := ss.Stats.F32Tensor("V1onWts")
+	offValues := ss.Stats.F32Tensor("V1offWts")
+	netValues := ss.Stats.F32Tensor("V1Wts")
+	ss.ConfigWtTensors(onValues)
+	ss.ConfigWtTensors(offValues)
+	ss.ConfigWtTensors(netValues)
+}
+
+func (ss *Sim) ConfigWtTensors(dt *tensor.Float32) {
+	dt.SetShape([]int{14, 14, 12, 12})
+	dt.SetMetaData("grid-fill", "1")
 }
 
 // StatCounters saves current counters to Stats, so they are available for logging etc
@@ -431,6 +449,33 @@ func (ss *Sim) NetViewCounters(tm etime.Times) {
 // TrialStats computes the trial-level statistics.
 // Aggregation is done directly from log data.
 func (ss *Sim) TrialStats() {
+}
+
+func (ss *Sim) V1RFs() {
+	onValues := ss.Stats.F32Tensor("V1onWts")
+	offValues := ss.Stats.F32Tensor("V1offWts")
+	netValues := ss.Stats.F32Tensor("V1Wts")
+	on := ss.Net.LayerByName("LGNon")
+	off := ss.Net.LayerByName("LGNoff")
+	isz := on.Shape.Len()
+	v1 := ss.Net.LayerByName("V1")
+	ysz := v1.Shape.DimSize(0)
+	xsz := v1.Shape.DimSize(1)
+	for y := 0; y < ysz; y++ {
+		for x := 0; x < xsz; x++ {
+			ui := (y*xsz + x)
+			ust := ui * isz
+			onvls := onValues.Values[ust : ust+isz]
+			offvls := offValues.Values[ust : ust+isz]
+			netvls := netValues.Values[ust : ust+isz]
+			on.SendPathValues(&onvls, "Wt", v1, ui, "")
+			off.SendPathValues(&offvls, "Wt", v1, ui, "")
+			for ui := 0; ui < isz; ui++ {
+				netvls[ui] = 1.5 * (onvls[ui] - offvls[ui])
+			}
+		}
+	}
+	ss.GUI.Grid("V1RFs").NeedsRender()
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -498,8 +543,13 @@ func (ss *Sim) ConfigGUI() {
 
 	ss.GUI.AddPlots(title, &ss.Logs)
 
-	itb, _ := ss.GUI.Tabs.NewTab("Image")
+	itb, _ := ss.GUI.Tabs.NewTab("V1RFs")
 	tg := tensorcore.NewTensorGrid(itb).
+		SetTensor(ss.Stats.F32Tensor("V1Wts"))
+	ss.GUI.SetGrid("V1RFs", tg)
+
+	itb, _ = ss.GUI.Tabs.NewTab("Image")
+	tg = tensorcore.NewTensorGrid(itb).
 		SetTensor(&ss.Envs.ByMode(etime.Train).(*ImgEnv).Vis.ImgTsr)
 	ss.GUI.SetGrid("Image", tg)
 

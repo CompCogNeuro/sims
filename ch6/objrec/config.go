@@ -65,13 +65,10 @@ type RunConfig struct { //types:add
 	NRuns int `default:"1" min:"1"`
 
 	// total number of epochs per run
-	NEpochs int `default:"50"`
+	NEpochs int `default:"100"`
 
 	// total number of trials per epoch.  Should be an even multiple of NData.
 	NTrials int `default:"100"`
-
-	// how frequently (in epochs) to compute PCA on hidden representations to measure variance?
-	PCAInterval int `default:"5"`
 
 	// how often to run through all the test patterns, in terms of training epochs -- can use 0 or -1 for no testing
 	TestInterval int `default:"-1"`
