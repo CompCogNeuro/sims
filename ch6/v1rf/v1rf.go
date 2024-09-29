@@ -187,6 +187,10 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 	lgnOff := net.AddLayer2D("LGNoff", 12, 12, leabra.InputLayer)
 	v1 := net.AddLayer2D("V1", 14, 14, leabra.SuperLayer)
 
+	lgnOn.Doc = "LGN (lateral geniculate nucleus of the thalamus), On-center neurons"
+	lgnOff.Doc = "LGN (lateral geniculate nucleus of the thalamus), Off-center neurons"
+	v1.Doc = "V1 (primary visual cortex), excitatory neurons with lateral excitatory and inhibitory connections"
+
 	full := paths.NewFull()
 	net.ConnectLayers(lgnOn, v1, full, leabra.ForwardPath)
 	net.ConnectLayers(lgnOff, v1, full, leabra.ForwardPath)
@@ -535,7 +539,7 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI() {
 	title := "V1RF"
-	ss.GUI.MakeBody(ss, "v1rf", title, `This simulation illustrates how self-organizing learning in response to natural images produces the oriented edge detector receptive field properties of neurons in primary visual cortex (V1). This provides insight into why the visual system encodes information in the way it does, while also providing an important test of the biological relevance of our computational models. See <a href="https://github.com/CompCogNeuro/sims/blob/main/ch6/objrec/README.md">README.md on GitHub</a>.</p>`)
+	ss.GUI.MakeBody(ss, "v1rf", title, `This simulation illustrates how self-organizing learning in response to natural images produces the oriented edge detector receptive field properties of neurons in primary visual cortex (V1). This provides insight into why the visual system encodes information in the way it does, while also providing an important test of the biological relevance of our computational models. See <a href="https://github.com/CompCogNeuro/sims/blob/main/ch6/v1rf/README.md">README.md on GitHub</a>.</p>`)
 	ss.GUI.CycleUpdateInterval = 10
 
 	nv := ss.GUI.AddNetView("Network")
@@ -611,6 +615,8 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 		Active:  egui.ActiveStopped,
 		Func: func() {
 			ss.Net.OpenWeightsFS(content, "v1rf_rec2.wts.gz")
+			ss.ViewUpdate.RecordSyns()
+			ss.ViewUpdate.Update()
 		},
 	})
 
@@ -619,6 +625,8 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 		Active:  egui.ActiveStopped,
 		Func: func() {
 			ss.Net.OpenWeightsFS(content, "v1rf_rec05.wts.gz")
+			ss.ViewUpdate.RecordSyns()
+			ss.ViewUpdate.Update()
 		},
 	})
 
@@ -648,7 +656,7 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 		Tooltip: "Opens your browser on the README file that contains instructions for how to run this model.",
 		Active:  egui.ActiveAlways,
 		Func: func() {
-			core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/main/ch6/objrec/README.md")
+			core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/main/ch6/v1rf/README.md")
 		},
 	})
 }

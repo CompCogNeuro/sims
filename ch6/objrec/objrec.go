@@ -657,6 +657,8 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 		Active:  egui.ActiveStopped,
 		Func: func() {
 			ss.Net.OpenWeightsFS(content, "objrec_train1.wts.gz")
+			ss.ViewUpdate.RecordSyns()
+			ss.ViewUpdate.Update()
 		},
 	})
 
