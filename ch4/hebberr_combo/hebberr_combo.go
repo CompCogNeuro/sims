@@ -81,10 +81,10 @@ var ParamSets = params.Sets{
 			Params: params.Params{
 				"Path.WtScale.Rel": "0.3",
 			}},
-		{Sel: "#Input", Desc: "higher activity",
-			Params: params.Params{
-				"Layer.Inhib.ActAvg.Init": "0.4",
-			}},
+	//	{Sel: "#Input", Desc: "higher activity",
+	//		Params: params.Params{
+	//			"Layer.Inhib.ActAvg.Init": "0.4",
+	//		}},
 	},
 
 	"ErrorDriven": {
@@ -138,14 +138,14 @@ var ParamSets = params.Sets{
 // Config has config parameters related to running the sim
 type Config struct {
 	// total number of runs to do when running Train
-	NRuns int `default:"8" min:"1"`
+	NRuns int `default:"10" min:"1"`
 
 	// total number of epochs per run
-	NEpochs int `default:"30"`
+	NEpochs int `default:"80"`
 
 	// how often to run through all the test patterns, in terms of training epochs.
 	// can use 0 or -1 for no testing.
-	TestInterval int `default:"1"`
+	TestInterval int `default:"5"`
 }
 
 // Sim encapsulates the entire simulation model, and we define all the
@@ -161,7 +161,7 @@ type Sim struct {
 	// key BCM hebbian learning parameter, that determines how high the
 	// floating threshold goes -- higher = more homeostatic pressure
 	// against rich-get-richer feedback loops.
-	AvgLGain float32 `min:"0.1" step:"0.5" default:"2.5"`
+	AvgLGain float32 `min:"0.1" step:"0.5" default:"3.5"`
 
 	// variance on gaussian noise to add to inputs.
 	InputNoise float32 `min:"0" default:"0"`
@@ -224,10 +224,8 @@ func (ss *Sim) New() {
 }
 
 func (ss *Sim) Defaults() {
-	ss.AvgLGain = 2.5
+	ss.AvgLGain = 3.5
 	ss.InputNoise = 0
-	ss.TrainGi = 1.8
-	ss.TestGi = 2.5
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -261,7 +259,7 @@ func (ss *Sim) ConfigEnv() {
 
 	n := ss.Lines2.Rows
 	order := rand.Perm(n)
-	ntrn := int(0.9 * float64(n))
+	ntrn := int(0.85 * float64(n))
 
 	trnEnv := table.NewIndexView(ss.Lines2)
 	tstEnv := table.NewIndexView(ss.Lines2)
@@ -288,7 +286,7 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 	net.SetRandSeed(ss.RandSeeds[0]) // init new separate random seed, using run = 0
 
 	inp := net.AddLayer2D("Input", 5, 5, leabra.InputLayer)
-	hid := net.AddLayer2D("Hidden", 4, 5, leabra.SuperLayer)
+	hid := net.AddLayer2D("Hidden", 6, 5, leabra.SuperLayer)
 	out := net.AddLayer2D("Output", 5, 2, leabra.TargetLayer)
 
 	full := paths.NewFull()
@@ -360,16 +358,20 @@ func (ss *Sim) InitRandSeed(run int) {
 // ConfigLoops configures the control loops: Training, Testing
 func (ss *Sim) ConfigLoops() {
 	man := looper.NewManager()
-
+	n := ss.Lines2.Rows
+	ntrn := int(0.85 * float64(n))
+	ntst := int(0.15 * float64(n))
+	
 	man.AddStack(etime.Train).
 		AddTime(etime.Run, ss.Config.NRuns).
 		AddTime(etime.Epoch, ss.Config.NEpochs).
-		AddTime(etime.Trial, ss.Lines2.Rows). // change when adding train vs test envs
+		AddTime(etime.Trial, ntrn). // change when adding train vs test envs
 		AddTime(etime.Cycle, 100)
 
 	man.AddStack(etime.Test).
+//		AddTime(etime.Run, ss.Config.NRuns).
 		AddTime(etime.Epoch, 1).
-		AddTime(etime.Trial, ss.Lines2.Rows). // change when adding test env
+		AddTime(etime.Trial, ntst). // change when adding test env
 		AddTime(etime.Cycle, 100)
 
 	leabra.LooperStdPhases(man, &ss.Context, ss.Net, 75, 99)                // plus phase timing
@@ -405,6 +407,9 @@ func (ss *Sim) ConfigLoops() {
 	man.GetLoop(etime.Train, etime.Run).OnEnd.Add("RunStats", func() {
 		ss.Logs.RunStats("PctCor", "FirstZero", "LastZero")
 	})
+//	man.GetLoop(etime.Test, etime.Run).OnEnd.Add("RunStats", func() {
+//		ss.Logs.RunStats("PctCor", "FirstZero", "LastZero")
+//	})
 
 	// logs from self org
 	//	man.AddOnEndToAll("Log", ss.Log)
@@ -601,7 +606,7 @@ func (ss *Sim) ConfigLogs() {
 	ss.Logs.AddLayerTensorItems(ss.Net, "ActM", etime.Test, etime.Trial, "InputLayer", "SuperLayer", "TargetLayer")
 	ss.Logs.AddLayerTensorItems(ss.Net, "Targ", etime.Test, etime.Trial, "TargetLayer")
 
-	ss.Logs.PlotItems("SSE", "FirstZero", "LastZero")
+	ss.Logs.PlotItems("PctErr")
 
 	ss.Logs.CreateTables()
 	ss.Logs.SetContext(&ss.Stats, ss.Net)
@@ -609,8 +614,9 @@ func (ss *Sim) ConfigLogs() {
 	ss.Logs.NoPlot(etime.Train, etime.Cycle)
 	ss.Logs.NoPlot(etime.Test, etime.Cycle)
 	ss.Logs.NoPlot(etime.Test, etime.Trial)
-	ss.Logs.NoPlot(etime.Test, etime.Run)
+//	ss.Logs.NoPlot(etime.Test, etime.Run)
 	ss.Logs.SetMeta(etime.Train, etime.Run, "LegendCol", "RunName")
+
 }
 
 // Log is the main logging function, handles special things for different scopes
@@ -669,7 +675,7 @@ func (ss *Sim) ConfigGUI() {
 
 	wgv := ss.GUI.AddGridTab("Weights")
 	wg := ss.Stats.F32Tensor("HiddenFromInput")
-	wg.SetShape([]int{4, 5, 5, 5})
+	wg.SetShape([]int{6, 5, 5, 5})
 	wgv.SetTensor(wg)
 
 	ss.GUI.FinalizeGUI(false)
@@ -685,8 +691,6 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 		},
 	})
 
-	ss.GUI.AddLooperCtrl(p, ss.Loops, []etime.Modes{etime.Train, etime.Test})
-
 	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Test Init", Icon: icons.Update,
 		Tooltip: "Initialize testing to start over -- if Test Step doesn't work, then do this.",
 		Active:  egui.ActiveStopped,
@@ -694,6 +698,9 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 			ss.Loops.ResetCountersByMode(etime.Test)
 		},
 	})
+
+	ss.GUI.AddLooperCtrl(p, ss.Loops, []etime.Modes{etime.Train, etime.Test})
+
 
 	////////////////////////////////////////////////
 	tree.Add(p, func(w *core.Separator) {})
@@ -704,6 +711,8 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 		Func: func() {
 			ss.Logs.ResetLog(etime.Train, etime.Run)
 			ss.GUI.UpdatePlot(etime.Train, etime.Run)
+			ss.Logs.ResetLog(etime.Test, etime.Run)
+			ss.GUI.UpdatePlot(etime.Test, etime.Run)
 		},
 	})
 	////////////////////////////////////////////////
