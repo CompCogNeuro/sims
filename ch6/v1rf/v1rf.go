@@ -283,7 +283,6 @@ func (ss *Sim) ConfigLoops() {
 	leabra.LooperSimCycleAndLearn(man, ss.Net, &ss.Context, &ss.ViewUpdate) // std algo code
 
 	for mode := range man.Stacks {
-		mode := mode // For closures
 		stack := man.Stacks[mode]
 		stack.Loops[etime.Trial].OnStart.Add("ApplyInputs", func() {
 			ss.ApplyInputs()

@@ -3,10 +3,10 @@ module github.com/CompCogNeuro/sims/v2
 go 1.22
 
 require (
-	cogentcore.org/core v0.3.4-0.20240930192154-b607f64b05fc
+	cogentcore.org/core v0.3.4
 	github.com/anthonynsimon/bild v0.13.0
-	github.com/emer/emergent/v2 v2.0.0-dev0.1.0.0.20240930192458-dcf6b6c609e1
-	github.com/emer/leabra/v2 v2.0.0-20240930192651-efb738e2bde7
+	github.com/emer/emergent/v2 v2.0.0-dev0.1.1
+	github.com/emer/leabra/v2 v2.0.0-dev0.1.0
 	github.com/emer/vision/v2 v2.0.0-dev0.1.0
 	gonum.org/v1/gonum v0.15.0
 )

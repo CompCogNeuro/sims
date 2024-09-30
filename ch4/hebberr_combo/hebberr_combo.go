@@ -378,7 +378,6 @@ func (ss *Sim) ConfigLoops() {
 	leabra.LooperSimCycleAndLearn(man, ss.Net, &ss.Context, &ss.ViewUpdate) // std algo code
 
 	for m, _ := range man.Stacks {
-		mode := m // For closures
 		stack := man.Stacks[mode]
 		stack.Loops[etime.Trial].OnStart.Add("ApplyInputs", func() {
 			ss.ApplyInputs()
@@ -729,7 +728,7 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 		Icon:    icons.FileMarkdown,
 		Tooltip: "Opens your browser on the README file that contains instructions for how to run this model.",
 		Active:  egui.ActiveAlways,
-		Func: func() {
+	ss.GUI.Body.Run
 			core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/main/ch4/hebberr_combo/README.md")
 		},
 	})

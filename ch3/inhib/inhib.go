@@ -426,7 +426,6 @@ func (ss *Sim) ConfigLoops(net *leabra.Network) *looper.Manager {
 	leabra.LooperSimCycleAndLearn(man, net, &ss.Context, &ss.ViewUpdate) // std algo code
 
 	for m, _ := range man.Stacks {
-		mode := m // For closures
 		stack := man.Stacks[mode]
 		stack.Loops[etime.Trial].OnStart.Add("ApplyInputs", func() {
 			ss.ApplyInputs()
