@@ -265,8 +265,8 @@ func (ss *Sim) ConfigLoops() {
 	leabra.LooperStdPhases(man, &ss.Context, ss.Net, 75, 99)                // plus phase timing
 	leabra.LooperSimCycleAndLearn(man, ss.Net, &ss.Context, &ss.ViewUpdate) // std algo code
 
-	for mode := range man.Stacks {
-		stack := man.Stacks[mode]
+	for m := range man.Stacks {
+		stack := man.Stacks[m]
 		stack.Loops[etime.Trial].OnStart.Add("ApplyInputs", func() {
 			ss.ApplyInputs()
 		})

@@ -81,10 +81,10 @@ var ParamSets = params.Sets{
 			Params: params.Params{
 				"Path.WtScale.Rel": "0.3",
 			}},
-	//	{Sel: "#Input", Desc: "higher activity",
-	//		Params: params.Params{
-	//			"Layer.Inhib.ActAvg.Init": "0.4",
-	//		}},
+		//	{Sel: "#Input", Desc: "higher activity",
+		//		Params: params.Params{
+		//			"Layer.Inhib.ActAvg.Init": "0.4",
+		//		}},
 	},
 
 	"ErrorDriven": {
@@ -361,7 +361,7 @@ func (ss *Sim) ConfigLoops() {
 	n := ss.Lines2.Rows
 	ntrn := int(0.85 * float64(n))
 	ntst := int(0.15 * float64(n))
-	
+
 	man.AddStack(etime.Train).
 		AddTime(etime.Run, ss.Config.NRuns).
 		AddTime(etime.Epoch, ss.Config.NEpochs).
@@ -369,7 +369,7 @@ func (ss *Sim) ConfigLoops() {
 		AddTime(etime.Cycle, 100)
 
 	man.AddStack(etime.Test).
-//		AddTime(etime.Run, ss.Config.NRuns).
+		//		AddTime(etime.Run, ss.Config.NRuns).
 		AddTime(etime.Epoch, 1).
 		AddTime(etime.Trial, ntst). // change when adding test env
 		AddTime(etime.Cycle, 100)
@@ -378,7 +378,7 @@ func (ss *Sim) ConfigLoops() {
 	leabra.LooperSimCycleAndLearn(man, ss.Net, &ss.Context, &ss.ViewUpdate) // std algo code
 
 	for m, _ := range man.Stacks {
-		stack := man.Stacks[mode]
+		stack := man.Stacks[m]
 		stack.Loops[etime.Trial].OnStart.Add("ApplyInputs", func() {
 			ss.ApplyInputs()
 		})
@@ -406,9 +406,9 @@ func (ss *Sim) ConfigLoops() {
 	man.GetLoop(etime.Train, etime.Run).OnEnd.Add("RunStats", func() {
 		ss.Logs.RunStats("PctCor", "FirstZero", "LastZero")
 	})
-//	man.GetLoop(etime.Test, etime.Run).OnEnd.Add("RunStats", func() {
-//		ss.Logs.RunStats("PctCor", "FirstZero", "LastZero")
-//	})
+	//	man.GetLoop(etime.Test, etime.Run).OnEnd.Add("RunStats", func() {
+	//		ss.Logs.RunStats("PctCor", "FirstZero", "LastZero")
+	//	})
 
 	// logs from self org
 	//	man.AddOnEndToAll("Log", ss.Log)
@@ -613,7 +613,7 @@ func (ss *Sim) ConfigLogs() {
 	ss.Logs.NoPlot(etime.Train, etime.Cycle)
 	ss.Logs.NoPlot(etime.Test, etime.Cycle)
 	ss.Logs.NoPlot(etime.Test, etime.Trial)
-//	ss.Logs.NoPlot(etime.Test, etime.Run)
+	//	ss.Logs.NoPlot(etime.Test, etime.Run)
 	ss.Logs.SetMeta(etime.Train, etime.Run, "LegendCol", "RunName")
 
 }
@@ -700,7 +700,6 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 
 	ss.GUI.AddLooperCtrl(p, ss.Loops, []etime.Modes{etime.Train, etime.Test})
 
-
 	////////////////////////////////////////////////
 	tree.Add(p, func(w *core.Separator) {})
 	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Reset RunLog",
@@ -728,7 +727,7 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 		Icon:    icons.FileMarkdown,
 		Tooltip: "Opens your browser on the README file that contains instructions for how to run this model.",
 		Active:  egui.ActiveAlways,
-	ss.GUI.Body.Run
+		Func: func() {
 			core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/main/ch4/hebberr_combo/README.md")
 		},
 	})
