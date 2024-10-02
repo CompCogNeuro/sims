@@ -13,6 +13,8 @@ package main
 import (
 	"embed"
 	"fmt"
+	"math"
+	"strings"
 
 	"cogentcore.org/core/base/errors"
 	"cogentcore.org/core/base/randx"
@@ -39,7 +41,7 @@ import (
 var content embed.FS
 
 // TestType is the type of testing patterns
-type TestType int32
+type TestType int32 //enums:enum
 
 const (
 	MultiObjs TestType = iota
@@ -47,27 +49,24 @@ const (
 	ClosePosner
 	ReversePosner
 	ObjAttn
-	TestTypeN
 )
 
 // LesionType is the type of lesion
-type LesionType int32
+type LesionType int32 //enums:enum
 
 const (
 	NoLesion LesionType = iota
 	LesionSpat1
 	LesionSpat2
 	LesionSpat12
-	LesionTypeN
 )
 
 // LesionSize is the size of lesion
-type LesionSize int32
+type LesionSize int32 //enums:enum
 
 const (
 	LesionHalf LesionSize = iota
 	LesionFull
-	LesionSizeN
 )
 
 func main() {
@@ -183,6 +182,9 @@ var ParamSets = params.Sets{
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
+	// select which type of test (input patterns) to use
+	Test TestType
+
 	// spatial to object projection WtScale.Rel strength -- reduce to 1.5, 1 to test
 	SpatToObj float32 `default:"2"`
 
@@ -192,11 +194,11 @@ type Sim struct {
 	// sodium (Na) gated potassium (K) channels that cause neurons to fatigue over time
 	KNaAdapt bool `default:"false"`
 
-	// number of cycles to present the cue -- 100 by default, 50 to 300 for KNa adapt testing
-	CueDur int `default:"100"`
+	// number of cycles to present the cue; 100 by default, 50 to 300 for KNa adapt testing
+	CueCycles int `default:"100"`
 
-	// select which type of test (input patterns) to use
-	Test TestType
+	// number of cycles to present a target; 220 by default, 50 to 300 for KNa adapt testing
+	TargetCycles int `default:"220"`
 
 	// click to see these testing input patterns
 	MultiObjs *table.Table `view:"no-inline"`
@@ -220,7 +222,7 @@ type Sim struct {
 	Params emer.NetParams `display:"add-fields"`
 
 	// contains looper control loops for running sim
-	Loops *looper.Manager `display:"-"`
+	Loops *looper.Manager
 
 	// contains computed statistic values
 	Stats estats.Stats `display:"-"`
@@ -264,7 +266,8 @@ func (ss *Sim) Defaults() {
 	ss.SpatToObj = 2
 	ss.V1ToSpat1 = 0.6
 	ss.KNaAdapt = false
-	ss.CueDur = 100
+	ss.CueCycles = 100
+	ss.TargetCycles = 220
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -333,6 +336,11 @@ func (ss *Sim) UpdateEnv() {
 		ev.Table = table.NewIndexView(ss.ReversePosner)
 	case ObjAttn:
 		ev.Table = table.NewIndexView(ss.ObjAttn)
+	}
+	ev.Init(0)
+	if ss.Loops != nil {
+		tst := ss.Loops.Stacks[etime.Test]
+		tst.Loops[etime.Trial].Counter.Max = ev.Table.Len()
 	}
 }
 
@@ -531,14 +539,29 @@ func (ss *Sim) InitRandSeed(run int) {
 	ss.RandSeeds.Set(run, &ss.Net.Rand)
 }
 
+// CycleThresholdStop
+func (ss *Sim) CycleThresholdStop() {
+	trlnm := ss.Stats.String("TrialName")
+	if strings.Contains(trlnm, "Cue") {
+		return
+	}
+	cyc := ss.Loops.Stacks[etime.Test].Loops[etime.Cycle]
+	out := ss.Net.LayerByName("Output")
+	act := out.Neurons[1].Act
+	if act > 0.5 {
+		ss.Stats.SetFloat("RT", float64(cyc.Counter.Cur))
+		cyc.SkipToMax()
+	}
+}
+
 // ConfigLoops configures the control loops: Training, Testing
 func (ss *Sim) ConfigLoops() {
 	man := looper.NewManager()
 
-	ntrls := 100
-	cycles := 500
+	ntrls := 6
+	cycles := ss.TargetCycles
 	man.AddStack(etime.Test).
-		AddTime(etime.Epoch, 1).
+		AddTime(etime.Epoch, 10).
 		AddTime(etime.Trial, ntrls).
 		AddTime(etime.Cycle, cycles)
 
@@ -550,13 +573,16 @@ func (ss *Sim) ConfigLoops() {
 		stack.Loops[etime.Trial].OnStart.Add("ApplyInputs", func() {
 			ss.ApplyInputs()
 		})
+		stack.Loops[etime.Cycle].Main.Add("CycleThresholdStop", func() {
+			ss.CycleThresholdStop()
+		})
 	}
 
 	/////////////////////////////////////////////
 	// Logging
 
 	man.AddOnEndToAll("Log", ss.Log)
-	leabra.LooperResetLogBelow(man, &ss.Logs)
+	// leabra.LooperResetLogBelow(man, &ss.Logs)
 
 	////////////////////////////////////////////
 	// GUI
@@ -576,10 +602,19 @@ func (ss *Sim) ApplyInputs() {
 	net.InitExt()
 	ev := ss.Envs.ByMode(ctx.Mode).(*env.FixedTable)
 	ev.Step()
-
+	ss.Stats.SetFloat("RT", math.NaN())
 	lays := net.LayersByType(leabra.InputLayer, leabra.TargetLayer)
 	net.InitExt()
 	ss.Stats.SetString("TrialName", ev.TrialName.Cur)
+	ss.Stats.SetString("GroupName", ev.GroupName.Cur)
+	if !strings.Contains(ev.TrialName.Prv, "Cue") {
+		net.InitActs()
+	}
+	maxCyc := ss.TargetCycles
+	if strings.Contains(ev.TrialName.Cur, "Cue") {
+		maxCyc = ss.CueCycles
+	}
+	ss.Loops.Stacks[etime.Test].Loops[etime.Cycle].Counter.Max = maxCyc
 	for _, lnm := range lays {
 		ly := ss.Net.LayerByName(lnm)
 		pats := ev.State(ly.Name)
@@ -596,9 +631,10 @@ func (ss *Sim) NewRun() {
 	ctx.Reset()
 	ctx.Mode = etime.Test
 	ss.InitWeights(ss.Net)
+	ss.UpdateEnv()
 	ss.InitStats()
 	ss.StatCounters()
-	ss.Logs.ResetLog(etime.Test, etime.Epoch)
+	// ss.Logs.ResetLog(etime.Test, etime.Trial)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -608,6 +644,8 @@ func (ss *Sim) NewRun() {
 // called at start of new run
 func (ss *Sim) InitStats() {
 	ss.Stats.SetString("TrialName", "")
+	ss.Stats.SetString("GroupName", "")
+	ss.Stats.SetFloat("RT", math.NaN())
 }
 
 // StatCounters saves current counters to Stats, so they are available for logging etc
@@ -629,40 +667,27 @@ func (ss *Sim) NetViewCounters(tm etime.Times) {
 	// 	ss.TrialStats() // get trial stats for current di
 	// }
 	ss.StatCounters()
-	ss.ViewUpdate.Text = ss.Stats.Print([]string{"Trial", "TrialName", "Cycle"})
-}
-
-// Harmony computes the harmony (excitatory net input Ge * Act)
-func (ss *Sim) Harmony(nt *leabra.Network) float32 {
-	harm := float32(0)
-	nu := 0
-	for _, ly := range nt.Layers {
-		if ly.Off {
-			continue
-		}
-		for i := range ly.Neurons {
-			nrn := &(ly.Neurons[i])
-			harm += nrn.Ge * nrn.Act
-			nu++
-		}
-	}
-	if nu > 0 {
-		harm /= float32(nu)
-	}
-	return harm
+	ss.ViewUpdate.Text = ss.Stats.Print([]string{"Trial", "GroupName", "TrialName", "Cycle"})
 }
 
 //////////////////////////////////////////////////////////////////////////////
 // 		Logging
 
 func (ss *Sim) ConfigLogs() {
-	ss.Logs.AddCounterItems(etime.Trial, etime.Cycle)
+	ss.Logs.AddCounterItems(etime.Epoch, etime.Trial, etime.Cycle)
+	ss.Logs.AddStatStringItem(etime.Test, etime.Trial, "GroupName")
 	ss.Logs.AddStatStringItem(etime.Test, etime.Trial, "TrialName")
+
+	ss.Logs.AddStatAggItem("RT", etime.Epoch, etime.Trial)
 
 	ss.Logs.AddLayerTensorItems(ss.Net, "Act", etime.Test, etime.Trial, "InputLayer")
 
+	ss.Logs.PlotItems("RT", "GroupName")
+
 	ss.Logs.CreateTables()
 	ss.Logs.SetContext(&ss.Stats, ss.Net)
+	ss.Logs.NoPlot(etime.Test, etime.Cycle)
+	ss.Logs.NoPlot(etime.Test, etime.Epoch)
 }
 
 // Log is the main logging function, handles special things for different scopes
@@ -676,16 +701,20 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 		return
 	}
 	row := dt.Rows
+	ss.StatCounters()
 
 	switch {
-	case time == etime.Cycle:
-		ss.StatCounters()
 	case time == etime.Trial:
 		ss.StatCounters()
-		ss.Logs.Log(mode, time) // also logs to file, etc
+		if !strings.Contains(ss.Stats.String("TrialName"), "Cue") {
+			if math.IsNaN(ss.Stats.Float("RT")) { // didn't stop
+				ss.Stats.SetFloat("RT", float64(ss.TargetCycles))
+			}
+			ss.Logs.Log(mode, time)
+		}
 		return
 	}
-	ss.Logs.LogRow(mode, time, row) // also logs to file, etc
+	ss.Logs.LogRow(mode, time, row)
 }
 
 ////////////////////////////////////////////////////////////////
@@ -722,6 +751,18 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 	})
 
 	ss.GUI.AddLooperCtrl(p, ss.Loops, []etime.Modes{etime.Test})
+
+	tree.Add(p, func(w *core.Separator) {})
+
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Reset Log",
+		Icon:    icons.Reset,
+		Tooltip: "Reset the accumulated trial log",
+		Active:  egui.ActiveAlways,
+		Func: func() {
+			ss.Logs.ResetLog(etime.Test, etime.Trial)
+			ss.GUI.UpdatePlot(etime.Test, etime.Trial)
+		},
+	})
 
 	////////////////////////////////////////////////
 	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Defaults", Icon: icons.Update,
