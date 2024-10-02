@@ -21,7 +21,9 @@ import (
 	"cogentcore.org/core/core"
 	"cogentcore.org/core/icons"
 	"cogentcore.org/core/math32"
+	"cogentcore.org/core/plot/plotcore"
 	"cogentcore.org/core/tensor"
+	"cogentcore.org/core/tensor/stats/split"
 	"cogentcore.org/core/tensor/table"
 	"cogentcore.org/core/tree"
 	"github.com/emer/emergent/v2/egui"
@@ -201,19 +203,19 @@ type Sim struct {
 	TargetCycles int `default:"220"`
 
 	// click to see these testing input patterns
-	MultiObjs *table.Table `view:"no-inline"`
+	MultiObjs *table.Table `new-window:"+" display:"no-inline"`
 
 	// click to see these testing input patterns
-	StdPosner *table.Table `view:"no-inline"`
+	StdPosner *table.Table `new-window:"+" display:"no-inline"`
 
 	// click to see these testing input patterns
-	ClosePosner *table.Table `view:"no-inline"`
+	ClosePosner *table.Table `new-window:"+" display:"no-inline"`
 
 	// click to see these testing input patterns
-	ReversePosner *table.Table `view:"no-inline"`
+	ReversePosner *table.Table `new-window:"+" display:"no-inline"`
 
 	// click to see these testing input patterns
-	ObjAttn *table.Table `view:"no-inline"`
+	ObjAttn *table.Table `new-window:"+" display:"no-inline"`
 
 	// the network -- click to view / edit parameters for layers, paths, etc
 	Net *leabra.Network `new-window:"+" display:"no-inline"`
@@ -222,7 +224,7 @@ type Sim struct {
 	Params emer.NetParams `display:"add-fields"`
 
 	// contains looper control loops for running sim
-	Loops *looper.Manager
+	Loops *looper.Manager `display:"-"`
 
 	// contains computed statistic values
 	Stats estats.Stats `display:"-"`
@@ -463,7 +465,7 @@ func (ss *Sim) LesionUnit(lay *leabra.Layer, unx, uny int) {
 
 // Lesion lesions given set of layers (or unlesions for NoLesion) and
 // locations and number of units (Half = partial = 1/2 units, Full = both units)
-func (ss *Sim) Lesion(lay LesionType, locations LesionSize, units LesionSize) {
+func (ss *Sim) Lesion(lay LesionType, locations LesionSize, units LesionSize) { //types:add
 	ss.InitWeights(ss.Net)
 	if lay == NoLesion {
 		return
@@ -502,6 +504,7 @@ func (ss *Sim) Lesion(lay LesionType, locations LesionSize, units LesionSize) {
 			}
 		}
 	}
+	ss.ViewUpdate.RecordSyns()
 }
 
 func (ss *Sim) ApplyParams() {
@@ -570,6 +573,9 @@ func (ss *Sim) ConfigLoops() {
 
 	for m, _ := range man.Stacks {
 		stack := man.Stacks[m]
+		stack.Loops[etime.Epoch].OnStart.Add("InitTrial", func() {
+			ss.Stats.SetInt("TrialEff", 0)
+		})
 		stack.Loops[etime.Trial].OnStart.Add("ApplyInputs", func() {
 			ss.ApplyInputs()
 		})
@@ -609,6 +615,7 @@ func (ss *Sim) ApplyInputs() {
 	ss.Stats.SetString("GroupName", ev.GroupName.Cur)
 	if !strings.Contains(ev.TrialName.Prv, "Cue") {
 		net.InitActs()
+		ss.Stats.SetInt("TrialEff", ss.Stats.Int("TrialEff")+1)
 	}
 	maxCyc := ss.TargetCycles
 	if strings.Contains(ev.TrialName.Cur, "Cue") {
@@ -630,7 +637,6 @@ func (ss *Sim) NewRun() {
 	ctx := &ss.Context
 	ctx.Reset()
 	ctx.Mode = etime.Test
-	ss.InitWeights(ss.Net)
 	ss.UpdateEnv()
 	ss.InitStats()
 	ss.StatCounters()
@@ -646,6 +652,7 @@ func (ss *Sim) InitStats() {
 	ss.Stats.SetString("TrialName", "")
 	ss.Stats.SetString("GroupName", "")
 	ss.Stats.SetFloat("RT", math.NaN())
+	ss.Stats.SetInt("TrialEff", 0)
 }
 
 // StatCounters saves current counters to Stats, so they are available for logging etc
@@ -667,7 +674,7 @@ func (ss *Sim) NetViewCounters(tm etime.Times) {
 	// 	ss.TrialStats() // get trial stats for current di
 	// }
 	ss.StatCounters()
-	ss.ViewUpdate.Text = ss.Stats.Print([]string{"Trial", "GroupName", "TrialName", "Cycle"})
+	ss.ViewUpdate.Text = ss.Stats.Print([]string{"Trial", "GroupName", "TrialName", "Cycle", "RT"})
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -688,6 +695,48 @@ func (ss *Sim) ConfigLogs() {
 	ss.Logs.SetContext(&ss.Stats, ss.Net)
 	ss.Logs.NoPlot(etime.Test, etime.Cycle)
 	ss.Logs.NoPlot(etime.Test, etime.Epoch)
+
+	ss.Logs.SetMeta(etime.Test, etime.Trial, "Points", "true")
+
+	ss.Logs.SetMeta(etime.Test, etime.Trial, "Trial:FixMin", "true")
+	ss.Logs.SetMeta(etime.Test, etime.Trial, "Trial:FixMax", "true")
+	ss.Logs.SetMeta(etime.Test, etime.Trial, "Trial:Min", "0.5")
+	ss.Logs.SetMeta(etime.Test, etime.Trial, "Trial:Max", "3.5")
+
+	ss.Logs.SetMeta(etime.Test, etime.Trial, "RT:FixMin", "true")
+	ss.Logs.SetMeta(etime.Test, etime.Trial, "RT:FixMax", "true")
+	ss.Logs.SetMeta(etime.Test, etime.Trial, "RT:Min", "0")
+	ss.Logs.SetMeta(etime.Test, etime.Trial, "RT:Max", "250")
+}
+
+func (ss *Sim) TrialStats() {
+	dt := ss.Logs.Table(etime.Test, etime.Trial)
+	runix := table.NewIndexView(dt)
+	spl := split.GroupBy(runix, "Trial")
+	split.DescColumn(spl, "RT")
+	st := spl.AggsToTableCopy(table.AddAggName)
+	ss.Logs.MiscTables["TrialStats"] = st
+	plt := ss.GUI.Plots[etime.ScopeKey("TrialStats")]
+
+	st.SetMetaData("XAxis", "Trial")
+
+	st.SetMetaData("Points", "true")
+
+	st.SetMetaData("RT:Mean:On", "+")
+	st.SetMetaData("RT:Mean:FixMin", "true")
+	st.SetMetaData("RT:Mean:FixMax", "true")
+	st.SetMetaData("RT:Mean:Min", "0")
+	st.SetMetaData("RT:Mean:Max", "250")
+	st.SetMetaData("RT:Count:On", "-")
+	st.SetMetaData("GroupName:On", "+")
+
+	// st.SetMetaData("Trial:FixMin", "true")
+	// st.SetMetaData("Trial:FixMax", "true")
+	// st.SetMetaData("Trial:Min", "0.5")
+	// st.SetMetaData("Trial:Max", "3.5")
+
+	plt.SetTable(st)
+	plt.GoUpdatePlot()
 }
 
 // Log is the main logging function, handles special things for different scopes
@@ -707,12 +756,15 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 	case time == etime.Trial:
 		ss.StatCounters()
 		if !strings.Contains(ss.Stats.String("TrialName"), "Cue") {
+			ss.Stats.SetInt("Trial", ss.Stats.Int("TrialEff"))
 			if math.IsNaN(ss.Stats.Float("RT")) { // didn't stop
 				ss.Stats.SetFloat("RT", float64(ss.TargetCycles))
 			}
 			ss.Logs.Log(mode, time)
 		}
 		return
+	case time == etime.Epoch:
+		ss.TrialStats()
 	}
 	ss.Logs.LogRow(mode, time, row)
 }
@@ -737,6 +789,15 @@ func (ss *Sim) ConfigGUI() {
 
 	ss.GUI.AddPlots(title, &ss.Logs)
 
+	stnm := "TrialStats"
+	dt := ss.Logs.MiscTable(stnm)
+	bcp, _ := ss.GUI.Tabs.NewTab(stnm + " Plot")
+	plt := plotcore.NewSubPlot(bcp)
+	ss.GUI.Plots[etime.ScopeKey(stnm)] = plt
+	plt.Options.Title = "Trial Stats"
+	plt.Options.XAxis = "Trial"
+	plt.SetTable(dt)
+
 	ss.GUI.FinalizeGUI(false)
 }
 
@@ -753,6 +814,15 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 	ss.GUI.AddLooperCtrl(p, ss.Loops, []etime.Modes{etime.Test})
 
 	tree.Add(p, func(w *core.Separator) {})
+
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Lesion",
+		Icon:    icons.Delete,
+		Tooltip: "Lesion units in the network",
+		Active:  egui.ActiveAlways,
+		Func: func() {
+			core.CallFunc(ss.GUI.Body, ss.Lesion)
+		},
+	})
 
 	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Reset Log",
 		Icon:    icons.Reset,

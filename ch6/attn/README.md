@@ -10,9 +10,9 @@ The model is based on [Cohen, et al. (1994)](#references) with several improveme
 
 Let's step through the network structure and connectivity, which was completely pre-specified (i.e., the network was not trained, and no learning takes place, because it was easier to hand-construct this simple architecture). As you can see, the network has mutually interconnected *Spatial* and *Object* pathways feeding off of a V1-like layer that contains a spatially mapped feature array. In this simple case, we're assuming that each "object" is represented by a single distinct feature in this array, and also that space is organized along a single dimension. Thus, the first row of units represents the first object's feature (which serves as the cue stimulus) in each of 7 locations, and the second row represents the second object's feature (which serves as the target) in these same 7 locations.
 
-* Now select `r.Wt` in the NetView and click on the object and spatial units to see how they function via their connectivity patterns.
+* Now select `Wts / r.Wt` in the Network and click on the object and spatial units to see how they function via their connectivity patterns.
 
-The object processing pathway has a sequence of 3 increasingly spatially invariant layers of representations, with each unit collapsing over 3 adjacent spatial locations of the object-defining feature in the layer below. Note that the highest, fully spatially invariant level of the object pathway plays the role of the output layer, and is used for measuring the reaction time to detect objects. This happens by stopping settling whenever the *target* output (object 2) gets above an activity of .6 (if this doesn't happen, settling stops after 220 cycles).
+The object processing pathway has a sequence of 3 increasingly spatially invariant layers of representations, with each unit collapsing over 3 adjacent spatial locations of the object-defining feature in the layer below. Note that the highest, fully spatially invariant level of the object pathway plays the role of the output layer, and is used for measuring the reaction time to detect objects. This happens by stopping settling whenever the *target* output (object 2) gets above an activity of .5 (if this doesn't happen, settling stops after 220 cycles).
 
 The spatial processing pathway has a sequence of two layers of spatial representations, differing in the level of spatial resolution. As in the object pathway, each unit in the spatial pathway represents 3 adjacent spatial locations, but unlike the object pathway, these units are not sensitive to particular features. Two units per location provide distributed representations in both layers of the spatial pathway. This redundancy will be useful for demonstrating the effects of partial damage to this pathway.
 
@@ -26,23 +26,23 @@ You should see 3 events. The first event has two different objects (features) pr
 
 Now, let's test these predictions in the model.
 
-* Switch back to viewing `Act` in the `NetView`. Do `Init` and `Test Trial`.
+* Switch back to viewing `Act` in the `Network`. Do `Init` and `Step Trial`.
 
 This will present the first event to the Network, which will stop settling (i.e., updating the network's activations a cycle at a time) when the target unit's activation exceeds the threshold of .5 in the Output layer.  You should see that the network relatively quickly focuses its spatial attention on the more active input on the right side, and the Object pathway represents that target item, causing the Output activity to get over threshold relatively quickly.
 
-* Then `Test Trial` through the remaining events.
+* Then `Step Trial` through the remaining events.
 
 You should have seen that while the network settled relatively quickly for the first two events, it was slowed on the third event where the objects overlap in the same region of space (occasionally not so slow on the last one).
 
-* Click on the `TstTrlPlot` to see a plot of the settling times (number of cycles to reach threshold) for each event.
+* Click on the `Test Trial Plot` to see a plot of the `RT` reaction times (number of cycles to reach threshold) for each event.
 
-* You can also set the `ViewUpdate` setting to `Cycle` instead of `FastSpike` and, click back on the `NetView`, and `Test Trial` back through the items, to see a cycle-by-cycle update of the network.  You can use the VCR rewind buttons at the lower right of the NetView to rewind through and see exactly how the network settling played out.
+* You can also set the `Step` to `Cycle` instead of `Trial`, and single step through through the items, to see a cycle-by-cycle update of the network.  You can also use the VCR rewind buttons at the lower right of the Network to rewind through and see exactly how the network settling played out.
 
-* To get a better sense of the overall data pattern, click back on `TstTrlPlot` and do `Test All` a few times.  There is a small amount of noise so the results should be a little bit different each time, but overall quite consistent.
+* To get a better sense of the overall data pattern, click back on `Test Trial Plot` and do `Init` and `Test Run` a few times. There is a small amount of noise so the results should be a little bit different each time, but overall quite consistent.
 
-You should see that overall the network has more difficulty with the objects appearing in the same spatial location, where spatial attention cannot help focus on one object. The overall average cycles by condition are reported in the `TstStats` table -- click the `etable.Table` button there to answer this question:
+You should see that overall the network has more difficulty with the objects appearing in the same spatial location, where spatial attention cannot help focus on one object. The overall average RT cycles by condition are reported in the `TrialStats Plot` table. Click on that tab, and then you can hover over the data points (or click on the `Table` button) to see the mean statistics:
 
-> **Question 6.6:** Report the `Cycle:Mean` values for each condition from the `TstStats` table.
+> **Question 6.6:** Report the `RT:Mean` values for each condition from the `TrialStats` table.
 
 You should have observed that spatial representations can facilitate the processing of objects by allocating attention to one object over another. The key contrast condition is when both objects lie in the same location, so that spatial attention can no longer separate them out, leaving the object pathway to try to process both objects simultaneously.
 
@@ -58,11 +58,11 @@ Now, let's see how this model does on the Posner spatial cuing task, diagrammed 
 
 There are three *groups* of events shown here, which correspond to a *Neutral* cue (no cue), a *Valid* cue, and an *Invalid* cue. There is just one event for the neutral case, which is the presentation of the target object in the left location. For the valid case, the first event is the cue presented on the left, followed by a target event with the target also on the left. The invalid case has the same cue event, but the target shows up on the right (opposite) side of space. The network's activations are not reset between the cue and target events within a group, but they are reset at the end of a group (after the target).  Thus, residual activation from the cuing event can persist and affect processing for the target event, but the activation is cleared between different trial types.
 
-* Do `Test Trial` to process the *Neutral* trial, the the Cue / Target sequence for the Valid and Invalid trials.  You should set the `ViewUpdate` to `Cycle` to see the detailed settling dynamics on the probe trials (The Cue is not shown in detail). Go back through the history and note how the network responds to each of the three conditions of the Posner task, as you continue to Step through these cases.
+* Do `Step Trial` to process the *Neutral* trial, the the Cue / Target sequence for the Valid and Invalid trials.  You should Step by Cycle or review the VCR history and note how the network responds to each of the three conditions of the Posner task, as you continue to Step through these cases.
 
-* Then, switch to `TstTrlPlot` and do several `Test All` runs to collect some statistics.  Then click on  `TstStats` table (close any existing such windows and be sure to get the new one -- it regenerates a new table every time so the existing ones will not update).
+* Then, switch to `Test Trial Plot` and do several `Test Run` runs to collect some statistics.  Then click on  `TrialStats` plot to note the results.
 
-> **Question 6.7:** How does the influence of the spatial cue affect subsequent processing of the target, in terms of the settling times on each condition? Report average data per condition/group from the `TstStats` table. Please also describe the mechanistic reason why you observe changes to the Posner task not just the changes themselves. 
+> **Question 6.7:** How does the influence of the spatial cue affect subsequent processing of the target, in terms of the settling times on each condition? Report average data per condition/group from the `TrialStats` table. Please also describe the mechanistic reason why you observe changes to the Posner task not just the changes themselves. 
 
 Typical reaction times for young adults (i.e., college students) on this task are roughly: neutral, 370 ms; valid 350 ms; invalid 390 ms, showing about 20 ms on either side of the neutral condition for the effects of attentional focus. These data should agree in general with the pattern of results you obtained (the invalid effect is a bit higher), but to fit the data more closely you would have to add a constant offset of roughly 310 ms to the number of cycles of settling for each trial type. This constant offset can be thought of as the time needed to perform all the other aspects of the task that are not included in the simulation (e.g., generating a response). Note also that one cycle of settling in the network corresponds with one millisecond of processing in humans. This relationship is not automatic -- we adjusted the time constant for activation updating (`Act.Dt.VmTau` = 7 instead of the default of 3.3) so that the two were in agreement in this particular model.
 
@@ -70,11 +70,11 @@ Typical reaction times for young adults (i.e., college students) on this task ar
 
 Now let's explore the effects of the parameters in the on the network's performance, which helps to illuminate how the network captures normal performance in this task. First, let's try reducing `SpatToObj` from 2 to 1.5, then 1, which reduces the influence of the two spatial pathway layers on the corresponding object pathway layers.
 
-* Do a few `Test All` runs with `SpatToObj` set to 1.5, then reduce to 1.  The parameter changes take effect when you hit the `Test All` button so no need to hit `Init` (which resets the plot, if you want).
+* Do a few `Test Run` runs with `SpatToObj` set to 1.5, then reduce to 1.  The parameter changes take effect when you hit the `Test Run` button so no need to hit `Init` (which resets the plot, if you want).
 
 You should find that there is less of an effect for both the valid and invalid conditions. This is just what one would expect -- because there is less of a spatial attention effect on the object system, the invalid cue does not slow it down as much, and similarly it has less effect for the valid case.
 
-* Set `SpatToObj` back to 2, and reduce the influence from the V1 layer to the spatial representations by reducing the value of `V1ToSpat1` from 0.6 to 0.55, then to 0.5, doing a several `Test All` runs for each and noting the cycle averages.
+* Set `SpatToObj` back to 2, and reduce the influence from the V1 layer to the spatial representations by reducing the value of `V1ToSpat1` from 0.6 to 0.55, then to 0.5, doing a several `Test Run` runs for each and noting the cycle averages.
 
 Here the most interesting effect is in the invalid trials, where the network takes an increasing number of cycles as `V1ToSpat1` values drop, ultimately not being able to settle on the right answer with in the 220 max cycle limit. As V1 has less effect on the spatial pathway, it becomes more and more difficult for input in a novel location (e.g., the target presented on the opposite side of the cue) to overcome the residual spatial activation in the cued location. This shows that the spatial pathway needs to have a balance between sensitivity to bottom-up inputs and ability to retain a focus of spatial attention over time.  This network allows this balance to be set separately from that of the influence of the spatial pathway on the object pathway (controlled by the `SpatToObj` parameter), which is not the case with the [Cohen, et al. (1994)](#references) model.
 
@@ -85,7 +85,7 @@ Here the most interesting effect is in the invalid trials, where the network tak
 
 One additional manipulation we can make is to the eccentricity (visual distance) of the cue and target. If they are presented closer together, then one might expect to get less of an attentional effect, or even a facilitation if the nearby location was partially activated by the cue.
 
-* Set `Test` to `ClosePosner`, and do `Init`, `Test Trial` while watching the `NetView`, and then `Test All` a few times while looking at the `TstTrlPlot`.
+* Set `Test` to `ClosePosner`, and do `Init`, `Step Trial` while watching the `Network`, and then `Test Run` a few times while looking at the `Test Trial Plot`.
 
 You will see that an overlapping set of spatial representations is activated, and the plot reveals that there is no longer a very reliable slowing for the invalid case relative to the neutral case.
 
@@ -103,9 +103,9 @@ However, when we apply this normalizing procedure to the patient's data, the res
 
 Now, we lesion the model, and see if it simulates the patient's data. However, because the model will not suffer the generalized effects of brain damage (which are probably caused by swelling and other such factors), and because it will not "age," we expect it to behave just like a adult subject that has only the specific effect of the lesion.  Thus, we compare the model's performance to the normalized patient values. Although we can add in the 310 ms constant to the models' settling time to get a comparable RT measure, it is somewhat easier to just compare the difference between the invalid and valid cases, which subtracts away any constant factors.
 
-* To lesion the model, click the `Lesion` button and select `LesionSpat12` for the `Layers`, and leave the `Locations` and `Units` at `LesionHalf` -- this will lesion only the right half of the spatial layers, and only 1 out of the 2 spatial units in each location (i.e., a partial lesion). Select `r.Wt` in the network view and confirm that these units (the back 2 units on the right for `Spat1`, and the back right unit for `Spat2`) have their weights zeroed out. `Init`, `Test Trial` while watching the `NetView`, and then `Test All` while watching the `TstTrlPlot`.  Then click on  `TstStats` table (close any existing such windows and be sure to get the new one -- it regenerates a new table every time so the existing ones will not update -- also it reports stats over everything shown in the Plot, so make sure you did `Init` to only get results from the lesioned model).
+* To lesion the model, click the `Lesion` button and select `Lesion spat12` for the `Layers`, and leave the `Locations` and `Units` at `LesionHalf` -- this will lesion only the right half of the spatial layers, and only 1 out of the 2 spatial units in each location (i.e., a partial lesion). Select `r.Wt` in the network view and confirm that these units (the back 2 units on the right for `Spat1`, and the back right unit for `Spat2`) have their weights zeroed out. `Init`, `Step Trial` while watching the `Network`, and then `Test Run` while watching the `Test Trial Plot`.  Then click on  `TrialStats` table (close any existing such windows and be sure to get the new one -- it regenerates a new table every time so the existing ones will not update -- also it reports stats over everything shown in the Plot, so make sure you did `Init` to only get results from the lesioned model).
 
-> **Question 6.8:** Report the resulting averages from the `TstStats` table.
+> **Question 6.8:** Report the resulting averages from the `TrialStats` table.
 
 > **Question 6.9:** Compute the invalid-valid difference, and compare it first with that same difference in the intact network, and then with the patient's data as discussed above.
 
@@ -115,8 +115,7 @@ You should have found that you can simulate the apparent disengage deficit witho
 
 One additional source of support for this model comes from the pattern of patient data for the opposite configuration of the cuing task, where the cue is presented in the lesioned side of space, and the invalid target is thus presented in the intact side. Interestingly, data from [Posner et al. (1984)](#references) clearly show that there is a very reduced invalid-valid reaction time difference for this condition in the patients. Thus, it appears that it is easier for the patients to switch attention to the intact side of space, and therefore less of an invalid cost, relative to the normal control data.  Furthermore, there appears to be less of a valid cuing effect for the patients when the cue and target are presented on the damaged side as compared to the intact side. Let's see what the model has to say about this.
 
-* Set `Test` to `ReversePosner`, and do `Init`, `Test Trial` while watching the `NetView`, and then `Test All` a few times while looking at the `TstTrlPlot`.
-
+* Set `Test` to `ReversePosner`, and do `Init`, `Step Trial` while watching the `Network`, and then `Test Run` a few times while looking at the `Test Trial Plot`.
 
 You should see that the network shows a reduced difference between the valid and invalid trials compared to the intact network. Thus, the cue has less of an effect -- less facilitation on valid trials and less interference on invalid ones. This is exactly the pattern seen in the [Posner et al. (1984)](#references) data. In the model, it occurs simply because the stronger intact side of space where the target is presented has less difficulty competing with the damaged side of space where the cue was presented. In contrast, the disengage theory would predict that the lesioned network on the reverse Posner task should perform like the intact network on the standard Posner task.  Under these conditions, any required disengaging abilities should be intact (either because the network has not been lesioned, or because the cue is presented on the side of space that the lesioned network should
 be able to disengage from).
@@ -125,17 +124,17 @@ be able to disengage from).
 
 As mentioned previously, additional lesion data comes from *Balint's syndrome* patients, who suffered from *bilateral* parietal lesions. The most striking feature of these patients is that they have *simultanagnosia* -- the inability to recognize multiple objects presented simultaneously (see Farah, 1990 for a review). Interestingly, when such subjects were tested on the Posner task [(Coslett & Saffran, 1991)](#references), they exhibited a *decreased* level of attentional effects (i.e., a smaller invalid-valid difference). As emphasized by [Cohen et al. (1994)](#references), these data provide an important argument against the *disengage* explanation of parietal function offered by Posner and colleagues, which would instead predict bilateral slowing for invalid trials (i.e., difficulty disengaging). The observed pattern of data falls naturally out of the model we have been exploring.
 
-* To simulate this condition, first set `Test` back to `StdPosner`, and then do `Lesion` with `Locations` set to `LesionFull` instead of Half (keep Units at `LesionHalf`).  Do `Init`, `Test Trial` while watching the `NetView`, and then `Test All` a few times while looking at the `TstTrlPlot`.  Then click on  `TstStats` table.
+* To simulate this condition, first set `Test` back to `StdPosner`, and then do `Lesion` with `Locations` set to `LesionFull` instead of Half (keep Units at `LesionHalf`).  Do `Init`, `Step Trial` while watching the `Network`, and then `Test Run` a few times while looking at the `Test Trial Plot`.  Then click on  `TrialStats` table.
 
-> **Question 6.10:** Report the results of the `TstStats` for the bilaterally lesioned network.
+> **Question 6.10:** Report the results of the `TrialStats` for the bilaterally lesioned network.
 
 Finally, we can explore the effects of a more severe lesion to the parietal spatial representations, which might provide a better model of the syndrome known as *hemispatial neglect* (typically referred to as just *neglect*). As described previously, neglect results from unilateral lesions of the parietal cortex (usually in the right hemisphere), which cause patients to generally neglect the lesioned side of space. We simulate neglect by doing a similar lesion to the unilateral one we did before, but by doing FULL for to lesion both of the units in each location.
 
-* Do `Lesion` with `Locations` at `LesionHalf` but `Units` at `LesionFull`.  Run a few `Test All` with `StdPosner`.
+* Do `Lesion` with `Locations` at `LesionHalf` but `Units` at `LesionFull`.  Run a few `Test Run` with `StdPosner`.
 
 You will see a strong *neglect* phenomenon, which makes the network completely incapable of switching attention into the damaged side of space to detect the target (resulting in the full 220 cycles of settling for the invalid case).
 
-* Now change `Test` to `MultiObj` and do `Init`, `Test Trial` while watching the `NetView`.
+* Now change `Test` to `MultiObj` and do `Init`, `Step Trial` while watching the `Network`.
 
 Observe that even when the more salient object is in the lesioned side of space, the network still focuses attention on the intact side. Thus, it is specifically neglecting this lesioned side. In the first case, this causes the network to activate the cue object representation, which does not stop the network settling, resulting in a full 220 cycles of settling.
 
@@ -151,19 +150,17 @@ Our model can be used to simulate at least the qualitative patterns of behavior 
 
 Now, let's see this in the model.
 
-* First, un-lesion the network by running `Lesion` and selecting `NoLesion` for `Layers`. Next, set `Test` to `StdPosner`. Then, click the `KNaAdapt` toggle to On to turn on adaptation. Next, let's choose a cue duration that, even with the accommodation channels active, still produces the original pattern of results. Set `CueDur` to 50. Now, do `Init`, `Test Trial` and `Test All` as usual.
+* First, un-lesion the network by running `Lesion` and selecting `NoLesion` for `Layers`. Next, set `Test` to `StdPosner`. Then, click the `KNaAdapt` toggle to On to turn on adaptation. Next, let's choose a cue duration that, even with the accommodation channels active, still produces the original pattern of results. Set `Cue cycles` to 50. Now, do `Init`, `Step Trial` and `Test Run` as usual.
 
 You should observe the now-familiar pattern of a valid facilitation and an invalid slowing (although a bit weaker).
 
-* `Test All` with increasing durations (change using the `CueDur` field) in increments of 50 from 50 to 300 or higher.
+* `Test Run` with increasing durations (change using the `Cue cycles` field) in increments of 50 from 50 to 300 or higher.
 
 You should see that the valid-invalid difference decreases progressively with increasing duration, and ultimately, the validly cued condition can actually be a bit *slower* than the invalidly cued one, which is the hallmark of the inhibition of return phenomenon (Figure 8.28). The effect sizes here are fairly small because the form of adaptation here is relatively weak -- a more significant GABA-B like delayed inhibition effect (which is not currently implemented) would be needed to produce more substantial effects.
 
-* Switch to the `NetView`, set `ViewUpdate` to `Cycle` and `Test Trial` through the running of the network with `CueDur` at 300 or higher.
+* Switch to the `Network`, set `Step Cycle` and `Step Trial` through the running of the network with `Cue cycles` at 300 or higher.
 
 > **Question 6.11:** Report in detail what happens on the valid and invalid trials that produces the inhibition of return effect. It is useful to observe the activation (or lack thereof) of the various layers as the cue duration increases. While you should see changes in the ranges of durations specified, you may have to increase the cue duration even more to get the full inhibition of return effect. 
-
-
 
 # Object-Based Attentional Effects
 
@@ -177,10 +174,9 @@ In the simulator, we can run the simpler cuing experiment analogous to the Posne
 
 The first event is a control condition, where we present two objects without any prior cuing. Note that, as in the MultiObj case, the target object is more strongly activated than the cue object, so the network will process the target object. The next event is a cuing event, where the cue object is presented in the central location. Then, within the same group so that activations persist, the next event presents the two objects just as in the first event. Thus, if the prior object cue is effective, it should be able to overcome the relatively small difference in bottom-up salience between the two objects, so that the network processes the cue object and not the target. Finally, the next two events are for the case where the two objects appear in the same location. Recall that before, the network was unable to select either object for processing in this case, because they are spatially overlapping. Perhaps now, with the object-based attentional cue, the network will be able to focus on the cue object.
 
-* Make sure `KNaAdapt` is off and `CueDur` is back to 100 (or hit `Defaults`), and then do `Init`, `Test All`, then rewind through time to see how the network responds in detail to each task condition.
+* Make sure `KNaAdapt` is off and `Cue cycles` is back to 100 (or hit `Defaults`), and then do `Init`, `Test Run`, then rewind through time to see how the network responds in detail to each task condition.
 
 You should observe that the prior object cue is indeed capable of influencing subsequent processing in favor of the same object. Note also that the spatial system responds to this in the appropriate manner -- it activates the spatial location associated with the cued object. Finally, note that the top-down object cue is sufficient to enable the system to select one object (even the less active one) when the two objects are presented overlapping in the same location.
-
 
 # References
 
