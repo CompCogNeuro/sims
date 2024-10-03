@@ -15,7 +15,7 @@ see various lines plotted over 200 time steps (*cycles*) on the X axis.
 
 Here is a quick overview of each of the variables -- we'll go through them individually next (see for more details on how to determine what is being graphed, and how to configure it):
 
-* `Ge` = total excitatory input conductance to the neuron, which is generally a function of the number of open excitatory synaptic input channels at any given point in time (`Ge(t)`) and the overall strength of these input channels, which is given by `GbarE`.  In this simple model, `Ge(t))` goes from 0 prior to cycle 10, to 1 from 10-160, and back to 0 thereafter. Because `GBarE = .3` (by default), the net value goes up to .3 from cycle 10-160. The timing of the input is controlled by the `OnCycle` and `OffCycle` parameters.
+* `Ge` = total excitatory input conductance to the neuron, which is generally a function of the number of open excitatory synaptic input channels at any given point in time (`Ge(t)`) and the overall strength of these input channels, which is given by `GbarE`.  In this simple model, `Ge(t)` goes from 0 prior to cycle 10, to 1 from 10-160, and back to 0 thereafter. Because `GBarE = .3` (by default), the net value goes up to .3 from cycle 10-160. The timing of the input is controlled by the `OnCycle` and `OffCycle` parameters.
 
 * `Inet` = net current (sum of individual excitation and leak    currents), which is excitatory (upward) when the excitatory input comes on, and then oscillates as the action potential spikes fire. In general this reflects the net balance between the excitatory net input and the constant leak current (plus inhibition, which is not present in this simulation).
 
