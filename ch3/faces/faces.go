@@ -26,6 +26,7 @@ import (
 	"cogentcore.org/core/math32"
 	"cogentcore.org/core/plot/plotcore"
 	"cogentcore.org/core/tensor"
+	"cogentcore.org/core/tensor/stats/clust"
 	"cogentcore.org/core/tensor/stats/metric"
 	"cogentcore.org/core/tensor/table"
 	"cogentcore.org/core/tree"
@@ -433,10 +434,10 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 // ClusterPlots computes all the cluster plots from the faces input data.
 func (ss *Sim) ClusterPlots() {
 	ptix := table.NewIndexView(ss.Patterns)
-	estats.ClusterPlot(ss.GUI.PlotByName("ClustFaces"), ptix, "Input", "Name")
-	estats.ClusterPlot(ss.GUI.PlotByName("ClustEmote"), ptix, "Emotion", "Name")
-	estats.ClusterPlot(ss.GUI.PlotByName("ClustGend"), ptix, "Gender", "Name")
-	estats.ClusterPlot(ss.GUI.PlotByName("ClustIdent"), ptix, "Identity", "Name")
+	estats.ClusterPlot(ss.GUI.PlotByName("ClustFaces"), ptix, "Input", "Name", clust.MinDist)
+	estats.ClusterPlot(ss.GUI.PlotByName("ClustEmote"), ptix, "Emotion", "Name", clust.MinDist)
+	estats.ClusterPlot(ss.GUI.PlotByName("ClustGend"), ptix, "Gender", "Name", clust.MinDist)
+	estats.ClusterPlot(ss.GUI.PlotByName("ClustIdent"), ptix, "Identity", "Name", clust.MinDist)
 	ss.ProjectionPlot()
 }
 
