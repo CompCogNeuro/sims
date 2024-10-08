@@ -20,7 +20,7 @@ Let's first examine the network, shown in the tab in the right 3D panel.  It has
 
 * `Identity` with 6 labeled units with the names given to the different faces in the input (Alberto, Betty, Lisa, Mark, Wendy, Zane) -- the network can categorize the individual despite differences in emotional expression. Four additional units are available if you want to explore further by adding new faces.
 
-* Select the `Wts/r.Wt` variable to view in the `Network` tab, and click on each of the different output category neurons in the network. (You may need to click and drag the network to access the Emotion units from above. Clicking the reset icon in the lower left will restore the original network view.) This will display the weight values going into each neuron. 
+* Select the `Wts/r.Wt` variable to view in the `Network` tab, and click on each of the different output category neurons in the network. (You may need to click and drag the network--or click the downward rotation button at the bottom of the Network view several times--to access the Emotion units from above. Clicking the reset icon in the lower left will restore the original network view.) This will display the weight values going into each neuron. 
 
 These weights were learned in a way that makes their representations particularly obvious by looking at these weights, so you can hopefully see sensible-looking patterns for each unit. To further understand how this network works, we can look at the input face patterns and corresponding categorization values that it was trained on (this learning process is explained in the chapter on *Learning* in the textbook).
 
