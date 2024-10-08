@@ -40,7 +40,7 @@ You should see the network process the face input and activate the appropriate o
 
 ## Using Cluster Plots to Understand the Categorization Process
 
-A [ClusterPlot](https://github.com/CompCogNeuro/sims/blob/main/ch3/face_categ/ClusterPlot.md) provides a convenient way of visualizing the similarity relationships among a set of items, where multiple different forms of similarity may be in effect at the same time (i.e., multidimensional similarity structure).  If unfamiliar with these, please click that link to read more about how to read a cluster plot.  First, we'll look at the cluster plot of the input faces, and then of the different categorizations performed on them, to see how the network transforms the similarity structure to extract the relevant information and collapse across the irrelevant.
+A [ClusterPlot](ClusterPlot.md) provides a convenient way of visualizing the similarity relationships among a set of items, where multiple different forms of similarity may be in effect at the same time (i.e., multidimensional similarity structure).  If unfamiliar with these, please click that link to read more about how to read a cluster plot.  First, we'll look at the cluster plot of the input faces, and then of the different categorizations performed on them, to see how the network transforms the similarity structure to extract the relevant information and collapse across the irrelevant.
 
 * Press the `Cluster Plot` button in the toolbar, which generates the plots from the recorded data, and then click on the `ClustFaces` tab, which shows a cluster plot run on the face `Input` layer images.
 
