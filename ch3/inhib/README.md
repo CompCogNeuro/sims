@@ -103,7 +103,7 @@ You should observe a greater level of excitation using the trained weights compa
 
 To make things simpler at the outset, we have so far been exploring a relatively easy case for inhibition where the network does not have bidirectional excitatory connectivity, which is where inhibition really becomes essential to prevent runaway positive feedback dynamics. Now, let's try running a network with two bidirectionally connected hidden layers.
 
-* First, select `Defaults` to get back the default parameters, then click on the `BidirNet` switch in the left panel, and click on the `Bidir Net` tab to view this network. 
+* First, select `Defaults` to get back the default parameters, then click on the `Bidir net` switch in the left panel and click `Init`. Click on the `Bidir Net` tab to view this network. 
 
 In extending the network to the bidirectional case, we also have to extend our notions of what feedforward inhibition is. In general, the role of feedforward inhibition is to anticipate and counterbalance the level of excitatory input coming into a layer. Thus, in a network with bidirectional excitatory connectivity, the inhibitory neurons for a given layer also have to receive the top-down excitatory connections, which play the role of "feedforward" inhibition.
 
