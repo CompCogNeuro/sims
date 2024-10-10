@@ -30,7 +30,7 @@ Noise added to the membrane potential is playing an important role in this simul
 
 Finally, one of the important psychological aspects of the Necker cube stimulus is that people tend to oscillate between the two possible interpretations. This probably occurs because the neurons that are activated for one interpretation get *tired* eventually, allowing the other competing units to become active. This process of neurons getting tired is called **accommodation** or **adaptation**, and is a well established property of neurons that was covered in the *Neuron* of the textbook.
 
-* To turn on adaptation, click the `KNaAdapt` button On, and also set the `Cycles` to 1000 instead of 100 (gives it more cycles to run so you can see the effects).   Click `Step`.  You can use the Time VCR buttons to review how the activation states changed over time.  Also check out the `Test Cycle Plot` for the graph of Harmony over time which shows the oscillations.
+* To turn on adaptation, click the `KNaAdapt` button On, and also set the `Cycles` below that button to 1000 instead of 100 (gives it more cycles to run so you can see the effects).   Click `Step`.  You can use the Time VCR buttons to review how the activation states changed over time.  Also check out the `Test Cycle Plot` for the graph of Harmony over time which shows the oscillations.
 
 You should observe a few oscillations from one cube to the next as the neurons get tired.
 
