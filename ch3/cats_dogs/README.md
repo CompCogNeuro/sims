@@ -27,7 +27,7 @@ The knowledge embedded in the network is summarized in the above table. Although
 
 Let's first verify that when we present an individual's name as input, it will recall all of the information about that individual. This is a form of pattern completion with a single unique input cue. 
 
-* Set `Step` to `Cycle` instead of `Trial` and press `Step` repeatedly to present the default input patterns to the network, which activates the `Chloe` name unit.
+* Select the `Act / Act` value in the `Network` tab. Set `Step` to `Cycle` instead of `Trial` and press `Step` repeatedly to present the default input patterns to the network, which activates the `Chloe` name unit.
 
 You should see that after this input is processed over time, the network activates the appropriate features for Chloe. You can think about this process as finding the most harmonious activation state given the input constraint of Chloe, and the constraints in the network's weights. Equivalently, you can think about it as settling into the Chloe attractor.
 
