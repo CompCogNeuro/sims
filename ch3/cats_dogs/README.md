@@ -31,7 +31,7 @@ Let's first verify that when we present an individual's name as input, it will r
 
 You should see that after this input is processed over time, the network activates the appropriate features for Chloe. You can think about this process as finding the most harmonious activation state given the input constraint of Chloe, and the constraints in the network's weights. Equivalently, you can think about it as settling into the Chloe attractor.
 
-* Click on the `CatsAndDogPats` button in the left control panel, and double-click on the pattern for the Name layer, which brings up an edit window where you can edit the values.  Zero out the first cell and add a 1 into the second one (this is akin to now showing the network the name 'Socks' instead of Chloe).  Do `Init` and `Test Trial` responds to this (should be as expected from the above table).  Go ahead and try a few other name activations (change the appropriate value from 0 to 1).
+* Click on the `CatsAndDogs` button in the left control panel next to `Patterns`, and double-click on the pattern for the Name layer, which brings up an edit window where you can edit the values.  Zero out the first cell and add a 1 into the second one (this is akin to now showing the network the name 'Socks' instead of Chloe).  Do `Init` and `Test Trial` responds to this (should be as expected from the above table).  Go ahead and try a few other name activations (change the appropriate value from 0 to 1).
 
 Now, let's see how this network can give us *general* information about cats versus dogs, even though at some level it just has information about a set of individuals (i.e., the knowledge in weights from identities to each feature).
 
