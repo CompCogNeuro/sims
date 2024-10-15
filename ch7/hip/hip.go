@@ -10,20 +10,13 @@ package main
 import (
 	"fmt"
 	"log"
-	"math"
 	"math/rand"
 	"reflect"
-	"strconv"
-	"strings"
 
-	"cogentcore.org/core/base/mpi"
-	"cogentcore.org/core/base/num"
 	"cogentcore.org/core/base/randx"
 	"cogentcore.org/core/core"
 	"cogentcore.org/core/icons"
 	"cogentcore.org/core/math32"
-	"cogentcore.org/core/tensor"
-	"cogentcore.org/core/tensor/stats/metric"
 	"cogentcore.org/core/tensor/table"
 	"cogentcore.org/core/tree"
 	"github.com/emer/emergent/v2/econfig"
@@ -431,6 +424,7 @@ func (ss *Sim) ConfigLoops() {
 			tstEpcLog := ss.Logs.Tables[etime.Scope(etime.Test, etime.Epoch)]
 			epc := ss.Stats.Int("Epoch")
 			abMem := float32(tstEpcLog.Table.Float("ABMem", epc))
+			_ = abMem
 			/*			if (trn.Table.Table.MetaData["name"] == "TrainAB") && (abMem >= ss.Config.StopMem || epc == ss.Config.Epochs/2) {
 						ss.Stats.SetInt("FirstPerfect", epc)
 						trn.Config(table.NewIndexView(ss.TrainAC))
@@ -444,6 +438,7 @@ func (ss *Sim) ConfigLoops() {
 		// This is calculated in TrialStats
 		tstEpcLog := ss.Logs.Tables[etime.Scope(etime.Test, etime.Epoch)]
 		acMem := float32(tstEpcLog.Table.Float("ACMem", ss.Stats.Int("Epoch")))
+		_ = acMem
 		// stop := acMem >= ss.Config.StopMem
 		// return stop
 		return false
@@ -465,9 +460,6 @@ func (ss *Sim) ConfigLoops() {
 
 	leabra.LooperUpdateNetView(man, &ss.ViewUpdate, ss.Net, ss.NetViewCounters)
 	leabra.LooperUpdatePlots(man, &ss.GUI)
-	if ss.Config.Debug {
-		mpi.Println(man.DocString())
-	}
 	ss.Loops = man
 }
 
@@ -483,7 +475,7 @@ func (ss *Sim) ApplyInputs() {
 	net.InitExt()
 	ev.Step()
 	// note: must save env state for logging / stats due to data parallel re-use of same env
-	ss.Stats.SetStringDi("TrialName", ev.TrialName.Cur)
+	ss.Stats.SetString("TrialName", ev.TrialName.Cur)
 	for _, lnm := range lays {
 		ly := ss.Net.LayerByName(lnm)
 		pats := ev.State(ly.Name)
@@ -491,7 +483,6 @@ func (ss *Sim) ApplyInputs() {
 			ly.ApplyExt(pats)
 		}
 	}
-	net.ApplyExts(ctx) // now required for GPU mode
 }
 
 // NewRun intializes a new run of the model, using the TrainEnv.Run counter
@@ -505,7 +496,7 @@ func (ss *Sim) NewRun() {
 	ctx.Mode = etime.Train
 	ss.Net.InitWeights()
 	ss.InitStats()
-	ss.StatCounters(0)
+	ss.StatCounters()
 	ss.Logs.ResetLog(etime.Train, etime.Epoch)
 	ss.Logs.ResetLog(etime.Test, etime.Epoch)
 }
@@ -521,16 +512,17 @@ func (ss *Sim) TestAll() {
 //   Pats
 
 func (ss *Sim) ConfigPats() {
-	hp := &ss.Config.Hip
-	ecY := hp.EC3NPool.Y
-	ecX := hp.EC3NPool.X
-	plY := hp.EC3NNrn.Y // good idea to get shorter vars when used frequently
-	plX := hp.EC3NNrn.X // makes much more readable
-	npats := ss.Config.NTrials
-	pctAct := ss.Config.Mod.ECPctAct
-	minDiff := ss.Config.Pat.MinDiffPct
+	// hp := &ss.Config.Hip
+	ecY := 5               // hp.EC3NPool.Y
+	ecX := 5               // hp.EC3NPool.X
+	plY := 6               // hp.EC3NNrn.Y // good idea to get shorter vars when used frequently
+	plX := 2               // hp.EC3NNrn.X // makes much more readable
+	npats := 10            // ss.Config.NTrials
+	pctAct := float32(.15) // ss.Config.Mod.ECPctAct
+	minDiff := float32(6)  // ss.Config.Pat.MinDiffPct
 	nOn := patgen.NFromPct(pctAct, plY*plX)
-	ctxtflip := patgen.NFromPct(ss.Config.Pat.CtxtFlipPct, nOn)
+	ctxtFlipPct := float32(0.2)
+	ctxtflip := patgen.NFromPct(ctxtFlipPct, nOn)
 	patgen.AddVocabEmpty(ss.PoolVocab, "empty", npats, plY, plX)
 	patgen.AddVocabPermutedBinary(ss.PoolVocab, "A", npats, plY, plX, pctAct, minDiff)
 	patgen.AddVocabPermutedBinary(ss.PoolVocab, "B", npats, plY, plX, pctAct, minDiff)
@@ -619,7 +611,7 @@ func (ss *Sim) InitStats() {
 
 // StatCounters saves current counters to Stats, so they are available for logging etc
 // Also saves a string rep of them for ViewUpdate.Text
-func (ss *Sim) StatCounters(di int) {
+func (ss *Sim) StatCounters() {
 	ctx := &ss.Context
 	mode := ctx.Mode
 	ss.Loops.Stacks[mode].CountersToStats(&ss.Stats)
@@ -627,152 +619,154 @@ func (ss *Sim) StatCounters(di int) {
 	trnEpc := ss.Loops.Stacks[etime.Train].Loops[etime.Epoch].Counter.Cur
 	ss.Stats.SetInt("Epoch", trnEpc)
 	trl := ss.Stats.Int("Trial")
-	ss.Stats.SetInt("Trial", trl+di)
-	ss.Stats.SetInt("Di", di)
+	ss.Stats.SetInt("Trial", trl)
 	ss.Stats.SetInt("Cycle", int(ctx.Cycle))
-	ss.Stats.SetString("TrialName", ss.Stats.StringDi("TrialName", di))
+	ss.Stats.SetString("TrialName", ss.Stats.String("TrialName"))
 }
 
 func (ss *Sim) NetViewCounters(tm etime.Times) {
 	if ss.ViewUpdate.View == nil {
 		return
 	}
-	di := ss.ViewUpdate.View.Di
 	if tm == etime.Trial {
-		ss.TrialStats(di) // get trial stats for current di
+		ss.TrialStats() // get trial stats for current di
 	}
-	ss.StatCounters(di)
+	ss.StatCounters()
 	ss.ViewUpdate.Text = ss.Stats.Print([]string{"Run", "Epoch", "Trial", "Di", "TrialName", "Cycle", "UnitErr", "TrlErr", "PhaseDiff"})
 }
 
 // TrialStats computes the trial-level statistics.
 // Aggregation is done directly from log data.
-func (ss *Sim) TrialStats(di int) {
+func (ss *Sim) TrialStats() {
 	out := ss.Net.LayerByName("EC5")
+	_ = out
 
-	ss.Stats.SetFloat("PhaseDiff", float64(out.Values[di].PhaseDiff.Cor))
-	ss.Stats.SetFloat("UnitErr", out.PctUnitErr(&ss.Context)[di])
-	ss.MemStats(ss.Loops.Mode, di)
+	// ss.Stats.SetFloat("PhaseDiff", float64(out.Values[di].PhaseDiff.Cor))
+	// ss.Stats.SetFloat("UnitErr", out.PctUnitErr(&ss.Context)[di])
+	ss.MemStats(ss.Loops.Mode)
 
-	if ss.Stats.Float("UnitErr") > ss.Config.Mod.MemThr {
-		ss.Stats.SetFloat("TrlErr", 1)
-	} else {
-		ss.Stats.SetFloat("TrlErr", 0)
-	}
+	// if ss.Stats.Float("UnitErr") > ss.Config.Mod.MemThr {
+	// 	ss.Stats.SetFloat("TrlErr", 1)
+	// } else {
+	// 	ss.Stats.SetFloat("TrlErr", 0)
+	// }
 }
 
 // MemStats computes ActM vs. Target on ECout with binary counts
 // must be called at end of 3rd quarter so that Target values are
 // for the entire full pattern as opposed to the plus-phase target
 // values clamped from ECin activations
-func (ss *Sim) MemStats(mode etime.Modes, di int) {
-	memthr := ss.Config.Mod.MemThr
-	ecout := ss.Net.LayerByName("EC5")
-	inp := ss.Net.LayerByName("Input") // note: must be input b/c ECin can be active
-	nn := ecout.Shape.Len()
-	actThr := float32(0.2)
-	trgOnWasOffAll := 0.0 // all units
-	trgOnWasOffCmp := 0.0 // only those that required completion, missing in ECin
-	trgOffWasOn := 0.0    // should have been off
-	cmpN := 0.0           // completion target
-	trgOnN := 0.0
-	trgOffN := 0.0
-	actMi, _ := ecout.UnitVarIndex("ActM")
-	targi, _ := ecout.UnitVarIndex("Target")
+func (ss *Sim) MemStats(mode etime.Modes) {
+	/*
+		memthr := 0.3 // ss.Config.Mod.MemThr
+		ecout := ss.Net.LayerByName("EC5")
+		inp := ss.Net.LayerByName("Input") // note: must be input b/c ECin can be active
+		_ = inp
+		nn := ecout.Shape.Len()
+		actThr := float32(0.2)
+		trgOnWasOffAll := 0.0 // all units
+		trgOnWasOffCmp := 0.0 // only those that required completion, missing in ECin
+		trgOffWasOn := 0.0    // should have been off
+		cmpN := 0.0           // completion target
+		trgOnN := 0.0
+		trgOffN := 0.0
+		actMi, _ := ecout.UnitVarIndex("ActM")
+		targi, _ := ecout.UnitVarIndex("Target")
 
-	ss.Stats.SetFloat("ABMem", math.NaN())
-	ss.Stats.SetFloat("ACMem", math.NaN())
-	ss.Stats.SetFloat("ABRecMem", math.NaN())
-	ss.Stats.SetFloat("ACRecMem", math.NaN())
+		ss.Stats.SetFloat("ABMem", math.NaN())
+		ss.Stats.SetFloat("ACMem", math.NaN())
+		ss.Stats.SetFloat("ABRecMem", math.NaN())
+		ss.Stats.SetFloat("ACRecMem", math.NaN())
 
-	trialnm := ss.Stats.StringDi("TrialName", di)
-	isAB := strings.Contains(trialnm, "AB")
+		trialnm := ss.Stats.String("TrialName")
+		isAB := strings.Contains(trialnm, "AB")
 
-	for ni := 0; ni < nn; ni++ {
-		actm := ecout.UnitValue1D(actMi, ni, di)
-		trg := ecout.UnitValue1D(targi, ni, di) // full pattern target
-		inact := inp.UnitValue1D(actMi, ni, di)
-		if trg < actThr { // trgOff
-			trgOffN += 1
-			if actm > actThr {
-				trgOffWasOn += 1
-			}
-		} else { // trgOn
-			trgOnN += 1
-			if inact < actThr { // missing in ECin -- completion target
-				cmpN += 1
-				if actm < actThr {
-					trgOnWasOffAll += 1
-					trgOnWasOffCmp += 1
-				}
-			} else {
-				if actm < actThr {
-					trgOnWasOffAll += 1
-				}
-			}
-		}
-	}
-	trgOnWasOffAll /= trgOnN
-	trgOffWasOn /= trgOffN
-	if mode == etime.Train { // no compare
-		if trgOnWasOffAll < memthr && trgOffWasOn < memthr {
-			ss.Stats.SetFloat("Mem", 1)
-		} else {
-			ss.Stats.SetFloat("Mem", 0)
-		}
-	} else { // test
-		if cmpN > 0 { // should be
-			trgOnWasOffCmp /= cmpN
-			if trgOnWasOffCmp < memthr && trgOffWasOn < memthr {
+		// for ni := 0; ni < nn; ni++ {
+		// 	actm := ecout.UnitValue1D(actMi, ni, di)
+		// 	trg := ecout.UnitValue1D(targi, ni, di) // full pattern target
+		// 	inact := inp.UnitValue1D(actMi, ni, di)
+		// 	if trg < actThr { // trgOff
+		// 		trgOffN += 1
+		// 		if actm > actThr {
+		// 			trgOffWasOn += 1
+		// 		}
+		// 	} else { // trgOn
+		// 		trgOnN += 1
+		// 		if inact < actThr { // missing in ECin -- completion target
+		// 			cmpN += 1
+		// 			if actm < actThr {
+		// 				trgOnWasOffAll += 1
+		// 				trgOnWasOffCmp += 1
+		// 			}
+		// 		} else {
+		// 			if actm < actThr {
+		// 				trgOnWasOffAll += 1
+		// 			}
+		// 		}
+		// 	}
+		// }
+		trgOnWasOffAll /= trgOnN
+		trgOffWasOn /= trgOffN
+		if mode == etime.Train { // no compare
+			if trgOnWasOffAll < memthr && trgOffWasOn < memthr {
 				ss.Stats.SetFloat("Mem", 1)
-				if isAB {
-					ss.Stats.SetFloat("ABMem", 1)
-				} else {
-					ss.Stats.SetFloat("ACMem", 1)
-				}
 			} else {
 				ss.Stats.SetFloat("Mem", 0)
-				if isAB {
-					ss.Stats.SetFloat("ABMem", 0)
+			}
+		} else { // test
+			if cmpN > 0 { // should be
+				trgOnWasOffCmp /= cmpN
+				if trgOnWasOffCmp < memthr && trgOffWasOn < memthr {
+					ss.Stats.SetFloat("Mem", 1)
+					if isAB {
+						ss.Stats.SetFloat("ABMem", 1)
+					} else {
+						ss.Stats.SetFloat("ACMem", 1)
+					}
 				} else {
-					ss.Stats.SetFloat("ACMem", 0)
+					ss.Stats.SetFloat("Mem", 0)
+					if isAB {
+						ss.Stats.SetFloat("ABMem", 0)
+					} else {
+						ss.Stats.SetFloat("ACMem", 0)
+					}
 				}
 			}
 		}
-	}
-	ss.Stats.SetFloat("TrgOnWasOffAll", trgOnWasOffAll)
-	ss.Stats.SetFloat("TrgOnWasOffCmp", trgOnWasOffCmp)
-	ss.Stats.SetFloat("TrgOffWasOn", trgOffWasOn)
+		ss.Stats.SetFloat("TrgOnWasOffAll", trgOnWasOffAll)
+		ss.Stats.SetFloat("TrgOnWasOffCmp", trgOnWasOffCmp)
+		ss.Stats.SetFloat("TrgOffWasOn", trgOffWasOn)
 
-	// take completion pool to do CosDiff
-	var recallPat tensor.Float32
-	ecout.UnitValuesTensor(&recallPat, "ActM", di)
-	mostSimilar := -1
-	highestCosDiff := float32(0)
-	var cosDiff float32
-	var patToComplete *tensor.Float32
-	var correctIndex int
-	if isAB {
-		patToComplete, _ = ss.PoolVocab.ByName("B")
-		correctIndex, _ = strconv.Atoi(strings.Split(trialnm, "AB")[1])
-	} else {
-		patToComplete, _ = ss.PoolVocab.ByName("C")
-		correctIndex, _ = strconv.Atoi(strings.Split(trialnm, "AC")[0])
-	}
-	for i := 0; i < patToComplete.DimSize(0); i++ { // for each item in the list
-		cosDiff = metric.Correlation32(recallPat.SubSpace([]int{0, 1}).(*tensor.Float32).Values, patToComplete.SubSpace([]int{i}).(*tensor.Float32).Values)
-		if cosDiff > highestCosDiff {
-			highestCosDiff = cosDiff
-			mostSimilar = i
+		// take completion pool to do CosDiff
+		var recallPat tensor.Float32
+		ecout.UnitValuesTensor(&recallPat, "ActM", di)
+		mostSimilar := -1
+		highestCosDiff := float32(0)
+		var cosDiff float32
+		var patToComplete *tensor.Float32
+		var correctIndex int
+		if isAB {
+			patToComplete, _ = ss.PoolVocab.ByName("B")
+			correctIndex, _ = strconv.Atoi(strings.Split(trialnm, "AB")[1])
+		} else {
+			patToComplete, _ = ss.PoolVocab.ByName("C")
+			correctIndex, _ = strconv.Atoi(strings.Split(trialnm, "AC")[0])
 		}
-	}
+		for i := 0; i < patToComplete.DimSize(0); i++ { // for each item in the list
+			cosDiff = metric.Correlation32(recallPat.SubSpace([]int{0, 1}).(*tensor.Float32).Values, patToComplete.SubSpace([]int{i}).(*tensor.Float32).Values)
+			if cosDiff > highestCosDiff {
+				highestCosDiff = cosDiff
+				mostSimilar = i
+			}
+		}
 
-	ss.Stats.SetInt("RecallItem", mostSimilar)
-	if isAB {
-		ss.Stats.SetFloat("ABRecMem", num.FromBool[float64](mostSimilar == correctIndex))
-	} else {
-		ss.Stats.SetFloat("ACRecMem", num.FromBool[float64](mostSimilar == correctIndex))
-	}
+		ss.Stats.SetInt("RecallItem", mostSimilar)
+		if isAB {
+			ss.Stats.SetFloat("ABRecMem", num.FromBool[float64](mostSimilar == correctIndex))
+		} else {
+			ss.Stats.SetFloat("ACRecMem", num.FromBool[float64](mostSimilar == correctIndex))
+		}
+	*/
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -831,7 +825,6 @@ func (ss *Sim) ConfigLogs() {
 
 	// leabra.LogAddPCAItems(&ss.Logs, ss.Net, etime.Train, etime.Run, etime.Epoch, etime.Trial)
 
-	leabra.LogAddLayerGeActAvgItems(&ss.Logs, ss.Net, etime.Test, etime.Cycle)
 	ss.Logs.AddLayerTensorItems(ss.Net, "ActM", etime.Test, etime.Trial, "TargetLayer")
 	ss.Logs.AddLayerTensorItems(ss.Net, "Act", etime.Test, etime.Trial, "TargetLayer")
 
@@ -875,11 +868,9 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 	case time == etime.Cycle:
 		return
 	case time == etime.Trial:
-		for di := 0; di < int(ctx.NData); di++ {
-			ss.TrialStats(di)
-			ss.StatCounters(di)
-			ss.Logs.LogRowDi(mode, time, row, di)
-		}
+		ss.TrialStats()
+		ss.StatCounters()
+		ss.Logs.LogRow(mode, time, row)
 		return // don't do reg below
 	}
 
@@ -965,94 +956,4 @@ func (ss *Sim) RunGUI() {
 	ss.Init()
 	ss.ConfigGUI()
 	ss.GUI.Body.RunMainWindow()
-}
-
-func (ss *Sim) RunNoGUI() {
-	if ss.Config.Params.Note != "" {
-		mpi.Printf("Note: %s\n", ss.Config.Params.Note)
-	}
-	if ss.Config.Log.SaveWeights {
-		mpi.Printf("Saving final weights per run\n")
-	}
-	runName := ss.Params.RunName(ss.Config.Run)
-	ss.Stats.SetString("RunName", runName) // used for naming logs, stats, etc
-	netName := ss.Net.Name
-
-	elog.SetLogFile(&ss.Logs, ss.Config.Log.Trial, etime.Train, etime.Trial, "trl", netName, runName)
-	elog.SetLogFile(&ss.Logs, ss.Config.Log.Epoch, etime.Train, etime.Epoch, "epc", netName, runName)
-	elog.SetLogFile(&ss.Logs, ss.Config.Log.Run, etime.Train, etime.Run, "run", netName, runName)
-	elog.SetLogFile(&ss.Logs, ss.Config.Log.TestEpoch, etime.Test, etime.Epoch, "tst_epc", netName, runName)
-	elog.SetLogFile(&ss.Logs, ss.Config.Log.TestTrial, etime.Test, etime.Trial, "tst_trl", netName, runName)
-
-	netdata := ss.Config.Log.NetData
-	if netdata {
-		mpi.Printf("Saving NetView data from testing\n")
-		ss.GUI.InitNetData(ss.Net, 200)
-	}
-
-	// for standalone no gui run
-	mpi.Printf("Set NThreads to: %d\n", ss.Net.NThreads)
-
-	ss.Init()
-
-	mpi.Printf("Running %d Runs starting at %d\n", ss.Config.Runs, ss.Config.Run)
-	ss.Loops.GetLoop(etime.Train, etime.Run).Counter.SetCurMaxPlusN(ss.Config.Run, ss.Config.Runs)
-
-	ss.Loops.Run(etime.Train)
-
-	// for factor run
-	// ss.TwoFactorRun()
-
-	ss.Logs.CloseLogFiles()
-
-	if netdata {
-		ss.GUI.SaveNetData(ss.Stats.String("RunName"))
-	}
-}
-
-var ConfigFiles = []string{"smallhip", "medhip"}
-
-var ListSizes = []int{20}
-
-// TwoFactorRun runs outer-loop crossed with inner-loop params
-func (ss *Sim) TwoFactorRun() {
-	for _, config := range ConfigFiles {
-		for _, listSize := range ListSizes {
-
-			ss.Net.GPU.Destroy()
-			ss.Net = leabra.NewNetwork("")
-			ss.Params.Network = ss.Net
-
-			// setting name for this factor combo
-			ss.Params.Tag = fmt.Sprintf("%s_%d", config, listSize)
-			ss.Stats.SetString("RunName", ss.Params.RunName(ss.Config.Run))
-
-			ss.Config.NTrials = listSize
-			econfig.OpenWithIncludes(&ss.Config, config+".toml")
-
-			// reconfig for this factor combo
-			ss.InitRandSeed(0)
-			ss.ConfigPats()
-			ss.ConfigEnv()
-			ss.ConfigNet(ss.Net)
-			ss.ConfigLoops()
-
-			if ss.Config.GPU {
-				ss.Net.ConfigGPUnoGUI(&ss.Context) // must happen after gui or no gui
-			}
-			mpi.Printf("Set NThreads to: %d\n", ss.Net.NThreads)
-
-			ss.Init()
-
-			mpi.Printf("Running %d Runs starting at %d\n", ss.Config.Runs, ss.Config.Run)
-			ss.Loops.GetLoop(etime.Train, etime.Run).Counter.SetCurMaxPlusN(ss.Config.Run, Fss.Config.Runs)
-
-			// print our info for checking purposes
-			fmt.Println("CA3 shape: ", ss.Net.LayerByName("CA3").Shape.Sizes)
-			fmt.Println("EC2 shape: ", ss.Net.LayerByName("EC2").Shape.Sizes)
-			fmt.Println("# of pairs: ", ss.TrainAB.Rows)
-
-			ss.Loops.Run(etime.Train)
-		}
-	}
 }
