@@ -348,7 +348,7 @@ func (ss *Sim) ConfigLoops() {
 
 	// Add Testing
 	trainEpoch := man.GetLoop(etime.Train, etime.Epoch)
-	trainEpoch.OnStart.Add("TestAtInterval", func() {
+	trainEpoch.OnEnd.Add("TestAtInterval", func() {
 		if (ss.Config.TestInterval > 0) && ((trainEpoch.Counter.Cur+1)%ss.Config.TestInterval == 0) {
 			// Note the +1 so that it doesn't occur at the 0th timestep.
 			ss.TestAll()
@@ -385,6 +385,8 @@ func (ss *Sim) ApplyInputs() {
 	net := ss.Net
 	ev := ss.Envs.ByMode(ctx.Mode).(*env.FixedTable)
 	ev.Step()
+
+	ss.ApplyParams() // do it all the time so decay takes effect
 
 	lays := net.LayersByType(leabra.InputLayer, leabra.TargetLayer)
 	net.InitExt()
@@ -446,6 +448,7 @@ func (ss *Sim) TestAll() {
 	ss.Envs.ByMode(etime.Test).Init(0)
 	ss.Loops.ResetAndRun(etime.Test)
 	ss.Loops.Mode = etime.Train // Important to reset Mode back to Train because this is called from within the Train Run.
+	ss.GUI.GoUpdatePlot(etime.Test, etime.Epoch)
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -594,6 +597,11 @@ func (ss *Sim) ConfigLogs() {
 	ss.Logs.SetMeta(etime.Test, etime.Trial, "Closest:On", "+")
 	ss.Logs.SetMeta(etime.Test, etime.Trial, "Correl:On", "-")
 	ss.Logs.SetMeta(etime.Test, etime.Trial, "IsA:On", "+")
+
+	ss.Logs.SetMeta(etime.Test, etime.Epoch, "PctErr:On", "-")
+	ss.Logs.SetMeta(etime.Test, etime.Epoch, "Correl:On", "-")
+	ss.Logs.SetMeta(etime.Test, etime.Epoch, "IsA:On", "+")
+	ss.Logs.SetMeta(etime.Test, etime.Epoch, "Points", "true")
 }
 
 // Log is the main logging function, handles special things for different scopes
@@ -678,7 +686,7 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 		},
 	})
 
-	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Set inputs",
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Set Env",
 		Icon:    icons.Settings,
 		Tooltip: "Set the input patterns to use for training and testing",
 		Active:  egui.ActiveAlways,
