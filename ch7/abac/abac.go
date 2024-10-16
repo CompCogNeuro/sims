@@ -756,7 +756,7 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 		Tooltip: "Opens your browser on the README file that contains instructions for how to run this model.",
 		Active:  egui.ActiveAlways,
 		Func: func() {
-			core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/main/ch4/family_trees/README.md")
+			core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/main/ch/abac/README.md")
 		},
 	})
 }
