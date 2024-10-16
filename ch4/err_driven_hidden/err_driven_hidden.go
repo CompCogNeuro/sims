@@ -258,6 +258,11 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 	net.ConnectLayers(inp, hid, full, leabra.ForwardPath)
 	net.BidirConnectLayers(hid, out, full)
 
+	hid.PlaceAbove(inp)
+	hid.Pos.YOffset = 1
+	out.PlaceAbove(hid)
+	out.Pos.YOffset = 1
+
 	net.Build()
 	net.Defaults()
 	ss.ApplyParams()
@@ -570,8 +575,8 @@ func (ss *Sim) ConfigGUI() {
 	ss.GUI.ViewUpdate = &ss.ViewUpdate
 	nv.Current()
 
-	nv.SceneXYZ().Camera.Pose.Pos.Set(0.1, 1.5, 4)
-	nv.SceneXYZ().Camera.LookAt(math32.Vec3(0.1, 0.1, 0), math32.Vec3(0, 1, 0))
+	nv.SceneXYZ().Camera.Pose.Pos.Set(0.1, 3.0, 3.0)
+	nv.SceneXYZ().Camera.LookAt(math32.Vec3(0.1, 0.2, 0), math32.Vec3(0, 1, 0))
 
 	ss.GUI.AddPlots(title, &ss.Logs)
 
