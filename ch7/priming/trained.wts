@@ -7,7 +7,7 @@
 				"ActMAvg": "0.22800073",
 				"ActPAvg": "0.22800073"
 			},
-			"Prjns": null
+			"Paths": null
 		},
 		{
 			"Layer": "Hidden",
@@ -15,7 +15,7 @@
 				"ActMAvg": "0.18959197",
 				"ActPAvg": "0.18968275"
 			},
-			"Prjns": [
+			"Paths": [
 				{
 					"From": "Input",
 					"MetaData": {
@@ -472,7 +472,7 @@
 				"ActMAvg": "0.2414347",
 				"ActPAvg": "0.22800073"
 			},
-			"Prjns": [
+			"Paths": [
 				{
 					"From": "Hidden",
 					"MetaData": {

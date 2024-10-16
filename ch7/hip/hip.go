@@ -282,8 +282,8 @@ func (ss *Sim) New() {
 
 // Config configures all the elements using the standard functions
 func (ss *Sim) ConfigAll() {
-	ss.OpenPats()
-	// ss.ConfigPats()
+	ss.OpenPatterns()
+	// ss.ConfigPatterns()
 	ss.ConfigEnv()
 	ss.ConfigNet(ss.Net)
 	ss.ConfigLogs()
@@ -554,7 +554,7 @@ func (ss *Sim) OpenPatAsset(dt *table.Table, fnm, name, desc string) error {
 	return err
 }
 
-func (ss *Sim) OpenPats() {
+func (ss *Sim) OpenPatterns() {
 	ss.OpenPatAsset(ss.TrainAB, "train_ab.tsv", "TrainAB", "AB Training Patterns")
 	ss.OpenPatAsset(ss.TrainAC, "train_ac.tsv", "TrainAC", "AC Training Patterns")
 	ss.OpenPatAsset(ss.TestAB, "test_ab.tsv", "TestAB", "AB Testing Patterns")

@@ -2,9 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// abac explores the classic paired associates learning task in a
-// cortical-like network, which exhibits catastrophic levels of
-// interference.
+// priming illustrates _weight-based priming_, that is, how small
+// weight changes caused by the standard slow cortical learning rate
+// can produce significant behavioral priming, causing the network
+// to favor one output pattern over another.
 package main
 
 //go:generate core generate -add-types
@@ -12,18 +13,13 @@ package main
 import (
 	"embed"
 	"fmt"
-	"reflect"
+	"strings"
 
 	"cogentcore.org/core/base/errors"
 	"cogentcore.org/core/base/randx"
 	"cogentcore.org/core/core"
 	"cogentcore.org/core/icons"
-	"cogentcore.org/core/math32"
 	"cogentcore.org/core/plot/plotcore"
-	"cogentcore.org/core/tensor/stats/clust"
-	"cogentcore.org/core/tensor/stats/metric"
-	"cogentcore.org/core/tensor/stats/split"
-	"cogentcore.org/core/tensor/stats/stats"
 	"cogentcore.org/core/tensor/table"
 	"cogentcore.org/core/tree"
 	"github.com/emer/emergent/v2/econfig"
@@ -38,10 +34,9 @@ import (
 	"github.com/emer/emergent/v2/params"
 	"github.com/emer/emergent/v2/paths"
 	"github.com/emer/leabra/v2/leabra"
-	"gonum.org/v1/gonum/mat"
 )
 
-//go:embed ab_pats.tsv ac_pats.tsv
+//go:embed twout_all.tsv twout_a.tsv twout_b.tsv trained.wts
 var content embed.FS
 
 func main() {
@@ -51,29 +46,55 @@ func main() {
 	sim.RunGUI()
 }
 
+// EnvTypes are the types of train / test environments.
+type EnvTypes int32 //enums:enum
+
+const (
+	// TrainB sets train env to TrainB pats
+	TrainB EnvTypes = iota
+
+	// TrainA sets train env to TrainA pats
+	TrainA
+
+	// TrainAll sets train to TrainAll pats
+	TrainAll
+
+	// TestA sets testing to TrainA pats, for wt priming
+	TestA
+
+	// TestB sets testing to TrainB pats
+	TestB
+
+	// TestAll sets testing to TrainAll pats, for act priming
+	TestAll
+)
+
 // ParamSets is the default set of parameters.
 // Base is always applied, and others can be optionally
 // selected to apply on top of that.
 var ParamSets = params.Sets{
 	"Base": {
-		{Sel: "Path", Desc: "fixed LLrn",
+		{Sel: "Path", Desc: "no extra learning factors",
 			Params: params.Params{
-				"Path.Learn.Norm.On":      "false",
-				"Path.Learn.Momentum.On":  "false",
-				"Path.Learn.WtBal.On":     "true",
-				"Path.WtInit.Var":         "0.25",
-				"Path.Learn.XCal.SetLLrn": "true",
-				"Path.Learn.XCal.LLrn":    "0.0003",
-				"Path.Learn.Lrate":        "0.04",
+				"Path.Learn.Norm.On":     "false",
+				"Path.Learn.Momentum.On": "false",
+				"Path.Learn.WtBal.On":    "false",
+				"Path.Learn.Lrate":       "0.04",
 			}},
-		{Sel: "Layer", Desc: "Default learning, inhib params",
+		{Sel: "Layer", Desc: "less inhib for smaller in / out layers",
 			Params: params.Params{
-				"Layer.Learn.AvgL.Gain": "2.5",
-				"Layer.Inhib.Layer.Gi":  "1.6", // output layer does better with this!
+				"Layer.Inhib.Layer.Gi":    "1.5",
+				"Layer.Inhib.ActAvg.Init": "0.25",
+				"Layer.Act.Gbar.L":        "0.1",
+				"Layer.Act.Init.Decay":    "1",
+			}},
+		{Sel: "#Hidden", Desc: "slightly less inhib",
+			Params: params.Params{
+				"Layer.Inhib.Layer.Gi": "1.6",
 			}},
 		{Sel: ".BackPath", Desc: "top-down back-projections MUST have lower relative weight scale, otherwise network hallucinates",
 			Params: params.Params{
-				"Path.WtScale.Rel": "0.3", // note: this was missing in C++ version! makes this work much better
+				"Path.WtScale.Rel": "0.1",
 			}},
 	},
 }
@@ -81,13 +102,10 @@ var ParamSets = params.Sets{
 // Config has config parameters related to running the sim
 type Config struct {
 	// total number of runs to do when running Train
-	NRuns int `default:"10" min:"1"`
+	NRuns int `default:"1" min:"1"`
 
 	// total number of epochs per run
 	NEpochs int `default:"100"`
-
-	// stop run after this number of perfect, zero-error epochs.
-	NZero int `default:"1"`
 
 	// how often to run through all the test patterns, in terms of training epochs.
 	// can use 0 or -1 for no testing.
@@ -101,21 +119,15 @@ type Config struct {
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
 
-	// HiddenInhibGi is the hidden layer inhibition; increase to make sparser.
-	HiddenInhibGi float32 `def:"1.8"`
-
-	// WtInitVar is the random initial weight variance; increase to make more random.
-	WtInitVar float32 `def:"0.25"`
-
-	// FmContext is the relative WtScale.Rel from Context layer.
-	FmContext float32 `def:"1"`
-
-	// XCalLLrn is the amount of Hebbian BCM learning based on AvgL long-term average
-	// activity. Increase to increase amount of hebbian.
-	XCalLLrn float32 `min:"0" step:"0.0001" def:"0.0003"`
-
-	// Lrate is the learning rate
+	// Lrate is the learning rate; .04 is default 'cortical' learning rate.
+	// Try lower levels to see how low you can go and still get priming.
 	Lrate float32 `def:"0.04"`
+
+	// Decay is the proportion of activation decay between trials.
+	Decay float32 `def:"1"`
+
+	// EnvType is the environment type; Use the Env button (SetEnv) to set.
+	EnvType EnvTypes `read-only:"+"`
 
 	// Config contains misc configuration parameters for running the sim
 	Config Config `new-window:"+" display:"no-inline"`
@@ -126,14 +138,14 @@ type Sim struct {
 	// network parameter management
 	Params emer.NetParams `display:"add-fields"`
 
-	// AB training patterns
-	ABPatterns *table.Table `new-window:"+" display:"no-inline"`
+	// All training patterns
+	TrainAll *table.Table `new-window:"+" display:"no-inline"`
 
-	// AC training patterns
-	ACPatterns *table.Table `new-window:"+" display:"no-inline"`
+	// A training patterns
+	TrainA *table.Table `new-window:"+" display:"no-inline"`
 
-	// ABAC testing patterns
-	ABACPatterns *table.Table `new-window:"+" display:"no-inline"`
+	// B training patterns
+	TrainB *table.Table `new-window:"+" display:"no-inline"`
 
 	// contains looper control loops for running sim
 	Loops *looper.Manager `new-window:"+" display:"no-inline"`
@@ -164,23 +176,22 @@ type Sim struct {
 func (ss *Sim) New() {
 	ss.Defaults()
 	econfig.Config(&ss.Config, "config.toml")
-	ss.Net = leabra.NewNetwork("ABAC")
+	ss.Net = leabra.NewNetwork("Priming")
 	ss.Params.Config(ParamSets, "", "", ss.Net)
 	ss.Stats.Init()
 	ss.Stats.SetInt("Expt", 0)
-	ss.ABPatterns = &table.Table{}
-	ss.ACPatterns = &table.Table{}
+	ss.TrainAll = &table.Table{}
+	ss.TrainA = &table.Table{}
+	ss.TrainB = &table.Table{}
 	ss.RandSeeds.Init(100) // max 100 runs
 	ss.InitRandSeed(0)
 	ss.Context.Defaults()
 }
 
 func (ss *Sim) Defaults() {
-	ss.HiddenInhibGi = 1.8
-	ss.WtInitVar = 0.25
-	ss.FmContext = 1
-	ss.XCalLLrn = 0.0003
 	ss.Lrate = 0.04
+	ss.EnvType = TrainAll
+	ss.Decay = 1
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -205,20 +216,13 @@ func (ss *Sim) OpenPatAsset(dt *table.Table, fnm, name, desc string) error {
 			dt.Columns[i].SetMetaData("grid-fill", "0.9")
 		}
 	}
-	col := table.InsertColumn[string](dt, "Group", 1)
-	for i := range col.DimSize(0) {
-		col.SetString1D(i, name)
-	}
 	return err
 }
 
 func (ss *Sim) OpenPatterns() {
-	ss.OpenPatAsset(ss.ABPatterns, "ab_pats.tsv", "AB", "AB Training Patterns")
-	ss.OpenPatAsset(ss.ACPatterns, "ac_pats.tsv", "AC", "AC Training Patterns")
-
-	ss.ABACPatterns = ss.ABPatterns.Clone()
-	ss.ABACPatterns.SetMetaData("name", "ABAC")
-	ss.ABACPatterns.AppendRows(ss.ACPatterns)
+	ss.OpenPatAsset(ss.TrainAll, "twout_all.tsv", "TrainAll", "All Training Patterns")
+	ss.OpenPatAsset(ss.TrainA, "twout_a.tsv", "TrainA", "A Training Patterns")
+	ss.OpenPatAsset(ss.TrainB, "twout_b.tsv", "TrainB", "B Training Patterns")
 }
 
 func (ss *Sim) ConfigEnv() {
@@ -234,10 +238,10 @@ func (ss *Sim) ConfigEnv() {
 
 	// note: names must be standard here!
 	trn.Name = etime.Train.String()
-	trn.Config(table.NewIndexView(ss.ABPatterns))
+	trn.Config(table.NewIndexView(ss.TrainAll))
 
 	tst.Name = etime.Test.String()
-	tst.Config(table.NewIndexView(ss.ABACPatterns))
+	tst.Config(table.NewIndexView(ss.TrainA))
 	tst.Sequential = true
 
 	trn.Init(0)
@@ -251,18 +255,13 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 	net.SetRandSeed(ss.RandSeeds[0]) // init new separate random seed, using run = 0
 
 	inp := net.AddLayer2D("Input", 5, 5, leabra.InputLayer)
-	ctx := net.AddLayer2D("Context", 5, 5, leabra.InputLayer)
-	hid := net.AddLayer2D("Hidden", 10, 15, leabra.SuperLayer)
+	hid := net.AddLayer2D("Hidden", 6, 6, leabra.SuperLayer)
 	out := net.AddLayer2D("Output", 5, 5, leabra.TargetLayer)
 
 	full := paths.NewFull()
 
 	net.ConnectLayers(inp, hid, full, leabra.ForwardPath)
-	net.ConnectLayers(ctx, hid, full, leabra.ForwardPath)
 	net.BidirConnectLayers(hid, out, full)
-
-	ctx.PlaceRightOf(inp, 2)
-	hid.PlaceAbove(inp)
 
 	net.Build()
 	net.Defaults()
@@ -278,17 +277,12 @@ func (ss *Sim) ApplyParams() {
 	}
 
 	spo := errors.Log1(errors.Log1(ss.Params.Params.SheetByName("Base")).SelByName("Path"))
-	spo.Params.SetByName("Path.WtInit.Var", fmt.Sprintf("%g", ss.WtInitVar))
-	spo.Params.SetByName("Path.Learn.XCal.LLrn", fmt.Sprintf("%g", ss.XCalLLrn))
 	spo.Params.SetByName("Path.Learn.Lrate", fmt.Sprintf("%g", ss.Lrate))
 
+	spo = errors.Log1(errors.Log1(ss.Params.Params.SheetByName("Base")).SelByName("Layer"))
+	spo.Params.SetByName("Layer.Act.Init.Decay", fmt.Sprintf("%g", ss.Decay))
+
 	ss.Params.SetAll()
-
-	hid := ss.Net.LayerByName("Hidden")
-	hid.Inhib.Layer.Gi = ss.HiddenInhibGi
-
-	fmc := errors.Log1(hid.RecvPathBySendName("Context")).(*leabra.Path)
-	fmc.WtScale.Rel = ss.FmContext
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -318,7 +312,8 @@ func (ss *Sim) InitRandSeed(run int) {
 func (ss *Sim) ConfigLoops() {
 	man := looper.NewManager()
 
-	trls := ss.ABPatterns.Rows
+	trls := ss.TrainAll.Rows
+	ttrls := ss.TrainA.Rows
 
 	man.AddStack(etime.Train).
 		AddTime(etime.Run, ss.Config.NRuns).
@@ -328,7 +323,7 @@ func (ss *Sim) ConfigLoops() {
 
 	man.AddStack(etime.Test).
 		AddTime(etime.Epoch, 1).
-		AddTime(etime.Trial, ss.ABACPatterns.Rows).
+		AddTime(etime.Trial, ttrls).
 		AddTime(etime.Cycle, 100)
 
 	leabra.LooperStdPhases(man, &ss.Context, ss.Net, 75, 99)                // plus phase timing
@@ -350,30 +345,6 @@ func (ss *Sim) ConfigLoops() {
 			ss.Stats.SetInt("Expt", expt+1)
 		}
 	})
-
-	// Train stop early condition
-	man.GetLoop(etime.Train, etime.Epoch).IsDone["NZeroStop"] = func() bool {
-		// This is calculated in TrialStats
-		stopNz := ss.Config.NZero
-		if stopNz <= 0 {
-			stopNz = 2
-		}
-		curNZero := ss.Stats.Int("NZero")
-		stop := curNZero >= stopNz
-		if !stop {
-			return false
-		}
-		trn := ss.Envs.ByMode(etime.Train).(*env.FixedTable)
-		if trn.Table.Table.MetaData["name"] == "AC" {
-			return stop
-		}
-		epc := ss.Stats.Int("Epoch")
-		if stop || epc >= 50 {
-			ss.Stats.SetInt("FirstPerfect", epc)
-			trn.Config(table.NewIndexView(ss.ACPatterns))
-		}
-		return false
-	}
 
 	// Add Testing
 	trainEpoch := man.GetLoop(etime.Train, etime.Epoch)
@@ -418,7 +389,6 @@ func (ss *Sim) ApplyInputs() {
 	lays := net.LayersByType(leabra.InputLayer, leabra.TargetLayer)
 	net.InitExt()
 	ss.Stats.SetString("TrialName", ev.TrialName.Cur)
-	ss.Stats.SetString("GroupName", ev.GroupName.Cur)
 	for _, lnm := range lays {
 		ly := ss.Net.LayerByName(lnm)
 		pats := ev.State(ly.Name)
@@ -433,8 +403,6 @@ func (ss *Sim) ApplyInputs() {
 func (ss *Sim) NewRun() {
 	ctx := &ss.Context
 	ss.InitRandSeed(ss.Loops.GetLoop(etime.Train, etime.Run).Counter.Cur)
-	trn := ss.Envs.ByMode(etime.Train).(*env.FixedTable)
-	trn.Config(table.NewIndexView(ss.ABPatterns))
 	ss.Envs.ByMode(etime.Train).Init(0)
 	ss.Envs.ByMode(etime.Test).Init(0)
 	ctx.Reset()
@@ -444,6 +412,33 @@ func (ss *Sim) NewRun() {
 	ss.StatCounters()
 	ss.Logs.ResetLog(etime.Train, etime.Epoch)
 	ss.Logs.ResetLog(etime.Test, etime.Epoch)
+}
+
+// SetEnv select which set of patterns to train on: AB or AC
+func (ss *Sim) SetEnv(envType EnvTypes) { //types:add
+	trn := ss.Envs.ByMode(etime.Train).(*env.FixedTable)
+	tst := ss.Envs.ByMode(etime.Test).(*env.FixedTable)
+	ss.EnvType = envType
+	switch envType {
+	case TrainA:
+		trn.Table = table.NewIndexView(ss.TrainA)
+		trn.Init(0)
+	case TrainB:
+		trn.Table = table.NewIndexView(ss.TrainB)
+		trn.Init(0)
+	case TrainAll:
+		trn.Table = table.NewIndexView(ss.TrainAll)
+		trn.Init(0)
+	case TestA:
+		tst.Table = table.NewIndexView(ss.TrainA)
+		tst.Init(0)
+	case TestB:
+		tst.Table = table.NewIndexView(ss.TrainB)
+		tst.Init(0)
+	case TestAll:
+		tst.Table = table.NewIndexView(ss.TrainAll)
+		tst.Init(0)
+	}
 }
 
 // TestAll runs through the full set of testing items
@@ -460,10 +455,12 @@ func (ss *Sim) TestAll() {
 // called at start of new run
 func (ss *Sim) InitStats() {
 	ss.Stats.SetFloat("SSE", 0.0)
-	ss.Stats.SetFloat("ABErr", 0.0)
-	ss.Stats.SetFloat("ACErr", 0.0)
 	ss.Stats.SetString("TrialName", "")
-	ss.Stats.SetString("GroupName", "")
+	ss.Stats.SetString("Closest", "")
+	ss.Stats.SetFloat("Correl", 0.0)
+	ss.Stats.SetFloat("TrlErr", 0.0)
+	ss.Stats.SetFloat("IsA", 0.0)
+	ss.Stats.SetFloat("IsB", 0.0)
 	ss.Logs.InitErrStats() // inits TrlErr, FirstZero, LastZero, NZero
 }
 
@@ -489,25 +486,35 @@ func (ss *Sim) NetViewCounters(tm etime.Times) {
 		ss.TrialStats() // get trial stats for current di
 	}
 	ss.StatCounters()
-	ss.ViewUpdate.Text = ss.Stats.Print([]string{"Run", "Epoch", "Trial", "GroupName", "TrialName", "Cycle", "SSE", "TrlErr"})
+	ss.ViewUpdate.Text = ss.Stats.Print([]string{"Run", "Epoch", "Trial", "TrialName", "Cycle", "SSE", "TrlErr", "IsA", "IsB"})
 }
 
 // TrialStats computes the trial-level statistics.
 // Aggregation is done directly from log data.
 func (ss *Sim) TrialStats() {
-	params := fmt.Sprintf("hid_gi: %g, wt_var: %g, fm_ctxt: %g, lrate: %g", ss.HiddenInhibGi, ss.WtInitVar, ss.FmContext, ss.Lrate)
-	ss.Stats.SetString("RunName", params)
-
 	out := ss.Net.LayerByName("Output")
-
 	sse, avgsse := out.MSE(0.5) // 0.5 = per-unit tolerance -- right side of .5
 	ss.Stats.SetFloat("SSE", sse)
 	ss.Stats.SetFloat("AvgSSE", avgsse)
-	if sse > 0 {
-		ss.Stats.SetFloat("TrlErr", 1)
-	} else {
+
+	_, cor, cnm := ss.Stats.ClosestPat(ss.Net, "Output", "ActM", 0, ss.TrainAll, "Output", "Name")
+	ss.Stats.SetString("Closest", cnm)
+	ss.Stats.SetFloat32("Correl", cor)
+
+	tnm := ss.Stats.String("TrialName")
+	cnmsp := strings.Split(cnm, "_")
+	tnmsp := strings.Split(tnm, "_")
+	if cnmsp[0] == tnmsp[0] {
 		ss.Stats.SetFloat("TrlErr", 0)
+	} else {
+		ss.Stats.SetFloat("TrlErr", 1)
 	}
+	if cnmsp[1] == "a" {
+		ss.Stats.SetFloat("IsA", 1)
+	} else {
+		ss.Stats.SetFloat("IsA", 0)
+	}
+	ss.Stats.SetFloat("IsB", 1-ss.Stats.Float("IsA"))
 }
 
 func (ss *Sim) TestStats() {
@@ -515,53 +522,38 @@ func (ss *Sim) TestStats() {
 	if trl.Rows == 0 {
 		return
 	}
-	trix := table.NewIndexView(trl)
-	spl := split.GroupBy(trix, "GroupName")
-	split.AggColumn(spl, "Err", stats.Mean)
-	tsts := spl.AggsToTable(table.ColumnNameOnly)
-	ss.Logs.MiscTables["TestEpoch"] = tsts
-	ss.Stats.SetFloat("ABErr", tsts.Columns[1].Float1D(0))
-	ss.Stats.SetFloat("ACErr", tsts.Columns[1].Float1D(1))
+	// trix := table.NewIndexView(trl)
+	// spl := split.GroupBy(trix, "GroupName")
+	// split.AggColumn(spl, "Err", stats.Mean)
+	// tsts := spl.AggsToTable(table.ColumnNameOnly)
+	// ss.Logs.MiscTables["TestEpoch"] = tsts
+	// ss.Stats.SetFloat("ABErr", tsts.Columns[1].Float1D(0))
+	// ss.Stats.SetFloat("ACErr", tsts.Columns[1].Float1D(1))
 }
 
 func (ss *Sim) RunStats() {
-	dt := ss.Logs.Table(etime.Train, etime.Run)
-	runix := table.NewIndexView(dt)
-	spl := split.GroupBy(runix, "Expt")
-	split.DescColumn(spl, "ABErr")
-	st := spl.AggsToTableCopy(table.AddAggName)
-	ss.Logs.MiscTables["RunStats"] = st
-	plt := ss.GUI.Plots[etime.ScopeKey("RunStats")]
-
-	st.SetMetaData("XAxis", "RunName")
-
-	st.SetMetaData("Points", "true")
-
-	st.SetMetaData("ABErr:Mean:On", "+")
-	st.SetMetaData("ABErr:Mean:FixMin", "true")
-	st.SetMetaData("ABErr:Mean:FixMax", "true")
-	st.SetMetaData("ABErr:Mean:Min", "0")
-	st.SetMetaData("ABErr:Mean:Max", "1")
-	st.SetMetaData("ABErr:Min:On", "+")
-	st.SetMetaData("ABErr:Count:On", "-")
-
-	plt.SetTable(st)
-	plt.GoUpdatePlot()
-}
-
-// RepsAnalysis analyzes the representations as captured in the Test Trial Log
-func (ss *Sim) RepsAnalysis() {
-	trl := ss.Logs.Table(etime.Test, etime.Trial)
-
-	ss.Stats.SVD.Kind = mat.SVDFull // critical
-	rels := table.NewIndexView(trl)
-	rels.SortColumnName("TrialName", table.Ascending)
-	ss.Stats.SimMat("Hidden").TableColumn(rels, "Hidden_ActM", "TrialName", true, metric.Correlation64)
-	errors.Log(ss.Stats.SVD.TableColumn(rels, "Hidden_ActM", metric.Covariance64))
-	svt := ss.Logs.MiscTable("HiddenPCA")
-	ss.Stats.SVD.ProjectColumnToTable(svt, rels, "Hidden_ActM", "TrialName", []int{0, 1})
-	estats.ConfigPCAPlot(ss.GUI.PlotByName("HiddenPCA"), svt, "Hidden Rel PCA")
-	estats.ClusterPlot(ss.GUI.PlotByName("HiddenClust"), rels, "Hidden_ActM", "TrialName", clust.ContrastDist)
+	// dt := ss.Logs.Table(etime.Train, etime.Run)
+	// runix := table.NewIndexView(dt)
+	// spl := split.GroupBy(runix, "Expt")
+	// split.DescColumn(spl, "ABErr")
+	// st := spl.AggsToTableCopy(table.AddAggName)
+	// ss.Logs.MiscTables["RunStats"] = st
+	// plt := ss.GUI.Plots[etime.ScopeKey("RunStats")]
+	//
+	// st.SetMetaData("XAxis", "RunName")
+	//
+	// st.SetMetaData("Points", "true")
+	//
+	// st.SetMetaData("ABErr:Mean:On", "+")
+	// st.SetMetaData("ABErr:Mean:FixMin", "true")
+	// st.SetMetaData("ABErr:Mean:FixMax", "true")
+	// st.SetMetaData("ABErr:Mean:Min", "0")
+	// st.SetMetaData("ABErr:Mean:Max", "1")
+	// st.SetMetaData("ABErr:Min:On", "+")
+	// st.SetMetaData("ABErr:Count:On", "-")
+	//
+	// plt.SetTable(st)
+	// plt.GoUpdatePlot()
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -573,50 +565,35 @@ func (ss *Sim) ConfigLogs() {
 	ss.Logs.AddCounterItems(etime.Run, etime.Epoch, etime.Trial, etime.Cycle)
 	ss.Logs.AddStatIntNoAggItem(etime.AllModes, etime.AllTimes, "Expt")
 	ss.Logs.AddStatStringItem(etime.AllModes, etime.AllTimes, "RunName")
-	ss.Logs.AddStatStringItem(etime.AllModes, etime.Trial, "GroupName")
 	ss.Logs.AddStatStringItem(etime.AllModes, etime.Trial, "TrialName")
+	ss.Logs.AddStatStringItem(etime.AllModes, etime.Trial, "Closest")
 
 	ss.Logs.AddStatAggItem("SSE", etime.Run, etime.Epoch, etime.Trial)
 	ss.Logs.AddStatAggItem("AvgSSE", etime.Run, etime.Epoch, etime.Trial)
+	ss.Logs.AddStatAggItem("Correl", etime.Run, etime.Epoch, etime.Trial)
+	ss.Logs.AddStatAggItem("IsA", etime.Run, etime.Epoch, etime.Trial)
+	ss.Logs.AddStatAggItem("IsB", etime.Run, etime.Epoch, etime.Trial)
 	ss.Logs.AddErrStatAggItems("TrlErr", etime.Run, etime.Epoch, etime.Trial)
-
-	ss.Logs.AddItem(&elog.Item{
-		Name: "ABErr",
-		Type: reflect.Float64,
-		Plot: false,
-		Write: elog.WriteMap{
-			etime.Scope(etime.AllModes, etime.Epoch): func(ctx *elog.Context) {
-				ctx.SetFloat64(ctx.Stats.Float("ABErr"))
-			}, etime.Scope(etime.AllModes, etime.Run): func(ctx *elog.Context) {
-				ctx.SetFloat64(ctx.Stats.Float("ABErr"))
-			}}})
-
-	ss.Logs.AddItem(&elog.Item{
-		Name: "ACErr",
-		Type: reflect.Float64,
-		Plot: false,
-		Write: elog.WriteMap{
-			etime.Scope(etime.AllModes, etime.Epoch): func(ctx *elog.Context) {
-				ctx.SetFloat64(ctx.Stats.Float("ACErr"))
-			}, etime.Scope(etime.AllModes, etime.Run): func(ctx *elog.Context) {
-				ctx.SetFloat64(ctx.Stats.Float("ACErr"))
-			}}})
 
 	ss.Logs.AddPerTrlMSec("PerTrlMSec", etime.Run, etime.Epoch, etime.Trial)
 
 	ss.Logs.AddLayerTensorItems(ss.Net, "ActM", etime.Test, etime.Trial, "InputLayer", "SuperLayer", "TargetLayer")
 	ss.Logs.AddLayerTensorItems(ss.Net, "Targ", etime.Test, etime.Trial, "TargetLayer")
 
-	ss.Logs.PlotItems("ABErr", "ACErr")
+	ss.Logs.PlotItems("PctErr", "Correl")
 
 	ss.Logs.CreateTables()
 	ss.Logs.SetContext(&ss.Stats, ss.Net)
 	// don't plot certain combinations we don't use
 	ss.Logs.NoPlot(etime.Train, etime.Cycle)
 	ss.Logs.NoPlot(etime.Test, etime.Cycle)
-	ss.Logs.NoPlot(etime.Test, etime.Trial)
+	// ss.Logs.NoPlot(etime.Test, etime.Trial)
 	ss.Logs.NoPlot(etime.Test, etime.Run)
 	ss.Logs.SetMeta(etime.Train, etime.Run, "LegendCol", "RunName")
+
+	ss.Logs.SetMeta(etime.Test, etime.Trial, "Closest:On", "+")
+	ss.Logs.SetMeta(etime.Test, etime.Trial, "Correl:On", "-")
+	ss.Logs.SetMeta(etime.Test, etime.Trial, "IsA:On", "+")
 }
 
 // Log is the main logging function, handles special things for different scopes
@@ -643,9 +620,9 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 
 	ss.Logs.LogRow(mode, time, row) // also logs to file, etc
 
-	if mode == etime.Test {
-		ss.GUI.UpdateTableView(etime.Test, etime.Trial)
-	}
+	// if mode == etime.Test {
+	// 	ss.GUI.UpdateTableView(etime.Test, etime.Trial)
+	// }
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -653,8 +630,8 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI() {
-	title := "ABAC"
-	ss.GUI.MakeBody(ss, "abac", title, `abac explores the classic paired associates learning task in a cortical-like network, which exhibits catastrophic levels of interference. See <a href="https://github.com/CompCogNeuro/sims/blob/main/ch7/abac/README.md">README.md on GitHub</a>.</p>`)
+	title := "Priming"
+	ss.GUI.MakeBody(ss, "priming", title, `This simulation explores the neural basis of *priming* -- the often surprisingly strong impact of residual traces from prior experience, which can be either *weight-based* (small changes in synapses) or *activation-based* (residual neural activity).  In the first part, we see how small weight changes caused by the standard slow cortical learning rate can produce significant behavioral priming, causing the network to favor one output pattern over another.  Likewise, residual activation can bias subsequent processing, but this is short-lived and transient compared to the long-lasting effects of weight-based priming. See <a href="https://github.com/CompCogNeuro/sims/blob/main/ch7/priming/README.md">README.md on GitHub</a>.</p>`)
 	ss.GUI.CycleUpdateInterval = 10
 
 	nv := ss.GUI.AddNetView("Network")
@@ -664,9 +641,6 @@ func (ss *Sim) ConfigGUI() {
 	ss.ViewUpdate.Config(nv, etime.GammaCycle, etime.GammaCycle)
 	ss.GUI.ViewUpdate = &ss.ViewUpdate
 	nv.Current()
-
-	nv.SceneXYZ().Camera.Pose.Pos.Set(0, 1.15, 2.25)
-	nv.SceneXYZ().Camera.LookAt(math32.Vector3{0, -0.15, 0}, math32.Vector3{0, 1, 0})
 
 	ss.GUI.AddPlots(title, &ss.Logs)
 
@@ -679,10 +653,7 @@ func (ss *Sim) ConfigGUI() {
 	plt.Options.XAxis = "RunName"
 	plt.SetTable(dt)
 
-	ss.GUI.AddTableView(&ss.Logs, etime.Test, etime.Trial)
-
-	ss.GUI.AddMiscPlotTab("HiddenPCA")
-	ss.GUI.AddMiscPlotTab("HiddenClust")
+	// ss.GUI.AddTableView(&ss.Logs, etime.Test, etime.Trial)
 
 	ss.GUI.FinalizeGUI(false)
 }
@@ -707,40 +678,24 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 		},
 	})
 
-	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Reps Analysis",
-		Icon:    icons.Reset,
-		Tooltip: "analyzes the current testing Hidden activations, producing PCA, Cluster and Similarity Matrix (SimMat) plots",
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Set inputs",
+		Icon:    icons.Settings,
+		Tooltip: "Set the input patterns to use for training and testing",
 		Active:  egui.ActiveAlways,
 		Func: func() {
-			ss.RepsAnalysis()
+			core.CallFunc(ss.GUI.Body, ss.SetEnv)
 		},
 	})
 
-	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Build Net",
-		Icon:    icons.Reset,
-		Tooltip: "Build the network with updated hidden layer size",
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Open Trained Wts",
+		Icon:    icons.Open,
+		Tooltip: "Open trained weights, trained on the Train All patterns",
 		Active:  egui.ActiveAlways,
 		Func: func() {
-			net := ss.Net
-			net.Build()
-			net.Defaults()
-			ss.ApplyParams()
-			ss.ViewUpdate.View.SetNet(net)
-			net.InitWeights()
+			ss.Net.OpenWeightsFS(content, "trained.wts")
 		},
 	})
 
-	////////////////////////////////////////////////
-	tree.Add(p, func(w *core.Separator) {})
-	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Reset RunLog",
-		Icon:    icons.Reset,
-		Tooltip: "Reset the accumulated log of all Runs, which are tagged with the ParamSet used",
-		Active:  egui.ActiveAlways,
-		Func: func() {
-			ss.Logs.ResetLog(etime.Train, etime.Run)
-			ss.GUI.UpdatePlot(etime.Train, etime.Run)
-		},
-	})
 	////////////////////////////////////////////////
 	tree.Add(p, func(w *core.Separator) {})
 	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "New Seed",
