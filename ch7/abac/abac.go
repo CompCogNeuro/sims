@@ -539,11 +539,6 @@ func (ss *Sim) RunStats() {
 	st.SetMetaData("ABErr:Min:On", "+")
 	st.SetMetaData("ABErr:Count:On", "-")
 
-	// st.SetMetaData("Trial:FixMin", "true")
-	// st.SetMetaData("Trial:FixMax", "true")
-	// st.SetMetaData("Trial:Min", "0.5")
-	// st.SetMetaData("Trial:Max", "3.5")
-
 	plt.SetTable(st)
 	plt.GoUpdatePlot()
 }

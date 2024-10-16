@@ -16,10 +16,11 @@ import (
 	"strings"
 
 	"cogentcore.org/core/base/errors"
-	"cogentcore.org/core/base/mpi"
 	"cogentcore.org/core/base/randx"
 	"cogentcore.org/core/core"
 	"cogentcore.org/core/icons"
+	"cogentcore.org/core/plot/plotcore"
+	"cogentcore.org/core/tensor/stats/split"
 	"cogentcore.org/core/tensor/table"
 	"cogentcore.org/core/tree"
 	"github.com/emer/emergent/v2/econfig"
@@ -258,6 +259,7 @@ func (ss *Sim) New() {
 	ss.Net = leabra.NewNetwork("Hip")
 	ss.Params.Config(ParamSets, "", "", ss.Net)
 	ss.Stats.Init()
+	ss.Stats.SetInt("Expt", 0)
 
 	ss.PoolVocab = patgen.Vocab{}
 	ss.TrainAB = &table.Table{}
@@ -430,6 +432,14 @@ func (ss *Sim) ConfigLoops() {
 
 	man.GetLoop(etime.Train, etime.Run).OnStart.Add("NewRun", ss.NewRun)
 
+	man.GetLoop(etime.Train, etime.Run).OnEnd.Add("RunDone", func() {
+		if ss.Stats.Int("Run") >= ss.Config.NRuns-1 {
+			ss.RunStats()
+			expt := ss.Stats.Int("Expt")
+			ss.Stats.SetInt("Expt", expt+1)
+		}
+	})
+
 	// Add Testing
 	trainEpoch := man.GetLoop(etime.Train, etime.Epoch)
 	trainEpoch.OnEnd.Add("TestAtInterval", func() {
@@ -473,7 +483,7 @@ func (ss *Sim) ConfigLoops() {
 	leabra.LooperUpdatePlots(man, &ss.GUI)
 	ss.Loops = man
 
-	mpi.Println(man.DocString())
+	// mpi.Println(man.DocString())
 }
 
 // ApplyInputs applies input patterns from given environment.
@@ -759,6 +769,31 @@ func (ss *Sim) MemStats(mode etime.Modes) {
 
 }
 
+func (ss *Sim) RunStats() {
+	dt := ss.Logs.Table(etime.Train, etime.Run)
+	runix := table.NewIndexView(dt)
+	spl := split.GroupBy(runix, "Expt")
+	split.DescColumn(spl, "TstABMem")
+	st := spl.AggsToTableCopy(table.AddAggName)
+	ss.Logs.MiscTables["RunStats"] = st
+	plt := ss.GUI.Plots[etime.ScopeKey("RunStats")]
+
+	st.SetMetaData("XAxis", "RunName")
+
+	st.SetMetaData("Points", "true")
+
+	st.SetMetaData("TstABMem:Mean:On", "+")
+	st.SetMetaData("TstABMem:Mean:FixMin", "true")
+	st.SetMetaData("TstABMem:Mean:FixMax", "true")
+	st.SetMetaData("TstABMem:Mean:Min", "0")
+	st.SetMetaData("TstABMem:Mean:Max", "1")
+	st.SetMetaData("TstABMem:Min:On", "+")
+	st.SetMetaData("TstABMem:Count:On", "-")
+
+	plt.SetTable(st)
+	plt.GoUpdatePlot()
+}
+
 //////////////////////////////////////////////////////////////////////////////
 // 		Logging
 
@@ -785,6 +820,7 @@ func (ss *Sim) ConfigLogs() {
 	ss.Stats.SetString("RunName", ss.Params.RunName(0)) // used for naming logs, stats, etc
 
 	ss.Logs.AddCounterItems(etime.Run, etime.Epoch, etime.Trial, etime.Cycle)
+	ss.Logs.AddStatIntNoAggItem(etime.AllModes, etime.AllTimes, "Expt")
 	ss.Logs.AddStatStringItem(etime.AllModes, etime.AllTimes, "RunName")
 	ss.Logs.AddStatStringItem(etime.AllModes, etime.Trial, "TrialName")
 
@@ -886,6 +922,15 @@ func (ss *Sim) ConfigGUI() {
 	// nv.SceneXYZ().Camera.LookAt(math32.Vec3(0, 0, 0), math32.Vec3(0, 1, 0))
 
 	ss.GUI.AddPlots(title, &ss.Logs)
+
+	stnm := "RunStats"
+	dt := ss.Logs.MiscTable(stnm)
+	bcp, _ := ss.GUI.Tabs.NewTab(stnm + " Plot")
+	plt := plotcore.NewSubPlot(bcp)
+	ss.GUI.Plots[etime.ScopeKey(stnm)] = plt
+	plt.Options.Title = "Run Stats"
+	plt.Options.XAxis = "RunName"
+	plt.SetTable(dt)
 
 	ss.GUI.FinalizeGUI(false)
 }
