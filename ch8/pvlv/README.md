@@ -1,5 +1,7 @@
 Back to [All Sims](https://github.com/CompCogNeuro/sims) (also for general info and executable downloads)
 
+**NOTE:** This simulation will be updated later, using the axon version of PVLV, which is much improved, but currently not available for the web platform.
+
 # Introduction
 
 This simulation explores the PVLV (Primary Value, Learned Value) learning algorithm, which considers the role of different brain areas in controlling dopamine cell firing during learning about reward and punishment in classical conditioning tasks [Mollick et al, 2020](#references).  It represents a more flexible and biologically detailed approach to the computations explored in the `rl_cond` model.
