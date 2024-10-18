@@ -71,7 +71,7 @@ The performance of the model on any given run can be quite variable, depending o
 
 * `Train Run` to go through multiple runs, each of which starts with different random initial weights. This process may take several minutes to complete. Switch to viewing the `Train Run Plot` to see a record of the `UniqPats` statistic for each of the 8 runs. 
 
-> **Question 4.1:** How many times across the 8 runs was there a less-than-10 result for the UniqPats number of uniquely represented lines, with the default parameters?
+> **Question 4.1:** How many times across the 8 runs was there a less-than-10 result for the UniqPats number of uniquely represented lines, with the default parameters? (Note that the 8 runs are numbered from 0 to 7 in the plot.)
 
 # Parameter Manipulations
 
