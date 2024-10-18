@@ -14,16 +14,11 @@ package main
 
 import (
 	"fmt"
-	"reflect"
 
-	"cogentcore.org/core/base/errors"
 	"cogentcore.org/core/base/randx"
 	"cogentcore.org/core/core"
 	"cogentcore.org/core/icons"
-	"cogentcore.org/core/plot/plotcore"
-	"cogentcore.org/core/tensor/stats/clust"
-	"cogentcore.org/core/tensor/stats/metric"
-	"cogentcore.org/core/tensor/table"
+	"cogentcore.org/core/math32"
 	"cogentcore.org/core/tree"
 	"github.com/emer/emergent/v2/econfig"
 	"github.com/emer/emergent/v2/egui"
@@ -37,7 +32,6 @@ import (
 	"github.com/emer/emergent/v2/params"
 	"github.com/emer/emergent/v2/paths"
 	"github.com/emer/leabra/v2/leabra"
-	"gonum.org/v1/gonum/mat"
 )
 
 func main() {
@@ -210,11 +204,11 @@ type Config struct {
 	NTrials int `default:"100"`
 
 	// stop run after this number of perfect, zero-error epochs.
-	NZero int `default:"1"`
+	NZero int `default:"5"`
 
 	// how often to run through all the test patterns, in terms of training epochs.
 	// can use 0 or -1 for no testing.
-	TestInterval int `default:"1"`
+	TestInterval int `default:"-1"`
 }
 
 // Sim encapsulates the entire simulation model, and we define all the
@@ -343,7 +337,8 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 	_ = pfcMntD
 	_ = pfcOut
 	_ = cin
-	// cin.RewLays.Add(rew.Name(), rp.Name())
+
+	cin.CIN.RewLays.Add(rew.Name, rp.Name)
 
 	inp.PlaceAbove(rew)
 	out.PlaceRightOf(inp, 2)
@@ -377,6 +372,10 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 
 	net.Build()
 	net.Defaults()
+
+	da.AddAllSendToBut() // send dopamine to all layers..
+	gpi.SendPBWMParams()
+
 	ss.ApplyParams()
 	net.InitWeights()
 }
@@ -452,7 +451,6 @@ func (ss *Sim) ConfigLoops() {
 
 	man.GetLoop(etime.Train, etime.Run).OnEnd.Add("RunDone", func() {
 		if ss.Stats.Int("Run") >= ss.Config.NRuns-1 {
-			ss.RunStats()
 			expt := ss.Stats.Int("Expt")
 			ss.Stats.SetInt("Expt", expt+1)
 		}
@@ -582,10 +580,10 @@ func (ss *Sim) TestAll() {
 // called at start of new run
 func (ss *Sim) InitStats() {
 	ss.Stats.SetFloat("SSE", 0.0)
-	ss.Stats.SetFloat("ABErr", 0.0)
-	ss.Stats.SetFloat("ACErr", 0.0)
+	ss.Stats.SetFloat("DA", 0.0)
+	ss.Stats.SetFloat("AbsDA", 0.0)
+	ss.Stats.SetFloat("RewPred", 0.0)
 	ss.Stats.SetString("TrialName", "")
-	ss.Stats.SetString("GroupName", "")
 	ss.Logs.InitErrStats() // inits TrlErr, FirstZero, LastZero, NZero
 }
 
@@ -611,7 +609,7 @@ func (ss *Sim) NetViewCounters(tm etime.Times) {
 		ss.TrialStats() // get trial stats for current di
 	}
 	ss.StatCounters()
-	ss.ViewUpdate.Text = ss.Stats.Print([]string{"Run", "Epoch", "Trial", "GroupName", "TrialName", "Cycle", "SSE", "TrlErr"})
+	ss.ViewUpdate.Text = ss.Stats.Print([]string{"Run", "Epoch", "Trial", "TrialName", "Cycle", "SSE", "TrlErr"})
 }
 
 // TrialStats computes the trial-level statistics.
@@ -630,60 +628,12 @@ func (ss *Sim) TrialStats() {
 	} else {
 		ss.Stats.SetFloat("TrlErr", 0)
 	}
-}
 
-func (ss *Sim) TestStats() {
-	// trl := ss.Logs.Table(etime.Test, etime.Trial)
-	// if trl.Rows == 0 {
-	// 	return
-	// }
-	// trix := table.NewIndexView(trl)
-	// spl := split.GroupBy(trix, "GroupName")
-	// split.AggColumn(spl, "Err", stats.Mean)
-	// tsts := spl.AggsToTable(table.ColumnNameOnly)
-	// ss.Logs.MiscTables["TestEpoch"] = tsts
-	// ss.Stats.SetFloat("ABErr", tsts.Columns[1].Float1D(0))
-	// ss.Stats.SetFloat("ACErr", tsts.Columns[1].Float1D(1))
-}
-
-func (ss *Sim) RunStats() {
-	// dt := ss.Logs.Table(etime.Train, etime.Run)
-	// runix := table.NewIndexView(dt)
-	// spl := split.GroupBy(runix, "Expt")
-	// split.DescColumn(spl, "ABErr")
-	// st := spl.AggsToTableCopy(table.AddAggName)
-	// ss.Logs.MiscTables["RunStats"] = st
-	// plt := ss.GUI.Plots[etime.ScopeKey("RunStats")]
-	//
-	// st.SetMetaData("XAxis", "RunName")
-	//
-	// st.SetMetaData("Points", "true")
-	//
-	// st.SetMetaData("ABErr:Mean:On", "+")
-	// st.SetMetaData("ABErr:Mean:FixMin", "true")
-	// st.SetMetaData("ABErr:Mean:FixMax", "true")
-	// st.SetMetaData("ABErr:Mean:Min", "0")
-	// st.SetMetaData("ABErr:Mean:Max", "1")
-	// st.SetMetaData("ABErr:Min:On", "+")
-	// st.SetMetaData("ABErr:Count:On", "-")
-	//
-	// plt.SetTable(st)
-	// plt.GoUpdatePlot()
-}
-
-// RepsAnalysis analyzes the representations as captured in the Test Trial Log
-func (ss *Sim) RepsAnalysis() {
-	trl := ss.Logs.Table(etime.Test, etime.Trial)
-
-	ss.Stats.SVD.Kind = mat.SVDFull // critical
-	rels := table.NewIndexView(trl)
-	rels.SortColumnName("TrialName", table.Ascending)
-	ss.Stats.SimMat("Hidden").TableColumn(rels, "Hidden_ActM", "TrialName", true, metric.Correlation64)
-	errors.Log(ss.Stats.SVD.TableColumn(rels, "Hidden_ActM", metric.Covariance64))
-	svt := ss.Logs.MiscTable("HiddenPCA")
-	ss.Stats.SVD.ProjectColumnToTable(svt, rels, "Hidden_ActM", "TrialName", []int{0, 1})
-	estats.ConfigPCAPlot(ss.GUI.PlotByName("HiddenPCA"), svt, "Hidden Rel PCA")
-	estats.ClusterPlot(ss.GUI.PlotByName("HiddenClust"), rels, "Hidden_ActM", "TrialName", clust.ContrastDist)
+	snc := ss.Net.LayerByName("SNc")
+	ss.Stats.SetFloat32("DA", snc.Neurons[0].Act)
+	ss.Stats.SetFloat32("AbsDA", math32.Abs(snc.Neurons[0].Act))
+	rp := ss.Net.LayerByName("RWPred")
+	ss.Stats.SetFloat32("RewPred", rp.Neurons[0].Act)
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -695,41 +645,19 @@ func (ss *Sim) ConfigLogs() {
 	ss.Logs.AddCounterItems(etime.Run, etime.Epoch, etime.Trial, etime.Cycle)
 	ss.Logs.AddStatIntNoAggItem(etime.AllModes, etime.AllTimes, "Expt")
 	ss.Logs.AddStatStringItem(etime.AllModes, etime.AllTimes, "RunName")
-	ss.Logs.AddStatStringItem(etime.AllModes, etime.Trial, "GroupName")
 	ss.Logs.AddStatStringItem(etime.AllModes, etime.Trial, "TrialName")
+
+	ss.Logs.AddPerTrlMSec("PerTrlMSec", etime.Run, etime.Epoch, etime.Trial)
 
 	ss.Logs.AddStatAggItem("SSE", etime.Run, etime.Epoch, etime.Trial)
 	ss.Logs.AddStatAggItem("AvgSSE", etime.Run, etime.Epoch, etime.Trial)
 	ss.Logs.AddErrStatAggItems("TrlErr", etime.Run, etime.Epoch, etime.Trial)
 
-	ss.Logs.AddItem(&elog.Item{
-		Name: "ABErr",
-		Type: reflect.Float64,
-		Plot: false,
-		Write: elog.WriteMap{
-			etime.Scope(etime.AllModes, etime.Epoch): func(ctx *elog.Context) {
-				ctx.SetFloat64(ctx.Stats.Float("ABErr"))
-			}, etime.Scope(etime.AllModes, etime.Run): func(ctx *elog.Context) {
-				ctx.SetFloat64(ctx.Stats.Float("ABErr"))
-			}}})
+	ss.Logs.AddStatAggItem("DA", etime.Run, etime.Epoch, etime.Trial)
+	ss.Logs.AddStatAggItem("AbsDA", etime.Run, etime.Epoch, etime.Trial)
+	ss.Logs.AddStatAggItem("RewPred", etime.Run, etime.Epoch, etime.Trial)
 
-	ss.Logs.AddItem(&elog.Item{
-		Name: "ACErr",
-		Type: reflect.Float64,
-		Plot: false,
-		Write: elog.WriteMap{
-			etime.Scope(etime.AllModes, etime.Epoch): func(ctx *elog.Context) {
-				ctx.SetFloat64(ctx.Stats.Float("ACErr"))
-			}, etime.Scope(etime.AllModes, etime.Run): func(ctx *elog.Context) {
-				ctx.SetFloat64(ctx.Stats.Float("ACErr"))
-			}}})
-
-	ss.Logs.AddPerTrlMSec("PerTrlMSec", etime.Run, etime.Epoch, etime.Trial)
-
-	ss.Logs.AddLayerTensorItems(ss.Net, "ActM", etime.Test, etime.Trial, "InputLayer", "SuperLayer", "TargetLayer")
-	ss.Logs.AddLayerTensorItems(ss.Net, "Targ", etime.Test, etime.Trial, "TargetLayer")
-
-	ss.Logs.PlotItems("ABErr", "ACErr")
+	ss.Logs.PlotItems("PctErr", "AbsDA", "RewPred")
 
 	ss.Logs.CreateTables()
 	ss.Logs.SetContext(&ss.Stats, ss.Net)
@@ -759,8 +687,6 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 	case time == etime.Trial:
 		ss.TrialStats()
 		ss.StatCounters()
-	case time == etime.Epoch && mode == etime.Test:
-		ss.TestStats()
 	}
 
 	ss.Logs.LogRow(mode, time, row) // also logs to file, etc
@@ -775,12 +701,13 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI() {
-	title := "ABAC"
-	ss.GUI.MakeBody(ss, "abac", title, `abac explores the classic paired associates learning task in a cortical-like network, which exhibits catastrophic levels of interference. See <a href="https://github.com/CompCogNeuro/sims/blob/main/ch7/abac/README.md">README.md on GitHub</a>.</p>`)
+	title := "SIR"
+	ss.GUI.MakeBody(ss, "sir", title, `sir illustrates the dynamic gating of information into PFC active maintenance, by the basal ganglia (BG). It uses a simple Store-Ignore-Recall (SIR) task, where the BG system learns via phasic dopamine signals and trial-and-error exploration, discovering what needs to be stored, ignored, and recalled as a function of reinforcement of correct behavior, and learned reinforcement of useful working memory representations. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch9/sir/README.md">README.md on GitHub</a>.</p>`)
 	ss.GUI.CycleUpdateInterval = 10
 
 	nv := ss.GUI.AddNetView("Network")
 	nv.Options.MaxRecs = 300
+	nv.Options.Raster.Max = 100
 	nv.SetNet(ss.Net)
 	nv.Options.PathWidth = 0.003
 	ss.ViewUpdate.Config(nv, etime.GammaCycle, etime.GammaCycle)
@@ -792,19 +719,7 @@ func (ss *Sim) ConfigGUI() {
 
 	ss.GUI.AddPlots(title, &ss.Logs)
 
-	stnm := "RunStats"
-	dt := ss.Logs.MiscTable(stnm)
-	bcp, _ := ss.GUI.Tabs.NewTab(stnm + " Plot")
-	plt := plotcore.NewSubPlot(bcp)
-	ss.GUI.Plots[etime.ScopeKey(stnm)] = plt
-	plt.Options.Title = "Run Stats"
-	plt.Options.XAxis = "RunName"
-	plt.SetTable(dt)
-
 	ss.GUI.AddTableView(&ss.Logs, etime.Test, etime.Trial)
-
-	ss.GUI.AddMiscPlotTab("HiddenPCA")
-	ss.GUI.AddMiscPlotTab("HiddenClust")
 
 	ss.GUI.FinalizeGUI(false)
 }
@@ -826,29 +741,6 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 		Active:  egui.ActiveStopped,
 		Func: func() {
 			ss.Loops.ResetCountersByMode(etime.Test)
-		},
-	})
-
-	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Reps Analysis",
-		Icon:    icons.Reset,
-		Tooltip: "analyzes the current testing Hidden activations, producing PCA, Cluster and Similarity Matrix (SimMat) plots",
-		Active:  egui.ActiveAlways,
-		Func: func() {
-			ss.RepsAnalysis()
-		},
-	})
-
-	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Build Net",
-		Icon:    icons.Reset,
-		Tooltip: "Build the network with updated hidden layer size",
-		Active:  egui.ActiveAlways,
-		Func: func() {
-			net := ss.Net
-			net.Build()
-			net.Defaults()
-			ss.ApplyParams()
-			ss.ViewUpdate.View.SetNet(net)
-			net.InitWeights()
 		},
 	})
 
@@ -878,7 +770,7 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 		Tooltip: "Opens your browser on the README file that contains instructions for how to run this model.",
 		Active:  egui.ActiveAlways,
 		Func: func() {
-			core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/main/ch/abac/README.md")
+			core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/main/ch9/sir/README.md")
 		},
 	})
 }
