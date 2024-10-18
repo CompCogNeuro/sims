@@ -85,7 +85,7 @@ It is also entertaining and informative to watch the `Learn / AvgL` value in the
 
 One thing that is a bit unrealistic about this model is the lack of any activity at all in the units that are off. In the real brain, inactive neurons always have some low level of activity. This can affect the extent to which weights decrease to the less active inputs, potentially leading to cleaner overall patterns of weights.
 
-* To add some noise activity in the input, set the InputNoise to .2 and `Init`. (You can `Step Trial` to see the noise in the input.) Keep `AvgLGain` at 1, which will make it easier to see the effects of noise. `Train Run`.  
+* To add some noise activity in the input, set the InputNoise to .2 and `Init`. This will add randomly generated values to the input unit activity. (You can `Step Trial` to see the noise in the input.) Keep `AvgLGain` at 1, which will make it easier to see the effects of noise. `Train Run`.  
 
 > **Question 4.2:** a) Now how many sub-10 `UniqPats` stats did you get? Is this an improvement over the earlier no-noise case with `AvgLGain` at 1? b) Describe what difference you observe in the weights of the no-noise and noise simulations. Why do you see this difference?
 
