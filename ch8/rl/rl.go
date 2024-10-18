@@ -18,6 +18,7 @@ import (
 	"cogentcore.org/core/base/randx"
 	"cogentcore.org/core/core"
 	"cogentcore.org/core/icons"
+	"cogentcore.org/core/math32"
 	"cogentcore.org/core/tensor"
 	"cogentcore.org/core/tensor/stats/metric"
 	"cogentcore.org/core/tensor/stats/norm"
@@ -64,14 +65,14 @@ var ParamSets = params.Sets{
 				"Layer.Inhib.ActAvg.Fixed": "true", // critical for ensuring weights have same impact!
 				"Layer.Inhib.ActAvg.Init":  "0.015",
 			}},
-		{Sel: ".TDRewToInteg", Desc: "rew to integ",
+		{Sel: ".TDToInteg", Desc: "rew to integ",
 			Params: params.Params{
 				"Path.Learn.Learn": "false",
 				"Path.WtInit.Mean": "1",
 				"Path.WtInit.Var":  "0",
 				"Path.WtInit.Sym":  "false",
 			}},
-		{Sel: "#InputToRewPred", Desc: "input to rewpred",
+		{Sel: "#InputToPred", Desc: "input to rewpred",
 			Params: params.Params{
 				"Path.WtInit.Mean": "0",
 				"Path.WtInit.Var":  "0",
@@ -97,7 +98,7 @@ type Config struct {
 	NEpochs int `default:"30"`
 
 	// total number of trials per epoch
-	NTrials int `default:"10"`
+	NTrials int `default:"20"`
 }
 
 // Sim encapsulates the entire simulation model, and we define all the
@@ -179,20 +180,17 @@ func (ss *Sim) ConfigEnv() {
 	var trn *CondEnv
 	if len(ss.Envs) == 0 {
 		trn = &CondEnv{}
+		trn.Defaults()
+		trn.RewVal = 1
+		trn.NoRewVal = 0
 	} else {
 		trn = ss.Envs.ByMode(etime.Train).(*CondEnv)
 	}
 
 	// note: names must be standard here!
 	trn.Name = etime.Train.String()
-	trn.Defaults()
-	trn.RewVal = 1
-	trn.NoRewVal = 0
 	trn.Trial.Max = ss.Config.NTrials
-
 	trn.Init(0)
-
-	// note: names must be in place when adding
 	ss.Envs.Add(trn)
 }
 
@@ -204,7 +202,7 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 	_ = ri
 	inp := net.AddLayer2D("Input", 3, 20, leabra.InputLayer)
 
-	net.ConnectLayers(inp, rp, paths.NewFull(), leabra.TDRewPredPath)
+	net.ConnectLayers(inp, rp, paths.NewFull(), leabra.TDPredPath)
 
 	rp.PlaceRightOf(rew, 4)
 	ri.PlaceRightOf(rp, 4)
@@ -223,10 +221,10 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 func (ss *Sim) ApplyParams() {
 	ss.Params.SetAll()
 
-	ri := ss.Net.LayerByName("RewInteg")
+	ri := ss.Net.LayerByName("Integ")
 	ri.TD.Discount = ss.Discount
 
-	rp := ss.Net.LayerByName("RewPred")
+	rp := ss.Net.LayerByName("Pred")
 	fmi := errors.Log1(rp.RecvPathBySendName("Input")).(*leabra.Path)
 	fmi.Learn.Lrate = ss.Lrate
 }
@@ -240,7 +238,7 @@ func (ss *Sim) Init() {
 	ss.Stats.SetString("RunName", ss.Params.RunName(0)) // in case user interactively changes tag
 	ss.Loops.ResetCounters()
 	ss.InitRandSeed(0)
-	ss.ConfigEnv() // re-config env just in case a different set of patterns was
+	ss.ConfigEnv()
 	ss.GUI.StopNow = false
 	ss.ApplyParams()
 	ss.NewRun()
@@ -280,7 +278,7 @@ func (ss *Sim) ConfigLoops() {
 	// Logging
 
 	man.AddOnEndToAll("Log", ss.Log)
-	leabra.LooperResetLogBelow(man, &ss.Logs)
+	// leabra.LooperResetLogBelow(man, &ss.Logs)
 	man.GetLoop(etime.Train, etime.Run).OnEnd.Add("RunStats", func() {
 		ss.Logs.RunStats("UniqPats")
 	})
@@ -323,11 +321,11 @@ func (ss *Sim) NewRun() {
 	ss.Envs.ByMode(etime.Train).Init(0)
 	ctx.Reset()
 	ctx.Mode = etime.Train
-	ss.Net.InitWeights()
+	// ss.Net.InitWeights()
 	ss.InitStats()
 	ss.StatCounters()
 	ss.Logs.ResetLog(etime.Train, etime.Epoch)
-	ss.RewPredFromInput()
+	ss.PredFromInput()
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -401,15 +399,15 @@ func (ss *Sim) UniquePatStat(dt *table.Table) float64 {
 	return float64(uniq)
 }
 
-func (ss *Sim) RewPredFromInput() {
+func (ss *Sim) PredFromInput() {
 	if ss.GUI.Grids == nil {
 		return
 	}
-	wg := ss.Stats.F32Tensor("RewPredFromInput")
+	wg := ss.Stats.F32Tensor("PredFromInput")
 	vals := wg.Values
 	inp := ss.Net.LayerByName("Input")
 	isz := inp.Shape.Len()
-	hid := ss.Net.LayerByName("RewPred")
+	hid := ss.Net.LayerByName("Pred")
 	ysz := hid.Shape.DimSize(0)
 	xsz := hid.Shape.DimSize(1)
 	for y := 0; y < ysz; y++ {
@@ -436,10 +434,22 @@ func (ss *Sim) ConfigLogs() {
 
 	ss.Logs.AddPerTrlMSec("PerTrlMSec", etime.Run, etime.Epoch, etime.Trial)
 
+	ss.Logs.AddLayerTensorItems(ss.Net, "Act", etime.Train, etime.Trial, "TDDaLayer", "TDPredLayer", "TDIntegLayer")
+	if li, ok := ss.Logs.ItemByName("TD_Act"); ok {
+		li.FixMin = false
+	}
+	ss.Logs.PlotItems("TD_Act")
+
 	ss.Logs.CreateTables()
 	ss.Logs.SetContext(&ss.Stats, ss.Net)
 	// don't plot certain combinations we don't use
 	ss.Logs.NoPlot(etime.Train, etime.Cycle)
+	ss.Logs.NoPlot(etime.Train, etime.Epoch)
+	ss.Logs.NoPlot(etime.Train, etime.Run)
+	ss.Logs.SetMeta(etime.Train, etime.Trial, "TD_Act:FixMin", "+")
+	ss.Logs.SetMeta(etime.Train, etime.Trial, "TD_Act:FixMax", "+")
+	ss.Logs.SetMeta(etime.Train, etime.Trial, "TD_Act:Max", "1")
+	ss.Logs.SetMeta(etime.Train, etime.Trial, "TD_Act:Min", "-1")
 	ss.Logs.SetMeta(etime.Train, etime.Run, "LegendCol", "RunName")
 }
 
@@ -462,7 +472,7 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 		ss.TrialStats()
 		ss.StatCounters()
 	case time == etime.Epoch:
-		ss.RewPredFromInput()
+		ss.PredFromInput()
 	}
 
 	ss.Logs.LogRow(mode, time, row) // also logs to file, etc
@@ -483,6 +493,10 @@ func (ss *Sim) ConfigGUI() {
 	nv.Options.PathWidth = 0.005
 	ss.ViewUpdate.Config(nv, etime.GammaCycle, etime.GammaCycle)
 	ss.GUI.ViewUpdate = &ss.ViewUpdate
+
+	nv.SceneXYZ().Camera.Pose.Pos.Set(0, 2.0, 2.4)
+	nv.SceneXYZ().Camera.LookAt(math32.Vec3(0, 0, 0), math32.Vec3(0, 1, 0))
+
 	nv.Current()
 
 	ss.GUI.AddPlots(title, &ss.Logs)
@@ -490,7 +504,7 @@ func (ss *Sim) ConfigGUI() {
 	ss.GUI.AddTableView(&ss.Logs, etime.Train, etime.Trial)
 
 	wgv := ss.GUI.AddGridTab("Weights")
-	wg := ss.Stats.F32Tensor("RewPredFromInput")
+	wg := ss.Stats.F32Tensor("PredFromInput")
 	wg.SetShape([]int{1, 1, 3, 20})
 	wgv.SetTensor(wg)
 
@@ -499,10 +513,20 @@ func (ss *Sim) ConfigGUI() {
 
 func (ss *Sim) MakeToolbar(p *tree.Plan) {
 	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Init", Icon: icons.Update,
-		Tooltip: "Initialize everything including network weights, and start over.  Also applies current params.",
+		Tooltip: "Initialize everything _except_ the network weights, and start over.  Also applies current params.",
 		Active:  egui.ActiveStopped,
 		Func: func() {
 			ss.Init()
+			ss.GUI.UpdateWindow()
+		},
+	})
+
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Init Weights", Icon: icons.Update,
+		Tooltip: "Initialize the learned learned weights.",
+		Active:  egui.ActiveStopped,
+		Func: func() {
+			ss.Net.InitWeights()
+			ss.PredFromInput()
 			ss.GUI.UpdateWindow()
 		},
 	})
@@ -511,13 +535,13 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 
 	////////////////////////////////////////////////
 	tree.Add(p, func(w *core.Separator) {})
-	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Reset RunLog",
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Reset Trial Log",
 		Icon:    icons.Reset,
-		Tooltip: "Reset the accumulated log of all Runs, which are tagged with the ParamSet used",
+		Tooltip: "Reset the accumulated train trial log",
 		Active:  egui.ActiveAlways,
 		Func: func() {
-			ss.Logs.ResetLog(etime.Train, etime.Run)
-			ss.GUI.UpdatePlot(etime.Train, etime.Run)
+			ss.Logs.ResetLog(etime.Train, etime.Trial)
+			ss.GUI.UpdatePlot(etime.Train, etime.Trial)
 		},
 	})
 	////////////////////////////////////////////////
