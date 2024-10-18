@@ -69,7 +69,7 @@ Also, for most runs, if you use the lower level of inhibition used during traini
 
 The performance of the model on any given run can be quite variable, depending on the random initial weights. Almost always the `UniqPats` statistic is above 5, and often it is a perfect 10, and typically it climbs up over training. Because of this variability, we need to run multiple runs of training to get a better sense of how well the network learns in general.
 
-* Switch `Step` to `Run` and `Step` through multiple runs, each of which starts with different random initial weights.  Switch to viewing the `Train Run Plot` to see a record of the `UniqPats` statistic for each of the 8 runs. 
+* `Train Run` to go through multiple runs, each of which starts with different random initial weights.  Switch to viewing the `Train Run Plot` to see a record of the `UniqPats` statistic for each of the 8 runs. 
 
 > **Question 4.1:** How many times across the 8 runs was there a less-than-10 result for the UniqPats number of uniquely represented lines, with the default parameters?
 
@@ -79,15 +79,15 @@ Now, let's explore the effects of some of the parameters in the control panel.
 
 One of the most important parameters for BCM-style Hebbian learning is how high the `AvgL` long-term running average threshold rises with increased neural activity (this is denoted by theta in the textbook figures).  If this value is 0, then no matter how high the long run average is, there will be no homeostatic effect on learning. The higher this value goes, the stronger the homeostasis force is that balances against the Hebbian rich-get-richer positive feedback loop, which can result in neurons that are more finely tuned to distinctive patterns, versus more broadly tuned neurons that respond to many different things.
 
-* The parameter that controls how high `AvgL` goes is `AvgLGain`, with a default value of 2.5.  To see how important this factor is, reduce it to 1.5 and 1.  Press `Init` to have the parameter change take effect and restart the train process, and `Train Run` will run through all 8 runs.  Note the effects on the `UniqPats` and also on the learned synaptic weights.
+* The parameter that controls how high `AvgL` goes is `AvgLGain`, with a default value of 2.5.  To see how important this factor is, reduce it to 1.  Press `Init` to have the parameter change take effect and restart the train process, and `Train Run` will run through all 8 runs.  Note the effects on the `UniqPats` and also on the learned synaptic weights.
 
 It is also entertaining and informative to watch the `Learn / AvgL` value in the `Network`, to see how this updates over time and is affected by these parameter changes. When `AvgLGain` is low, you should see that only a few units will tend to dominate activity over trials, but when the homeostatic force is working well, the activity will be more evenly spread out.
 
 One thing that is a bit unrealistic about this model is the lack of any activity at all in the units that are off. In the real brain, inactive neurons always have some low level of activity. This can affect the extent to which weights decrease to the less active inputs, potentially leading to cleaner overall patterns of weights.
 
-* To add some noise activity in the input, set the InputNoise to .2, and `Init` and `Train Run` (you can `Step Trial` to see the noise in the input).  
+* To add some noise activity in the input, set the InputNoise to .2. Keep 'AvgLGain' at 1, which will make it easier to the effects of noise. `Init` and `Train Run` (you can `Step Trial` to see the noise in the input).  
 
-> **Question 4.2:** a) Now how many sub-10 `UniqPats` stats did you get? Is this an improvement over the no-noise case? (This effect should be easier to see if you leave the AvgLGain to be reduced at 1.5 or 1 compared to default of 2.5). b) Describe what difference you observe in the weights of the no-noise and noise simulations. Why do you see this difference?
+> **Question 4.2:** a) Now how many sub-10 `UniqPats` stats did you get? Is this an improvement over the no-noise case? b) Describe what difference you observe in the weights of the no-noise and noise simulations. Why do you see this difference?
 
 In conclusion, this exercise should give you a feel for the dynamics that underlie self-organizing learning, and also for the importance of how the floating threshold level and homeostasis dynamic plays a key role in this form of learning.
 
