@@ -69,7 +69,7 @@ Also, for most runs, if you use the lower level of inhibition used during traini
 
 The performance of the model on any given run can be quite variable, depending on the random initial weights. Almost always the `UniqPats` statistic is above 5, and often it is a perfect 10, and typically it climbs up over training. Because of this variability, we need to run multiple runs of training to get a better sense of how well the network learns in general.
 
-* `Train Run` to go through multiple runs, each of which starts with different random initial weights.  Switch to viewing the `Train Run Plot` to see a record of the `UniqPats` statistic for each of the 8 runs. 
+* `Train Run` to go through multiple runs, each of which starts with different random initial weights. This process may take several minutes to complete. Switch to viewing the `Train Run Plot` to see a record of the `UniqPats` statistic for each of the 8 runs. 
 
 > **Question 4.1:** How many times across the 8 runs was there a less-than-10 result for the UniqPats number of uniquely represented lines, with the default parameters?
 
