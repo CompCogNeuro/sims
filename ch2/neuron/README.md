@@ -102,7 +102,7 @@ It can be difficult to tell from a single run whether the spike timing is random
 
 * Do many Runs and observe the extent of variability in spikes as the plot updates.
 
-Even with this relatively high level of noise, the spike timing is not completely uniform -- the spikes still form clusters at relatively regulalry-spaced intervals. If you increase `Noise` all the way to .5, the spikes will be more uniformly distributed. However, note that even with the high levels of variability in the specific spike timing, the overall rate of spiking recorded by `Act` at the end of the input does not change that much. Thus, the rate code is a highly robust reflection of the overall net input.
+Even with this relatively high level of noise, the spike timing is not completely uniform -- the spikes still form clusters at relatively regularly-spaced intervals. If you increase `Noise` all the way to .5, the spikes will be more uniformly distributed. However, note that even with the high levels of variability in the specific spike timing, the overall rate of spiking recorded by `Act` at the end of the input does not change that much. Thus, the rate code is a highly robust reflection of the overall net input.
 
 In the brain (or large networks of simulated spiking neurons), there are high levels of variability in the net input due to variability in the spike firing of the different inputs coming into a given neuron. As measured in the brain, the statistics of spike firing are captured well by a *Poisson* distribution, which has variability equal to the mean rate of spiking, and reflects essentially the maximum level of noise for a given rate of spiking. Neurons are noisy.
 
