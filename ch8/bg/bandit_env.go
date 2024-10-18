@@ -24,7 +24,7 @@ type BanditEnv struct {
 	N int
 
 	// probabilities for each option
-	P []float32
+	P []float32 `display:"inline"`
 
 	// value for reward
 	RewVal float32

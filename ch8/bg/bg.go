@@ -491,6 +491,8 @@ func (ss *Sim) ConfigLogs() {
 	ss.Logs.SetContext(&ss.Stats, ss.Net)
 	// don't plot certain combinations we don't use
 	ss.Logs.NoPlot(etime.Train, etime.Cycle)
+	ss.Logs.NoPlot(etime.Train, etime.Epoch)
+	ss.Logs.NoPlot(etime.Train, etime.Run)
 	ss.Logs.SetMeta(etime.Train, etime.Run, "LegendCol", "RunName")
 }
 
