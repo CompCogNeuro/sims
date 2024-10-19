@@ -20,7 +20,7 @@ Now, let's see how this works with the network itself.
 
 * Do `Init` and `Step Trial`  in toolbar.  This will run the network through 4 quarters of processing the input, settling in the minus or expectation phase, and then receiving the plus or outcome activation in the `Patient` layer.  You can use the VCR buttons at the bottom-right of the Network to review these activation states at the end of each quarter (or click on the `Phase` / `ActQ1`, `ActQ2`, `ActM` and `ActP` variables).  
 
-You should see that all of the hidden layers change their activation patterns to reflect this additional information, feeding backward through the bidirectional connectivity, at least to some extent. You can click on `ActDif` to see the difference between minus and plus phase activation to see this error signal directly.  The default network is using the default combination of BCM Hebbian (self-organizing) and error-driven learning in XCAL. Let's see how long it takes this network to learn the task.
+You should see that all of the hidden layers change their activation patterns to reflect this additional information, feeding backward through the bidirectional connectivity, at least to some extent. You can click on `Phase`->`ActDif` to see the difference between minus and plus phase activation to see this error signal directly.  The default network is using the default combination of BCM Hebbian (self-organizing) and error-driven learning in XCAL. Let's see how long it takes this network to learn the task.
 
 * Click on `Train Epoch Plot` to view a plot of performance over epochs of training, and then do `Step Run` (changing `Trial` to `Run` as usual).
  
