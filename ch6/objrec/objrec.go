@@ -596,6 +596,7 @@ func (ss *Sim) ConfigGUI() {
 
 	nv := ss.GUI.AddNetView("Network")
 	nv.Options.MaxRecs = 300
+	nv.Options.Raster.Max = 100
 	nv.Options.LayerNameSize = 0.03
 	nv.SetNet(ss.Net)
 	ss.ViewUpdate.Config(nv, etime.GammaCycle, etime.GammaCycle)

@@ -428,6 +428,7 @@ func (ss *Sim) ConfigGUI() {
 
 	nv := ss.GUI.AddNetView("Network")
 	nv.Var = "Act"
+	nv.Options.Raster.Max = 100
 	nv.SetNet(ss.Net)
 	ss.ConfigNetView(nv) // add labels etc
 	ss.ViewUpdate.Config(nv, etime.AlphaCycle, etime.AlphaCycle)

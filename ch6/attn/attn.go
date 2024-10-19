@@ -780,6 +780,7 @@ func (ss *Sim) ConfigGUI() {
 
 	nv := ss.GUI.AddNetView("Network")
 	nv.Options.MaxRecs = 1100
+	nv.Options.Raster.Max = 100
 	nv.SetNet(ss.Net)
 	nv.SceneXYZ().Camera.Pose.Pos.Set(0, 1.2, 3.0)
 	nv.SceneXYZ().Camera.LookAt(math32.Vector3{0, 0, 0}, math32.Vector3{0, 1, 0})

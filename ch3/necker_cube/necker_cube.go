@@ -370,6 +370,7 @@ func (ss *Sim) ConfigGUI() {
 	ss.GUI.CycleUpdateInterval = 10
 
 	nv := ss.GUI.AddNetView("Network")
+	nv.Options.Raster.Max = 100
 	nv.Options.MaxRecs = 300
 	nv.SetNet(ss.Net)
 	ss.ViewUpdate.Config(nv, etime.Cycle, etime.Cycle)

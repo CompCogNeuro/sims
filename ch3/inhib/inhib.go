@@ -592,6 +592,7 @@ func (ss *Sim) ConfigGUI() {
 	nv := ss.GUI.AddNetView("FF Net")
 	ss.NetviewFF = nv
 	nv.Options.MaxRecs = 300
+	nv.Options.Raster.Max = 100
 	nv.SetNet(ss.NetFF)
 	nv.Options.PathWidth = 0.005
 	ss.ViewUpdate.Config(nv, etime.Cycle, etime.Cycle)
@@ -601,6 +602,7 @@ func (ss *Sim) ConfigGUI() {
 	nv = ss.GUI.AddNetView("Bidir Net")
 	ss.NetviewBidir = nv
 	nv.Options.MaxRecs = 300
+	nv.Options.Raster.Max = 100
 	nv.SetNet(ss.NetBidir)
 	nv.Options.PathWidth = 0.005
 	nv.Current()
