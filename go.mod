@@ -6,7 +6,7 @@ require (
 	cogentcore.org/core v0.3.5
 	github.com/anthonynsimon/bild v0.13.0
 	github.com/emer/emergent/v2 v2.0.0-dev0.1.3
-	github.com/emer/leabra/v2 v2.0.0-dev0.1.0.0.20241020233857-ffadcb7e268c
+	github.com/emer/leabra/v2 v2.0.0-dev0.5.0
 	github.com/emer/vision/v2 v2.0.0-dev0.1.0
 	gonum.org/v1/gonum v0.15.0
 )
