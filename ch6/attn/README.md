@@ -12,7 +12,7 @@ Let's step through the network structure and connectivity, which was completely 
 
 * Now select `Wts / r.Wt` in the Network and click on the object and spatial units to see how they function via their connectivity patterns.
 
-The object processing pathway has a sequence of 3 increasingly spatially invariant layers of representations, with each unit collapsing over 3 adjacent spatial locations of the object-defining feature in the layer below. Note that the highest, fully spatially invariant level of the object pathway plays the role of the output layer, and is used for measuring the reaction time to detect objects. This happens by stopping settling whenever the *target* output (object 2) gets above an activity of .5 (if this doesn't happen, settling stops after 220 cycles).
+The object processing pathway has a sequence of 3 increasingly spatially invariant layers of representations, with each unit collapsing over 3 adjacent spatial locations of the object-defining feature in the layer below. Note that the highest, fully spatially invariant level of the object pathway plays the role of the output layer, and is used for measuring the reaction time (RT) to detect objects. This happens by stopping network settling whenever the *target* output (object 2) gets above an activity of .5 (if this doesn't happen, settling stops after 220 cycles). Thus the number of cycles to reach threshold is a proxy for RT.
 
 The spatial processing pathway has a sequence of two layers of spatial representations, differing in the level of spatial resolution. As in the object pathway, each unit in the spatial pathway represents 3 adjacent spatial locations, but unlike the object pathway, these units are not sensitive to particular features. Two units per location provide distributed representations in both layers of the spatial pathway. This redundancy will be useful for demonstrating the effects of partial damage to this pathway.
 
@@ -34,7 +34,7 @@ This will present the first event to the Network, which will stop settling (i.e.
 
 You should have seen that while the network settled relatively quickly for the first two events, it was slowed on the third event where the objects overlap in the same region of space (occasionally not so slow on the last one).
 
-* Click on the `Test Trial Plot` to see a plot of the `RT` reaction times (number of cycles to reach threshold) for each event.
+* Click on the `Test Trial Plot` to see a plot of the `RT` reaction times (number of cycles for the output to reach threshold) for each event.
 
 * You can also set the `Step` to `Cycle` instead of `Trial`, and single step through through the items, to see a cycle-by-cycle update of the network.  You can also use the VCR rewind buttons at the lower right of the Network to rewind through and see exactly how the network settling played out.
 
@@ -62,7 +62,7 @@ There are three *groups* of events shown here, which correspond to a *Neutral* c
 
 * Then, switch to `Test Trial Plot` and do several `Test Run` runs to collect some statistics.  Then click on  `TrialStats` plot to note the results.
 
-> **Question 6.7:** How does the influence of the spatial cue affect subsequent processing of the target, in terms of the settling times on each condition? Report average data per condition/group from the `TrialStats` table. Please also describe the mechanistic reason why you observe changes to the Posner task not just the changes themselves. 
+> **Question 6.7:** How does the influence of the spatial cue affect subsequent processing of the target, in terms of the settling times (RT) on each condition? Report average data per condition/group from the `TrialStats` table. Please also describe the mechanistic reason why you observe changes to the Posner task not just the changes themselves. 
 
 Typical reaction times for young adults (i.e., college students) on this task are roughly: neutral, 370 ms; valid 350 ms; invalid 390 ms, showing about 20 ms on either side of the neutral condition for the effects of attentional focus. These data should agree in general with the pattern of results you obtained (the invalid effect is a bit higher), but to fit the data more closely you would have to add a constant offset of roughly 310 ms to the number of cycles of settling for each trial type. This constant offset can be thought of as the time needed to perform all the other aspects of the task that are not included in the simulation (e.g., generating a response). Note also that one cycle of settling in the network corresponds with one millisecond of processing in humans. This relationship is not automatic -- we adjusted the time constant for activation updating (`Act.Dt.VmTau` = 7 instead of the default of 3.3) so that the two were in agreement in this particular model.
 
