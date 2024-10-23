@@ -113,7 +113,7 @@ var ParamSets = params.Sets{
 				"Path.Learn.WtBal.On": "true", // true > false
 				"Path.WtScale.Rel":    "1",    // 1 > 2
 			}},
-		{Sel: ".CTFmSuper", Desc: "from superficial layer",
+		{Sel: ".CTFromSuper", Desc: "from superficial layer",
 			Params: params.Params{
 				"Path.WtInit.Mean": "0.5",
 			}},
@@ -149,10 +149,6 @@ var ParamSets = params.Sets{
 		{Sel: "#DecodeToGestaltCT", Desc: "this leaks current role into context directly",
 			Params: params.Params{
 				"Path.WtScale.Rel": "0.2", // .2 > .3 > .1 > .05(bad) > .02(vbad)
-			}},
-		{Sel: "#GestaltCTToEncodeP", Desc: "eliminating rescues EncodeD -- trying weaker",
-			Params: params.Params{
-				"Path.WtScale.Rel": "0.05", // .02 > .05 > .1 > .2 etc -- .02 better than nothing!
 			}},
 	},
 }
@@ -762,17 +758,15 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 		},
 	})
 
-	////////////////////////////////////////////////
-	tree.Add(p, func(w *core.Separator) {})
-	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Reset RunLog",
-		Icon:    icons.Reset,
-		Tooltip: "Reset the accumulated log of all Runs, which are tagged with the ParamSet used",
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Open Trained Wts",
+		Icon:    icons.Open,
+		Tooltip: "Open trained weights",
 		Active:  egui.ActiveAlways,
 		Func: func() {
-			ss.Logs.ResetLog(etime.Train, etime.Run)
-			ss.GUI.UpdatePlot(etime.Train, etime.Run)
+			ss.Net.OpenWeightsFS(content, "trained.wts")
 		},
 	})
+
 	////////////////////////////////////////////////
 	tree.Add(p, func(w *core.Separator) {})
 	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "New Seed",

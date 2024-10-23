@@ -7,7 +7,7 @@
 				"ActMAvg": "0.01900009",
 				"ActPAvg": "0.01900009"
 			},
-			"Prjns": null
+			"Paths": null
 		},
 		{
 			"Layer": "Role",
@@ -15,7 +15,7 @@
 				"ActMAvg": "0.10555592",
 				"ActPAvg": "0.10555592"
 			},
-			"Prjns": [
+			"Paths": [
 				{
 					"From": "Decode",
 					"MetaData": {
@@ -86,7 +86,7 @@
 				"ActMAvg": "0.017539563",
 				"ActPAvg": "0.017272819"
 			},
-			"Prjns": [
+			"Paths": [
 				{
 					"From": "Decode",
 					"MetaData": {
@@ -433,7 +433,7 @@
 				"ActMAvg": "0.16905539",
 				"ActPAvg": "0.1693826"
 			},
-			"Prjns": [
+			"Paths": [
 				{
 					"From": "EncodeP",
 					"MetaData": {
@@ -3930,7 +3930,7 @@
 				"ActMAvg": "0.12727477",
 				"ActPAvg": "0.12727942"
 			},
-			"Prjns": [
+			"Paths": [
 				{
 					"From": "Encode",
 					"MetaData": {
@@ -8299,7 +8299,7 @@
 				"ActMAvg": "0.023847993",
 				"ActPAvg": "0.019732503"
 			},
-			"Prjns": [
+			"Paths": [
 				{
 					"From": "EncodeCT",
 					"MetaData": {
@@ -8616,7 +8616,7 @@
 				"ActMAvg": "0.14981107",
 				"ActPAvg": "0.15005875"
 			},
-			"Prjns": [
+			"Paths": [
 				{
 					"From": "Gestalt",
 					"MetaData": {
@@ -12113,7 +12113,7 @@
 				"ActMAvg": "0.054527953",
 				"ActPAvg": "0.054530513"
 			},
-			"Prjns": [
+			"Paths": [
 				{
 					"From": "Input",
 					"MetaData": {
@@ -14738,7 +14738,7 @@
 				"ActMAvg": "0.048542373",
 				"ActPAvg": "0.04861165"
 			},
-			"Prjns": [
+			"Paths": [
 				{
 					"From": "Gestalt",
 					"MetaData": {
