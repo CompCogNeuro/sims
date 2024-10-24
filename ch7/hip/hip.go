@@ -366,6 +366,18 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 	ca3.PlaceAbove(dg)
 	ca1.PlaceRightOf(ca3, 2)
 
+	in.Doc = "Input represents cortical processing areas for different sensory modalities, semantic categories, etc, organized into pools. It is pre-compressed in this model, to simplify and allow one-to-one projections into the EC."
+
+	ecin.Doc = "Entorhinal Cortex (EC) input layer is the superficial layer 2 that receives from the cortex and projects into the hippocampus. It has compressed representations of cortical inputs."
+
+	ecout.Doc = "Entorhinal Cortex (EC) output layer is the deep layers that are bidirectionally connected to the CA1, and communicate hippocampal recall back out to the cortex, while also training the CA1 to accurately represent the EC inputs"
+
+	ca1.Doc = "CA (Cornu Ammonis = Ammon's horn) area 1, receives from CA3 and drives recalled memory output to ECout"
+
+	ca3.Doc = "CA (Cornu Ammonis = Ammon's horn) area 3, receives inputs from ECin and DG, and is the primary site of memory encoding. Recurrent self-connections drive pattern completion of full memory representations from partial cues, along with connections to CA1 that drive memory output."
+
+	dg.Doc = "Dentate Gyruns, which receives broad inputs from ECin and has highly sparse, pattern separated representations, which drive more separated representations in CA3"
+
 	net.Build()
 	net.Defaults()
 	ss.ApplyParams()
