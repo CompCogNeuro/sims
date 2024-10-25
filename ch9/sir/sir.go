@@ -19,6 +19,7 @@ import (
 	"cogentcore.org/core/core"
 	"cogentcore.org/core/icons"
 	"cogentcore.org/core/math32"
+	"cogentcore.org/core/styles"
 	"cogentcore.org/core/tree"
 	"github.com/emer/emergent/v2/econfig"
 	"github.com/emer/emergent/v2/egui"
@@ -699,6 +700,29 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 //////////////////////////////////////////////////////////////////////
 // 		GUI
 
+func (ss *Sim) ConfigNetView(nv *netview.NetView) {
+	nv.Options.LayerNameSize = 0.03
+
+	nv.SceneXYZ().Camera.Pose.Pos.Set(0, 1.85, 2.25)
+	nv.SceneXYZ().Camera.LookAt(math32.Vector3{0, 0, 0}, math32.Vector3{0, 1, 0})
+
+	labs := []string{"  A B C D ", " A B C D", " A B C D  ",
+		"A B C D", "A B C D ", " A B C D ", "  S I R "}
+	nv.ConfigLabels(labs)
+
+	lays := []string{"Input", "PFCmnt", "PFCmntD", "PFCout", "PFCoutD", "Output", "CtrlInput"}
+
+	for li, lnm := range lays {
+		ly := nv.LayerByName(lnm)
+		lbl := nv.LabelByName(labs[li])
+		lbl.Pose = ly.Pose
+		lbl.Pose.Pos.Y += .08
+		lbl.Pose.Pos.Z += .02
+		lbl.Pose.Scale.SetMul(math32.Vec3(1, 0.3, 0.5))
+		lbl.Styles.Text.WhiteSpace = styles.WhiteSpacePre
+	}
+}
+
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI() {
 	title := "SIR"
@@ -712,10 +736,8 @@ func (ss *Sim) ConfigGUI() {
 	nv.Options.PathWidth = 0.003
 	ss.ViewUpdate.Config(nv, etime.GammaCycle, etime.GammaCycle)
 	ss.GUI.ViewUpdate = &ss.ViewUpdate
+	ss.ConfigNetView(nv)
 	nv.Current()
-
-	// nv.SceneXYZ().Camera.Pose.Pos.Set(0, 1.15, 2.25)
-	// nv.SceneXYZ().Camera.LookAt(math32.Vector3{0, -0.15, 0}, math32.Vector3{0, 1, 0})
 
 	ss.GUI.AddPlots(title, &ss.Logs)
 
