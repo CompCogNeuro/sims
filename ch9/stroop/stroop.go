@@ -10,6 +10,7 @@ package main
 
 import (
 	"embed"
+	"fmt"
 	"math"
 	"reflect"
 	"strings"
@@ -20,6 +21,7 @@ import (
 	"cogentcore.org/core/icons"
 	"cogentcore.org/core/math32"
 	"cogentcore.org/core/math32/minmax"
+	"cogentcore.org/core/styles"
 	"cogentcore.org/core/tensor/table"
 	"cogentcore.org/core/tree"
 	"github.com/emer/emergent/v2/econfig"
@@ -151,7 +153,7 @@ type Config struct {
 type Sim struct {
 
 	// strength of projection from PFC to Hidden -- reduce to simulate PFC damage
-	FmPFC float32 `def:"0.3" step:"0.01"`
+	FromPFC float32 `def:"0.3" step:"0.01"`
 
 	// time constant for updating the network
 	DtVmTau float32 `def:"30" step:"5"`
@@ -215,7 +217,7 @@ func (ss *Sim) New() {
 }
 
 func (ss *Sim) Defaults() {
-	ss.FmPFC = 0.3
+	ss.FromPFC = 0.3
 	ss.DtVmTau = 30
 }
 
@@ -320,6 +322,8 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 }
 
 func (ss *Sim) ApplyParams() {
+	spo, _ := ss.Params.Params["Testing"].SelByName("Layer")
+	spo.Params.SetByName("Layer.Act.Dt.VmTau", fmt.Sprintf("%g", ss.DtVmTau))
 	ss.Params.SetAll()
 	ss.Params.SetAllSheet("Training")
 
@@ -335,7 +339,7 @@ func (ss *Sim) ApplyParams() {
 func (ss *Sim) SetPFCParams() {
 	hid := ss.Net.LayerByName("Hidden")
 	fmpfc := errors.Log1(hid.RecvPathBySendName("PFC")).(*leabra.Path)
-	fmpfc.WtScale.Rel = ss.FmPFC
+	fmpfc.WtScale.Rel = ss.FromPFC
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -389,7 +393,7 @@ func (ss *Sim) CycleThresholdStop() {
 		}
 		// fmt.Println(trl, tnm, soa, mxc)
 	} else {
-		if outact > 0.51 {
+		if outact > 0.51 || cyc == cycl.Counter.Max-1 {
 			ss.Stats.SetFloat("RT", float64(cyc))
 			cycl.SkipToMax()
 		}
@@ -411,12 +415,12 @@ func (ss *Sim) ConfigLoops() {
 	man.AddStack(etime.Test).
 		AddTime(etime.Epoch, 1).
 		AddTime(etime.Trial, ss.Test.Rows).
-		AddTime(etime.Cycle, 200)
+		AddTime(etime.Cycle, 250)
 
 	man.AddStack(etime.Validate).
 		AddTime(etime.Epoch, 1).
 		AddTime(etime.Trial, ss.SOA.Rows).
-		AddTime(etime.Cycle, 200)
+		AddTime(etime.Cycle, 250)
 
 	leabra.LooperStdPhases(man, &ss.Context, ss.Net, 75, 99)                // plus phase timing
 	leabra.LooperSimCycleAndLearn(man, ss.Net, &ss.Context, &ss.ViewUpdate) // std algo code
@@ -570,6 +574,12 @@ func (ss *Sim) NetViewCounters(tm etime.Times) {
 // Aggregation is done directly from log data.
 func (ss *Sim) TrialStats() {
 	out := ss.Net.LayerByName("Output")
+	ctx := &ss.Context
+	if ctx.Mode != etime.Train {
+		for i := range out.Neurons {
+			out.Neurons[i].ActM = out.Neurons[i].Act // use final state for err measure
+		}
+	}
 
 	sse, avgsse := out.MSE(0.5) // 0.5 = per-unit tolerance -- right side of .5
 	ss.Stats.SetFloat("SSE", sse)
@@ -616,6 +626,7 @@ func (ss *Sim) ConfigLogs() {
 	ss.Logs.SetContext(&ss.Stats, ss.Net)
 	// don't plot certain combinations we don't use
 	ss.Logs.NoPlot(etime.Train, etime.Cycle)
+	ss.Logs.NoPlot(etime.Train, etime.Run)
 	ss.Logs.NoPlot(etime.Test, etime.Cycle)
 	ss.Logs.NoPlot(etime.Test, etime.Epoch)
 	ss.Logs.NoPlot(etime.Test, etime.Run)
@@ -682,6 +693,26 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 //////////////////////////////////////////////////////////////////////
 // 		GUI
 
+func (ss *Sim) ConfigNetView(nv *netview.NetView) {
+	nv.SceneXYZ().Camera.Pose.Pos.Set(0.1, 1.8, 3.5)
+	nv.SceneXYZ().Camera.LookAt(math32.Vector3{0.1, 0.15, 0}, math32.Vector3{0, 1, 0})
+
+	labs := []string{"     g      r", "   G       R", "  gr      rd", "     g      r         G      R", "  cn     wr"}
+	nv.ConfigLabels(labs)
+
+	lays := []string{"Colors", "Words", "Output", "Hidden", "PFC"}
+
+	for li, lnm := range lays {
+		ly := nv.LayerByName(lnm)
+		lbl := nv.LabelByName(labs[li])
+		lbl.Pose = ly.Pose
+		lbl.Pose.Pos.Y += .2
+		lbl.Pose.Pos.Z += .02
+		lbl.Pose.Scale.SetMul(math32.Vector3{0.4, 0.06, 0.5})
+		lbl.Styles.Text.WhiteSpace = styles.WhiteSpacePre
+	}
+}
+
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI() {
 	title := "Stroop"
@@ -697,8 +728,7 @@ func (ss *Sim) ConfigGUI() {
 	ss.GUI.ViewUpdate = &ss.ViewUpdate
 	nv.Current()
 
-	nv.SceneXYZ().Camera.Pose.Pos.Set(0.1, 1.8, 3.5)
-	nv.SceneXYZ().Camera.LookAt(math32.Vec3(0.1, 0.15, 0), math32.Vec3(0, 1, 0))
+	ss.ConfigNetView(nv)
 
 	ss.GUI.AddPlots(title, &ss.Logs)
 
@@ -721,6 +751,7 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 		Tooltip: "Initialize testing to start over -- if Test Step doesn't work, then do this.",
 		Active:  egui.ActiveStopped,
 		Func: func() {
+			ss.ApplyParams()
 			ss.Params.SetAllSheet("Testing")
 			ss.SetPFCParams()
 			ev := ss.Envs.ByMode(etime.Validate)
@@ -733,6 +764,7 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 		Tooltip: "Initialize SOA testing to start over -- if Test Step doesn't work, then do this.",
 		Active:  egui.ActiveStopped,
 		Func: func() {
+			ss.ApplyParams()
 			ss.Params.SetAllSheet("Testing")
 			ss.Params.SetAllSheet("SOATesting")
 			ss.SetPFCParams()
