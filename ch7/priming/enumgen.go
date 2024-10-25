@@ -6,16 +6,16 @@ import (
 	"cogentcore.org/core/enums"
 )
 
-var _EnvTypesValues = []EnvTypes{0, 1, 2, 3, 4, 5, 6}
+var _EnvTypesValues = []EnvTypes{0, 1, 2, 3, 4, 5}
 
 // EnvTypesN is the highest valid value for type EnvTypes, plus one.
-const EnvTypesN EnvTypes = 7
+const EnvTypesN EnvTypes = 6
 
-var _EnvTypesValueMap = map[string]EnvTypes{`TrainB`: 0, `TrainA`: 1, `TrainAll`: 2, `TestA`: 3, `TestB`: 4, `TestAll`: 5, `EnvTypesN`: 6}
+var _EnvTypesValueMap = map[string]EnvTypes{`TrainB`: 0, `TrainA`: 1, `TrainAll`: 2, `TestA`: 3, `TestB`: 4, `TestAll`: 5}
 
-var _EnvTypesDescMap = map[EnvTypes]string{0: `TrainB sets train env to TrainB pats`, 1: `TrainA sets train env to TrainA pats`, 2: `TrainAll sets train to TrainAll pats`, 3: `TestA sets testing to TrainA pats, for wt priming`, 4: `TestB sets testing to TrainB pats`, 5: `TestAll sets testing to TrainAll pats, for act priming`, 6: ``}
+var _EnvTypesDescMap = map[EnvTypes]string{0: `TrainB sets train env to TrainB pats`, 1: `TrainA sets train env to TrainA pats`, 2: `TrainAll sets train to TrainAll pats`, 3: `TestA sets testing to TrainA pats, for wt priming`, 4: `TestB sets testing to TrainB pats`, 5: `TestAll sets testing to TrainAll pats, for act priming`}
 
-var _EnvTypesMap = map[EnvTypes]string{0: `TrainB`, 1: `TrainA`, 2: `TrainAll`, 3: `TestA`, 4: `TestB`, 5: `TestAll`, 6: `EnvTypesN`}
+var _EnvTypesMap = map[EnvTypes]string{0: `TrainB`, 1: `TrainA`, 2: `TrainAll`, 3: `TestA`, 4: `TestB`, 5: `TestAll`}
 
 // String returns the string representation of this EnvTypes value.
 func (i EnvTypes) String() string { return enums.String(i, _EnvTypesMap) }
