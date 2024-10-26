@@ -167,13 +167,13 @@ type Sim struct {
 	// network parameter management
 	Params emer.NetParams `display:"add-fields"`
 
-	// easy training patterns
+	// training patterns
 	Train *table.Table `new-window:"+" display:"no-inline"`
 
-	// hard training patterns
+	// testing patterns
 	Test *table.Table `new-window:"+" display:"no-inline"`
 
-	// impossible training patterns
+	// SOA testing patterns
 	SOA *table.Table `new-window:"+" display:"no-inline"`
 
 	// contains looper control loops for running sim
@@ -205,7 +205,7 @@ type Sim struct {
 func (ss *Sim) New() {
 	econfig.Config(&ss.Config, "config.toml")
 	ss.Defaults()
-	ss.Net = leabra.NewNetwork("HiddenNet")
+	ss.Net = leabra.NewNetwork("Stroop")
 	ss.Params.Config(ParamSets, "", "", ss.Net)
 	ss.Stats.Init()
 	ss.Train = &table.Table{}
