@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// dyslex simulates normal and disordered (dyslexic) reading performance in terms
+// dyslexia simulates normal and disordered (dyslexic) reading performance in terms
 // of a distributed representation of word-level knowledge across Orthography, Semantics,
 // and Phonology. It is based on a model by Plaut and Shallice (1993).
 // Note that this form of dyslexia is *acquired* (via brain lesions such as stroke)
@@ -13,11 +13,20 @@ package main
 
 import (
 	"embed"
+	"math/rand"
+	"reflect"
+	"strings"
 
 	"cogentcore.org/core/base/errors"
 	"cogentcore.org/core/base/randx"
 	"cogentcore.org/core/core"
 	"cogentcore.org/core/icons"
+	"cogentcore.org/core/math32/minmax"
+	"cogentcore.org/core/tensor"
+	"cogentcore.org/core/tensor/stats/clust"
+	"cogentcore.org/core/tensor/stats/metric"
+	"cogentcore.org/core/tensor/stats/split"
+	"cogentcore.org/core/tensor/stats/stats"
 	"cogentcore.org/core/tensor/table"
 	"cogentcore.org/core/tree"
 	"github.com/emer/emergent/v2/econfig"
@@ -32,7 +41,6 @@ import (
 	"github.com/emer/emergent/v2/params"
 	"github.com/emer/emergent/v2/paths"
 	"github.com/emer/leabra/v2/leabra"
-	"golang.org/x/exp/rand"
 )
 
 //go:embed train_pats.tsv semantics.tsv close_orthos.tsv close_sems.tsv trained.wts
@@ -68,9 +76,9 @@ var ParamSets = params.Sets{
 	"Base": {
 		{Sel: "Path", Desc: "no extra learning factors",
 			Params: params.Params{
-				"Path.Learn.Norm.On":     "false",
-				"Path.Learn.Momentum.On": "false",
-				"Path.Learn.WtBal.On":    "false",
+				"Path.Learn.Norm.On":     "true",
+				"Path.Learn.Momentum.On": "true",
+				"Path.Learn.WtBal.On":    "true",
 				"Path.Learn.Lrate":       "0.04",
 			}},
 		{Sel: "Layer", Desc: "FB 0.5 apparently required",
@@ -124,7 +132,7 @@ type Config struct {
 
 	// how often to run through all the test patterns, in terms of training epochs.
 	// can use 0 or -1 for no testing.
-	TestInterval int `default:"5"`
+	TestInterval int `default:"-1"`
 }
 
 // Sim encapsulates the entire simulation model, and we define all the
@@ -134,10 +142,10 @@ type Config struct {
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
 	// type of lesion -- use Lesion button to lesion
-	Lesion LesionTypes `read-only:"+"`
+	Lesion LesionTypes `edit:"-"`
 
 	// proportion of neurons lesioned -- use Lesion button to lesion
-	LesionProp float32 `read-only:"+"`
+	LesionProp float32 `edit:"-"`
 
 	// Config contains misc configuration parameters for running the sim
 	Config Config `new-window:"+" display:"no-inline"`
@@ -153,6 +161,12 @@ type Sim struct {
 
 	// properties of semnatic features
 	Semantics *table.Table `new-window:"+" display:"no-inline"`
+
+	// close orthography outputs
+	CloseOrthos *table.Table `new-window:"+" display:"no-inline"`
+
+	// close semantic outputs
+	CloseSems *table.Table `new-window:"+" display:"no-inline"`
 
 	// contains looper control loops for running sim
 	Loops *looper.Manager `new-window:"+" display:"no-inline"`
@@ -188,6 +202,8 @@ func (ss *Sim) New() {
 	ss.Stats.Init()
 	ss.Train = &table.Table{}
 	ss.Semantics = &table.Table{}
+	ss.CloseOrthos = &table.Table{}
+	ss.CloseSems = &table.Table{}
 	ss.RandSeeds.Init(100) // max 100 runs
 	ss.InitRandSeed(0)
 	ss.Context.Defaults()
@@ -226,6 +242,8 @@ func (ss *Sim) OpenPatAsset(dt *table.Table, fnm, name, desc string) error {
 func (ss *Sim) OpenPatterns() {
 	ss.OpenPatAsset(ss.Train, "train_pats.tsv", "Train", "Dyslexia Training Patterns")
 	ss.OpenPatAsset(ss.Semantics, "semantics.tsv", "Semantics", "Dyslexia Semantics Patterns")
+	ss.OpenPatAsset(ss.CloseOrthos, "close_orthos.tsv", "CloseOrthos", "Close Orthography Patterns")
+	ss.OpenPatAsset(ss.CloseSems, "close_sems.tsv", "CloseSems", "Close Semantics Patterns")
 }
 
 func (ss *Sim) ConfigEnv() {
@@ -416,6 +434,7 @@ func (ss *Sim) ApplyInputs() {
 	lays := net.LayersByType(leabra.InputLayer, leabra.TargetLayer)
 	net.InitExt()
 	ss.Stats.SetString("TrialName", ev.TrialName.Cur)
+	ss.Stats.SetString("Word", strings.Split(ev.TrialName.Cur, "_")[0])
 	for _, lnm := range lays {
 		ly := ss.Net.LayerByName(lnm)
 		pats := ev.State(ly.Name)
@@ -478,7 +497,9 @@ func (ss *Sim) TestAll() {
 
 // LesionNet does lesion of network with given proportion of neurons damaged
 // 0 < prop < 1.
-func (ss *Sim) LesionNet(les LesionTypes, prop float32) {
+func (ss *Sim) LesionNet(les LesionTypes, prop float32) { //types:add
+	ss.Lesion = les
+	ss.LesionProp = prop
 	net := ss.Net
 	lesStep := float32(0.1)
 	if les == AllPartial {
@@ -539,7 +560,15 @@ func (ss *Sim) LesionNetImpl(net *leabra.Network, les LesionTypes, prop float32)
 // called at start of new run
 func (ss *Sim) InitStats() {
 	ss.Stats.SetFloat("SSE", 0.0)
+	ss.Stats.SetFloat("PhonSSE", 0.0)
+	ss.Stats.SetFloat("ConAbs", 0.0)
+	ss.Stats.SetFloat("Vis", 0.0)
+	ss.Stats.SetFloat("Sem", 0.0)
+	ss.Stats.SetFloat("VisSem", 0.0)
+	ss.Stats.SetFloat("Blend", 0.0)
+	ss.Stats.SetFloat("Other", 0.0)
 	ss.Stats.SetString("TrialName", "")
+	ss.Stats.SetString("Phon", "")
 	ss.Logs.InitErrStats() // inits TrlErr, FirstZero, LastZero, NZero
 }
 
@@ -572,13 +601,19 @@ func (ss *Sim) NetViewCounters(tm etime.Times) {
 // Aggregation is done directly from log data.
 func (ss *Sim) TrialStats() {
 	var sse, avgsse float64
+	ntrg := 0
 	for _, ly := range ss.Net.Layers {
-		if ly.Type != leabra.TargetLayer && ly.Type != leabra.CompareLayer {
+		if ly.Off || (ly.Type != leabra.TargetLayer && ly.Type != leabra.CompareLayer) {
 			continue
 		}
 		lsse, lavgsse := ly.MSE(0.5) // 0.5 = per-unit tolerance -- right side of .5
 		sse += lsse
 		avgsse += lavgsse
+		ntrg++
+	}
+	if ntrg > 0 {
+		sse /= float64(ntrg)
+		avgsse /= float64(ntrg)
 	}
 	ss.Stats.SetFloat("SSE", sse)
 	ss.Stats.SetFloat("AvgSSE", avgsse)
@@ -587,60 +622,77 @@ func (ss *Sim) TrialStats() {
 	} else {
 		ss.Stats.SetFloat("TrlErr", 0)
 	}
+
+	trlnm := ss.Stats.String("TrialName")
+	pidx := errors.Log1(ss.Train.RowsByString("Name", trlnm, table.Equals, table.UseCase))[0]
+	if pidx < 20 {
+		ss.Stats.SetFloat("ConAbs", 0)
+	} else {
+		ss.Stats.SetFloat("ConAbs", 1)
+	}
+	if ss.Context.Mode == etime.Test {
+		ss.DyslexStats(ss.Net)
+	}
 }
 
-// RepsAnalysis analyzes the representations as captured in the Test Trial Log
-func (ss *Sim) RepsAnalysis() {
-	/*
-		trl := ss.Logs.Table(etime.Test, etime.Trial)
-		names := make([]string, trl.Rows)
-		nmtsr := errors.Log1(trl.ColumnByName("TrialName")).(*tensor.String)
-		copy(names, nmtsr.Values) // save
-
-		// replace name with just rel
-		for i, nm := range nmtsr.Values {
-			nnm := nm[strings.Index(nm, ".")+1:]
-			nnm = nnm[:strings.Index(nnm, ".")]
-			nmtsr.Values[i] = nnm
+// DyslexStats computes dyslexia pronunciation, semantics stats
+func (ss *Sim) DyslexStats(net *leabra.Network) {
+	ss.Stats.SetString("Lesion", ss.Lesion.String())
+	ss.Stats.SetFloat32("LesionProp", ss.LesionProp)
+	_, sse, cnm := ss.ClosestPat(net, "Phonology", "ActM", ss.Train, "Phonology", "Name")
+	ss.Stats.SetString("Phon", cnm)
+	ss.Stats.SetFloat32("PhonSSE", sse)
+	ss.Stats.SetFloat("Vis", 0)
+	ss.Stats.SetFloat("Sem", 0)
+	ss.Stats.SetFloat("VisSem", 0)
+	ss.Stats.SetFloat("Blend", 0)
+	ss.Stats.SetFloat("Other", 0)
+	trlnm := ss.Stats.String("TrialName")
+	if sse > 3 { // 3 is the threshold for blend errors
+		ss.Stats.SetFloat("Blend", 1)
+	} else {
+		if trlnm != cnm {
+			vis := ss.ClosePat(trlnm, cnm, ss.CloseOrthos)
+			sem := ss.ClosePat(trlnm, cnm, ss.CloseSems)
+			ss.Stats.SetFloat("Vis", vis)
+			ss.Stats.SetFloat("Sem", sem)
+			if vis > 0 && sem > 0 {
+				ss.Stats.SetFloat("VisSem", 1)
+			}
+			if vis == 0 && sem == 0 {
+				ss.Stats.SetFloat("Other", 1)
+			}
 		}
+	}
+}
 
-		ss.Stats.SVD.Kind = mat.SVDFull // critical
-		rels := table.NewIndexView(trl)
-		rels.SortColumnName("TrialName", table.Ascending)
-		ss.Stats.SimMat("HiddenRel").TableColumn(rels, "Hidden_ActM", "TrialName", true, metric.Correlation64)
-		errors.Log(ss.Stats.SVD.TableColumn(rels, "Hidden_ActM", metric.Covariance64))
-		svt := ss.Logs.MiscTable("HiddenRelPCA")
-		ss.Stats.SVD.ProjectColumnToTable(svt, rels, "Hidden_ActM", "TrialName", []int{0, 1})
-		estats.ConfigPCAPlot(ss.GUI.PlotByName("HiddenRelPCA"), svt, "Hidden Rel PCA")
-		estats.ClusterPlot(ss.GUI.PlotByName("HiddenRelClust"), rels, "Hidden_ActM", "TrialName", clust.ContrastDist)
+func (ss *Sim) ClosestPat(net *leabra.Network, layNm, unitVar string, pats *table.Table, colnm, namecol string) (int, float32, string) {
+	tsr := ss.Stats.SetLayerTensor(net, layNm, unitVar, 0)
+	col := errors.Log1(pats.ColumnByName(colnm))
+	row, cor := metric.ClosestRow32(tsr, col.(*tensor.Float32), metric.SumSquaresBinTol32)
+	nm := ""
+	if namecol != "" {
+		nm = pats.StringValue(namecol, row)
+	}
+	return row, cor, nm
+}
 
-		// replace name with just agent
-		for i, nm := range names {
-			nnm := nm[:strings.Index(nm, ".")]
-			nmtsr.Values[i] = nnm
-		}
-		ags := table.NewIndexView(trl)
-		ags.SortColumnName("TrialName", table.Ascending)
+// ClosePat looks up phon pattern name in given table of close names -- if found returns 1, else 0
+func (ss *Sim) ClosePat(trlnm, phon string, clsdt *table.Table) float64 {
+	rws, _ := clsdt.RowsByString(trlnm, phon, table.Equals, table.UseCase)
+	return float64(len(rws))
+}
 
-		ss.Stats.SimMat("HiddenAgent").TableColumn(ags, "Hidden_ActM", "TrialName", true, metric.Correlation64)
-		errors.Log(ss.Stats.SVD.TableColumn(ags, "Hidden_ActM", metric.Covariance64))
-		svt = ss.Logs.MiscTable("HiddenAgentPCA")
-		ss.Stats.SVD.ProjectColumnToTable(svt, ags, "Hidden_ActM", "TrialName", []int{2, 3})
-		estats.ConfigPCAPlot(ss.GUI.PlotByName("HiddenAgentPCA"), svt, "Hidden Agent PCA")
-		estats.ClusterPlot(ss.GUI.PlotByName("HiddenAgentClust"), ags, "Hidden_ActM", "TrialName", clust.ContrastDist)
-
-		// ss.HiddenAgent.PCAPlot.SetColParams("Prjn3", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0)
-		// ss.HiddenAgent.PCAPlot.Params.XAxisCol = "Prjn2"
-
-		ss.Stats.SimMat("AgentCode").TableColumn(ags, "AgentCode_ActM", "TrialName", true, metric.Correlation64)
-		errors.Log(ss.Stats.SVD.TableColumn(ags, "AgentCode_ActM", metric.Covariance64))
-		svt = ss.Logs.MiscTable("AgentCodePCA")
-		ss.Stats.SVD.ProjectColumnToTable(svt, ags, "AgentCode_ActM", "TrialName", []int{0, 1})
-		estats.ConfigPCAPlot(ss.GUI.PlotByName("AgentCodePCA"), svt, "AgentCode Agent PCA")
-		estats.ClusterPlot(ss.GUI.PlotByName("AgentCodeClust"), ags, "AgentCode_ActM", "TrialName", clust.ContrastDist)
-
-		copy(nmtsr.Values, names) // restore
-	*/
+// ClusterPlot generates a cluster plot of the
+func (ss *Sim) ClusterPlot() {
+	// get rid of _phon in names
+	tpcp := ss.Train.Clone()
+	for r := 0; r < tpcp.Rows; r++ {
+		n := tpcp.StringValue("Name", r)
+		n = strings.Split(n, "_")[0]
+		tpcp.SetString("Name", r, n)
+	}
+	estats.ClusterPlot(ss.GUI.PlotByName("SemCluster"), table.NewIndexView(tpcp), "Semantics", "Name", clust.ContrastDist)
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -650,19 +702,30 @@ func (ss *Sim) ConfigLogs() {
 	ss.Stats.SetString("RunName", ss.Params.RunName(0)) // used for naming logs, stats, etc
 
 	ss.Logs.AddCounterItems(etime.Run, etime.Epoch, etime.Trial, etime.Cycle)
-	ss.Logs.AddStatStringItem(etime.AllModes, etime.AllTimes, "RunName")
 	ss.Logs.AddStatStringItem(etime.AllModes, etime.Trial, "TrialName")
+	ss.Logs.AddStatStringItem(etime.AllModes, etime.Trial, "Word")
+	ss.Logs.AddStatStringItem(etime.Test, etime.Trial, "Phon")
+	ss.Logs.AddStatStringItem(etime.Test, etime.Epoch, "Lesion")
+	ss.Logs.AddStatFloatNoAggItem(etime.Test, etime.Epoch, "LesionProp")
 
 	ss.Logs.AddStatAggItem("SSE", etime.Run, etime.Epoch, etime.Trial)
 	ss.Logs.AddStatAggItem("AvgSSE", etime.Run, etime.Epoch, etime.Trial)
 	ss.Logs.AddErrStatAggItems("TrlErr", etime.Run, etime.Epoch, etime.Trial)
 
-	ss.Logs.AddCopyFromFloatItems(etime.Train, []etime.Times{etime.Epoch, etime.Run}, etime.Test, etime.Epoch, "Tst", "SSE", "AvgSSE")
-
 	ss.Logs.AddPerTrlMSec("PerTrlMSec", etime.Run, etime.Epoch, etime.Trial)
 
-	ss.Logs.AddLayerTensorItems(ss.Net, "ActM", etime.Test, etime.Trial, "InputLayer", "SuperLayer", "TargetLayer")
-	ss.Logs.AddLayerTensorItems(ss.Net, "Targ", etime.Test, etime.Trial, "TargetLayer")
+	ss.AddTestStatAggItem("ConAbs")
+	ss.AddTestStatAggItem("PhonSSE")
+	ss.AddTestStatAggItem("Vis")
+	ss.AddTestStatAggItem("Sem")
+	ss.AddTestStatAggItem("VisSem")
+	ss.AddTestStatAggItem("Blend")
+	ss.AddTestStatAggItem("Other")
+
+	ss.AddTestEpochAggs()
+
+	// ss.Logs.AddLayerTensorItems(ss.Net, "ActM", etime.Test, etime.Trial, "InputLayer", "SuperLayer", "TargetLayer")
+	// ss.Logs.AddLayerTensorItems(ss.Net, "Targ", etime.Test, etime.Trial, "TargetLayer")
 
 	ss.Logs.PlotItems("PctErr", "FirstZero", "LastZero")
 
@@ -670,10 +733,80 @@ func (ss *Sim) ConfigLogs() {
 	ss.Logs.SetContext(&ss.Stats, ss.Net)
 	// don't plot certain combinations we don't use
 	ss.Logs.NoPlot(etime.Train, etime.Cycle)
+	ss.Logs.NoPlot(etime.Train, etime.Run)
 	ss.Logs.NoPlot(etime.Test, etime.Cycle)
-	ss.Logs.NoPlot(etime.Test, etime.Trial)
 	ss.Logs.NoPlot(etime.Test, etime.Run)
-	ss.Logs.SetMeta(etime.Train, etime.Run, "LegendCol", "RunName")
+	ss.Logs.SetMeta(etime.Test, etime.Trial, "Type", "Bar")
+	ss.Logs.SetMeta(etime.Test, etime.Trial, "XAxis", "Word")
+	ss.Logs.SetMeta(etime.Test, etime.Trial, "XAxisRotation", "-45")
+	ss.Logs.SetMeta(etime.Test, etime.Trial, "Vis:On", "+")
+	ss.Logs.SetMeta(etime.Test, etime.Trial, "Sem:On", "+")
+	ss.Logs.SetMeta(etime.Test, etime.Trial, "VisSem:On", "+")
+	ss.Logs.SetMeta(etime.Test, etime.Trial, "Blend:On", "+")
+	ss.Logs.SetMeta(etime.Test, etime.Trial, "Other:On", "+")
+
+	ss.Logs.SetMeta(etime.Test, etime.Epoch, "Type", "Bar")
+	ss.Logs.SetMeta(etime.Test, etime.Epoch, "XAxis", "Lesion")
+	ss.Logs.SetMeta(etime.Test, etime.Epoch, "XAxisRotation", "-45")
+	cols := []string{"Vis", "Sem", "VisSem", "Blend", "Other"}
+	for _, cl := range cols {
+		ss.Logs.SetMeta(etime.Test, etime.Epoch, "Con"+cl+":On", "+")
+		ss.Logs.SetMeta(etime.Test, etime.Epoch, "Abs"+cl+":On", "+")
+	}
+}
+
+func (ss *Sim) AddTestStatAggItem(statName string) {
+	it := ss.Logs.AddItem(&elog.Item{
+		Name:   statName,
+		Type:   reflect.Float64,
+		FixMax: true,
+		Range:  minmax.F32{Max: 1},
+		Write: elog.WriteMap{
+			etime.Scope(etime.Test, etime.Trial): func(ctx *elog.Context) {
+				ctx.SetFloat64(ss.Stats.Float(statName))
+			}}})
+	ss.Logs.AddStdAggs(it, etime.Test, etime.Epoch, etime.Trial)
+}
+
+func (ss *Sim) TestEpochStats() {
+	dt := ss.Logs.Table(etime.Test, etime.Trial)
+	if dt == nil {
+		return
+	}
+	ix := table.NewIndexView(dt)
+	spl := split.GroupBy(ix, "ConAbs")
+	cols := []string{"Vis", "Sem", "VisSem", "Blend", "Other"}
+	for _, cl := range cols {
+		split.AggColumn(spl, cl, stats.Sum)
+	}
+	st := spl.AggsToTable(table.ColumnNameOnly)
+	ss.Logs.MiscTables["EpochStats"] = st
+}
+
+func (ss *Sim) AddTestEpochAggs() {
+	cols := []string{"Vis", "Sem", "VisSem", "Blend", "Other"}
+	for _, cl := range cols {
+		ss.Logs.AddItem(&elog.Item{
+			Name:   "Con" + cl,
+			Type:   reflect.Float64,
+			FixMax: false,
+			Range:  minmax.F32{Max: 10},
+			Write: elog.WriteMap{
+				etime.Scope(etime.Test, etime.Epoch): func(ctx *elog.Context) {
+					st := ss.Logs.MiscTable("EpochStats")
+					ctx.SetFloat64(st.Float(cl, 0))
+				}}})
+		ss.Logs.AddItem(&elog.Item{
+			Name:   "Abs" + cl,
+			Type:   reflect.Float64,
+			FixMax: false,
+			Range:  minmax.F32{Max: 10},
+			Write: elog.WriteMap{
+				etime.Scope(etime.Test, etime.Epoch): func(ctx *elog.Context) {
+					st := ss.Logs.MiscTable("EpochStats")
+					ctx.SetFloat64(st.Float(cl, 1))
+				}}})
+	}
 }
 
 // Log is the main logging function, handles special things for different scopes
@@ -694,6 +827,8 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 	case time == etime.Trial:
 		ss.TrialStats()
 		ss.StatCounters()
+	case time == etime.Epoch && mode == etime.Test:
+		ss.TestEpochStats()
 	}
 
 	ss.Logs.LogRow(mode, time, row) // also logs to file, etc
@@ -721,14 +856,11 @@ func (ss *Sim) ConfigGUI() {
 	ss.GUI.ViewUpdate = &ss.ViewUpdate
 	nv.Current()
 
-	// nv.SceneXYZ().Camera.Pose.Pos.Set(0.1, 1.5, 4) // more "head on" than default which is more "top down"
-	// nv.SceneXYZ().Camera.LookAt(math32.Vec3(0.1, 0.1, 0), math32.Vec3(0, 1, 0))
-
 	ss.GUI.AddPlots(title, &ss.Logs)
 
 	ss.GUI.AddTableView(&ss.Logs, etime.Test, etime.Trial)
 
-	ss.GUI.AddMiscPlotTab("HiddenRelClust")
+	ss.GUI.AddMiscPlotTab("SemCluster")
 
 	ss.GUI.FinalizeGUI(false)
 }
@@ -773,31 +905,21 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 		},
 	})
 
-	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Reps Analysis",
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Cluster Plot",
 		Icon:    icons.Reset,
-		Tooltip: "analyzes the current testing Hidden and AgentCode activations, producing PCA, Cluster and Similarity Matrix (SimMat) plots",
+		Tooltip: "Generates a cluster plot of the semantic representations",
 		Active:  egui.ActiveAlways,
 		Func: func() {
-			ss.RepsAnalysis()
+			ss.ClusterPlot()
 		},
 	})
 
-	////////////////////////////////////////////////
-	tree.Add(p, func(w *core.Separator) {})
-	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "New Seed",
-		Icon:    icons.Add,
-		Tooltip: "Generate a new initial random seed to get different results.  By default, Init re-establishes the same initial seed every time.",
-		Active:  egui.ActiveAlways,
-		Func: func() {
-			ss.RandSeeds.NewSeeds()
-		},
-	})
 	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "README",
 		Icon:    icons.FileMarkdown,
 		Tooltip: "Opens your browser on the README file that contains instructions for how to run this model.",
 		Active:  egui.ActiveAlways,
 		Func: func() {
-			core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/main/ch4/family_trees/README.md")
+			core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/main/ch10/dyslexia/README.md")
 		},
 	})
 }

@@ -2,7 +2,7 @@ Back to [All Sims](https://github.com/CompCogNeuro/sims) (also for general info 
 
 # Introduction
 
-This model simulates normal and disordered (dyslexic) reading performance in terms of a distributed representation of word-level knowledge across Orthography, Semantics, and Phonology. It is based on a model by [Plaut and Shallice (1993)](#references). Note that this form of dyslexia is *acquired* (via brain lesions such as stroke) and not the more prevalent developmental variety.
+This model simulates normal and disordered (dyslexic) reading performance in terms of a distributed representation of word-level knowledge across Orthography, Semantics, and Phonology. It is based on a model by [Plaut and Shallice (1993)](#references). Note that this form of dyslexia is _acquired_ (via brain lesions such as stroke) and not the more prevalent developmental variety.
 
 # Normal Reading Performance
 
@@ -12,15 +12,15 @@ Because the network takes a bit of time to train (for 250 epochs), we will just 
 
 For our initial exploration, we will just observe the behavior of the network as it "reads" the words presented to the orthographic input layer. Note that the letters in the input are ordered left-to-right, bottom to top.
 
-* Press `Test Trial`.
+* Press `Test Init` and `Test Step`.
 
-You will see the activation flow through the network, and it should settle into the correct pronunciation and semantics for the first word, "tart" (the bakery food). In the left panel, `TrlPhon` shows the closest phonology pattern compared to what the network produced -- it should match the `TrlName` input (the second part of the name shows the repeated phonology output representation).
+You will see the activation flow through the network, and it should settle into the correct pronunciation and semantics for the first word, "tart" (the bakery food). You can click on the `Targ` variable in the `Network` to see the target outputs, and see that it made the correct response in the `Phonology` and `Semantics` layers based on the `Othography` input.
 
-* Use the VCR `Time` buttons at the bottom right of the `NetView` to review the settling dynamics over time.
+* Use the VCR `Time` buttons at the bottom right of the `Network` to review the settling dynamics over time.
 
-* Continue to `Test Trial` through a few more words, paying particular attention to the timing of when the Phonological layer gets active relative to the Semantic one (you can always review to see this more clearly).  Then, do `Test All` to test the remainder of the inputs.
+* Continue to `Test Step` through a few more words, paying particular attention to the timing of when the Phonological layer gets active relative to the Semantic one (you can always review to see this more clearly).  Then, do `Test Run` to test the remainder of the inputs.
 
-* Click on the `TstTrlPlot` tab to see a record of the network's performance on the full set of words.  It should perform perfectly, so there isn't much to see.  Click on the `TstTrlLog` button in the left control panel, which pulls up a text table view of the same plot data.
+* Click on the `Test Trial Plot` tab to see a record of the network's performance on the full set of words. It should only make one "Other" error for the word "post".  Click on the `TstTrlLog` button in the left control panel, which pulls up a text table view of the same plot data.
 
 The `ConAbs` column shows whether this item is concrete (*Con*) or abstract (*Abs*) (`ConAbs`=0 for concrete, 1 for abstract), and the columns after that indicate what type of error the network makes: `Vis` = visual errors, `Sem` = semantic errors, `VisSem` = both, `Blend` = not a clearly pronounced word, `Other` = some other hard-to-categorize error.  Concrete words have more distinctive features, whereas abstract words have fewer, which impacts their relative susceptibility to lesions.
 
@@ -36,7 +36,7 @@ We begin by lesioning the semantic pathway.
 
 You should see that only the direct pathway is activated, but likely it will still be able to produce the correct phonology output.  This does not actually remove any units or other network structure; it just flips a "lesion" (`Off`) flag that (reversibly) deactivates an entire layer. Note that by removing an entire pathway, we make the network rely on the remaining intact pathway. This means that the errors one would expect are those associated with the properties of the *intact* pathway, not the lesioned one. For example, lesioning the direct pathway makes the network rely on semantics, allowing for the possibility of semantic errors to the extent that the semantic pathway doesn't quite get things right without the assistance of the missing direct pathway. Completely lesioning the semantic pathway itself does *not* lead to semantically related errors -- there is no semantic information left for such errors to be based on! 
 
-* Do `Test All` to test all items, and look at the `TstTrlPlot` and `TstTrlLog` (just click the `Update` button to update the table view).  You can see a sum of all the testing results in the `TstEpcLog` which can be clicked in the control panel. This records a new row for each Test All run, along with the lesion and proportion setting.
+* Do `Test All` to test all items, and look at the `Test Trial Plot` and `TstTrlLog` (just click the `Update` button to update the table view).  You can see a sum of all the testing results in the `TstEpcLog` which can be clicked in the control panel. This records a new row for each Test All run, along with the lesion and proportion setting.
 
 > **Question 10.2:** How many times did the network with only the direct pathway (SemanticsFull lesion) make a reading mistake overall (you can count the number of 1's in the various error columns, or look at the `TstEpcLog` sums, in the last row)?  Notice that the network does not produce any blend outputs, indicating that the phonological output closely matched a known word.
 
@@ -116,5 +116,5 @@ This case of partial direct pathway damage with a completely lesioned semantic p
 
 # References
 
-Plaut, D. C., & Shallice, T. (1993). Deep dyslexia: A case study of connectionist neuropsychology. Cognitive Neuropsychology, 10(5), 377–500.
+* Plaut, D. C., & Shallice, T. (1993). Deep dyslexia: A case study of connectionist neuropsychology. Cognitive Neuropsychology, 10(5), 377–500.
 
