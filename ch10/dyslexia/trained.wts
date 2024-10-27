@@ -7,7 +7,7 @@
 				"ActMAvg": "0.07916704",
 				"ActPAvg": "0.07916704"
 			},
-			"Prjns": [
+			"Paths": [
 				{
 					"From": "OShidden",
 					"MetaData": {
@@ -904,7 +904,7 @@
 				"ActMAvg": "0.20843874",
 				"ActPAvg": "0.20865318"
 			},
-			"Prjns": [
+			"Paths": [
 				{
 					"From": "Orthography",
 					"MetaData": {
@@ -1517,7 +1517,7 @@
 				"ActMAvg": "0.065608755",
 				"ActPAvg": "0.06712916"
 			},
-			"Prjns": [
+			"Paths": [
 				{
 					"From": "SPhidden",
 					"MetaData": {
@@ -3314,7 +3314,7 @@
 				"ActMAvg": "0.19114655",
 				"ActPAvg": "0.1913647"
 			},
-			"Prjns": [
+			"Paths": [
 				{
 					"From": "Orthography",
 					"MetaData": {
@@ -4179,7 +4179,7 @@
 				"ActMAvg": "0.19126166",
 				"ActPAvg": "0.19168341"
 			},
-			"Prjns": [
+			"Paths": [
 				{
 					"From": "Semantics",
 					"MetaData": {
@@ -5044,7 +5044,7 @@
 				"ActMAvg": "0.158078",
 				"ActPAvg": "0.15974551"
 			},
-			"Prjns": [
+			"Paths": [
 				{
 					"From": "OShidden",
 					"MetaData": {
