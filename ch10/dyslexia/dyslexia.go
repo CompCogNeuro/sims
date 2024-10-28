@@ -496,10 +496,10 @@ func (ss *Sim) TestAll() {
 }
 
 // LesionNet does lesion of network with given proportion of neurons damaged
-// 0 < prop < 1.
-func (ss *Sim) LesionNet(les LesionTypes, prop float32) { //types:add
+// 0 < proportion < 1.
+func (ss *Sim) LesionNet(les LesionTypes, proportion float32) { //types:add
 	ss.Lesion = les
-	ss.LesionProp = prop
+	ss.LesionProp = proportion
 	net := ss.Net
 	lesStep := float32(0.1)
 	if les == AllPartial {
@@ -512,7 +512,7 @@ func (ss *Sim) LesionNet(les LesionTypes, prop float32) { //types:add
 		}
 	} else {
 		ss.UnLesionNet(net)
-		ss.LesionNetImpl(net, les, prop)
+		ss.LesionNetImpl(net, les, proportion)
 	}
 }
 
@@ -748,6 +748,7 @@ func (ss *Sim) ConfigLogs() {
 	ss.Logs.SetMeta(etime.Test, etime.Epoch, "Type", "Bar")
 	ss.Logs.SetMeta(etime.Test, etime.Epoch, "XAxis", "Lesion")
 	ss.Logs.SetMeta(etime.Test, etime.Epoch, "XAxisRotation", "-45")
+	ss.Logs.SetMeta(etime.Test, etime.Epoch, "PctErr:On", "-")
 	cols := []string{"Vis", "Sem", "VisSem", "Blend", "Other"}
 	for _, cl := range cols {
 		ss.Logs.SetMeta(etime.Test, etime.Epoch, "Con"+cl+":On", "+")
@@ -886,7 +887,7 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 		},
 	})
 
-	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Lesion Net",
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Lesion",
 		Icon:    icons.Delete,
 		Tooltip: "lesion the network",
 		Active:  egui.ActiveAlways,
@@ -906,11 +907,21 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 	})
 
 	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Cluster Plot",
-		Icon:    icons.Reset,
+		Icon:    icons.BarChart,
 		Tooltip: "Generates a cluster plot of the semantic representations",
 		Active:  egui.ActiveAlways,
 		Func: func() {
 			ss.ClusterPlot()
+		},
+	})
+
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Reset Epoch Plot",
+		Icon:    icons.Reset,
+		Tooltip: "resets the Test Epoch Plot",
+		Active:  egui.ActiveAlways,
+		Func: func() {
+			ss.Logs.ResetLog(etime.Test, etime.Epoch)
+			ss.GUI.UpdatePlot(etime.Test, etime.Epoch)
 		},
 	})
 

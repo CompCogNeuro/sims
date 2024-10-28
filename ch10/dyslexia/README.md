@@ -20,11 +20,11 @@ You will see the activation flow through the network, and it should settle into 
 
 * Continue to `Test Step` through a few more words, paying particular attention to the timing of when the Phonological layer gets active relative to the Semantic one (you can always review to see this more clearly).  Then, do `Test Run` to test the remainder of the inputs.
 
-* Click on the `Test Trial Plot` tab to see a record of the network's performance on the full set of words. It should only make one "Other" error for the word "post".  Click on the `TstTrlLog` button in the left control panel, which pulls up a text table view of the same plot data.
-
-The `ConAbs` column shows whether this item is concrete (*Con*) or abstract (*Abs*) (`ConAbs`=0 for concrete, 1 for abstract), and the columns after that indicate what type of error the network makes: `Vis` = visual errors, `Sem` = semantic errors, `VisSem` = both, `Blend` = not a clearly pronounced word, `Other` = some other hard-to-categorize error.  Concrete words have more distinctive features, whereas abstract words have fewer, which impacts their relative susceptibility to lesions.
-
 > **Question 10.1:** Do you think the initial phonological activation is caused by the "direct" input via orthography or the "indirect" input via semantics? Did you see any cases where the initial phonological pattern is subsequently altered when the later input arrives?  Provide an example word where this happened.
+
+* Click on the `Test Trial Plot` tab to see a record of the network's performance on the full set of words. It should only make one "Other" error for the word "post".
+
+The `ConAbs` column (click the checkbox to view) shows whether this item is concrete (*Con*) or abstract (*Abs*) (`ConAbs`=0 for concrete, 1 for abstract), and the columns after that indicate what type of error the network makes: `Vis` = visual errors, `Sem` = semantic errors, `VisSem` = both, `Blend` = not a clearly pronounced word, `Other` = some other hard-to-categorize error.  Concrete words have more distinctive features, whereas abstract words have fewer, which impacts their relative susceptibility to lesions, as we'll see.
 
 # Reading with Complete Pathway Lesions
 
@@ -32,41 +32,41 @@ We next explore the network's ability to read with one of the two pathways to ph
 
 We begin by lesioning the semantic pathway.
 
-* Click the `Lesion` button in the toolbar at the top (*not* in the control panel on the left, which just reports which lesion was performed) and select `SemanticsFull` (leave Proportion = 0), and then do `Test Trial` (be sure *not* to hit `Init`, as this will initialize the weights -- just do `Open Trained Weights` and re-lesion if you do).
+* Go back to the `Network` tab and then click the `Lesion` button in the toolbar at the top (*not* in the control panel on the left, which just reports which lesion was performed) and select `Semantics full` (leave Proportion = 0), and then do `Test Init` and `Test Trial` (be sure *not* to hit `Init`, as this will initialize the weights -- just do `Open Trained Wts` and re-lesion if you do).
 
 You should see that only the direct pathway is activated, but likely it will still be able to produce the correct phonology output.  This does not actually remove any units or other network structure; it just flips a "lesion" (`Off`) flag that (reversibly) deactivates an entire layer. Note that by removing an entire pathway, we make the network rely on the remaining intact pathway. This means that the errors one would expect are those associated with the properties of the *intact* pathway, not the lesioned one. For example, lesioning the direct pathway makes the network rely on semantics, allowing for the possibility of semantic errors to the extent that the semantic pathway doesn't quite get things right without the assistance of the missing direct pathway. Completely lesioning the semantic pathway itself does *not* lead to semantically related errors -- there is no semantic information left for such errors to be based on! 
 
-* Do `Test All` to test all items, and look at the `Test Trial Plot` and `TstTrlLog` (just click the `Update` button to update the table view).  You can see a sum of all the testing results in the `TstEpcLog` which can be clicked in the control panel. This records a new row for each Test All run, along with the lesion and proportion setting.
+* Do `Test Run` to test all items, and look at the `Test Trial Plot` (you can click off all the bars and toggle each one on in turn to see them more clearly). You can see a sum of all the testing results in the `Test Epoch Plot` tab. This records a new row for each Test Run run, along with the lesion and proportion setting.
 
-> **Question 10.2:** How many times did the network with only the direct pathway (SemanticsFull lesion) make a reading mistake overall (you can count the number of 1's in the various error columns, or look at the `TstEpcLog` sums, in the last row)?  Notice that the network does not produce any blend outputs, indicating that the phonological output closely matched a known word.
+> **Question 10.2:** How many times did the network with only the direct pathway (SemanticsFull lesion) make a reading mistake overall (you can count the number of 1's in the various error columns, or look at the `Test Epoch Plot` sums, in the last row)?  Notice that the network does not produce any blend outputs, indicating that the phonological output closely matched a known word.
 
-For each of the errors, compare the word the network produced (`Phon`) with the input word (`TrialName`). If the produced word is very similar orthographically (and phonologically) to the input word, this is called a *visual* error, because the error is based on the visual properties instead of the semantic properties of the word. The simulation automatically scores errors as visual if the input orthography and the response orthography (determined from the response phonology) overlap by two or more letters. You should see this reflected in the Vis column in the Table.
+Click on the `Test Trial` tab, which shows the table of testing results per trial. For each of the categorized errors (i.e., where `Vis` or `Other` is 1 -- ignore the SSE through Err columns which show raw error), compare the word the network produced (`Phon`) with the input word (`TrialName`). If the produced word is very similar orthographically (and phonologically) to the input word, this is called a *visual* error, because the error is based on the visual properties instead of the semantic properties of the word. The simulation automatically scores errors as visual if the input orthography and the response orthography (determined from the response phonology) overlap by two or more letters. You should see this reflected in the Vis column in the Table.
 
 > **Question 10.3:** How many of the semantically lesioned network's errors were visual, broken down by concrete and abstract, and overall?
 
 Now, let's try the direct pathway lesion and retest the network.
 
-* Click `Lesion` in the toolbar at the top and select `DirectFull`, then do `TestAll` again.  Click `Update` in the tables to see the latest results.
+* Click `Lesion` in the toolbar at the top and select `Direct full`, then do `Test Init` and `Test Run` again. 
 
-> **Question 10.4:** What was the total number of errors this time, and how many of these errors were visual, semantic, visual semantic, blend, and "other" for the concrete versus abstract categories (as reported in `TstEpcLog`)?.
+> **Question 10.4:** What was the total number of errors this time, and how many of these errors were visual, semantic, visual semantic, blend, and "other" for the concrete versus abstract categories (as reported in `Test Epoch Plot`)?.  You may need to click `Unfilter` in the plot toolbar to get it to update.
 
 ![Semantics Cluster Plot](fig_dyslex_sem_clust.png?raw=true "Cluster Plot of Semantics similarity structure")
 
 **Figure 1:** Cluster plot of semantic similarity for words in the simple triangle model of reading and dyslexia, showing the major split between abstract (top) and concrete (bottom) clusters. Words that are semantically close (e.g., within the same terminal cluster) are sometimes confused for each other in simulated deep dyslexia.
 
-The simulation does automatic coding of semantic errors, but they are somewhat more difficult to code because of the variable amount of activity in each pattern. We use the criterion that if the input and response semantic representations overlap by .4 or more as measured by the *cosine* or *normalized inner product* between the patterns, then errors are scored as semantic. The cosine goes from 0 for totally non-overlapping patterns to 1 for completely overlapping ones. The value of .4 does a good job of including just the nearest neighbors in the cluster plot of semantic relationships (Figure 1). Nevertheless, because of the limited semantics, the automatically coded semantic errors do not always agree with our intuitions, which you might see if you check out the individual semantic errors in the `TstTrlLog`.
+The simulation does automatic coding of semantic errors, but they are somewhat more difficult to code because of the variable amount of activity in each pattern. We use the criterion that if the input and response semantic representations overlap by .4 or more as measured by the *cosine* or *normalized inner product* between the patterns, then errors are scored as semantic. The cosine goes from 0 for totally non-overlapping patterns to 1 for completely overlapping ones. The value of .4 does a good job of including just the nearest neighbors in the cluster plot of semantic relationships (Figure 1). Nevertheless, because of the limited semantics, the automatically coded semantic errors do not always agree with our intuitions, which you might see if you check out the individual semantic errors in the `Test Trial`.
 
 To summarize the results so far, we have seen that a lesion to the semantic pathway results in purely visual errors, while a lesion to the direct pathway results in a combination of visual and semantic errors. To a first order of approximation, this pattern is observed in surface and deep dyslexia, respectively. As simulated in the PMSP model, people with surface dyslexia are actually more likely to make errors on low-frequency irregular words, but we cannot examine this aspect of performance because frequency and regularity are not manipulated in our simple corpus of words. Thus, the critical difference for our model is that surface dyslexia does not involve semantic errors, while the deep dyslexia does. Visual errors are made in both cases.
 
 # Reading with Partial Pathway Lesions
 
-We next explore the effects of more realistic types of lesions that involve partial, random damage to the units in the various pathways, where we systematically vary the percentage of units damaged. There are six different lesion types, corresponding to damaging different layers in the semantic and direct pathways. For each type of lesion, one can specify the percent of units removed from the layer in question with the lesion_pct value. 
+We next explore the effects of more realistic types of lesions that involve partial, random damage to the units in the various pathways, where we systematically vary the percentage of units damaged. There are six different lesion types, corresponding to damaging different layers in the semantic and direct pathways. For each type of lesion, one can specify the percent of units removed from the layer in question with the `proportion` value. 
 
 The first two lesion types damage the semantic pathway hidden layers (OShidden and SPhidden), to simulate the effects of surface dyslexia. The next type damages the direct pathway (OPhidden), to simulate the effects of phonological dyslexia, and at high levels, deep dyslexia. The next two lesion types damage the semantic pathway hidden layers again (OShidden and SPhidden) but with a simultaneous complete lesion of the direct pathway, which corresponds to the model of deep dyslexia explored by [Plaut & Shallice (1993)](#references). Finally, the last lesion type damages the direct pathway hidden layer again (OPhidden) but with a simultaneous complete lesion of the semantic pathway, which should produce something like an extreme form of surface dyslexia. This last condition is included more for completeness than for any particular neuropsychological motivation.
 
 ## Semantic Pathway Lesions
 
-* Do `Lesion` (in the toolbar at the top) of type `OShidden` and `Proportion = .1`, and do `Test All` -- then play with different `Proportion` values.
+* Do `Lesion` (in the toolbar at the top) of type `OShidden` and `Proportion = .1`, and do `Test Run` -- then play with different `Proportion` values.
 
 ![Semantics Partial Lesions](fig_dyslex_partles_sem.png?raw=true "Partial Semantics Lesions")
 
@@ -76,7 +76,7 @@ You should observe that the network makes almost exclusively visual errors (like
 
 Your results should also show this general pattern of purely visual errors (or perhaps some "other" errors at high lesion levels), which is generally consistent with surface dyslexia, as expected. It is somewhat counterintuitive that semantic errors are not made when lesioning the semantic pathway, but remember that the intact direct pathway provides orthographic input directly to the phonological pathway. This input generally constrains the phonological output to be something related to the orthographic input, and it prevents any visually unrelated semantic errors from creeping in. In other words, any tendency toward semantic errors due to damage to the semantic pathway is preempted by the direct orthographic input. We will see that when this direct input is removed, semantic errors are indeed made.
 
-* Do some `SPhidden` lesions at various `Proportion` levels, and then look at the `TstEpcLog` results for SPhidden lesions.
+* Do some `SPhidden` lesions at various `Proportion` levels, and then look at the `Test Epoch Plot` results for SPhidden lesions.
 
 You should observe lots of visual errors, but interestingly, the network also makes a very small number of  semantic errors in this case. This is due to being much closer to the phonological output, such that the damage can have a more direct effect where incorrect semantic information influences the output.
 
