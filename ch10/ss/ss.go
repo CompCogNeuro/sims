@@ -11,13 +11,15 @@ package main
 
 import (
 	"embed"
-	"fmt"
+	"strings"
 
 	"cogentcore.org/core/base/errors"
 	"cogentcore.org/core/base/randx"
 	"cogentcore.org/core/core"
 	"cogentcore.org/core/icons"
 	"cogentcore.org/core/math32"
+	"cogentcore.org/core/tensor"
+	"cogentcore.org/core/tensor/stats/metric"
 	"cogentcore.org/core/tensor/table"
 	"cogentcore.org/core/tree"
 	"github.com/emer/emergent/v2/econfig"
@@ -427,6 +429,7 @@ func (ss *Sim) ApplyInputs() {
 		ss.Stats.SetString("TrialName", evi.(*env.FreqTable).TrialName.Cur)
 	} else {
 		ss.Stats.SetString("TrialName", evi.(*env.FixedTable).TrialName.Cur)
+		ss.Stats.SetString("Type", evi.(*env.FixedTable).GroupName.Cur)
 	}
 
 	lays := net.LayersByType(leabra.InputLayer, leabra.TargetLayer)
@@ -481,9 +484,10 @@ func (ss *Sim) RunTestAll() {
 // called at start of new run
 func (ss *Sim) InitStats() {
 	ss.Stats.SetFloat("SSE", 0.0)
-	ss.Stats.SetInt("Cat", 0)
-	ss.Stats.SetString("Cat", "0")
-	ss.Stats.SetString("TrialName", "0")
+	ss.Stats.SetString("TrialName", "")
+	ss.Stats.SetString("Type", "")
+	ss.Stats.SetString("Phon", "")
+	ss.Stats.SetFloat("PhonSSE", 0.0)
 	ss.Logs.InitErrStats() // inits TrlErr, FirstZero, LastZero, NZero
 }
 
@@ -499,8 +503,6 @@ func (ss *Sim) StatCounters() {
 	trl := ss.Stats.Int("Trial")
 	ss.Stats.SetInt("Trial", trl)
 	ss.Stats.SetInt("Cycle", int(ctx.Cycle))
-	ss.Stats.SetString("TrialName", ss.Stats.String("TrialName"))
-	ss.Stats.SetString("Cat", fmt.Sprintf("%02d", ss.Stats.Int("Cat")))
 }
 
 func (ss *Sim) NetViewCounters(tm etime.Times) {
@@ -511,7 +513,7 @@ func (ss *Sim) NetViewCounters(tm etime.Times) {
 		ss.TrialStats() // get trial stats for current di
 	}
 	ss.StatCounters()
-	ss.ViewUpdate.Text = ss.Stats.Print([]string{"Run", "Epoch", "Trial", "Cat", "TrialName", "Cycle", "SSE", "TrlErr"})
+	ss.ViewUpdate.Text = ss.Stats.Print([]string{"Run", "Epoch", "Trial", "Type", "TrialName", "Phon", "Cycle", "SSE", "TrlErr"})
 }
 
 // TrialStats computes the trial-level statistics.
@@ -522,8 +524,91 @@ func (ss *Sim) TrialStats() {
 	sse, avgsse := out.MSE(0.5) // 0.5 = per-unit tolerance -- right side of .5
 	ss.Stats.SetFloat("SSE", sse)
 	ss.Stats.SetFloat("AvgSSE", avgsse)
-	// ev := ss.Envs.ByMode(ctx.Mode).(*LEDEnv)
+	trlnm := ss.Stats.String("TrialName")
+
+	phon, psse := ss.Pronounce(ss.Net)
+	ss.Stats.SetString("Phon", phon)
+	ss.Stats.SetFloat("PhonSSE", psse)
+	spnm := strings.Split(trlnm, "_")
+	if phon == spnm[2] {
+		ss.Stats.SetFloat("TrlErr", 0)
+	} else {
+		ss.Stats.SetFloat("TrlErr", 1)
+	}
 }
+
+// Pronounce returns the pronunciation of the phonological output layer
+func (ss *Sim) Pronounce(net emer.Network) (string, float64) {
+	tsr := ss.Stats.SetLayerTensor(net, "Phon", "ActM", 0)
+	ccol := errors.Log1(ss.PhonCons.ColumnByName("Phon")).(*tensor.Float32)
+	vcol := errors.Log1(ss.PhonVowel.ColumnByName("Phon")).(*tensor.Float32)
+	sseTol := float32(10.0)
+	totSSE := float32(0.0)
+	ph := ""
+	for pi := 0; pi < 7; pi++ {
+		cvt := tsr.SubSpace([]int{0, pi}).(*tensor.Float32)
+		nm := ""
+		sse := float32(0.0)
+		row := 0
+		if pi == 3 { // vowel
+			row, sse = metric.ClosestRow32(cvt, vcol, metric.SumSquaresBinTol32)
+			nm = ss.PhonVowel.StringValue("Name", row)
+		} else {
+			row, sse = metric.ClosestRow32(cvt, ccol, metric.SumSquaresBinTol32)
+			nm = ss.PhonCons.StringValue("Name", row)
+		}
+		if sse > sseTol {
+			nm = "X"
+		}
+		ph += nm
+		totSSE += sse
+	}
+	return ph, float64(totSSE)
+}
+
+/*
+func (ss *Sim) LogTstEpc(dt *etable.Table) {
+	row := dt.Rows
+	dt.SetNumRows(row + 1)
+
+	trl := ss.TstTrlLog
+	epc := ss.TrainEnv.Epoch.Prv // ?
+	tix := etable.NewIndexView(trl)
+	spl := split.GroupBy(tix, []string{"TrialName"})
+	split.Agg(spl, "TrlNameErr", agg.AggMin)
+	split.Agg(spl, "RTCycles", agg.AggMean)
+	minerr := spl.AggsToTableCopy(etable.ColNameOnly)
+
+	trlerr := minerr.ColByName("TrlNameErr")
+	// noerr := etable.NewIndexView(minerr)
+	// noerr.Filter(func(et *etable.Table, row int) bool {
+	// 	// filter return value is for what to *keep* (=true), not exclude
+	// 	// here we keep any row with a name that contains the string "in"
+	// 	return trlerr.FloatValue1D(row) == 0
+	// })
+	allerr := etable.NewIndexView(minerr)
+	allerr.Filter(func(et *etable.Table, row int) bool {
+		// filter return value is for what to *keep* (=true), not exclude
+		// here we keep any row with a name that contains the string "in"
+		return trlerr.FloatValue1D(row) > 0
+	})
+	ss.TstErrLog = allerr.NewTable()
+
+	rtspl := split.GroupBy(tix, []string{"Type"})
+	split.Agg(rtspl, "RTCycles", agg.AggMean)
+	split.Agg(rtspl, "RTCycles", agg.AggSem)
+	ss.TstRTStats = rtspl.AggsToTable(etable.AddAggName)
+	ss.ConfigTstRTPlot(ss.TstRTPlot, ss.TstRTStats)
+
+	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
+	dt.SetCellFloat("Epoch", row, float64(epc))
+	dt.SetCellString("TestEnv", row, ss.TestingEnv.String())
+	dt.SetCellFloat("PctCor", row, 1-float64(ss.TstErrLog.Rows)/float64(minerr.Rows))
+
+	// note: essential to use Go version of update when called from another goroutine
+	ss.TstEpcPlot.GoUpdate()
+}
+*/
 
 //////////////////////////////////////////////////////////////////////////////
 // 		Logging
@@ -534,16 +619,15 @@ func (ss *Sim) ConfigLogs() {
 	ss.Logs.AddCounterItems(etime.Run, etime.Epoch, etime.Trial, etime.Cycle)
 	ss.Logs.AddPerTrlMSec("PerTrlMSec", etime.Run, etime.Epoch, etime.Trial)
 	ss.Logs.AddStatStringItem(etime.AllModes, etime.AllTimes, "RunName")
+	ss.Logs.AddStatStringItem(etime.AllModes, etime.Trial, "Type")
 	ss.Logs.AddStatStringItem(etime.AllModes, etime.Trial, "TrialName")
+	ss.Logs.AddStatStringItem(etime.AllModes, etime.Trial, "Phon")
 
 	ss.Logs.AddStatAggItem("SSE", etime.Run, etime.Epoch, etime.Trial)
 	ss.Logs.AddStatAggItem("AvgSSE", etime.Run, etime.Epoch, etime.Trial)
+	ss.Logs.AddStatAggItem("PhonSSE", etime.Run, etime.Epoch, etime.Trial)
 	ss.Logs.AddErrStatAggItems("TrlErr", etime.Run, etime.Epoch, etime.Trial)
 
-	ss.Logs.AddCopyFromFloatItems(etime.Train, []etime.Times{etime.Epoch, etime.Run}, etime.Test, etime.Epoch, "Tst", "SSE", "PctCor", "PctErr")
-
-	// layers := ss.Net.LayersByType(leabra.SuperLayer, leabra.TargetLayer)
-	// leabra.LogAddDiagnosticItems(&ss.Logs, layers, etime.Train, etime.Epoch, etime.Trial)
 	leabra.LogInputLayer(&ss.Logs, ss.Net, etime.Train)
 
 	ss.Logs.AddLayerTensorItems(ss.Net, "Act", etime.Test, etime.Trial, "TargetLayer")

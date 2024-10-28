@@ -10,7 +10,7 @@ This is a large network, and it takes at least several 10's of mins or longer to
 
 # Phonology Patterns
 
-The following two figures show the phonological patterns for the pools in the `Output` layer, with the specific phonological features shown in the lower right hand corner.  
+The following two figures show the phonological patterns for the pools in the `Phon` output layer, with the specific phonological features shown in the lower right hand corner.  
 
 <img src="fig_pmsp_cons_pats.png" height="500px" title="Consonant Phonology Patterns">
 
@@ -24,13 +24,13 @@ The following two figures show the phonological patterns for the pools in the `O
 
 First, we will see that the network can read words that are presented to it, using a standard list of probe words developed by [Taraban & McClelland, 1987](#references).
 
-* Note that the `TestingEnv` in the control panel is set to `Probe`, which is this set of words.  Do `Test Trial` in the toolbar.
+* Note that the `Testing env` in the control panel is set to `Probe`, which is this set of words.  Do `Test Init` and `Test` `Step Trial` in the toolbar.
 
 The first word the network reads is "best," presented at the left-most edge of the input. You can read this word from the Ortho-graphy input layer from the individual letters within each of the 4 activated 3x9 slots. Each of these slots corresponds to one location and contains 26 units corresponding to one of the 26 letters of the alphabet (with one extra unused unit), organized from the bottom-left to upper-right as usual. To familiarize yourself with the layout of the input patterns, verify that "best" is in fact the pattern presented. 
 
-The `TrlPhon` entry in the control panel decodes the Phon-ological output, by matching each phonological slot output pattern with the patterns for each of the consonants and vowels. A capital X indicates that the pattern does not exactly match any of the correct outputs. If you run the test prior to doing LoadWeights, it will be all X's. You should see that `TrlPhon` says `bbbestt` which is the correct repeated-consonant response for this word. If you want, you can look at the patterns in the `PhonConsPats` and `PhonVowelPats` tables and compare those with the outputs to see exactly how this information is encoded in the network. 
+The phonological decoding of the output layer is recorded in the `Phon` value at the bottom of the network display, right after the `TrialName` showing the input pattern. The decoding matches each phonological slot output pattern with the patterns for each of the consonants and vowels. A capital X indicates that the pattern does not exactly match any of the correct outputs. You should see that `Phon` says `bbbestt` which is the correct repeated-consonant response for this word. If you want, you can look at the patterns in the `PhonCons` and `PhonVowel` tables and compare those with the outputs to see exactly how this information is encoded in the network. 
 
-Also shown in the information just under the network, in the `Name` field, is a code for the type of word (which depends on the different testing sets) -- for this Probe test set, the codes are:
+Also shown in the information just under the network, in the `Type` field, is a code for the type of word (which depends on the different testing sets) -- for this Probe test set, the codes are:
 
 * HRC -- High freq regular consistent (e.g., best)
 * HRI -- High freq regular inconsistent (e.g., bone, cf., done)
@@ -53,7 +53,7 @@ You can continue to observe the network's performance. Although you may observe 
 
 Now, let's explore the connectivity and weights of the trained network.
 
-* Click on `r.Wt` in the network view and click on some units on the left hand side of the `OrthoCode` layer, and then throughout the layer.
+* Click on `Wts / r.Wt` in the network view and click on some units on the left hand side of the `OrthoCode` layer, and then throughout the layer.
 
 Notice that the left-most units receive from the left-most 3 letter slots, where each letter slot is a 3x9 pool of units. As you progress to the right in the OrthoCode pools, the units receive from overlapping pools of 3 letter slots.
 
@@ -75,7 +75,7 @@ There are several important lessons from looking at the weights. First, the netw
 
 We next test the network's ability to *generalize* by pronouncing nonwords that exploit the regularities in the spelling to sound mapping. A number of nonword sets exist in the literature -- we use three sets that PMSP used to test their model. The first set of nonwords is comprised of two lists, the first derived from regular words, the second from exception words [(Glushko, 1979)](#references). The second set was constructed to determine if nonwords that are homophones for actual words are pronounced better than those which are not, so the set is also comprised of two lists, a control list and a homophone list [(McCann & Besner, 1987)](#references). The third set of nonwords were derived from the regular and exception probe word lists that we used to test the network earlier [(Taraban & McClelland, 1987)](#references).
 
-* Return to viewing the `Act` variable in the NetView, set `TestingEnv` to `Glushko`, do `Test All` then quickly hit `Stop` (the `Test All` sets the actual testing environment and resets to start of that).
+* Return to viewing the `Act` variable in the NetView, set `Testing env` to `Glushko`, do `Test Init` then `Test Step`.
 
 You should see that network correctly pronounced the nonword "beed" by producing bbbEddd as the output.
 
@@ -94,7 +94,7 @@ You should see that network correctly pronounced the nonword "beed" by producing
 
 The total percentages for both our model, PMSP (where reported) and the comparable human data are shown in Table 1 in the Language Chapter (reproduced above). Clearly, the present model is performing at roughly the same level as both humans and the PMSP model. Thus, we can conclude that the network is capable of extracting the often complex and subtle underlying regularities and subregularities present in the mapping of spelling to sound in English monosyllables, and applying these to nonwords in a way that matches what people tend to do.
 
-* You can press `Test All` for each `TestingEnv` and click on the `TstEpcPlot` to see a plot of the overall generalization performance, and the `TstErrLog` table shows the errors for each case.
+* You can press `Test Run` for each `Testing env` and click on the `Test Epoch Plot` to see a plot of the overall generalization performance, and the `TstErrLog` table shows the errors for each case.
 
 We tried to determine for each error why the network might have produced the output it did. In many cases, this output reflected a valid pronunciation present in the training set, but it just didn't happen to be the pronunciation that the list-makers chose. This was particularly true for the Glushko (1979) exception list (for the network and for people). Also, the McCann & Besner (1987) lists contain four words that have a "j" in the final set of phonemes after the vowel (the *coda*), `faije`,  `jinje`, `waije`, `binje`, which never occurs in the training set (i.e., in the entire corpus of English monosyllabic words). These words were excluded by PMSP, and we discount them here too. Nevertheless, the network did sometimes get these words correct.
 
