@@ -20,7 +20,10 @@ import (
 	"cogentcore.org/core/math32"
 	"cogentcore.org/core/tensor"
 	"cogentcore.org/core/tensor/stats/metric"
+	"cogentcore.org/core/tensor/stats/split"
+	"cogentcore.org/core/tensor/stats/stats"
 	"cogentcore.org/core/tensor/table"
+	"cogentcore.org/core/tensor/tensorcore"
 	"cogentcore.org/core/tree"
 	"github.com/emer/emergent/v2/econfig"
 	"github.com/emer/emergent/v2/egui"
@@ -124,6 +127,9 @@ type Config struct {
 	// how often to run through all the test patterns, in terms of training epochs.
 	// can use 0 or -1 for no testing.
 	TestInterval int `default:"-1"`
+
+	// RTThreshold is the threshold for change in max activity level from once cycle to the next
+	RTThreshold float32 `default:"0.000001"`
 }
 
 // Sim encapsulates the entire simulation model, and we define all the
@@ -395,10 +401,6 @@ func (ss *Sim) ConfigLoops() {
 	/////////////////////////////////////////////
 	// Logging
 
-	man.GetLoop(etime.Test, etime.Epoch).OnEnd.Add("LogTestErrors", func() {
-		leabra.LogTestErrors(&ss.Logs)
-	})
-
 	man.AddOnEndToAll("Log", ss.Log)
 	leabra.LooperResetLogBelow(man, &ss.Logs)
 
@@ -431,6 +433,8 @@ func (ss *Sim) ApplyInputs() {
 		ss.Stats.SetString("TrialName", evi.(*env.FixedTable).TrialName.Cur)
 		ss.Stats.SetString("Type", evi.(*env.FixedTable).GroupName.Cur)
 	}
+	ss.Stats.SetFloat("RT", 100)
+	ss.Stats.SetFloat("MaxAct", 0)
 
 	lays := net.LayersByType(leabra.InputLayer, leabra.TargetLayer)
 	for _, lnm := range lays {
@@ -484,6 +488,8 @@ func (ss *Sim) RunTestAll() {
 // called at start of new run
 func (ss *Sim) InitStats() {
 	ss.Stats.SetFloat("SSE", 0.0)
+	ss.Stats.SetFloat("AvgSSE", 0.0)
+	ss.Stats.SetFloat("RT", 0.0)
 	ss.Stats.SetString("TrialName", "")
 	ss.Stats.SetString("Type", "")
 	ss.Stats.SetString("Phon", "")
@@ -566,49 +572,45 @@ func (ss *Sim) Pronounce(net emer.Network) (string, float64) {
 	return ph, float64(totSSE)
 }
 
-/*
-func (ss *Sim) LogTstEpc(dt *etable.Table) {
-	row := dt.Rows
-	dt.SetNumRows(row + 1)
+func (ss *Sim) TestEpochStats() {
+	dt := ss.Logs.Table(etime.Test, etime.Trial)
+	if dt == nil {
+		return
+	}
+	tix := table.NewIndexView(dt)
+	spl := split.GroupBy(tix, "TrialName")
+	split.AggColumn(spl, "Err", stats.Min)
+	split.AggColumn(spl, "RT", stats.Mean)
+	minerr := spl.AggsToTableCopy(table.ColumnNameOnly)
+	ss.Logs.MiscTables["MinErr"] = minerr
 
-	trl := ss.TstTrlLog
-	epc := ss.TrainEnv.Epoch.Prv // ?
-	tix := etable.NewIndexView(trl)
-	spl := split.GroupBy(tix, []string{"TrialName"})
-	split.Agg(spl, "TrlNameErr", agg.AggMin)
-	split.Agg(spl, "RTCycles", agg.AggMean)
-	minerr := spl.AggsToTableCopy(etable.ColNameOnly)
-
-	trlerr := minerr.ColByName("TrlNameErr")
-	// noerr := etable.NewIndexView(minerr)
-	// noerr.Filter(func(et *etable.Table, row int) bool {
-	// 	// filter return value is for what to *keep* (=true), not exclude
-	// 	// here we keep any row with a name that contains the string "in"
-	// 	return trlerr.FloatValue1D(row) == 0
-	// })
-	allerr := etable.NewIndexView(minerr)
-	allerr.Filter(func(et *etable.Table, row int) bool {
-		// filter return value is for what to *keep* (=true), not exclude
-		// here we keep any row with a name that contains the string "in"
-		return trlerr.FloatValue1D(row) > 0
+	allerr := table.NewIndexView(minerr)
+	allerr.Filter(func(et *table.Table, row int) bool {
+		return et.Float("Err", row) > 0
 	})
-	ss.TstErrLog = allerr.NewTable()
+	at := allerr.NewTable()
+	ss.Logs.MiscTables["Errors"] = at
+	tv := ss.GUI.TableViews[etime.ScopeKey("Errors")]
+	tv.SetTable(at)
+	tv.AsyncUpdateTable()
 
-	rtspl := split.GroupBy(tix, []string{"Type"})
-	split.Agg(rtspl, "RTCycles", agg.AggMean)
-	split.Agg(rtspl, "RTCycles", agg.AggSem)
-	ss.TstRTStats = rtspl.AggsToTable(etable.AddAggName)
-	ss.ConfigTstRTPlot(ss.TstRTPlot, ss.TstRTStats)
+	rtspl := split.GroupBy(tix, "Type")
+	split.AggColumn(rtspl, "RT", stats.Mean)
+	split.AggColumn(rtspl, "RT", stats.Sem)
+	rt := rtspl.AggsToTable(table.AddAggName)
+	ss.Logs.MiscTables["RT"] = rt
 
-	dt.SetCellFloat("Run", row, float64(ss.TrainEnv.Run.Cur))
-	dt.SetCellFloat("Epoch", row, float64(epc))
-	dt.SetCellString("TestEnv", row, ss.TestingEnv.String())
-	dt.SetCellFloat("PctCor", row, 1-float64(ss.TstErrLog.Rows)/float64(minerr.Rows))
+	plt := ss.GUI.Plots[etime.ScopeKey("RT")]
+	rt.SetMetaData("XAxis", "Type")
+	rt.SetMetaData("Type", "Bar")
+	rt.SetMetaData("RT:Mean:On", "+")
+	rt.SetMetaData("RT:Mean:FixMin", "true")
+	rt.SetMetaData("RT:Mean:Min", "0")
+	rt.SetMetaData("RT:Mean:ErrColumn", "RT:Sem")
 
-	// note: essential to use Go version of update when called from another goroutine
-	ss.TstEpcPlot.GoUpdate()
+	plt.SetTable(rt)
+	plt.GoUpdatePlot()
 }
-*/
 
 //////////////////////////////////////////////////////////////////////////////
 // 		Logging
@@ -618,7 +620,6 @@ func (ss *Sim) ConfigLogs() {
 
 	ss.Logs.AddCounterItems(etime.Run, etime.Epoch, etime.Trial, etime.Cycle)
 	ss.Logs.AddPerTrlMSec("PerTrlMSec", etime.Run, etime.Epoch, etime.Trial)
-	ss.Logs.AddStatStringItem(etime.AllModes, etime.AllTimes, "RunName")
 	ss.Logs.AddStatStringItem(etime.AllModes, etime.Trial, "Type")
 	ss.Logs.AddStatStringItem(etime.AllModes, etime.Trial, "TrialName")
 	ss.Logs.AddStatStringItem(etime.AllModes, etime.Trial, "Phon")
@@ -627,22 +628,24 @@ func (ss *Sim) ConfigLogs() {
 	ss.Logs.AddStatAggItem("AvgSSE", etime.Run, etime.Epoch, etime.Trial)
 	ss.Logs.AddStatAggItem("PhonSSE", etime.Run, etime.Epoch, etime.Trial)
 	ss.Logs.AddErrStatAggItems("TrlErr", etime.Run, etime.Epoch, etime.Trial)
+	ss.Logs.AddStatAggItem("RT", etime.Run, etime.Epoch, etime.Trial)
 
 	leabra.LogInputLayer(&ss.Logs, ss.Net, etime.Train)
 
 	ss.Logs.AddLayerTensorItems(ss.Net, "Act", etime.Test, etime.Trial, "TargetLayer")
 
-	ss.Logs.PlotItems("PctErr")
+	ss.Logs.PlotItems("RT", "PctErr")
 
 	ss.Logs.CreateTables()
 	ss.Logs.SetContext(&ss.Stats, ss.Net)
 	// don't plot certain combinations we don't use
 	ss.Logs.NoPlot(etime.Train, etime.Cycle)
+	ss.Logs.NoPlot(etime.Train, etime.Run)
 	ss.Logs.NoPlot(etime.Test, etime.Cycle)
+	ss.Logs.NoPlot(etime.Test, etime.Epoch)
 	ss.Logs.NoPlot(etime.Test, etime.Run)
 	// note: Analyze not plotted by default
-	ss.Logs.SetMeta(etime.Train, etime.Run, "LegendCol", "RunName")
-	ss.Logs.SetMeta(etime.Test, etime.Epoch, "Type", "Bar")
+	ss.Logs.SetMeta(etime.Test, etime.Trial, "Err:On", "+")
 }
 
 // Log is the main logging function, handles special things for different scopes
@@ -655,12 +658,25 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 
 	switch {
 	case time == etime.Cycle:
+		rtc := ss.Stats.Float("RT")
+		if rtc == 100 {
+			pmax := ss.Stats.Float32("MaxAct")
+			phn := ss.Net.LayerByName("Phon")
+			mxact := phn.Pools[0].Inhib.Act.Max
+			da := math32.Abs(mxact - pmax)
+			ss.Stats.SetFloat32("MaxAct", mxact)
+			if mxact > 0.5 && da < ss.Config.RTThreshold {
+				ss.Stats.SetFloat("RT", float64(ss.Context.Cycle))
+			}
+		}
 		return
 	case time == etime.Trial:
 		ss.TrialStats()
 		ss.StatCounters()
 		ss.Logs.LogRow(mode, time, row)
 		return // don't do reg below
+	case time == etime.Epoch && mode == etime.Test:
+		ss.TestEpochStats()
 	}
 
 	ss.Logs.LogRow(mode, time, row) // also logs to file, etc
@@ -687,6 +703,26 @@ func (ss *Sim) ConfigGUI() {
 	ss.GUI.ViewUpdate = &ss.ViewUpdate
 
 	ss.GUI.AddPlots(title, &ss.Logs)
+
+	gui := &ss.GUI
+	if gui.TableViews == nil {
+		gui.TableViews = make(map[etime.ScopeKey]*tensorcore.Table)
+	}
+	stnm := "Errors"
+	dt := ss.Logs.MiscTable(stnm)
+	key := etime.ScopeKey(stnm)
+	tt, _ := gui.Tabs.NewTab(stnm)
+	tv := tensorcore.NewTable(tt)
+	gui.TableViews[key] = tv
+	tv.SetReadOnly(true)
+	tv.SetTable(dt)
+
+	stnm = "RT"
+	dt = ss.Logs.MiscTable(stnm)
+	plt := ss.GUI.NewPlotTab(etime.ScopeKey(stnm), stnm+" Plot")
+	plt.Options.Title = "Reaction Time by Type"
+	plt.Options.XAxis = "Type"
+	plt.SetTable(dt)
 
 	ss.GUI.FinalizeGUI(false)
 }
