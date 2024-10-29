@@ -10,7 +10,7 @@ The model simulates a small patch of the LGN to V1 network, which processes a co
 
 You will notice that the network has the two input layers, each 12x12 in size, one representing a small patch of on-center LGN neurons (`LGNon`), and the other representing a similar patch of off-center LGN neurons (`LGNoff`). Specific input patterns are produced by randomly sampling a patch from a set of four larger (800x600 pixels) images of natural scenes (you can view these scenes by clicking on the images `v1rf_img1.jpg`, etc in this directory in your file browser). The single V1 layer is 14x14 in size.
 
-* Let's examine the weights of the Network by clicking on `Wts / r.Wt` and then on a V1 unit.
+* Let's examine the weights of the Network by clicking on `Wts` -> `r.Wt` and then on a V1 unit.
 
 You should observe that the unit is fully, randomly connected with the input layers, and that it has a circular *neighborhood* of lateral excitatory (*recurrent*) connectivity, which is key for inducing topographic representations. We have also added a lateral inhibitory projection, with 0 initial weights, which learns (as do the excitatory lateral connections) -- these two lateral projections allow the model to develop more complex topographic representations compared to a single fixed excitatory projection.
 
