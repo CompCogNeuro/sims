@@ -66,7 +66,7 @@ This will bring up a table containing 4 inputs, each of which represents an edge
 
 Now, let's present these patterns to the network.
 
-* Select `Act` in the Network window, then do `Test Trial` in the toolbar, and continue to `Test Trial` through the next 3 events, and note the relationship in each case to the weight-based receptive fields shown in the V1 RFs plot.
+* Select `Act` in the Network window, then do `Step` `Trial` in the toolbar (to the right of `Test Run`, and continue to `Step` Trial` through the next 3 events, and note the relationship in each case to the weight-based receptive fields shown in the V1 RFs plot.
 
 You should observe that the units that coded for the orientation and directionality of the probe were activated.
 
