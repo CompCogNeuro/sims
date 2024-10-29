@@ -682,8 +682,7 @@ func (ss *Sim) NetViewCounters(tm etime.Times) {
 
 func (ss *Sim) ConfigLogs() {
 	ss.Logs.AddCounterItems(etime.Epoch, etime.Trial, etime.Cycle)
-	ss.Logs.AddStatStringItem(etime.Test, etime.Trial, "GroupName")
-	ss.Logs.AddStatStringItem(etime.Test, etime.Trial, "TrialName")
+	ss.Logs.AddStatStringItem(etime.Test, etime.Trial, "GroupName", "TrialName")
 
 	ss.Logs.AddStatAggItem("RT", etime.Epoch, etime.Trial)
 

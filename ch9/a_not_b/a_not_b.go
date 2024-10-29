@@ -521,9 +521,7 @@ func (ss *Sim) ConfigLogs() {
 	ss.Stats.SetString("RunName", ss.Params.RunName(0)) // used for naming logs, stats, etc
 
 	ss.Logs.AddCounterItems(etime.Run, etime.Epoch, etime.Trial, etime.Cycle)
-	// ss.Logs.AddStatStringItem(etime.AllModes, etime.AllTimes, "RunName")
-	ss.Logs.AddStatStringItem(etime.AllModes, etime.Trial, "TrialName")
-	ss.Logs.AddStatStringItem(etime.AllModes, etime.Trial, "GroupName")
+	ss.Logs.AddStatStringItem(etime.AllModes, etime.Trial, "TrialName", "GroupName")
 
 	ss.Logs.AddPerTrlMSec("PerTrlMSec", etime.Run, etime.Epoch, etime.Trial)
 

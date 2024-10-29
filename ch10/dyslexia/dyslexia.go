@@ -702,8 +702,7 @@ func (ss *Sim) ConfigLogs() {
 	ss.Stats.SetString("RunName", ss.Params.RunName(0)) // used for naming logs, stats, etc
 
 	ss.Logs.AddCounterItems(etime.Run, etime.Epoch, etime.Trial, etime.Cycle)
-	ss.Logs.AddStatStringItem(etime.AllModes, etime.Trial, "TrialName")
-	ss.Logs.AddStatStringItem(etime.AllModes, etime.Trial, "Word")
+	ss.Logs.AddStatStringItem(etime.AllModes, etime.Trial, "TrialName", "World")
 	ss.Logs.AddStatStringItem(etime.Test, etime.Trial, "Phon")
 	ss.Logs.AddStatStringItem(etime.Test, etime.Epoch, "Lesion")
 	ss.Logs.AddStatFloatNoAggItem(etime.Test, etime.Epoch, "LesionProp")

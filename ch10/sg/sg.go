@@ -16,15 +16,15 @@ package main
 
 import (
 	"embed"
+	"math"
 	"strings"
 
 	"cogentcore.org/core/base/errors"
 	"cogentcore.org/core/base/randx"
 	"cogentcore.org/core/core"
 	"cogentcore.org/core/icons"
-	"cogentcore.org/core/tensor"
+	"cogentcore.org/core/math32"
 	"cogentcore.org/core/tensor/stats/clust"
-	"cogentcore.org/core/tensor/stats/metric"
 	"cogentcore.org/core/tensor/table"
 	"cogentcore.org/core/tree"
 	"github.com/emer/emergent/v2/econfig"
@@ -39,7 +39,6 @@ import (
 	"github.com/emer/emergent/v2/params"
 	"github.com/emer/emergent/v2/paths"
 	"github.com/emer/leabra/v2/leabra"
-	"gonum.org/v1/gonum/mat"
 )
 
 //go:embed trained.wts sg_rules.txt sg_tests.txt sg_probes.txt
@@ -234,13 +233,18 @@ func (ss *Sim) ConfigAll() {
 
 func (ss *Sim) ConfigEnv() {
 	// Can be called multiple times -- don't re-create
-	var trn, tst *SentGenEnv
+	var trn, tst, probe *SentGenEnv
+	var nprobe *ProbeEnv
 	if len(ss.Envs) == 0 {
 		trn = &SentGenEnv{}
 		tst = &SentGenEnv{}
+		probe = &SentGenEnv{}
+		nprobe = &ProbeEnv{}
 	} else {
 		trn = ss.Envs.ByMode(etime.Train).(*SentGenEnv)
 		tst = ss.Envs.ByMode(etime.Test).(*SentGenEnv)
+		probe = ss.Envs.ByMode(etime.Validate).(*SentGenEnv)
+		nprobe = ss.Envs.ByMode(etime.Analyze).(*ProbeEnv)
 	}
 
 	// note: names must be standard here!
@@ -269,11 +273,29 @@ func (ss *Sim) ConfigEnv() {
 	tst.AmbigNouns = SGAmbigNouns
 	tst.Validate()
 
+	probe.Name = etime.Validate.String()
+	probe.Seq.Max = 17
+	probe.OpenRulesFromAsset("sg_probes.txt")
+	// probe.Rules.OpenRules("sg_probes.txt")
+	probe.PPassive = 0 // passive explicitly marked
+	probe.Words = SGWords
+	probe.Roles = SGRoles
+	probe.Fillers = SGFillers
+	probe.WordTrans = SGWordTrans
+	probe.AmbigVerbs = SGAmbigVerbs
+	probe.AmbigNouns = SGAmbigNouns
+	probe.Validate()
+
+	nprobe.Name = etime.Analyze.String()
+	nprobe.Words = SGWords
+
 	trn.Init(0)
 	tst.Init(0)
+	probe.Init(0)
+	nprobe.Init(0)
 
 	// note: names must be in place when adding
-	ss.Envs.Add(trn, tst)
+	ss.Envs.Add(trn, tst, probe, nprobe)
 }
 
 func (ss *Sim) ConfigNet(net *leabra.Network) {
@@ -422,7 +444,17 @@ func (ss *Sim) ConfigLoops() {
 
 	man.AddStack(etime.Test).
 		AddTime(etime.Epoch, 1).
-		AddTime(etime.Trial, trls).
+		AddTime(etime.Trial, 117).
+		AddTime(etime.Cycle, 100)
+
+	man.AddStack(etime.Validate).
+		AddTime(etime.Epoch, 1).
+		AddTime(etime.Trial, 96).
+		AddTime(etime.Cycle, 100)
+
+	man.AddStack(etime.Analyze).
+		AddTime(etime.Epoch, 1).
+		AddTime(etime.Trial, 50).
 		AddTime(etime.Cycle, 100)
 
 	leabra.LooperStdPhases(man, &ss.Context, ss.Net, 75, 99)                // plus phase timing
@@ -486,8 +518,8 @@ func (ss *Sim) ConfigLoops() {
 func (ss *Sim) ApplyInputs() {
 	ctx := &ss.Context
 	net := ss.Net
-	ev := ss.Envs.ByMode(ctx.Mode).(*SentGenEnv)
-	ev.Step()
+	evi := ss.Envs.ByMode(ctx.Mode)
+	evi.Step()
 
 	out := ss.Net.LayerByName("Filler")
 	if ctx.Mode == etime.Test {
@@ -496,12 +528,28 @@ func (ss *Sim) ApplyInputs() {
 		out.Type = leabra.TargetLayer
 	}
 
+	ev, ok := evi.(*SentGenEnv)
+	if ok {
+		cur := ev.CurInputs()
+
+		ss.Stats.SetString("Input", cur[0])
+		ss.Stats.SetString("Role", cur[1])
+		ss.Stats.SetString("Filler", cur[2])
+		ss.Stats.SetString("QType", cur[3])
+		ss.Stats.SetFloat("AmbigVerb", float64(ev.NAmbigVerbs))
+		ss.Stats.SetFloat("AmbigNouns", math.Min(float64(ev.NAmbigNouns), 1))
+		ss.Stats.SetString("TrialName", ev.String())
+	}
+
+	if nev, ok := evi.(*ProbeEnv); ok {
+		ss.Stats.SetString("TrialName", nev.String())
+	}
+
 	lays := net.LayersByType(leabra.InputLayer, leabra.TargetLayer)
 	net.InitExt()
-	ss.Stats.SetString("TrialName", ev.String())
 	for _, lnm := range lays {
 		ly := ss.Net.LayerByName(lnm)
-		pats := ev.State(ly.Name)
+		pats := evi.State(ly.Name)
 		if pats != nil {
 			ly.ApplyExt(pats)
 		}
@@ -531,6 +579,32 @@ func (ss *Sim) TestAll() {
 	ss.Loops.Mode = etime.Train // Important to reset Mode back to Train because this is called from within the Train Run.
 }
 
+// ProbeAll runs through the full set of testing items
+func (ss *Sim) ProbeAll() {
+	ev := ss.Envs.ByMode(etime.Validate)
+	ev.Init(0)
+	ss.Net.InitActs()
+	ss.Loops.ResetAndRun(etime.Validate)
+
+	ev = ss.Envs.ByMode(etime.Analyze)
+	ev.Init(0)
+	ss.Net.InitActs()
+	ss.Loops.ResetAndRun(etime.Analyze)
+
+	ss.Loops.Mode = etime.Test
+
+	trl := ss.Logs.Log(etime.Analyze, etime.Trial)
+	stix := table.NewIndexView(trl)
+	estats.ClusterPlot(ss.GUI.PlotByName("NounClust"), stix, "Gestalt_Act", "TrialName", clust.MaxDist)
+
+	trl = ss.Logs.Log(etime.Validate, etime.Trial)
+	stix = table.NewIndexView(trl)
+	stix.Filter(func(et *table.Table, row int) bool {
+		return et.Float("Tick", row) == 5 // last of each sequence
+	})
+	estats.ClusterPlot(ss.GUI.PlotByName("SentClust"), stix, "GestaltCT_Act", "SentType", clust.ContrastDist)
+}
+
 ////////////////////////////////////////////////////////////////////////
 // 		Stats
 
@@ -538,7 +612,20 @@ func (ss *Sim) TestAll() {
 // called at start of new run
 func (ss *Sim) InitStats() {
 	ss.Stats.SetFloat("SSE", 0.0)
+	ss.Stats.SetFloat("AvgSSE", 0.0)
+	ss.Stats.SetFloat("PredSSE", 0.0)
+	ss.Stats.SetFloat("TrlErr", 0.0)
+	ss.Stats.SetFloat("PredErr", 0.0)
+	ss.Stats.SetString("SentType", "")
 	ss.Stats.SetString("TrialName", "")
+	ss.Stats.SetString("Input", "")
+	ss.Stats.SetString("Pred", "")
+	ss.Stats.SetString("Role", "")
+	ss.Stats.SetString("Filler", "")
+	ss.Stats.SetString("Output", "")
+	ss.Stats.SetString("QType", "")
+	ss.Stats.SetFloat("AmbigVerb", 0)
+	ss.Stats.SetFloat("AmbigNouns", 0)
 	ss.Logs.InitErrStats() // inits TrlErr, FirstZero, LastZero, NZero
 }
 
@@ -554,6 +641,13 @@ func (ss *Sim) StatCounters() {
 	trl := ss.Stats.Int("Trial")
 	ss.Stats.SetInt("Trial", trl)
 	ss.Stats.SetInt("Cycle", int(ctx.Cycle))
+
+	tick := 0
+	evi := ss.Envs.ByMode(mode)
+	if ev, ok := evi.(*SentGenEnv); ok {
+		tick = ev.Tick.Cur
+	}
+	ss.Stats.SetInt("Tick", tick)
 }
 
 func (ss *Sim) NetViewCounters(tm etime.Times) {
@@ -564,14 +658,13 @@ func (ss *Sim) NetViewCounters(tm etime.Times) {
 		ss.TrialStats() // get trial stats for current di
 	}
 	ss.StatCounters()
-	ss.ViewUpdate.Text = ss.Stats.Print([]string{"Run", "Epoch", "Trial", "TrialName", "Cycle", "SSE", "TrlErr"})
+	ss.ViewUpdate.Text = ss.Stats.Print([]string{"Run", "Epoch", "Trial", "SentType", "TrialName", "Output", "Cycle", "SSE", "TrlErr"})
 }
 
 // TrialStats computes the trial-level statistics.
 // Aggregation is done directly from log data.
 func (ss *Sim) TrialStats() {
 	out := ss.Net.LayerByName("Filler")
-
 	sse, avgsse := out.MSE(0.5) // 0.5 = per-unit tolerance -- right side of .5
 	ss.Stats.SetFloat("SSE", sse)
 	ss.Stats.SetFloat("AvgSSE", avgsse)
@@ -580,58 +673,44 @@ func (ss *Sim) TrialStats() {
 	} else {
 		ss.Stats.SetFloat("TrlErr", 0)
 	}
+
+	encp := ss.Net.LayerByName("EncodeP")
+	esse, _ := encp.MSE(0.5) // 0.5 = per-unit tolerance -- right side of .5
+	ss.Stats.SetFloat("PredSSE", esse)
+	if esse > 0 {
+		ss.Stats.SetFloat("PredErr", 1)
+	} else {
+		ss.Stats.SetFloat("PredErr", 0)
+	}
+
+	evi := ss.Envs.ByMode(ss.Context.Mode)
+	if ev, ok := evi.(*SentGenEnv); ok {
+		resp := strings.Join(ss.ActiveUnitNames("Filler", ev.Fillers, .2), ", ")
+		pred := strings.Join(ss.ActiveUnitNames("EncodeP", ev.Words, .2), ", ")
+		ss.Stats.SetString("Output", resp)
+		ss.Stats.SetString("Pred", pred)
+
+		st := ""
+		for n, _ := range ev.Rules.Fired {
+			if n != "Sentences" {
+				st = n
+			}
+		}
+		ss.Stats.SetString("SentType", st)
+	}
 }
 
-// RepsAnalysis analyzes the representations as captured in the Test Trial Log
-func (ss *Sim) RepsAnalysis() {
-	trl := ss.Logs.Table(etime.Test, etime.Trial)
-	names := make([]string, trl.Rows)
-	nmtsr := errors.Log1(trl.ColumnByName("TrialName")).(*tensor.String)
-	copy(names, nmtsr.Values) // save
-
-	// replace name with just rel
-	for i, nm := range nmtsr.Values {
-		nnm := nm[strings.Index(nm, ".")+1:]
-		nnm = nnm[:strings.Index(nnm, ".")]
-		nmtsr.Values[i] = nnm
+// ActiveUnitNames reports names of units ActM active > thr, using list of names for units
+func (ss *Sim) ActiveUnitNames(lnm string, nms []string, thr float32) []string {
+	var acts []string
+	ly := ss.Net.LayerByName(lnm)
+	for ni := range ly.Neurons {
+		nrn := &ly.Neurons[ni]
+		if nrn.ActM > thr {
+			acts = append(acts, nms[ni])
+		}
 	}
-
-	ss.Stats.SVD.Kind = mat.SVDFull // critical
-	rels := table.NewIndexView(trl)
-	rels.SortColumnName("TrialName", table.Ascending)
-	ss.Stats.SimMat("HiddenRel").TableColumn(rels, "Hidden_ActM", "TrialName", true, metric.Correlation64)
-	errors.Log(ss.Stats.SVD.TableColumn(rels, "Hidden_ActM", metric.Covariance64))
-	svt := ss.Logs.MiscTable("HiddenRelPCA")
-	ss.Stats.SVD.ProjectColumnToTable(svt, rels, "Hidden_ActM", "TrialName", []int{0, 1})
-	estats.ConfigPCAPlot(ss.GUI.PlotByName("HiddenRelPCA"), svt, "Hidden Rel PCA")
-	estats.ClusterPlot(ss.GUI.PlotByName("HiddenRelClust"), rels, "Hidden_ActM", "TrialName", clust.ContrastDist)
-
-	// replace name with just agent
-	for i, nm := range names {
-		nnm := nm[:strings.Index(nm, ".")]
-		nmtsr.Values[i] = nnm
-	}
-	ags := table.NewIndexView(trl)
-	ags.SortColumnName("TrialName", table.Ascending)
-
-	ss.Stats.SimMat("HiddenAgent").TableColumn(ags, "Hidden_ActM", "TrialName", true, metric.Correlation64)
-	errors.Log(ss.Stats.SVD.TableColumn(ags, "Hidden_ActM", metric.Covariance64))
-	svt = ss.Logs.MiscTable("HiddenAgentPCA")
-	ss.Stats.SVD.ProjectColumnToTable(svt, ags, "Hidden_ActM", "TrialName", []int{2, 3})
-	estats.ConfigPCAPlot(ss.GUI.PlotByName("HiddenAgentPCA"), svt, "Hidden Agent PCA")
-	estats.ClusterPlot(ss.GUI.PlotByName("HiddenAgentClust"), ags, "Hidden_ActM", "TrialName", clust.ContrastDist)
-
-	// ss.HiddenAgent.PCAPlot.SetColParams("Path3", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0)
-	// ss.HiddenAgent.PCAPlot.Params.XAxisCol = "Path2"
-
-	ss.Stats.SimMat("AgentCode").TableColumn(ags, "AgentCode_ActM", "TrialName", true, metric.Correlation64)
-	errors.Log(ss.Stats.SVD.TableColumn(ags, "AgentCode_ActM", metric.Covariance64))
-	svt = ss.Logs.MiscTable("AgentCodePCA")
-	ss.Stats.SVD.ProjectColumnToTable(svt, ags, "AgentCode_ActM", "TrialName", []int{0, 1})
-	estats.ConfigPCAPlot(ss.GUI.PlotByName("AgentCodePCA"), svt, "AgentCode Agent PCA")
-	estats.ClusterPlot(ss.GUI.PlotByName("AgentCodeClust"), ags, "AgentCode_ActM", "TrialName", clust.ContrastDist)
-
-	copy(nmtsr.Values, names) // restore
+	return acts
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -641,19 +720,21 @@ func (ss *Sim) ConfigLogs() {
 	ss.Stats.SetString("RunName", ss.Params.RunName(0)) // used for naming logs, stats, etc
 
 	ss.Logs.AddCounterItems(etime.Run, etime.Epoch, etime.Trial, etime.Cycle)
-	ss.Logs.AddStatStringItem(etime.AllModes, etime.AllTimes, "RunName")
-	ss.Logs.AddStatStringItem(etime.AllModes, etime.Trial, "TrialName")
+	ss.Logs.AddStatIntNoAggItem(etime.AllModes, etime.Trial, "Tick")
+	ss.Logs.AddStatStringItem(etime.AllModes, etime.Trial, "SentType", "TrialName", "Input", "Pred", "Role", "Filler", "Output", "QType")
+
+	ss.Logs.AddStatFloatNoAggItem(etime.Test, etime.Trial, "AmbigVerb", "AmbigNouns")
 
 	ss.Logs.AddStatAggItem("SSE", etime.Run, etime.Epoch, etime.Trial)
 	ss.Logs.AddStatAggItem("AvgSSE", etime.Run, etime.Epoch, etime.Trial)
 	ss.Logs.AddErrStatAggItems("TrlErr", etime.Run, etime.Epoch, etime.Trial)
-
-	ss.Logs.AddCopyFromFloatItems(etime.Train, []etime.Times{etime.Epoch, etime.Run}, etime.Test, etime.Epoch, "Tst", "SSE", "AvgSSE")
+	ss.Logs.AddStatAggItem("PredSSE", etime.Run, etime.Epoch, etime.Trial)
+	ss.Logs.AddStatAggItem("PredErr", etime.Run, etime.Epoch, etime.Trial)
 
 	ss.Logs.AddPerTrlMSec("PerTrlMSec", etime.Run, etime.Epoch, etime.Trial)
 
-	ss.Logs.AddLayerTensorItems(ss.Net, "ActM", etime.Test, etime.Trial, "InputLayer", "SuperLayer", "TargetLayer")
-	ss.Logs.AddLayerTensorItems(ss.Net, "Targ", etime.Test, etime.Trial, "TargetLayer")
+	ss.Logs.AddLayerTensorItems(ss.Net, "Act", etime.Validate, etime.Trial, "SuperLayer", "CTLayer")
+	ss.Logs.AddLayerTensorItems(ss.Net, "Act", etime.Analyze, etime.Trial, "SuperLayer", "CTLayer")
 
 	ss.Logs.PlotItems("PctErr", "FirstZero", "LastZero")
 
@@ -662,9 +743,15 @@ func (ss *Sim) ConfigLogs() {
 	// don't plot certain combinations we don't use
 	ss.Logs.NoPlot(etime.Train, etime.Cycle)
 	ss.Logs.NoPlot(etime.Test, etime.Cycle)
-	ss.Logs.NoPlot(etime.Test, etime.Trial)
+	ss.Logs.NoPlot(etime.Test, etime.Epoch)
 	ss.Logs.NoPlot(etime.Test, etime.Run)
 	ss.Logs.SetMeta(etime.Train, etime.Run, "LegendCol", "RunName")
+
+	ss.Logs.SetMeta(etime.Test, etime.Trial, "Type", "Bar")
+	ss.Logs.SetMeta(etime.Test, etime.Trial, "XAxis", "TrialName")
+	ss.Logs.SetMeta(etime.Test, etime.Trial, "XAxisRotation", "-45")
+	ss.Logs.SetMeta(etime.Test, etime.Trial, "Err:On", "+")
+	ss.Logs.SetMeta(etime.Test, etime.Trial, "Output:On", "+")
 }
 
 // Log is the main logging function, handles special things for different scopes
@@ -699,8 +786,8 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI() {
-	title := "Family Trees"
-	ss.GUI.MakeBody(ss, "family_trees", title, `family_trees shows how learning can recode inputs that have no similarity structure into a hidden layer that captures the *functional* similarity structure of the items. See <a href="https://github.com/CompCogNeuro/sims/blob/main/ch4/family_trees/README.md">README.md on GitHub</a>.</p>`)
+	title := "Sentence Gestalt"
+	ss.GUI.MakeBody(ss, "sg", title, `This is the sentence gestalt model, which learns to encode both syntax and semantics of sentences in an integrated "gestalt" hidden layer. The sentences have simple agent-verb-patient structure with optional prepositional or adverb modifier phrase at the end, and can be either in the active or passive form (80% active, 20% passive). There are ambiguous terms that need to be resolved via context, showing a key interaction between syntax and semantics. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch10/sg/README.md">README.md on GitHub</a>.</p>`)
 	ss.GUI.CycleUpdateInterval = 10
 
 	nv := ss.GUI.AddNetView("Network")
@@ -712,19 +799,15 @@ func (ss *Sim) ConfigGUI() {
 	ss.GUI.ViewUpdate = &ss.ViewUpdate
 	nv.Current()
 
-	// nv.SceneXYZ().Camera.Pose.Pos.Set(0.1, 1.5, 4) // more "head on" than default which is more "top down"
-	// nv.SceneXYZ().Camera.LookAt(math32.Vec3(0.1, 0.1, 0), math32.Vec3(0, 1, 0))
+	nv.SceneXYZ().Camera.Pose.Pos.Set(0, 1.3, 2.6) // more "head on" than default which is more "top down"
+	nv.SceneXYZ().Camera.LookAt(math32.Vec3(0, 0, 0), math32.Vec3(0, 1, 0))
 
 	ss.GUI.AddPlots(title, &ss.Logs)
 
 	ss.GUI.AddTableView(&ss.Logs, etime.Test, etime.Trial)
 
-	ss.GUI.AddMiscPlotTab("HiddenRelPCA")
-	ss.GUI.AddMiscPlotTab("HiddenRelClust")
-	ss.GUI.AddMiscPlotTab("HiddenAgentPCA")
-	ss.GUI.AddMiscPlotTab("HiddenAgentClust")
-	ss.GUI.AddMiscPlotTab("AgentCodePCA")
-	ss.GUI.AddMiscPlotTab("AgentCodeClust")
+	ss.GUI.AddMiscPlotTab("SentClust")
+	ss.GUI.AddMiscPlotTab("NounClust")
 
 	ss.GUI.FinalizeGUI(false)
 }
@@ -745,16 +828,29 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 		Tooltip: "Initialize testing to start over -- if Test Step doesn't work, then do this.",
 		Active:  egui.ActiveStopped,
 		Func: func() {
+			ss.Envs.ByMode(etime.Test).Init(0)
 			ss.Loops.ResetCountersByMode(etime.Test)
+			ss.Net.InitActs()
 		},
 	})
 
-	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Reps Analysis",
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Reset Test Plot",
 		Icon:    icons.Reset,
-		Tooltip: "analyzes the current testing Hidden and AgentCode activations, producing PCA, Cluster and Similarity Matrix (SimMat) plots",
+		Tooltip: "resets the Test Trial Plot",
 		Active:  egui.ActiveAlways,
 		Func: func() {
-			ss.RepsAnalysis()
+			ss.Logs.ResetLog(etime.Test, etime.Trial)
+			ss.GUI.UpdatePlot(etime.Test, etime.Trial)
+		},
+	})
+
+	tree.Add(p, func(w *core.Separator) {})
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Probe all",
+		Icon:    icons.RunCircle,
+		Tooltip: "analyzes the representations using different kinds of probes, generating SentClust and NounClust",
+		Active:  egui.ActiveAlways,
+		Func: func() {
+			go ss.ProbeAll()
 		},
 	})
 
@@ -767,22 +863,12 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 		},
 	})
 
-	////////////////////////////////////////////////
-	tree.Add(p, func(w *core.Separator) {})
-	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "New Seed",
-		Icon:    icons.Add,
-		Tooltip: "Generate a new initial random seed to get different results.  By default, Init re-establishes the same initial seed every time.",
-		Active:  egui.ActiveAlways,
-		Func: func() {
-			ss.RandSeeds.NewSeeds()
-		},
-	})
 	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "README",
 		Icon:    icons.FileMarkdown,
 		Tooltip: "Opens your browser on the README file that contains instructions for how to run this model.",
 		Active:  egui.ActiveAlways,
 		Func: func() {
-			core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/main/ch4/family_trees/README.md")
+			core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/main/ch10/sg/README.md")
 		},
 	})
 }

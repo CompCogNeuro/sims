@@ -599,8 +599,7 @@ func (ss *Sim) ConfigLogs() {
 
 	ss.Logs.AddCounterItems(etime.Run, etime.Epoch, etime.Trial, etime.Cycle)
 	ss.Logs.AddStatStringItem(etime.AllModes, etime.AllTimes, "RunName")
-	ss.Logs.AddStatStringItem(etime.AllModes, etime.Trial, "TrialName")
-	ss.Logs.AddStatStringItem(etime.Validate, etime.Trial, "GroupName")
+	ss.Logs.AddStatStringItem(etime.AllModes, etime.Trial, "TrialName", "GroupName")
 
 	ss.Logs.AddStatAggItem("SSE", etime.Run, etime.Epoch, etime.Trial)
 	ss.Logs.AddStatAggItem("AvgSSE", etime.Run, etime.Epoch, etime.Trial)

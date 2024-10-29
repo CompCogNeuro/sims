@@ -6,9 +6,11 @@ This network learns to encode both syntax and semantics of sentences in an integ
 
 The original sentence gestalt model was published by [St. John & McClelland (1990)](#references), and this version uses the same language corpus but a somewhat different network architecture and training paradigm.
 
-This version of the model uses the more recent *DeepLeabra* framework [(O'Reilly et al, 2020)](#references) that incorporates the functions of the deep layers of the neocortex and its interconnectivity with the thalamus.  We hypothesize that these circuits support a powerful form of predictive error-driven learning, where the top-down cortical projections drive a prediction on the pulvinar nucleus of the thalamus, which serves as the minus phase, and then phasic bursting inputs drive a periodic plus phase representing what actually happened.  This bursting happens at the 10 Hz *alpha* frequency (every 100 msec), and forms the basis for the use of this time scale as the primary organizing principle in our models.
+This version of the model uses the more recent *DeepLeabra* framework [(O'Reilly et al, 2021)](#references) that incorporates the functions of the deep layers of the neocortex and its interconnectivity with the thalamus.  We hypothesize that these circuits support a powerful form of predictive error-driven learning, where the top-down cortical projections drive a prediction on the pulvinar nucleus of the thalamus, which serves as the minus phase, and then phasic bursting inputs drive a periodic plus phase representing what actually happened.  This bursting happens at the 10 Hz *alpha* frequency (every 100 msec), and forms the basis for the use of this time scale as the primary organizing principle in our models.
 
 The current model uses these circuits to learn by attempting to predict which word will appear next in the sentences -- this prediction is represented in the `EncodeP` pulvinar layer.  To support predictive learning, the deep layers also have the ability to maintain "context" information from the previous time step, and this is also critical for enabling the model to remember information from prior words in the sentence.  This contextual information is similar to the simple recurrent network (SRN) model [Elman, 1990](#references), which was used in the prior version of this simulation.  Interestingly, we found that although it is difficult for the model to accurately predict the next word, learning to do so nevertheless benefitted overall learning on answering Role-Filler questions as described below.
+
+In the many years since the original sentence gestalt model, and since this replication of the model in 2000, increasingly large "AI" models have been developed based on the same word prediction learning process. As you probably are aware, these GPT (_generative pretrained transformer_) models have developed fairly amazing levels of understanding about all manner of human knowledge by "reading" and predicting the next word in a vast corpus of text that encompasses a significant fraction of everything that humans have written over the years. Future editions of this textbook will explore this progression and the transformer technology that powers the GPT models.
 
 # Training
 
@@ -16,7 +18,7 @@ In addition to the predictive learning, the network is trained by asking questio
 
 The `curq` question type indicates a question about the current filler, which the model almost always gets correct, whereas `revq` indicates a "review" question about something earlier in the sentence -- these are the most revealing about the model's internal "mental state".  There are 2 systematic review questions during the Action and Patient inputs (which ask about the prior Agent and Action inputs), and then two random review questions, one during the syntactic prepositional word (e.g., `with`, `to`), and a final one at the very end.  The previous version and the original model both asked about everything after every word input, but we are able to streamline things here and still get good encoding, in part due to the nature of the deep leabra learning mechanism.
 
-* Next, press `Open Weights` in the toolbar to load pre-trained weights (the network takes many minutes to hours to train). Then, you can start by poking around the network and exploring the connectivity using the `r.Wt` view, and then return to viewing `Act`.
+* Next, press `Open Trained Wts` in the toolbar to load pre-trained weights (the network takes many minutes to hours to train). Then, you can start by poking around the network and exploring the connectivity using the `r.Wt` view, and then return to viewing `Act`.
 
 # Testing
 
@@ -44,19 +46,19 @@ Now, let's evaluate the trained network's performance, by exploring its performa
 
 The test sentences are designed to illustrate different aspects of the sentence comprehension task, as noted in the table. First, a set of role assignment tasks provide either semantic or purely syntactic cues to assign the main roles in the sentence. The semantic cues depend on the fact that only animate nouns can be agents, whereas inanimate nouns can only be patients. Although animacy is not explicitly provided in the input, the training environment enforces this constraint. Thus, when a sentence starts off with "The jelly...," we can tell that because jelly is inanimate, it must be the patient of a passive sentence, and not the agent of an active one. However, if the sentence begins with "The busdriver...," we do not know if the busdriver is an agent or a patient, and we thus have to wait to see if the syntactic cue of the word *was* appears next.
 
-* Do `Init Test` and then `Test Trial` to see the first word in the first test sentence.
+* Do `Test Init` and then `Test` `Step Trial` to see the start of the first test sentence, which is the special `start` indicator. Do `Step Trial` again to see the first word in the sentence.
 
-The first word of the active semantic role assignment sentence (`schoolgirl`) is presented, and the network correctly answers that schoolgirl is the agent of the sentence, which is shown in the `TrlOut` field in the left control panel.  The `TrlErr` field has two values -- the first will show a `1` if there is an error in the Filler output, and the 2nd column shows `EncodeP` prediction errors (these are relatively common because getting the prediction exactly correct is impossible due to the stochastic way that sentences are made).  The `TrlPred` field shows these predictions -- they are generally fairly reasonable despite the unpredictability.
+The first word of the active semantic role assignment sentence (`schoolgirl`) is presented, and the network correctly answers that schoolgirl is the agent of the sentence, which is shown in the `Output` in the text at the bottom of the network.  The `TrlErr` output shows whether an error was made relative to the target.
 
 Note that there is no plus-phase and no training during this testing, so everything depends on the integration of the input words.
 
-* Continue to do `Test Trial` through to the final word in this Active semantic sentence (spoon). You can click on the `TstTrlPlot` tab to see a bar-plot of each trial as it goes through, with the network's `Output` response, and open up the full log by clicking on `TstTrlLog`.  
+* Continue to do `Step Trial` through to the final word in this Active semantic sentence (spoon). You can click on the `Test Trial Plot` tab to see a bar-plot of each trial as it goes through, with the network's `Output` response. It is probably easier to see the full results in the `Test Trial` tab, which shows the `SentType` indicating the type of test sentence.
 
-You should observe that the network is able to identify correctly the roles of all of the words presented (a big blue bar will show up for any errors). Because in this sentence the roles of the words are constrained by their semantics, this success demonstrates that the network is sensitive to these semantic constraints and can use them in parsing.
+You should observe that the network is able to correctly identify most of the roles of the words presented, and it makes a generally sensible response when it makes a mistake. Because in this sentence the roles of the words are constrained by their semantics, this success demonstrates that the network is sensitive to these semantic constraints and can use them in parsing.
 
-* Hit `Reset TstTrlLog` and then `Test Trial` through the next sentence (Active syntactic) -- you can do `Test Seq` to zip through the entire sequence of one sentence and just look at the bar plot.
+* `Step Trial` through the next sentence (Active syntactic).
 
-This sentence has two animate nouns (busdriver and teacher), so the network must use the syntactic word order cues to infer that the busdriver is the agent, while using the "gave to" syntactic construction to recognize that the teacher is the recipient. Observe that through the multiple queries of Agent, it remembers correctly that it is the previously seen busdriver, not the more recently seen teacher.
+This sentence has two animate nouns (busdriver and teacher), so the network must use the syntactic word order cues to infer that the busdriver is the agent, while using the "gave to" syntactic construction to recognize that the teacher is the recipient. Observe that through the multiple queries of Agent, it remembers correctly that it is the previously seen busdriver, not the more recently seen teacher (although it might make a mistake sometimes).
 
 In the next sentence, the passive construction is used, but this should be obvious from the semantic cue that `jelly` cannot be an agent.
 
@@ -112,11 +114,11 @@ This may provide a useful demonstration of how prior knowledge biases sentence c
 
 Having seen that the network behaves reasonably (if not perfectly), we can explore the nature of its internal representations (in the Gestalt layer) to get a sense of how it works.
 
-* Select the `NounProbeClustPlot` tab, and press `ProbeAll` in the toolbar.
+* Select the `NounClust` tab, and press `Probe all` in the toolbar.
 
 After a short delay, the cluster plot for the nouns will show up.  This cluster plot shows some sensible pairings of words such as "schoolgirl" and "daintiness" and "crackers" and "jelly".  However, these results are limited because the words were just presented outside of any sentence context, which the model never experienced.
 
-* Click the `SentProbeClustPlot` tab to see the sentence probe cluster plot.
+* Click the `SentClust` tab to see the sentence probe cluster plot.
 
 These probe sentences systematically vary the agents, verbs, and patients to reveal how the Gestalt layer encodes these factors.  Agents: `bu` = busdriver, `te` = teacher, `pi` = pitcher, `sc` = schoolgirl; Verbs: `dr` = drank, `st` = stirred, `at` = ate; Patients: `ic` = icedtea, `ko` = koolaid, `so` = soup,  `st` = steak.
 
@@ -128,7 +130,7 @@ This cluster plot shows that the sentences are first clustered together accordin
 
 * Elman, J. L. (1990). Finding Structure In Time. Cognitive Science, 14(2), 179–211.
 
-* O’Reilly, R. C., Russin, J. L., Zolfaghar, M., & Rohrlich, J. (2020). Deep Predictive Learning in Neocortex and Pulvinar. ArXiv:2006.14800 [q-Bio]. http://arxiv.org/abs/2006.14800
+* O’Reilly, R. C., Russin, J. L., Zolfaghar, M., & Rohrlich, J. (2020). Deep Predictive Learning in Neocortex and Pulvinar. Journal of Cognitive Neuroscience, 33(6), 1158–1196. [PDF](https://ccnlab.org/papers/OReillyRussinZolfagharEtAl21.pdf)
 
 * St John, M. F., & McClelland, J. L. (1990). Learning and Applying Contextual Constraints in Sentence Comprehension. Artificial Intelligence, 46, 217–257.
 
