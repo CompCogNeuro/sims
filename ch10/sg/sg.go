@@ -859,7 +859,7 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 		Tooltip: "Open trained weights",
 		Active:  egui.ActiveAlways,
 		Func: func() {
-			ss.Net.OpenWeightsFS(content, "trained.wts")
+			ss.Net.OpenWeightsFS(content, "trained.wts.gz")
 		},
 	})
 
