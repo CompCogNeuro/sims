@@ -22,9 +22,7 @@ import (
 	"cogentcore.org/core/icons"
 	"cogentcore.org/core/math32"
 	"cogentcore.org/core/tensor"
-	"cogentcore.org/core/tensor/stats/clust"
 	"cogentcore.org/core/tensor/stats/metric"
-	"cogentcore.org/core/tensor/table"
 	"cogentcore.org/core/tree"
 	"github.com/emer/emergent/v2/econfig"
 	"github.com/emer/emergent/v2/egui"
@@ -384,8 +382,9 @@ func (ss *Sim) SetInputActAvg(net *leabra.Network) {
 	if nin > 0 {
 		avg := float32(nin) / float32(len(inp.Neurons))
 		inp.Inhib.ActAvg.Init = avg
+		inp.UpdateActAvgEff()
+		net.GScaleFromAvgAct()
 	}
-	net.GScaleFromAvgAct()
 }
 
 // NewRun intializes a new run of the model, using the TrainEnv.Run counter
@@ -422,29 +421,86 @@ func (ss *Sim) TestAll() {
 	ss.Loops.Mode = etime.Train // Important to reset Mode back to Train because this is called from within the Train Run.
 }
 
+////////////////////////////////////////////////////////////////////////
+// 		Stats
+
 // QuizAll runs through the full set of testing items
 func (ss *Sim) QuizAll() {
 	ev := ss.Envs.ByMode(etime.Validate)
 	ev.Init(0)
-	ss.Net.InitActs()
 	ss.Loops.ResetAndRun(etime.Validate)
 
 	ss.Loops.Mode = etime.Test
 
-	trl := ss.Logs.Log(etime.Analyze, etime.Trial)
-	stix := table.NewIndexView(trl)
-	estats.ClusterPlot(ss.GUI.PlotByName("NounClust"), stix, "Gestalt_Act", "TrialName", clust.MaxDist)
+	trl := ss.Logs.Log(etime.Validate, etime.Trial)
+	epc := ss.Logs.Log(etime.Validate, etime.Epoch)
 
-	trl = ss.Logs.Log(etime.Validate, etime.Trial)
-	stix = table.NewIndexView(trl)
-	stix.Filter(func(et *table.Table, row int) bool {
-		return et.Float("Tick", row) == 5 // last of each sequence
-	})
-	estats.ClusterPlot(ss.GUI.PlotByName("SentClust"), stix, "GestaltCT_Act", "SentType", clust.ContrastDist)
+	nper := 4 // number of paras per quiz question: Q, A, B, C
+	nt := trl.Rows
+	nq := nt / nper
+	pctcor := 0.0
+	epc.SetNumRows(nq + 1)
+	cors := []float32{0, 0, 0}
+	for qi := 0; qi < nq; qi++ {
+		ri := nper * qi
+		qv := trl.Tensor("Hidden_Act", ri).(*tensor.Float32)
+		mxai := 0
+		mxcor := float32(0.0)
+		for ai := 0; ai < nper-1; ai++ {
+			av := trl.Tensor("Hidden_Act", ri+ai+1).(*tensor.Float32)
+			cor := metric.Correlation32(qv.Values, av.Values)
+			cors[ai] = cor
+			if cor > mxcor {
+				mxai = ai
+				mxcor = cor
+			}
+			// dt.SetCellTensorFloat1D("Correls", row, ai, cor)
+		}
+		ans := []string{"A", "B", "C"}[mxai]
+		cr := 0.0
+		if mxai == 0 { // A
+			pctcor += 1
+			cr = 1
+		}
+		epc.SetFloat("Question", qi, float64(qi))
+		epc.SetString("Response", qi, ans)
+		epc.SetFloat("Correct", qi, cr)
+		epc.SetFloat("A", qi, float64(cors[0]))
+		epc.SetFloat("B", qi, float64(cors[1]))
+		epc.SetFloat("C", qi, float64(cors[2]))
+	}
+	pctcor /= float64(nq)
+	epc.SetFloat("Question", nq, -1)
+	epc.SetString("Response", nq, "Total")
+	epc.SetFloat("Correct", nq, pctcor)
+	ss.GUI.UpdateTableView(etime.Validate, etime.Epoch)
 }
 
-////////////////////////////////////////////////////////////////////////
-// 		Stats
+func (ss *Sim) WtWords() []string {
+	nv := ss.GUI.ViewUpdate.View
+	if nv.Data.PathLay != "Hidden" {
+		core.MessageDialog(ss.GUI.Body, "WtWords: must select unit in Hidden layer in Network View")
+		return nil
+	}
+	ly := ss.Net.LayerByName("Hidden")
+	slay := ss.Net.LayerByName("Input")
+	var pvals []float32
+	slay.SendPathValues(&pvals, "Wt", ly, nv.Data.PathUnIndex, "")
+	ww := make([]string, 0, 1000)
+	ev := ss.Envs.ByMode(etime.Train).(*SemEnv)
+	for i, wrd := range ev.Words {
+		wv := pvals[i]
+		if wv > ss.WtWordsThr {
+			ww = append(ww, wrd)
+		}
+	}
+	if len(ww) == 0 {
+		core.MessageSnackbar(ss.GUI.Body, "No words")
+		return ww
+	}
+	core.MessageDialog(ss.GUI.Body, strings.Join(ww, ", "))
+	return ww
+}
 
 // InitStats initializes all the statistics.
 // called at start of new run
@@ -452,6 +508,12 @@ func (ss *Sim) InitStats() {
 	ss.Stats.SetString("TrialName", "")
 	ss.Stats.SetString("Words", "")
 	ss.Stats.SetFloat("WordsCorrel", 0)
+	ss.Stats.SetString("Response", "")
+	ss.Stats.SetFloat("Question", 0)
+	ss.Stats.SetFloat("Correct", 0)
+	ss.Stats.SetFloat("A", 0)
+	ss.Stats.SetFloat("B", 0)
+	ss.Stats.SetFloat("C", 0)
 }
 
 // StatCounters saves current counters to Stats, so they are available for logging etc
@@ -531,11 +593,17 @@ func (ss *Sim) ConfigLogs() {
 	ss.Logs.AddLayerTensorItems(ss.Net, "Act", etime.Test, etime.Trial, "SuperLayer")
 	ss.Logs.AddLayerTensorItems(ss.Net, "Act", etime.Validate, etime.Trial, "SuperLayer")
 
+	ss.Logs.AddStatFloatNoAggItem(etime.Validate, etime.Epoch, "Question")
+	ss.Logs.AddStatStringItem(etime.Validate, etime.Epoch, "Response")
+	ss.Logs.AddStatFloatNoAggItem(etime.Validate, etime.Epoch, "Correct", "A", "B", "C")
+
 	ss.Logs.CreateTables()
 	ss.Logs.SetContext(&ss.Stats, ss.Net)
 	// don't plot certain combinations we don't use
 	ss.Logs.NoPlot(etime.Train, etime.Cycle)
+	ss.Logs.NoPlot(etime.Train, etime.Run)
 	ss.Logs.NoPlot(etime.Test, etime.Cycle)
+	ss.Logs.NoPlot(etime.Test, etime.Trial)
 	ss.Logs.NoPlot(etime.Test, etime.Run)
 	ss.Logs.SetMeta(etime.Train, etime.Run, "LegendCol", "RunName")
 
@@ -568,13 +636,11 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 		ss.StatCounters()
 	case mode == etime.Test && time == etime.Epoch:
 		ss.TestStats()
+	case mode == etime.Validate && time == etime.Epoch:
+		return
 	}
 
 	ss.Logs.LogRow(mode, time, row) // also logs to file, etc
-
-	if mode == etime.Test {
-		ss.GUI.UpdateTableView(etime.Test, etime.Trial)
-	}
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -600,10 +666,7 @@ func (ss *Sim) ConfigGUI() {
 
 	ss.GUI.AddPlots(title, &ss.Logs)
 
-	ss.GUI.AddTableView(&ss.Logs, etime.Test, etime.Trial)
-
-	ss.GUI.AddMiscPlotTab("SentClust")
-	ss.GUI.AddMiscPlotTab("NounClust")
+	ss.GUI.AddTableView(&ss.Logs, etime.Validate, etime.Epoch)
 
 	ss.GUI.FinalizeGUI(false)
 }
@@ -656,6 +719,15 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 		Active:  egui.ActiveAlways,
 		Func: func() {
 			ss.Net.OpenWeightsFS(content, "trained_rec05.wts.gz")
+		},
+	})
+
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Wt Words",
+		Icon:    icons.RunCircle,
+		Tooltip: "reports the words associated with the strong weights shown in Hidden unit selected in the Network ",
+		Active:  egui.ActiveAlways,
+		Func: func() {
+			ss.WtWords()
 		},
 	})
 
