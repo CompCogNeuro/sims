@@ -41,7 +41,7 @@ import (
 	"github.com/emer/leabra/v2/leabra"
 )
 
-//go:embed trained.wts sg_rules.txt sg_tests.txt sg_probes.txt
+//go:embed trained.wts.gz sg_rules.txt sg_tests.txt sg_probes.txt
 var content embed.FS
 
 func main() {
