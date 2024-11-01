@@ -128,7 +128,7 @@ As mentioned previously, additional lesion data comes from *Balint's syndrome* p
 
 > **Question 6.10:** Report the results of the `TrialStats` for the bilaterally lesioned network.
 
-Finally, we can explore the effects of a more severe lesion to the parietal spatial representations, which might provide a better model of the syndrome known as *hemispatial neglect* (typically referred to as just *neglect*). As described previously, neglect results from unilateral lesions of the parietal cortex (usually in the right hemisphere), which cause patients to generally neglect the lesioned side of space. We simulate neglect by doing a similar lesion to the unilateral one we did before, but by doing FULL for to lesion both of the units in each location.
+Finally, we can explore the effects of a more severe lesion to the parietal spatial representations, which might provide a better model of the syndrome known as *hemispatial neglect* (typically referred to as just *neglect*). As described previously, neglect results from unilateral lesions of the parietal cortex (usually in the right hemisphere), which cause patients to generally neglect the lesioned side of space. We simulate neglect by doing a similar lesion to the unilateral one we did before, but lesioning both of the spatial units in each location.
 
 * Do `Lesion` with `Locations` at `LesionHalf` but `Units` at `LesionFull`.  Run a few `Test Run` with `StdPosner`.
 
