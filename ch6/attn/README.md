@@ -124,13 +124,13 @@ be able to disengage from).
 
 As mentioned previously, additional lesion data comes from *Balint's syndrome* patients, who suffered from *bilateral* parietal lesions. The most striking feature of these patients is that they have *simultanagnosia* -- the inability to recognize multiple objects presented simultaneously (see Farah, 1990 for a review). Interestingly, when such subjects were tested on the Posner task [(Coslett & Saffran, 1991)](#references), they exhibited a *decreased* level of attentional effects (i.e., a smaller invalid-valid difference). As emphasized by [Cohen et al. (1994)](#references), these data provide an important argument against the *disengage* explanation of parietal function offered by Posner and colleagues, which would instead predict bilateral slowing for invalid trials (i.e., difficulty disengaging). The observed pattern of data falls naturally out of the model we have been exploring.
 
-* To simulate this condition, first set `Test` back to `StdPosner`, and then do `Lesion` with `Locations` set to `LesionFull` instead of Half (keep Units at `LesionHalf`).  Do `Init`, `Step Trial` while watching the `Network`, and then `Test Run` a few times while looking at the `Test Trial Plot`.  Then click on  `TrialStats` table.
+* To simulate this condition, first set `Test` back to `StdPosner`, and then do `Lesion` with `Lesion spat12` for the `Layers` as before, and set `Locations` to `LesionFull` instead of Half (keep Units at `LesionHalf`).  Do `Init`, `Step Trial` while watching the `Network`, and then `Test Run` a few times while looking at the `Test Trial Plot`.  Then click on  `TrialStats` table.
 
 > **Question 6.10:** Report the results of the `TrialStats` for the bilaterally lesioned network.
 
 Finally, we can explore the effects of a more severe lesion to the parietal spatial representations, which might provide a better model of the syndrome known as *hemispatial neglect* (typically referred to as just *neglect*). As described previously, neglect results from unilateral lesions of the parietal cortex (usually in the right hemisphere), which cause patients to generally neglect the lesioned side of space. We simulate neglect by doing a similar lesion to the unilateral one we did before, but lesioning both of the spatial units in each location.
 
-* Do `Lesion` with `Locations` at `LesionHalf` but `Units` at `LesionFull`.  Run a few `Test Run` with `StdPosner`.
+* Do `Lesion` with `Lesion spat12` for the `Layers` as before, and set `Locations` to `LesionHalf` but `Units` to `LesionFull`.  Run a few `Test Run` with `StdPosner`.
 
 You will see a strong *neglect* phenomenon, which makes the network completely incapable of switching attention into the damaged side of space to detect the target (resulting in the full 220 cycles of settling for the invalid case).
 
