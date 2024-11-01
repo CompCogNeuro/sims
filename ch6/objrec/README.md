@@ -23,7 +23,7 @@ Neighboring groups process half-overlapping regions of the image. In addition to
 
 The V4 layer is also organized into a grid of hypercolumns (pools), this time 5x5 in size, with each hypercolumn having 49 units (7x7). As with V1, inhibition operates at both the hypercolumn and entire layer scales here. Each hypercolumn of V4 units receives from 4x4 V1 hypercolumns, with neighboring columns again having half-overlapping receptive fields. Next, the IT layer represents just a single hypercolumn of units (10x10 or 100 units) within a single inhibitory group, and receives from the entire V4 layer. Finally, the Output layer has 20 units, one for each of the different objects. Figure 2 shows which object each unit represents; the 5x4 array of output units corresponds to the 5x4 array of objects in Figure 2.
 
-* You can view the patterns of connectivity described above by clicking on `Wts / r.Wt`, and then on units in the various layers.
+* You can view the patterns of connectivity described above by clicking on `Wts` -> `r.Wt`, and then on units in the various layers.
 
 # Training
 
