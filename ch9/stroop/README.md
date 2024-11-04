@@ -52,7 +52,7 @@ If you compare this with the human data shown in the Figure 1, you will see that
 
 Now, we can single-step through the testing events to get a better sense of what is going on.
 
-* First, click back to viewing the `Network`, and click on `Act` to view activations. Then, do `Test Init` and then `Step Trial`.  Review the activation settling using the `Time` VCR buttons on the lower right of the Network. Click `Test Trial` to go through each type of trial in the `Test` patterns, and review activation settling for each trial. 
+* First, click back to viewing the `Network`, and click on `Act` to view activations. Then, do `Test Init` and then `Step Trial`.  Review the activation settling using the `Time` VCR buttons on the lower right of the Network. Click `Step Trial` to go through each type of trial in the `Test` patterns, and review activation settling for each trial. 
 
 Each Trial will advance one step through the three conditions of word reading in order (control, conflict, congruent) followed by the same for color naming. For the word reading conditions, you should observe that the corresponding word reading hidden unit is rapidly activated, and that this then activates the corresponding output unit, with little effect of the color pathway inputs. The critical condition of interest is the conflict color naming condition.
 
