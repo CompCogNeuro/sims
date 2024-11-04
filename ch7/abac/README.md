@@ -14,7 +14,7 @@ The basic framework for implementing the AB--AC task is to have two input patter
 
 First, let's look at the training environment.
 
-* Press the `AB` button next to the `AB patterns`, and then `AC patterns` below it.
+* Press the `AB` button next to the `AB patterns` on the left panel, and then `AC patterns` below it.
 
 The `Input` column for each event shows the A item and the `Output` column is the associate (response). The `Context` column provides a "list context" for each event. Note that the first item in the AB list (`b0`) has the same A pattern as the first item in the AC list (`c0`). This is true for each corresponding pair of items in the two lists. The `Context` patterns for all the items on the AB list are all similar random variations of a common underlying pattern, and likewise for the AC items. Thus, these patterns are not identical for each item on the same list, just very similar (this reflects the fact that even if the external environmental context is constant, the internal perception of it fluctuates, and other internal context factors like a sense of time passing change as well).
 
