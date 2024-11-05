@@ -44,7 +44,7 @@ Each of these trial types can be repeated multiple times, as can the events with
 
 Now, let's run the network. It will be much easier to tell what is going on in the network by looking at a grid display, rather than trying to watch each trial's activation as the network runs (but you are welcome to do so by stepping through the inputs).
 
-* Click on the `Train Trial` tab. Then press the `Init`, `Train Run` buttons in the toolbar.
+* Click on the `Train Trial` tab. Then press the `Init`, `Run` buttons in the toolbar.
 
 When you do this, the network will run through an entire A-not-B experiment, and record the activations in the table. The `TrialName` column tells you which event is being presented, and the remaining columns show the activations in each layer of the network after each event.
 
@@ -62,7 +62,7 @@ You will now see the `A` testing trials, where the network's tendency to reach t
 
 > **Question 9.4:** Describe what happens to the network's internal representations and output (gaze, reach) responses over the delay and choice trials for the B trials, and how this relates to Piaget's A-not-B data in infants.
 
-* Now increase the `RecurrentWt` parameter in the ControlPanel to .7 from the default of .4, and `Init`, `Train Run`.
+* Now increase the `RecurrentWt` parameter in the ControlPanel to .7 from the default of .4, and `Init`, `Run`.
 
 > **Question 9.5:** Describe how the network responds (i.e., in the gaze and reach outputs) this time, including a discussion of how the increased PFC (hidden) recurrent connection strength affected the network's behavior.
 
@@ -72,7 +72,7 @@ You will now see the `A` testing trials, where the network's tendency to reach t
 
 You can also try to find a recurrent weight value that allows the network to succeed with the longer 5 delay condition.
 
-* Now decrease the `RecurrentWt` parameter to a weaker value of .58 and set `Delay` back to `Delay3`, `Init`, `Train` and examine the B-trial again (you can also see this in the final `Act` state of the `Network`.
+* Now decrease the `RecurrentWt` parameter to a weaker value of .58 and set `Delay` back to `Delay3`, `Init`, `Run` and examine the B-trial again (you can also see this in the final `Act` state of the `Network`.
 
 You should observe that the gaze and reach activations are now slightly dissociated on the B trial, reflecting the fact that the Gaze pathway is updated continuously, while the Reach pathway has to wait until the end and is thus more sensitive to small amounts of decay.
 
@@ -80,7 +80,7 @@ You should observe that the gaze and reach activations are now slightly dissocia
 
 Finally, there is an interesting effect that can occur with very weak recurrent weights, which do not allow the network to maintain the representation of even the *A* location very well on 'A' trials. Because the weight changes toward 'A' depend on such maintained activity of the 'A' units, these weight-based representations will be relatively weak, making the network perseverate less to 'A' than it would with slightly stronger recurrent weights.
 
-* To see this effect, set `Delay` back to `Delay3` and then reduce the `RecurrentWt` parameter to .1.  `Init`, `Train`, and look at the activations of the units in the 'B' choice trial. Then compare this with the case with of .4. It can be easier to see the difference in the `Train Trial Plot` -- you can take a screen snapshot to see the differences.
+* To see this effect, set `Delay` back to `Delay3` and then reduce the `RecurrentWt` parameter to .1.  `Init`, `Run`, and look at the activations of the units in the 'B' choice trial. Then compare this with the case with of .4. It can be easier to see the difference in the `Train Trial Plot` -- you can take a screen snapshot to see the differences.
 
 You should see that there is a less strong 'A' response with the weaker recurrent weights (and also some residual activation of the 'B' units), meaning a less strong A-not-B error (and further analysis has confirmed that this is due to the amount of learning on the 'A' trials).
 

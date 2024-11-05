@@ -18,7 +18,7 @@ There are 4 different training input patterns shown in the window that opens up:
 
 Now, let's train the network.
 
-* Do `Init` and `Step Trial` (go back to viewing `Act/Act`) to see a few training events -- standard error-driven learning is used to train the correct output for each case.  Click on `Train Epoch Plot` and then `Train Run` to train for 55 epochs. The network learns to produce the correct responses and `PctErr` goes to zero.
+* Do `Init` and `Step Trial` (go back to viewing `Act/Act`) to see a few training events -- standard error-driven learning is used to train the correct output for each case.  Click on `Train Epoch Plot` and then `Run` to train for 55 epochs. The network learns to produce the correct responses and `PctErr` goes to zero.
 
 * Go back to the `Network` view, select `Wts/r.Wt`, and click on the `gr` and `rd` Output units. You can see that the network gradually learns to strengthen the connections to the correct output response for naming words *or* colors (it never sees both together during this pretraining).
 
@@ -40,7 +40,7 @@ You should see 6 rows, 3 for word reading and 3 for color naming. In the first 3
 
 Now, we can actually test the network.
 
-* Click on `Test Trial Plot`, hit `Test Init` (_not_ the overall `Init` which would reset the trained weights), and then `Test Run` to run all of the testing inputs.
+* Click on `Test Trial Plot`, switch the run mode to `Test` instead of `Train`, then `Init`, and then `Run` to run all of the testing inputs.
 
 You will see the response times `RT` plotted, which measures the number of cycles for the Output unit to get above the activation threshold of .5, labeled with the Control (Ctrl), Conflict (Conf), and Congruent (Cong) conditions, respectively.
 
@@ -52,7 +52,7 @@ If you compare this with the human data shown in the Figure 1, you will see that
 
 Now, we can single-step through the testing events to get a better sense of what is going on.
 
-* First, click back to viewing the `Network`, and click on `Act` to view activations. Then, do `Test Init` and then `Step Trial`.  Review the activation settling using the `Time` VCR buttons on the lower right of the Network. Click `Step Trial` to go through each type of trial in the `Test` patterns, and review activation settling for each trial. 
+* First, click back to viewing the `Network`, and click on `Act` to view activations. Then, do `Init` and then `Step Trial` (still in `Test` mode).  Review the activation settling using the `Time` VCR buttons on the lower right of the Network. Click `Step Trial` to go through each type of trial in the `Test` patterns, and review activation settling for each trial. 
 
 Each Trial will advance one step through the three conditions of word reading in order (control, conflict, congruent) followed by the same for color naming. For the word reading conditions, you should observe that the corresponding word reading hidden unit is rapidly activated, and that this then activates the corresponding output unit, with little effect of the color pathway inputs. The critical condition of interest is the conflict color naming condition.
 
@@ -62,7 +62,7 @@ Each Trial will advance one step through the three conditions of word reading in
 
 Now that we have seen that the model accounts for several important aspects of the normal data, we can assess the importance of the prefrontal (PFC) task units in the model by weakening their contribution to biasing the posterior processing pathways (i.e., the hidden layer units in the model). The strength of this contribution can be manipulated using a weight scaling parameter for the connections from the PFC to the Hidden layer. This parameter set by `From PFC` in the control panel, and defaults to .3 -- we will reduce this to .25 to see an effect. Note that this reduction in the impact of the PFC units is functionally equivalent to the gain manipulation performed by [Cohen & Servan-Schreiber (1992)](#references).
 
-* Reduce the `From PFC` parameter in the ControlPanel from 0.3 to 0.25 and then do `Test Init` (critical to apply the change and restart the testing) and `Test Run` and look at the `Test Trial Plot` to see the results.
+* Reduce the `From PFC` parameter in the ControlPanel from 0.3 to 0.25 and then do `Init` (critical to apply the change and restart the testing) and `Run` and look at the `Test Trial Plot` to see the results.
 
 You should see that the model is now significantly slower for the conflict color naming condition. This is the same pattern of data observed in frontal and schizophrenic patient populations [Cohen & Servan-Schreiber (1992)](#references).  Thus, we can see that the top-down activation coming from the PFC task units is specifically important for the controlled-processing necessary to overcome the prepotent word reading response. If you reduce the top-down strength even further (e.g., around 0.1), the network will start making errors in the color naming conflict condition (which you can see in the `Err` line in the plot -- you may need to unclick `RT` so the y-axis scales so you can view errors). You can also go the other way and increase the value to .32 which produces a selective reduction in color naming conflict cycles.  Note that to fit the model to the actual patient response times, one must adjust for overall slowing effects that are not present in the model, and the perceptual / motor offsets.
 
@@ -80,7 +80,7 @@ Although we have shown that reducing the PFC gain can produce the characteristic
 
 Another important set of data for the model to account for are the effects of differential stimulus onset times as reported by [Glaser and Glaser (1983)](#references) (see Figure 2). To implement this test in the model, we simply present one stimulus for a specified number of cycles, and then add the other stimulus and measure the final response time (relative to the onset of the second stimulus). We use five different SOA (_stimulus onset asynchrony_) values covering a range of 20 cycles on either side of the simultaneous condition. For word reading, color starts out preceding the word by 20 cycles, then 16, 12, 8, and 4 cycles (all indicated by negative SOA), then color and word are presented simultaneously as in standard Stroop (0 SOA), and finally word precedes color by 4, 8, 12, 16, and 20 cycles (positive SOA). Similarly, for color naming, word initially precedes color (negative SOA), then word and color are presented simultaneously (0 SOA), and finally color precedes word (positive SOA). To simplify the simulation, we run only the most important conditions -- conflict and congruent.
 
-* To run the SOA test, first view `Validate Trial PLot` and then do `SOA Init` followed by `Validate Run` (we are co-opting the `Validate` mode for SOA testing here).
+* To run the SOA test, first view `Validate Trial Plot` and then click on `Validate` for the run mode (we are co-opting the `Validate` mode for SOA testing here), and do `Init` followed by `Run`.
 
 The plot should display the response time (`RT`) as a function of SOA on the X axis, for the different conditions as shown.  Note that both conflict and congruent are superimposed for the Word reading case -- there is no perceptible difference.
 
