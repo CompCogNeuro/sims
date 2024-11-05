@@ -8,7 +8,7 @@ In this exploration of the hippocampus model, we will use the same basic AB--AC 
 
 **Figure 1:** Data from people learning AB-AC paired associates, and comparable data from McCloskey & Cohen (1989) showing *catastrophic interference* of learning AC on AB.
 
-* Click on `Train AB` and `Test AB` buttons on the left panel to see how the AB training and testing lists are configured. The "A" pattern is the first three groups of units (at the bottom of each pattern, going left-right, bottom-top), and the "B" pattern is the next three, which you can see most easily in the `Test AB` patterns where these are blank (to be filled in by hippocampal pattern completion). The 2nd half of the pattern is the list context (as in the `abac` project).
+* Click on `Train AB` and `Test AB` buttons on the left panel to see how the AB training and testing lists are configured. (This may be hard to see in detail.) The "A" pattern is the first three groups of units (at the bottom of each pattern, going left-right, bottom-top), and the "B" pattern is the next three, which you can see most easily in the `Test AB` patterns where these are blank (to be filled in by hippocampal pattern completion). The 2nd half of the pattern is the list context (as in the `abac` project).
 
 # AB Training and Testing
 
