@@ -18,7 +18,7 @@ Most of the weights are random, except for those from the inhibitory units, whic
 
 Now, we will run the network. Note the graph view above the network, which will record the overall levels of activation (average activation) in the hidden and inhibitory units.
 
-* Select `Acts / Act` to view activations in the network window, and select `Cycle` for the `FF: Step` button, and then click that `Step` button to update over cycles (note that there are separate controls for the FF vs Bidir networks).
+* Select `Acts / Act` to view activations in the network window, and select `Cycle` for the `Step` level in the first set of run controls for the `FF` network, and then click that `Step` button to update over cycles (note that there are separate controls for the FF vs Bidir networks).
 
 You will see the input units activated by a random activity pattern, and after several cycles of activation updating, the inhibitory and then hidden units will become active. The activation appears quite controlled, as the inhibition anticipates and counterbalances the excitation from the input layer.
 
@@ -103,13 +103,13 @@ You should observe a greater level of excitation using the trained weights compa
 
 To make things simpler at the outset, we have so far been exploring a relatively easy case for inhibition where the network does not have bidirectional excitatory connectivity, which is where inhibition really becomes essential to prevent runaway positive feedback dynamics. Now, let's try running a network with two bidirectionally connected hidden layers.
 
-* First, select `Defaults` to get back the default parameters, then click on the `Bidir net` switch in the left panel and click `Init`. Click on the `Bidir Net` tab to view this network. 
+* First, select `Defaults` to get back the default parameters, then click on the `Bidir net` switch in the left panel and click `Bidir Init`. Click on the `Bidir Net` tab to view this network. 
 
 In extending the network to the bidirectional case, we also have to extend our notions of what feedforward inhibition is. In general, the role of feedforward inhibition is to anticipate and counterbalance the level of excitatory input coming into a layer. Thus, in a network with bidirectional excitatory connectivity, the inhibitory neurons for a given layer also have to receive the top-down excitatory connections, which play the role of "feedforward" inhibition.
 
 ⇒ Verify that this network has both bidirectional excitatory connectivity and the "feedforward" inhibition coming back from the second hidden layer by examining the `r.Wt` weights as usual. 
 
-* Now `Init` and `Step Trial` this network.  Then click back over to `Test Cycle Plot` to see average activity over time.
+* Now `Bidir Init` and `Step Trial` this network (using second set of run controls). Then click back over to `Test Cycle Plot` to see average activity over time.
 
 The plot shows the average activity for only the first hidden and inhibitory layers (as before). Note that the initial part up until the point where the second hidden layer begins to be active is the same as before, but as the second layer activates, it feeds back to the first layer inhibitory neurons, which become more active, as do the excitatory neurons. However, the overall activity level remains quite under control and not substantially different than before.  Thus, the inhibition is able to keep the positive feedback dynamics fully in check.
 
@@ -133,7 +133,7 @@ You should run this section after having read the *FFFB Inhibition Function* sec
 
 The activations should be right around the 10-15% activity level. How does this change with trained weights as compared to the default untrained weights?
 
-* Set `TrainedWts` on, do `Init`, and `Step Trial`.
+* Set `TrainedWts` on, do `Bidir Init`, and `Step Trial`.
 
 You should see the hidden activities approach the 20% level now -- this shows that FFFB inhibition is relatively flexible and overall activity levels are sensitive to overall input strength. You should also notice that FFFB dynamics allow the network to settle relatively quickly -- this is due to using direct and accurate statistics for the incoming netinput and average activations, as compared to the more approximate sampling available to interneurons. Thus, FFFB is probably still more powerful and effective than the real biological system, but this does allow us to run our models very efficiently -- for a small number of cycles per input.
 
