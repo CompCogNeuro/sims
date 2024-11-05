@@ -618,8 +618,8 @@ func (ss *Sim) ConfigGUI() {
 }
 
 func (ss *Sim) MakeToolbar(p *tree.Plan) {
-	ss.GUI.AddLooperCtrl(p, ss.LoopsFF)
-	ss.GUI.AddLooperCtrl(p, ss.LoopsBidir)
+	ss.GUI.AddLooperCtrl(p, ss.LoopsFF, "FF")
+	ss.GUI.AddLooperCtrl(p, ss.LoopsBidir, "Bidir")
 
 	////////////////////////////////////////////////
 	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Defaults", Icon: icons.Update,
