@@ -34,8 +34,8 @@ github.com/dlclark/regexp2 v1.11.0 h1:G/nrcoOa7ZXlpoa/91N3X7mM3r8eIlMBBJZvsz/mxK
 github.com/dlclark/regexp2 v1.11.0/go.mod h1:DHkYz0B9wPfa6wondMfaivmHpzrQ3v9q8cnmRbL6yW8=
 github.com/emer/emergent/v2 v2.0.0-dev0.1.6 h1:0Bu141YCDOgA44k3eBctMghg0ZXPsd5zcLKEHIZVlYQ=
 github.com/emer/emergent/v2 v2.0.0-dev0.1.6/go.mod h1:9QhWnj/IHq/TrVzcXsC96GlC1Gg/pK0pwMI5sZr+/yU=
-github.com/emer/leabra/v2 v2.0.0-dev0.5.4 h1:M/00oqU11ORASA4PkxrYdMSe5rjlgkmXggyEk/WpzDw=
-github.com/emer/leabra/v2 v2.0.0-dev0.5.4/go.mod h1:6Yn3iVPWFf3NqJvDfs1RJGVLWR5AHlY3pmK7mvk8QoQ=
+github.com/emer/leabra/v2 v2.0.0-dev0.5.5 h1:s0fQDr9OSG7tX+fLAyK6YfOJVa51uwEsr+4miteB/+8=
+github.com/emer/leabra/v2 v2.0.0-dev0.5.5/go.mod h1:TuB2VEkrxHYzgQyoozP6P1pgYio/F7o4sm11VNT+ztY=
 github.com/emer/vision/v2 v2.0.0-dev0.1.0 h1:Xt1zRyjYNGw1XEq4e5mvM9/+GOOBRIu1HYVEYmklp+c=
 github.com/emer/vision/v2 v2.0.0-dev0.1.0/go.mod h1:NjWHbBnHzEEG5CzThQeOz8l/aLp2SROmyyBDIBuRYRc=
 github.com/fsnotify/fsnotify v1.4.7/go.mod h1:jwhsz4b93w/PPRr/qN1Yymfu8t87LnFCMoQvtojpjFo=

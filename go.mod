@@ -6,7 +6,7 @@ require (
 	cogentcore.org/core v0.3.5
 	github.com/anthonynsimon/bild v0.13.0
 	github.com/emer/emergent/v2 v2.0.0-dev0.1.6
-	github.com/emer/leabra/v2 v2.0.0-dev0.5.4
+	github.com/emer/leabra/v2 v2.0.0-dev0.5.5
 	github.com/emer/vision/v2 v2.0.0-dev0.1.0
 	golang.org/x/exp v0.0.0-20240823005443-9b4947da3948
 	gonum.org/v1/gonum v0.15.0

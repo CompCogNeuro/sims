@@ -504,7 +504,7 @@ func (ss *Sim) ConfigLoops() {
 	ls.Stacks[etime.Test].OnInit.Add("GUI-Init", func() { ss.GUI.UpdateWindow() })
 
 	ss.Loops = ls
-	fmt.Println(ls.DocString())
+	// fmt.Println(ls.DocString())
 }
 
 // ApplyInputs applies input patterns from given environment.
