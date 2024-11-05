@@ -12,17 +12,17 @@ Because the network takes a bit of time to train (for 250 epochs), we will just 
 
 For our initial exploration, we will just observe the behavior of the network as it "reads" the words presented to the orthographic input layer. Note that the letters in the input are ordered left-to-right, bottom to top.
 
-* Press `Test Init` and `Test Step`.
+* Click the run mode to `Test` instead of `Train`, press `Init` and `Step Trial`.
 
 You will see the activation flow through the network, and it should settle into the correct pronunciation and semantics for the first word, "tart" (the bakery food). You can click on the `Targ` variable in the `Network` to see the target outputs, and see that it made the correct response in the `Phonology` and `Semantics` layers based on the `Othography` input.
 
 * Use the VCR `Time` buttons at the bottom right of the `Network` to review the settling dynamics over time.
 
-* Continue to `Test Step` through a few more words, paying particular attention to the timing of when the Phonological layer gets active relative to the Semantic one (you can always review to see this more clearly).  Then, do `Test Run` to test the remainder of the inputs.
+* Continue to `Step Trial` through a few more words, paying particular attention to the timing of when the Phonological layer gets active relative to the Semantic one (you can always review to see this more clearly).  Then, do `Run` to test the remainder of the inputs.
 
 > **Question 10.1:** Do you think the initial phonological activation is caused by the "direct" input via orthography or the "indirect" input via semantics? Did you see any cases where the initial phonological pattern is subsequently altered when the later input arrives?  Provide an example word where this happened.
 
-* Click on the `Test Trial Plot` tab to see a record of the network's performance on the full set of words. It should only make one "Other" error for the word "post".
+* Click on the `Test Trial Plot` tab to see a record of the network's performance on the full set of words. It should only make one "Other" error for the word "flag", which it pronounces as "flaw".
 
 The `ConAbs` column (click the checkbox to view) shows whether this item is concrete (*Con*) or abstract (*Abs*) (`ConAbs`=0 for concrete, 1 for abstract), and the columns after that indicate what type of error the network makes: `Vis` = visual errors, `Sem` = semantic errors, `VisSem` = both, `Blend` = not a clearly pronounced word, `Other` = some other hard-to-categorize error.  Concrete words have more distinctive features, whereas abstract words have fewer, which impacts their relative susceptibility to lesions, as we'll see.
 
@@ -32,11 +32,11 @@ We next explore the network's ability to read with one of the two pathways to ph
 
 We begin by lesioning the semantic pathway.
 
-* Go back to the `Network` tab and then click the `Lesion` button in the toolbar at the top (*not* in the control panel on the left, which just reports which lesion was performed) and select `Semantics full` (leave Proportion = 0), and then do `Test Init` and `Test Trial` (be sure *not* to hit `Init`, as this will initialize the weights -- just do `Open Trained Wts` and re-lesion if you do).
+* Go back to the `Network` tab and then click the `Lesion` button in the toolbar at the top (*not* in the control panel on the left, which just reports which lesion was performed) and select `Semantics full` (leave Proportion = 0), and then do `Init` and `Step Trial`.
 
 You should see that only the direct pathway is activated, but likely it will still be able to produce the correct phonology output.  This does not actually remove any units or other network structure; it just flips a "lesion" (`Off`) flag that (reversibly) deactivates an entire layer. Note that by removing an entire pathway, we make the network rely on the remaining intact pathway. This means that the errors one would expect are those associated with the properties of the *intact* pathway, not the lesioned one. For example, lesioning the direct pathway makes the network rely on semantics, allowing for the possibility of semantic errors to the extent that the semantic pathway doesn't quite get things right without the assistance of the missing direct pathway. Completely lesioning the semantic pathway itself does *not* lead to semantically related errors -- there is no semantic information left for such errors to be based on! 
 
-* Do `Test Run` to test all items, and look at the `Test Trial Plot` (you can click off all the bars and toggle each one on in turn to see them more clearly). You can see a sum of all the testing results in the `Test Epoch Plot` tab. This records a new row for each Test Run run, along with the lesion and proportion setting.
+* Do `Run` to test all items, and look at the `Test Trial Plot` (you can click off all the bars and toggle each one on in turn to see them more clearly). You can see a sum of all the testing results in the `Test Epoch Plot` tab. This records a new row for each Test Run run, along with the lesion and proportion setting.
 
 > **Question 10.2:** How many times did the network with only the direct pathway (SemanticsFull lesion) make a reading mistake overall (you can count the number of 1's in the various error columns, or look at the `Test Epoch Plot` sums, in the last row)?  Notice that the network does not produce any blend outputs, indicating that the phonological output closely matched a known word.
 
@@ -46,7 +46,7 @@ Click on the `Test Trial` tab, which shows the table of testing results per tria
 
 Now, let's try the direct pathway lesion and retest the network.
 
-* Click `Lesion` in the toolbar at the top and select `Direct full`, then do `Test Init` and `Test Run` again. 
+* Click `Lesion` in the toolbar at the top and select `Direct full`, then do `Init` and `Run` again. 
 
 > **Question 10.4:** What was the total number of errors this time, and how many of these errors were visual, semantic, visual semantic, blend, and "other" for the concrete versus abstract categories (as reported in `Test Epoch Plot`)?.  You may need to click `Unfilter` in the plot toolbar to get it to update.
 
@@ -66,7 +66,7 @@ The first two lesion types damage the semantic pathway hidden layers (OShidden a
 
 ## Semantic Pathway Lesions
 
-* Do `Lesion` (in the toolbar at the top) of type `OShidden` and `Proportion = .1`, and do `Test Run` -- then play with different `Proportion` values.
+* Do `Lesion` (in the toolbar at the top) of type `OShidden` and `Proportion = .1`, and do `Run` -- then play with different `Proportion` values.
 
 ![Semantics Partial Lesions](fig_dyslex_partles_sem.png?raw=true "Partial Semantics Lesions")
 

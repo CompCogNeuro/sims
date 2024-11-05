@@ -24,7 +24,7 @@ The following two figures show the phonological patterns for the pools in the `P
 
 First, we will see that the network can read words that are presented to it, using a standard list of probe words developed by [Taraban & McClelland, 1987](#references).
 
-* Note that the `Testing env` in the control panel is set to `Probe`, which is this set of words.  Do `Test Init` and `Test` `Step Trial` in the toolbar.
+* Note that the `Testing env` in the control panel is set to `Probe`, which is this set of words.  Set the run mode to `Test` instead of `Train`, then `Init` and `Step Trial` in the toolbar.
 
 The first word the network reads is "best," presented at the left-most edge of the input. You can read this word from the Ortho-graphy input layer from the individual letters within each of the 4 activated 3x9 slots. Each of these slots corresponds to one location and contains 26 units corresponding to one of the 26 letters of the alphabet (with one extra unused unit), organized from the bottom-left to upper-right as usual. To familiarize yourself with the layout of the input patterns, verify that "best" is in fact the pattern presented. 
 
@@ -43,7 +43,7 @@ Also shown in the information just under the network, in the `Type` field, is a 
 
 Let's continue to observe the network's reading performance, observing specifically the translation invariance property.
 
-* `Test Trial` for several more trials.
+* `Step Trial` for several more trials.
 
 You should notice that the "best" input appears in successively more rightward positions in the input. Despite these differences in input location, the network produces the correct output. This spatial invariance coding, like the `objrec` model we explored in the Perception Chapter, requires the network to both maintain some information about the local ordering of the letters (so it pronounces "best" instead of "steb," for example), but also treat the entire pattern the same regardless of where it appears. We will see in a moment that this network developed the same general solution to this problem as the object recognition network, using a combination of locally spatially invariant and yet conjunctive encoding.
 
@@ -75,7 +75,7 @@ There are several important lessons from looking at the weights. First, the netw
 
 We next test the network's ability to *generalize* by pronouncing nonwords that exploit the regularities in the spelling to sound mapping. A number of nonword sets exist in the literature -- we use three sets that PMSP used to test their model. The first set of nonwords is comprised of two lists, the first derived from regular words, the second from exception words [(Glushko, 1979)](#references). The second set was constructed to determine if nonwords that are homophones for actual words are pronounced better than those which are not, so the set is also comprised of two lists, a control list and a homophone list [(McCann & Besner, 1987)](#references). The third set of nonwords were derived from the regular and exception probe word lists that we used to test the network earlier [(Taraban & McClelland, 1987)](#references).
 
-* Return to viewing the `Act` variable in the Network, set `Testing env` to `Glushko`, do `Test Init` (which is critical to get the testing env to update) then `Test` `Step Trial`.
+* Return to viewing the `Act` variable in the Network, set `Testing env` to `Glushko`, do `Init` (which is critical to get the testing env to update) then `Step Trial`.
 
 You should see that network correctly pronounced the nonword "beed" by producing bbbEddd as the output.
 
@@ -94,7 +94,7 @@ You should see that network correctly pronounced the nonword "beed" by producing
 
 The total percentages for both our model, PMSP (where reported) and the comparable human data are shown in Table 1 in the Language Chapter (reproduced above). Clearly, the present model is performing at roughly the same level as both humans and the PMSP model. Thus, we can conclude that the network is capable of extracting the often complex and subtle underlying regularities and subregularities present in the mapping of spelling to sound in English monosyllables, and applying these to nonwords in a way that matches what people tend to do.
 
-* You can do `Test Init` and `Test Run` for each `Testing env` and click on the `Errors` to see a table of all of the errors that the network made for each case.
+* You can do `Init` and `Run` for each `Testing env` and click on the `Errors` to see a table of all of the errors that the network made for each case.
 
 We tried to determine for each error why the network might have produced the output it did. In many cases, this output reflected a valid pronunciation present in the training set, but it just didn't happen to be the pronunciation that the list-makers chose. This was particularly true for the Glushko (1979) exception list (for the network and for people). Also, the McCann & Besner (1987) lists contain four words that have a "j" in the final set of phonemes after the vowel (the *coda*), `faije`,  `jinje`, `waije`, `binje`, which never occurs in the training set (i.e., in the entire corpus of English monosyllabic words). These words were excluded by PMSP, and we discount them here too. Nevertheless, the network did sometimes get these words correct.
 
@@ -102,7 +102,7 @@ We tried to determine for each error why the network might have produced the out
 
 One final aspect of the model that bears on empirical data is its ability to simulate naming latencies as a function of different word features. The features of interest are word frequency and consistency (as enumerated in the Probe codes listed above). The empirical data shows that, as one might expect, higher frequency and more consistent words are named faster than lower frequency and inconsistent words. However, frequency interacts with consistency, such that the frequency effect decreases with increasing consistency (e.g., highly consistent words are pronounced at pretty much the same speed regardless of their frequency, whereas inconsistent words depend more on their frequency). The PMSP model shows the appropriate naming latency effects (and see that paper for more discussion of the empirical literature).
 
-We assessed the extent to which our model also showed these naming latency effects by recording the average settling time for the words in different frequency and consistency groups for the Probe inputs (shown above). Settling time was measured as when the rate of change in max output layer activity went below a small threshold.  The results are shown in the `RT Plot` if you `Test Run` on the `Probe` set. Overall, the model captures some of the key findings in the empirical data. For example, the HRC and LRC (fully regular) words should be faster than the exception words (HEX and LEX).  Furthermore, there should be frequency by regularity interaction, whereby the most consistent words do not exhibit a frequency effect (i.g., HRC and LRC should be statistically equivalent), while the low frequency exception words (LEX) are slower than the high frequency ones (HEX). The high frequency words should in general be faster than the low frequency ones, which is not the case in the model, and overall, the differences between conditions are very small. Some of this can be attributed to the use of a log frequency compression in training the model, which compresses the frequency differences, but is necessary for expediting the training, which would otherwise take a much longer time to sample the lower frequency items.
+We assessed the extent to which our model also showed these naming latency effects by recording the average settling time for the words in different frequency and consistency groups for the Probe inputs (shown above). Settling time was measured as when the rate of change in max output layer activity went below a small threshold.  The results are shown in the `RT Plot` if you `Run` on the `Probe` set. Overall, the model captures some of the key findings in the empirical data. For example, the HRC and LRC (fully regular) words should be faster than the exception words (HEX and LEX).  Furthermore, there should be frequency by regularity interaction, whereby the most consistent words do not exhibit a frequency effect (i.g., HRC and LRC should be statistically equivalent), while the low frequency exception words (LEX) are slower than the high frequency ones (HEX). The high frequency words should in general be faster than the low frequency ones, which is not the case in the model, and overall, the differences between conditions are very small. Some of this can be attributed to the use of a log frequency compression in training the model, which compresses the frequency differences, but is necessary for expediting the training, which would otherwise take a much longer time to sample the lower frequency items.
 
 # References
 

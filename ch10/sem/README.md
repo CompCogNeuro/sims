@@ -38,13 +38,13 @@ Although there clearly is sensible semantic structure at a local level within th
 
 To probe these distributed representations further, we can present words to the input and measure the hidden layer activation patterns that result. Specifically we are interested in the extent to which the hidden representations overlap for different sets of words, which tells us how similar overall the internal semantic representation is. Instead of just eyeballing the pattern overlap, we can compute a numerical measure of similarity using *normalized inner products* or *cosines* between pairs of sending weight patterns -- cosine values go from -1 to +1, with +1 being maximal similarity, 0 being completely unrelated, and -1 being maximal dissimilarity or anti-correlation.  We actually subtract the mean activity of each pattern before computing the inner product, which ends up being equivalent to a *correlation* -- this allows us to see negative correlation values even though all the activations are positive.
 
-* You can see that "attention" is present in `Words1` in the control panel, and "binding" is in `Words2`.  Press `Test Init` and `Test Run` to test each of these cases in turn. If in the future you get an error message about the word not being found in the list of valid words, then fix and retry.
+* You can see that "attention" is present in `Words1` in the control panel, and "binding" is in `Words2`. Set the run mode to `Test` instead of `Train`, then do `Init` and `Run` to test each of these cases in turn. If in the future you get an error message about the word not being found in the list of valid words, then fix and retry.
 
 * Use the `Time` VCR buttons at the bottom right of Network to replay the two trials.  You can see the actual distributed representations in the Hidden layer for these words, which is what the correlation is based on. You should observe that the two patterns overlap roughly 50%.
 
 * Click on the `Test Epoch Plot` to see the correlation between the two activity patterns, which should be close to .4.  This will update with each result as we go forward here.
 
-* Now replace `Words2` with "spelling" (do not include quotes) and do `Test Init` and `Test Run` again (we will just label this as `Test Run` going forward).
+* Now replace `Words2` with "spelling" (do not include quotes) and do `Init` and `Run` again (we will just label this as `Run` going forward).
 
 You should see that attention and spelling are only related by around 0.06, indicating low similarity. This should match your overall intuition: we talk about attention as being critical for solving the binding problem in several different situations, but we don't talk much about the role of attention in spelling.
 
@@ -58,23 +58,23 @@ We now present multiple word inputs at the same time, and see how the network ch
 
 One interesting question we can explore is to what extent we can sway an otherwise somewhat ambiguous term to be interpreted in a particular way. For example, the term "binding" is used in two different contexts in our text. One context concerns the binding problem of visual features for object recognition, and another concerns the rapid binding of information into a memory in the hippocampus. Let's begin this exploration by first establishing the baseline association between "binding" and "object recognition."
 
-* Enter "binding" for `Words1` and "object recognition" for `Words2`, and do `Test Run`.
+* Enter "binding" for `Words1` and "object recognition" for `Words2`, and do `Run`.
 
 You should get a correlation of around .48 (interestingly, if you compare vs. just object or just recognition, it is lower). Now, let's see if adding "features" in addition to "binding" increases the hidden layer similarity, to push it more in the sense appropriate for object recognition.
 
-* Add "features" to `Words1` and do `Test Run`.
+* Add "features" to `Words1` and do `Run`.
 
 The similarity does indeed increase, producing a higher correlation. To make sure that there is an interaction between "binding" and "features" producing this increase, we also need to test with just "features" alone.
 
-* Cut out "binding" from `Words1`, so it just has "features", and do `Test Run`.
+* Cut out "binding" from `Words1`, so it just has "features", and do `Run`.
 
 The similarity drops down. Thus, there is some extra overlap in the combination of "binding" and "features" together that is not present by using each of them alone. Now if we instead probe with "rapid binding" (still against "object recognition," we should activate a different sense of attention, and get a smaller correlation.
 
-* Set `Words1` to "rapid binding" and words2 to "object recognition" and `Test Run`.
+* Set `Words1` to "rapid binding" and words2 to "object recognition" and `Run`.
 
 The similarity does now decrease. Thus, we can see that the network's activation dynamics can be influenced to emphasize different senses of a word.
 
-* To finish this test, now enter "hippocampus" in `Words2` and `Test Run`, to see if that provides a better match to this sense of binding.
+* To finish this test, now enter "hippocampus" in `Words2` and `Run`, to see if that provides a better match to this sense of binding.
 
 You should see that the similarity goes back up. Thus, this is potentially a very powerful and flexible form of semantic representation that combines rich, overlapping distributed representations and activation dynamics that can magnify or diminish the similarities of different word combinations.
 
