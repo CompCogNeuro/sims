@@ -9,7 +9,11 @@ import (
 var _EnvTypesValues = []EnvTypes{0, 1, 2, 3, 4, 5}
 
 // EnvTypesN is the highest valid value for type EnvTypes, plus one.
+//
+//gosl:start
 const EnvTypesN EnvTypes = 6
+
+//gosl:end
 
 var _EnvTypesValueMap = map[string]EnvTypes{`TrainB`: 0, `TrainA`: 1, `TrainAll`: 2, `TestA`: 3, `TestB`: 4, `TestAll`: 5}
 

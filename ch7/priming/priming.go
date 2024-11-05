@@ -128,7 +128,7 @@ type Sim struct {
 	Decay float32 `def:"1"`
 
 	// EnvType is the environment type; Use the Env button (SetEnv) to set.
-	EnvType EnvTypes `read-only:"+"`
+	EnvType EnvTypes `edit:"-"`
 
 	// Config contains misc configuration parameters for running the sim
 	Config Config `new-window:"+" display:"no-inline"`
@@ -423,7 +423,7 @@ func (ss *Sim) NewRun() {
 	ss.Logs.ResetLog(etime.Test, etime.Epoch)
 }
 
-// SetEnv select which set of patterns to train on: AB or AC
+// SetEnv select which set of patterns to train or test on
 func (ss *Sim) SetEnv(envType EnvTypes) { //types:add
 	trn := ss.Envs.ByMode(etime.Train).(*env.FixedTable)
 	tst := ss.Envs.ByMode(etime.Test).(*env.FixedTable)
@@ -440,14 +440,18 @@ func (ss *Sim) SetEnv(envType EnvTypes) { //types:add
 		trn.Init(0)
 	case TestA:
 		tst.Table = table.NewIndexView(ss.TrainA)
+		tst.Sequential = true
 		tst.Init(0)
 	case TestB:
 		tst.Table = table.NewIndexView(ss.TrainB)
+		tst.Sequential = true
 		tst.Init(0)
 	case TestAll:
 		tst.Table = table.NewIndexView(ss.TrainAll)
+		tst.Sequential = true
 		tst.Init(0)
 	}
+	ss.GUI.SimForm.Update()
 }
 
 // TestAll runs through the full set of testing items
