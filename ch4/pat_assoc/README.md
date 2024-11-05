@@ -20,7 +20,7 @@ The network is trained on this task by simply clamping both the input and output
 
 You should see all 4 events from the environment presented in a random order.  The synaptic weights are updated according to the BCM hebbian learning rule after each item.
 
-* Now do the `Test` `Step Trial` (2nd Step button in the toolbar) 4 times to test the network's responses to each input.
+* Now set the run mode to `Test` instead of `Train`, then `Init` and `Step Trial` 4 times to test the network's responses to each input.
 
 You will see the activations in the output units are different this time, because the output activations are not clamped to the correct answer, and are instead updated solely according to their current weights from the input units.  Thus, testing records the current *actual* performance of the network on this task, when it is not being "coached" (that is why it's a test).  This is equivalent to the *minus phase activations* during training, which can be viewed using the `ActM` variable in the Network.
 
@@ -36,15 +36,15 @@ where the sum is over the 2 output units. We are actually computing the *thresho
 
 With only a single training epoch (one *epoch* is one pass through all the training patterns), the output unit is likely making some errors.
 
-* Click on the `Train Epoch Plot` tab to see a plot of SSE (summed also over all 4 training patterns) as the network trains.  Change the `Train Step` level to `Run` and `Step` that to see the network iterate over training patterns.  
+* Click on the `Train Epoch Plot` tab to see a plot of SSE (summed also over all 4 training patterns) as the network trains. Change back to `Train` mode and set the `Step` level to `Run` and `Step` that to see the network iterate over training patterns.  
 
 Now you will see a summary plot across epochs of the sum of the thresholded SSE measure across all the events in the epoch. This shows what is often referred to as the **learning curve** for the network, and it should have decreased steadily down to zero, indicating that the network has learned the task.  Training will stop automatically after the network has exhibited 5 correct epochs in a row (determined by the `Config` settings, `NZero` = 5) just to make sure it has really learned the problem), or it stops after 100 epochs (`NEpochs`) if it fails to learn.
 
 Let's see what the network has learned.
 
-* Click back on the `Network` and then do `Test Init` (needed to restart the testing) and then `Test Step` to see each of the different input patterns and the network's response.
+* Click back on the `Network` and then do `Test` mode, then `Init` (needed to restart the testing) and then `Step Trial` to see each of the different input patterns and the network's response.
 
-You should see that it is producing the correct output units for each input pattern. You can also look at the `Test Trial` to see the behavior of the network across all four trials, all at once. You should see that the network has learned this easy task, turning on the left output for the first two patterns, and the right one for the next two. Now, let's take a look at the weights for the output unit to see exactly how this happened.
+You should see that it is producing the correct output units for each input pattern. You can also look at the `Test Trial` tab to see the behavior of the network across all four trials, all at once. You should see that the network has learned this easy task, turning on the left output for the first two patterns, and the right one for the next two. Now, let's take a look at the weights for the output unit to see exactly how this happened.
 
 * In the `Network`, click on `Wts / r.Wt` and then select the left `Output` unit to see its weights from the `Input`, then do the same for the right.
 
@@ -56,7 +56,7 @@ You should see that it is producing the correct output units for each input patt
 
 Now, let's try a more difficult task.
 
-* Set `Patterns` to `Hard` instead of `Easy`, and hit `Init`.  Click the `Hard` button below that to pull up a view of the Hard patterns.
+* Click the `Hard` button in the left panel to pull up a view of the Hard patterns.
 
 In this harder environment, there is overlap among the input patterns for cases where the left output should be on, and where it should be off (and the right output on). This overlap makes the task hard because the unit has to somehow figure out what the most distinguishing or *task relevant* input units are, and set its weights accordingly.
 
@@ -64,15 +64,15 @@ This task reveals a problem with Hebbian learning: it is only driven by the corr
 
 Let's see what happens when we run the network on this task.
 
-* After making sure you are still viewing the `r.Wt` receiving weights of the left output unit in the `Network`, press the `Init` and `Step Run` buttons. After training (or even during), click back and forth between the left and right output units. Try multiple Runs to see what generally tends to happen. 
+* After making sure you are still viewing the `r.Wt` receiving weights of the left output unit in the `Network`, switch back to `Train` mode, press `Init` and `Step Run`. After training (or even during), click back and forth between the left and right output units. Try multiple Runs to see what generally tends to happen. 
 
 You should see that the weights into the left output unit increase, often with the two middle ones being more strongly increasing due to the higher correlation. The right output tends to have a strong weight from the 2nd input unit, and then somewhat weaker weights to the right two inputs, again reflecting the input correlations. Note that in contrast to a purely Hebbian learning mechanism, the BCM learning does not strictly follow the input correlations, as it depends significantly on the output unit activations over time as well, which determine the floating threshold for weight increase vs. decrease.
 
-* Return to viewing the `Act` variable do `Test Step` (with `Test Init` first) to see the network's response to the inputs.
+* Return to viewing the `Act` variable, and do `Test` mode, `Step Trial` (with `Init` first) to see the network's response to the inputs.
 
-You should see that the network is not getting all the right answers (you can also look at the `Test Trial` to see all events at once.)  This is also evident in the training SSE shown in the network view.
+You should see that the network is not getting all the right answers (you can also look at the `Test Trial` tab to see all events at once.)  This is also evident in the training SSE shown in the network view.
 
-* Do several more `Step Run`s on this Hard task. You can try increasing the `Config / NEpochs` to 200, or even 500, to give it more time to learn -- press `Init` after changing these parameters to get them to take.
+* Do several more `Train` `Step Run`s on this Hard task. You can try increasing the `Config / NEpochs` to 200, or even 500, to give it more time to learn -- press `Init` after changing these parameters to get them to take.
 
 > **Question 4.5:** Does the network ever solve the task? Run the network several times. Report the final SSE at the end of training for each run (hover on the last point in the `Train Epoch Plot` to see the value).
 
@@ -80,7 +80,7 @@ Hebbian learning does not seem to be able to solve tasks where the correlations 
 
 # Exploration of Error-Driven Task Learning
 
-* Select `ErrorDriven` instead of `Hebbian` for the `Learn` value in the left control panel, go back to `Easy` for the `Patterns`, and then press `Init` to have it take effect.
+* Select `ErrorDriven` instead of `Hebbian` for the `Learn` value in the left control panel, go back to `Easy` for the `Patterns`, and then press `Init` in `Train` mode to have it take effect.
 
 This will switch weight updating from the purely Hebbian (BCM) form of learning, to the form that is purely error driven, in terms of the contrast between plus (short term average) and minus (medium term) phases of activation. In this simple two-layer network, this form of learning is effectively equivalent to the Delta rule error-driven learning algorithm.   This sets the `Learn` params on the connections between Input and Output to have 0 amount of learning driven by the long-term running average activation (which corresponds to BCM Hebbian learning) and 100% of the learning driven by the medium-term floating threshold (which corresponds to error-driven learning).
 

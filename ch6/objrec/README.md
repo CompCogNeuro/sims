@@ -1,12 +1,5 @@
 Back to [All Sims](https://github.com/CompCogNeuro/sims) (also for general info and executable downloads)
 
----
-title: "CCNBook Objrec"
----
-
-Back to [CCNBook/Sims/All](/CCNBook/Sims/All "wikilink") or
-[Perception](/CCNBook/Perception "wikilink").
-
 # Introduction
 
 This simulation explores how a hierarchy of areas in the ventral stream of visual processing (up to inferotemporal (IT) cortex) can produce robust object recognition that is invariant to changes in position, size, etc of retinal input images.

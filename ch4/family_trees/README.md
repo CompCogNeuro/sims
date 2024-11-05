@@ -30,7 +30,7 @@ As the network trains, the graph displays the `PctErr` statistic for training: p
 
 To get a sense of how learning has shaped the transformations performed by this network to emphasize relevant similarities, we can do various analyses of the hidden unit activity patterns recorded by testing over all the 100 different input patterns (all the specific Agent-Relation-Patient triples), comparing trained vs. random initial weights to see what specifically has been learned.
 
-* First, do `Test Init` and then `Test Run` to collect a recording of all the layer activity patterns (you can see them in the `Test Trial` tab), and then press the `Reps Analysis` button in the toolbar, which performs various different analyses as described below on these activations from the Hidden and AgentCode layers.
+* First, set the run mode to `Test` instead of `Train`, and do `Init`, `Run` to collect a recording of all the layer activity patterns (you can see them in the `Test Trial` tab), and then press the `Reps Analysis` button in the toolbar, which performs various different analyses as described below on these activations from the Hidden and AgentCode layers.
 
 The most direct way to examine relationships among different activation patterns is to compute the pairwise similarities (inverse of distances) between each pattern and all others.  We use the *correlation* similarity measure, which produces a 1 for identical patterns, 0 for completely unrelated patterns, and -1 for completely *anticorrelated* patterns.  (Interestingly, correlation is equivalent to a cosine angle in N dimensional space, using mean-normalized activation patterns, and cosine is equivalent to the simple dot product between the vectors, normalized by the length of the vectors.)
 
@@ -56,7 +56,7 @@ The resulting plot shows the first principal component of variation on the X axi
 
 You can also look at the cluster and PCA plots of the Agent-based labels (the PCA plot here is for components 2 and 3), to see what kind of organization is taking place there. In general, you can see some sensible organization of similar places in the tree being nearby, but given the high-dimensional nature of the relationships and the distributed representations, it is not totally systematic, and because everyone is related in some way, it is difficult to really determine how sensible the organization is.
 
-* Now, let's see how these results compare to the network with random initial weights.  Do `Init` and then `Test Init`, `Test Run`, and `Reps Analysis`, and then click on the PCAPlot for `HiddenRel` again, and also look at the similarity matrix `Sim Mat` for that case too.
+* Now, let's see how these results compare to the network with random initial weights.  Do `Train` mode `Init`, then `Test` mode `Init`, and `Run`, and `Reps Analysis`, and then click on the PCAPlot for `HiddenRel` again, and also look at the similarity matrix `Sim Mat` for that case too.
 
 > **Question 4.9:** How do the untrained representations compare to the previous trained ones? Although some of the same larger structure is still present, is the organization as systematic as with the trained weights? Focus specifically on the relational data, as that was more clear in the trained case.
 
