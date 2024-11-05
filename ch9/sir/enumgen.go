@@ -9,7 +9,11 @@ import (
 var _ActionsValues = []Actions{0, 1, 2}
 
 // ActionsN is the highest valid value for type Actions, plus one.
+//
+//gosl:start
 const ActionsN Actions = 3
+
+//gosl:end
 
 var _ActionsValueMap = map[string]Actions{`Store`: 0, `Ignore`: 1, `Recall`: 2}
 

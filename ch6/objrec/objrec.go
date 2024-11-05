@@ -21,6 +21,7 @@ import (
 	"cogentcore.org/core/base/mpi"
 	"cogentcore.org/core/base/randx"
 	"cogentcore.org/core/core"
+	"cogentcore.org/core/enums"
 	"cogentcore.org/core/icons"
 	"cogentcore.org/core/math32"
 	"cogentcore.org/core/math32/minmax"
@@ -79,7 +80,7 @@ type Sim struct {
 	Params emer.NetParams `display:"add-fields"`
 
 	// contains looper control loops for running sim
-	Loops *looper.Manager `new-window:"+" display:"no-inline"`
+	Loops *looper.Stacks `new-window:"+" display:"no-inline"`
 
 	// contains computed statistic values
 	Stats estats.Stats `new-window:"+"`
@@ -247,35 +248,37 @@ func (ss *Sim) InitRandSeed(run int) {
 
 // ConfigLoops configures the control loops: Training, Testing
 func (ss *Sim) ConfigLoops() {
-	man := looper.NewManager()
+	ls := looper.NewStacks()
 
 	trls := ss.Config.Run.NTrials
 
-	man.AddStack(etime.Train).
+	ls.AddStack(etime.Train).
 		AddTime(etime.Run, ss.Config.Run.NRuns).
 		AddTime(etime.Epoch, ss.Config.Run.NEpochs).
 		AddTime(etime.Trial, trls).
 		AddTime(etime.Cycle, 100)
 
-	man.AddStack(etime.Test).
+	ls.AddStack(etime.Test).
 		AddTime(etime.Epoch, 1).
 		AddTime(etime.Trial, 500). // enough to get a better sample for actrf
 		AddTime(etime.Cycle, 100)
 
-	leabra.LooperStdPhases(man, &ss.Context, ss.Net, 75, 99)                // plus phase timing
-	leabra.LooperSimCycleAndLearn(man, ss.Net, &ss.Context, &ss.ViewUpdate) // std algo code
+	leabra.LooperStdPhases(ls, &ss.Context, ss.Net, 75, 99)                // plus phase timing
+	leabra.LooperSimCycleAndLearn(ls, ss.Net, &ss.Context, &ss.ViewUpdate) // std algo code
 
-	for m := range man.Stacks {
-		stack := man.Stacks[m]
+	ls.Stacks[etime.Train].OnInit.Add("Init", func() { ss.Init() })
+
+	for m := range ls.Stacks {
+		stack := ls.Stacks[m]
 		stack.Loops[etime.Trial].OnStart.Add("ApplyInputs", func() {
 			ss.ApplyInputs()
 		})
 	}
 
-	man.GetLoop(etime.Train, etime.Run).OnStart.Add("NewRun", ss.NewRun)
+	ls.Loop(etime.Train, etime.Run).OnStart.Add("NewRun", ss.NewRun)
 
 	// Add Testing
-	trainEpoch := man.GetLoop(etime.Train, etime.Epoch)
+	trainEpoch := ls.Loop(etime.Train, etime.Epoch)
 	trainEpoch.OnStart.Add("TestAtInterval", func() {
 		if (ss.Config.Run.TestInterval > 0) && ((trainEpoch.Counter.Cur+1)%ss.Config.Run.TestInterval == 0) {
 			// Note the +1 so that it doesn't occur at the 0th timestep.
@@ -286,33 +289,35 @@ func (ss *Sim) ConfigLoops() {
 	/////////////////////////////////////////////
 	// Logging
 
-	man.GetLoop(etime.Test, etime.Epoch).OnEnd.Add("LogTestErrors", func() {
+	ls.Loop(etime.Test, etime.Epoch).OnEnd.Add("LogTestErrors", func() {
 		leabra.LogTestErrors(&ss.Logs)
 	})
-	man.GetLoop(etime.Train, etime.Epoch).OnEnd.Add("PCAStats", func() {
-		trnEpc := man.Stacks[etime.Train].Loops[etime.Epoch].Counter.Cur
+	ls.Loop(etime.Train, etime.Epoch).OnEnd.Add("PCAStats", func() {
+		trnEpc := ls.Stacks[etime.Train].Loops[etime.Epoch].Counter.Cur
 		if ss.Config.Run.PCAInterval > 0 && trnEpc%ss.Config.Run.PCAInterval == 0 {
 			leabra.PCAStats(ss.Net, &ss.Logs, &ss.Stats)
 			ss.Logs.ResetLog(etime.Analyze, etime.Trial)
 		}
 	})
 
-	man.AddOnEndToAll("Log", ss.Log)
-	leabra.LooperResetLogBelow(man, &ss.Logs)
+	ls.AddOnEndToAll("Log", func(mode, time enums.Enum) {
+		ss.Log(mode.(etime.Modes), time.(etime.Times))
+	})
+	leabra.LooperResetLogBelow(ls, &ss.Logs)
 
-	man.GetLoop(etime.Train, etime.Trial).OnEnd.Add("LogAnalyze", func() {
-		trnEpc := man.Stacks[etime.Train].Loops[etime.Epoch].Counter.Cur
+	ls.Loop(etime.Train, etime.Trial).OnEnd.Add("LogAnalyze", func() {
+		trnEpc := ls.Stacks[etime.Train].Loops[etime.Epoch].Counter.Cur
 		if (ss.Config.Run.PCAInterval > 0) && (trnEpc%ss.Config.Run.PCAInterval == 0) {
 			ss.Log(etime.Analyze, etime.Trial)
 		}
 	})
 
-	man.GetLoop(etime.Train, etime.Run).OnEnd.Add("RunStats", func() {
+	ls.Loop(etime.Train, etime.Run).OnEnd.Add("RunStats", func() {
 		ss.Logs.RunStats("PctCor", "FirstZero", "LastZero")
 	})
 
 	// Save weights to file, to look at later
-	man.GetLoop(etime.Train, etime.Run).OnEnd.Add("SaveWeights", func() {
+	ls.Loop(etime.Train, etime.Run).OnEnd.Add("SaveWeights", func() {
 		ctrString := ss.Stats.PrintValues([]string{"Run", "Epoch"}, []string{"%03d", "%05d"}, "_")
 		leabra.SaveWeightsIfConfigSet(ss.Net, ss.Config.Log.SaveWeights, ctrString, ss.Stats.String("RunName"))
 	})
@@ -322,35 +327,37 @@ func (ss *Sim) ConfigLoops() {
 
 	if !ss.Config.GUI {
 		if ss.Config.Log.NetData {
-			man.GetLoop(etime.Test, etime.Trial).Main.Add("NetDataRecord", func() {
+			ls.Loop(etime.Test, etime.Trial).OnEnd.Add("NetDataRecord", func() {
 				ss.GUI.NetDataRecord(ss.ViewUpdate.Text)
 			})
 		}
 	} else {
-		man.GetLoop(etime.Test, etime.Trial).OnEnd.Add("ActRFs", func() {
+		ls.Loop(etime.Test, etime.Trial).OnEnd.Add("ActRFs", func() {
 			ss.Stats.UpdateActRFs(ss.Net, "ActM", 0.01, 0)
 		})
-		man.GetLoop(etime.Train, etime.Trial).OnStart.Add("UpdateImage", func() {
+		ls.Loop(etime.Train, etime.Trial).OnStart.Add("UpdateImage", func() {
 			if system.TheApp.Platform() == system.Web { // todo: hangs on web
 				return
 			}
 			ss.GUI.Grid("Image").NeedsRender()
 		})
-		man.GetLoop(etime.Test, etime.Trial).OnStart.Add("UpdateImage", func() {
+		ls.Loop(etime.Test, etime.Trial).OnStart.Add("UpdateImage", func() {
 			if system.TheApp.Platform() == system.Web {
 				return
 			}
 			ss.GUI.Grid("Image").NeedsRender()
 		})
 
-		leabra.LooperUpdateNetView(man, &ss.ViewUpdate, ss.Net, ss.NetViewCounters)
-		leabra.LooperUpdatePlots(man, &ss.GUI)
+		leabra.LooperUpdateNetView(ls, &ss.ViewUpdate, ss.Net, ss.NetViewCounters)
+		leabra.LooperUpdatePlots(ls, &ss.GUI)
+		ls.Stacks[etime.Train].OnInit.Add("GUI-Init", func() { ss.GUI.UpdateWindow() })
+		ls.Stacks[etime.Test].OnInit.Add("GUI-Init", func() { ss.GUI.UpdateWindow() })
 	}
 
 	if ss.Config.Debug {
-		fmt.Println(man.DocString())
+		fmt.Println(ls.DocString())
 	}
-	ss.Loops = man
+	ss.Loops = ls
 }
 
 // ApplyInputs applies input patterns from given environment.
@@ -383,7 +390,7 @@ func (ss *Sim) ApplyInputs() {
 // for the new run value
 func (ss *Sim) NewRun() {
 	ctx := &ss.Context
-	ss.InitRandSeed(ss.Loops.GetLoop(etime.Train, etime.Run).Counter.Cur)
+	ss.InitRandSeed(ss.Loops.Loop(etime.Train, etime.Run).Counter.Cur)
 	ss.Envs.ByMode(etime.Train).Init(0)
 	ss.Envs.ByMode(etime.Test).Init(0)
 	ctx.Reset()
@@ -620,24 +627,7 @@ func (ss *Sim) ConfigGUI() {
 }
 
 func (ss *Sim) MakeToolbar(p *tree.Plan) {
-	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Init", Icon: icons.Update,
-		Tooltip: "Initialize everything including network weights, and start over.  Also applies current params.",
-		Active:  egui.ActiveStopped,
-		Func: func() {
-			ss.Init()
-			ss.GUI.UpdateWindow()
-		},
-	})
-
-	ss.GUI.AddLooperCtrl(p, ss.Loops, []etime.Modes{etime.Train, etime.Test})
-
-	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Test Init", Icon: icons.Update,
-		Tooltip: "Initialize testing to start over -- if Test Step doesn't work, then do this.",
-		Active:  egui.ActiveStopped,
-		Func: func() {
-			ss.Loops.ResetCountersByMode(etime.Test)
-		},
-	})
+	ss.GUI.AddLooperCtrl(p, ss.Loops)
 
 	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Test All",
 		Icon:    icons.PlayArrow,
@@ -741,7 +731,7 @@ func (ss *Sim) RunNoGUI() {
 	ss.Init()
 
 	mpi.Printf("Running %d Runs starting at %d\n", ss.Config.Run.NRuns, ss.Config.Run.Run)
-	ss.Loops.GetLoop(etime.Train, etime.Run).Counter.SetCurMaxPlusN(ss.Config.Run.Run, ss.Config.Run.NRuns)
+	ss.Loops.Loop(etime.Train, etime.Run).Counter.SetCurMaxPlusN(ss.Config.Run.Run, ss.Config.Run.NRuns)
 
 	ss.Loops.Run(etime.Train)
 

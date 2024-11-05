@@ -9,7 +9,11 @@ import (
 var _PatsTypeValues = []PatsType{0, 1, 2}
 
 // PatsTypeN is the highest valid value for type PatsType, plus one.
+//
+//gosl:start
 const PatsTypeN PatsType = 3
+
+//gosl:end
 
 var _PatsTypeValueMap = map[string]PatsType{`Easy`: 0, `Hard`: 1, `Impossible`: 2}
 
@@ -50,7 +54,11 @@ func (i *PatsType) UnmarshalText(text []byte) error { return enums.UnmarshalText
 var _LearnTypeValues = []LearnType{0, 1}
 
 // LearnTypeN is the highest valid value for type LearnType, plus one.
+//
+//gosl:start
 const LearnTypeN LearnType = 2
+
+//gosl:end
 
 var _LearnTypeValueMap = map[string]LearnType{`Hebbian`: 0, `ErrorDriven`: 1}
 

@@ -5,9 +5,10 @@ go 1.22
 require (
 	cogentcore.org/core v0.3.5
 	github.com/anthonynsimon/bild v0.13.0
-	github.com/emer/emergent/v2 v2.0.0-dev0.1.3
-	github.com/emer/leabra/v2 v2.0.0-dev0.5.3
+	github.com/emer/emergent/v2 v2.0.0-dev0.1.5
+	github.com/emer/leabra/v2 v2.0.0-dev0.5.4
 	github.com/emer/vision/v2 v2.0.0-dev0.1.0
+	golang.org/x/exp v0.0.0-20240823005443-9b4947da3948
 	gonum.org/v1/gonum v0.15.0
 )
 
@@ -31,7 +32,6 @@ require (
 	github.com/jinzhu/copier v0.4.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.1.2-0.20240227203013-2b69615b5d55 // indirect
-	golang.org/x/exp v0.0.0-20240823005443-9b4947da3948 // indirect
 	golang.org/x/image v0.18.0 // indirect
 	golang.org/x/mod v0.20.0 // indirect
 	golang.org/x/net v0.28.0 // indirect

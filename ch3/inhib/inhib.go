@@ -13,6 +13,7 @@ import (
 	"cogentcore.org/core/base/errors"
 	"cogentcore.org/core/base/randx"
 	"cogentcore.org/core/core"
+	"cogentcore.org/core/enums"
 	"cogentcore.org/core/icons"
 	"cogentcore.org/core/tensor"
 	"cogentcore.org/core/tensor/table"
@@ -147,8 +148,8 @@ type Sim struct {
 	Params emer.NetParams `display:"add-fields"`
 
 	// contains looper control loops for running sim
-	LoopsFF    *looper.Manager `display:"-"`
-	LoopsBidir *looper.Manager `display:"-"`
+	LoopsFF    *looper.Stacks `display:"-"`
+	LoopsBidir *looper.Stacks `display:"-"`
 
 	// contains computed statistic values
 	Stats estats.Stats `display:"-"`
@@ -217,7 +218,7 @@ func (ss *Sim) Net() *leabra.Network {
 }
 
 // Loops returns the current active looper
-func (ss *Sim) Loops() *looper.Manager {
+func (ss *Sim) Loops() *looper.Stacks {
 	if ss.BidirNet {
 		return ss.LoopsBidir
 	} else {
@@ -412,21 +413,22 @@ func (ss *Sim) InitRandSeed(run int) {
 }
 
 // ConfigLoops configures the control loops: Training, Testing
-func (ss *Sim) ConfigLoops(net *leabra.Network) *looper.Manager {
-	man := looper.NewManager()
+func (ss *Sim) ConfigLoops(net *leabra.Network) *looper.Stacks {
+	ls := looper.NewStacks()
 
 	ntrls := 10
 	cycles := 200
-	man.AddStack(etime.Test).
+	ls.AddStack(etime.Test).
 		AddTime(etime.Epoch, 1).
 		AddTime(etime.Trial, ntrls).
 		AddTime(etime.Cycle, cycles)
 
-	leabra.LooperStdPhases(man, &ss.Context, net, cycles-25, cycles-1)
-	leabra.LooperSimCycleAndLearn(man, net, &ss.Context, &ss.ViewUpdate) // std algo code
+	leabra.LooperStdPhases(ls, &ss.Context, net, cycles-25, cycles-1)
+	leabra.LooperSimCycleAndLearn(ls, net, &ss.Context, &ss.ViewUpdate) // std algo code
+	ls.Stacks[etime.Test].OnInit.Add("Init", func() { ss.Init() })
 
-	for m, _ := range man.Stacks {
-		stack := man.Stacks[m]
+	for m, _ := range ls.Stacks {
+		stack := ls.Stacks[m]
 		stack.Loops[etime.Trial].OnStart.Add("ApplyInputs", func() {
 			ss.ApplyInputs()
 		})
@@ -435,15 +437,18 @@ func (ss *Sim) ConfigLoops(net *leabra.Network) *looper.Manager {
 	/////////////////////////////////////////////
 	// Logging
 
-	man.AddOnEndToAll("Log", ss.Log)
-	leabra.LooperResetLogBelow(man, &ss.Logs)
+	ls.AddOnEndToAll("Log", func(mode, time enums.Enum) {
+		ss.Log(mode.(etime.Modes), time.(etime.Times))
+	})
+	leabra.LooperResetLogBelow(ls, &ss.Logs)
 
 	////////////////////////////////////////////
 	// GUI
 
-	leabra.LooperUpdateNetView(man, &ss.ViewUpdate, net, ss.NetViewCounters)
-	leabra.LooperUpdatePlots(man, &ss.GUI)
-	return man
+	leabra.LooperUpdateNetView(ls, &ss.ViewUpdate, net, ss.NetViewCounters)
+	leabra.LooperUpdatePlots(ls, &ss.GUI)
+	ls.Stacks[etime.Test].OnInit.Add("GUI-Init", func() { ss.GUI.UpdateWindow() })
+	return ls
 }
 
 // ApplyInputs applies input patterns from given environment.
@@ -613,17 +618,8 @@ func (ss *Sim) ConfigGUI() {
 }
 
 func (ss *Sim) MakeToolbar(p *tree.Plan) {
-	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Init", Icon: icons.Update,
-		Tooltip: "Initialize everything including network weights, and start over.  Also applies current params.",
-		Active:  egui.ActiveStopped,
-		Func: func() {
-			ss.Init()
-			ss.GUI.UpdateWindow()
-		},
-	})
-
-	ss.GUI.AddLooperCtrl(p, ss.LoopsFF, []etime.Modes{etime.Test}, "FF")
-	ss.GUI.AddLooperCtrl(p, ss.LoopsBidir, []etime.Modes{etime.Test}, "Bidir")
+	ss.GUI.AddLooperCtrl(p, ss.LoopsFF)
+	ss.GUI.AddLooperCtrl(p, ss.LoopsBidir)
 
 	////////////////////////////////////////////////
 	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Defaults", Icon: icons.Update,

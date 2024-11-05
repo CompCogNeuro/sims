@@ -9,7 +9,11 @@ import (
 var _LearnTypeValues = []LearnType{0, 1, 2}
 
 // LearnTypeN is the highest valid value for type LearnType, plus one.
+//
+//gosl:start
 const LearnTypeN LearnType = 3
+
+//gosl:end
 
 var _LearnTypeValueMap = map[string]LearnType{`PureHebb`: 0, `PureError`: 1, `HebbError`: 2}
 
