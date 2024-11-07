@@ -68,11 +68,11 @@ Next, we can see to what extent residual activation from one trial to the next c
 
 Next, we will use the `TrainAll` patterns for testing, because they alternate between the `a` and `b` versions of each input when presented sequentially -- we will test for the extent to which the residual activation from the `a` item can bias processing on the subsequent `b` case.  Note that we are recording the response of the network in the *minus* phase, and then the specific `Output` is clamped in the plus phase (even during testing), so we can observe the effects of e.g., the `0_a` `Output` activation (with the `a` pattern) on the tendency to bias the network to produce an `a` response again for the 0 input, despite the weights being biased in favor of producing the `b` output.
 
-* Click `Set Env` and select `TestAll` to use this full set of alternating patterns during _testing_, and then switch to `Test` instead of `Train` mode, and do `Init`, `Run` to see the baseline level of responding, while looking at the `Test Trial Plot`.
+* Click `Set Env` and select `TestAll` to use this full set of alternating `TrainAll` patterns during _testing_, and then switch to `Test` instead of `Train` mode, and do `Init`, `Run` to see the baseline level of responding, while looking at the `Test Trial Plot`.
 
 This is a baseline, because we are still clearing all of the activation out of the network between each input, due to the `Decay` parameter being set to the default of 1.
 
-* Set `Decay` to 0 instead of 1, and do another `Init` and `Run`.  You should now observe several trials in which the `a` pattern is activated, for the 2nd of the two repeated inputs.
+* Set `Decay` to 0 instead of 1, and do another `Init` (which will not initialize the weights because we are in `Test` mode) and `Run`.  You should now observe several trials in which the `a` pattern is activated, for the 2nd of the two repeated inputs.
 
 > **Question 7.8:** Report the number of times the network responded 'a' instead of 'b' for the 'b' test trials, relative to the baseline that you observed above with Decay set to 1.
 
