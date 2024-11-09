@@ -408,7 +408,6 @@ func (ss *Sim) Init() {
 }
 
 func (ss *Sim) TestInit() {
-	ss.Loops.InitMode(etime.Test)
 	tst := ss.Envs.ByMode(etime.Test).(*env.FixedTable)
 	tst.Init(0)
 }
