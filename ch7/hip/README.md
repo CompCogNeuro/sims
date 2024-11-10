@@ -57,7 +57,7 @@ You should see the studied A stimulus, an empty gap where the B stimulus would b
 
 You can now observe the amount of interference on AB after training on AC -- it will be some but probably not a catastrophic amount.  To get a better sense overall, we need to run multiple samples.
 
-* Do `Run` to run 10 runs through AB / AC training, and click on the `Train Run Plot` to see the results, with the `Tst*Mem` stats from the testing run. Then click on the `RunStats Plot`, which reports summary statistics on the `TstABMem` results.
+* Do `Run` to run 10 runs through AB / AC training, and click on the `Train Run Plot` to see the results, with the `Tst*Mem` stats from the testing run. After the 10 runs finish, click on the `RunStats Plot`, which reports summary statistics on the `TstABMem` results.
 
 > **Question 7.6:** Report the `TstABMem:Mean` (average) values for the AB items. In general the AC and Lure items should all be at 1 and 0 respectively. How well does this result compare to the human results shown in Figure 1?
 
