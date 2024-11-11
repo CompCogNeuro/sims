@@ -8,9 +8,9 @@ Modeling these phenomena requires training a given input pattern to have two dif
 
 Notice that the network has a standard three layer structure, with the `Input` presented to the bottom and `Output` produced at the top -- this is just to keep everything as simple and standard as possible.
 
-* Click `TrainA` and `TrainB` in the control panel to see the two different sets of patterns that the network is trained on.
+* Click `OnlyA` and `OnlyB` in the control panel to see the two different sets of patterns that the network is trained on.
 
-You should see that the `Input` patterns are identical for each set of patterns, but the `A` and `B` have different `Output` patterns paired with this same input. The `TrainAll` patterns are just the combination of both of these A and B sets, and it is what we use to do initial training of the network.
+You should see that the `Input` patterns are identical for each set of patterns, but the `A` and `B` have different `Output` patterns paired with this same input. The `Alt AB` patterns are just the combination of both of these A and B sets, alternating the A and B output for each input, and it is what we use to do initial training of the network.
 
 # Network Training
 
@@ -28,7 +28,7 @@ Also, the bidirectional connectivity produces attractor dynamics that enable the
 
 # Weight-Based Priming
 
-**IMPORTANT** after this point, try to remember not to press `Init`, which will initialize the weights. If you do, you can just press `Open Trained Wts` to open a set of pretrained weights.  Also, because the network won't run any more training epochs once it is trained, we do need to start out by doing `Init` followed by `Open Trained Wts`, just this once.
+**IMPORTANT** after this point, try to remember not to press `Init` in `Train` mode, which will initialize the weights. If you do, you can just press `Open Trained Wts` to open a set of pretrained weights.  Also, because the network won't run any more training epochs once it is trained, we do need to start out by doing `Init` followed by `Open Trained Wts`, just this once.
 
 Having trained the network with the appropriate _semantic_ background knowledge, we are now ready to assess its performance on the priming task. 
 

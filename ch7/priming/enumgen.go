@@ -15,11 +15,11 @@ const EnvTypesN EnvTypes = 6
 
 //gosl:end
 
-var _EnvTypesValueMap = map[string]EnvTypes{`TrainB`: 0, `TrainA`: 1, `TrainAll`: 2, `TestA`: 3, `TestB`: 4, `TestAll`: 5}
+var _EnvTypesValueMap = map[string]EnvTypes{`TrainB`: 0, `TrainA`: 1, `TrainAltAB`: 2, `TestA`: 3, `TestB`: 4, `TestAltAB`: 5}
 
-var _EnvTypesDescMap = map[EnvTypes]string{0: `TrainB sets train env to TrainB pats`, 1: `TrainA sets train env to TrainA pats`, 2: `TrainAll sets train to TrainAll pats`, 3: `TestA sets testing to TrainA pats, for wt priming`, 4: `TestB sets testing to TrainB pats`, 5: `TestAll sets testing to TrainAll pats, for act priming`}
+var _EnvTypesDescMap = map[EnvTypes]string{0: `TrainB sets train env to OnlyB patterns, for wt priming training`, 1: `TrainA sets train env to OnlyA patterns`, 2: `TrainAltAB sets train to AltAB patterns`, 3: `TestA sets testing to OnlyA patterns, for wt priming testing`, 4: `TestB sets testing to OnlyB patterns`, 5: `TestAltAB sets testing to AltAB patterns, for act priming`}
 
-var _EnvTypesMap = map[EnvTypes]string{0: `TrainB`, 1: `TrainA`, 2: `TrainAll`, 3: `TestA`, 4: `TestB`, 5: `TestAll`}
+var _EnvTypesMap = map[EnvTypes]string{0: `TrainB`, 1: `TrainA`, 2: `TrainAltAB`, 3: `TestA`, 4: `TestB`, 5: `TestAltAB`}
 
 // String returns the string representation of this EnvTypes value.
 func (i EnvTypes) String() string { return enums.String(i, _EnvTypesMap) }

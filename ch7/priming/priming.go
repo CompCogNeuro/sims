@@ -51,23 +51,23 @@ func main() {
 type EnvTypes int32 //enums:enum
 
 const (
-	// TrainB sets train env to TrainB pats
+	// TrainB sets train env to OnlyB patterns, for wt priming training
 	TrainB EnvTypes = iota
 
-	// TrainA sets train env to TrainA pats
+	// TrainA sets train env to OnlyA patterns
 	TrainA
 
-	// TrainAll sets train to TrainAll pats
-	TrainAll
+	// TrainAltAB sets train to AltAB patterns
+	TrainAltAB
 
-	// TestA sets testing to TrainA pats, for wt priming
+	// TestA sets testing to OnlyA patterns, for wt priming testing
 	TestA
 
-	// TestB sets testing to TrainB pats
+	// TestB sets testing to OnlyB patterns
 	TestB
 
-	// TestAll sets testing to TrainAll pats, for act priming
-	TestAll
+	// TestAltAB sets testing to AltAB patterns, for act priming
+	TestAltAB
 )
 
 // ParamSets is the default set of parameters.
@@ -139,14 +139,15 @@ type Sim struct {
 	// network parameter management
 	Params emer.NetParams `display:"add-fields"`
 
-	// All training patterns
-	TrainAll *table.Table `new-window:"+" display:"no-inline"`
+	// AltAB has alternating A, B output patterns for each input.
+	// Used for training and activation priming testing.
+	AltAB *table.Table `new-window:"+" display:"no-inline"`
 
-	// A training patterns
-	TrainA *table.Table `new-window:"+" display:"no-inline"`
+	// OnlyA has only A output patterns.
+	OnlyA *table.Table `new-window:"+" display:"no-inline"`
 
-	// B training patterns
-	TrainB *table.Table `new-window:"+" display:"no-inline"`
+	// OnlyB has only B output patterns.
+	OnlyB *table.Table `new-window:"+" display:"no-inline"`
 
 	// contains looper control loops for running sim
 	Loops *looper.Stacks `new-window:"+" display:"no-inline"`
@@ -181,9 +182,9 @@ func (ss *Sim) New() {
 	ss.Params.Config(ParamSets, "", "", ss.Net)
 	ss.Stats.Init()
 	ss.Stats.SetInt("Expt", 0)
-	ss.TrainAll = &table.Table{}
-	ss.TrainA = &table.Table{}
-	ss.TrainB = &table.Table{}
+	ss.AltAB = &table.Table{}
+	ss.OnlyA = &table.Table{}
+	ss.OnlyB = &table.Table{}
 	ss.RandSeeds.Init(100) // max 100 runs
 	ss.InitRandSeed(0)
 	ss.Context.Defaults()
@@ -191,7 +192,7 @@ func (ss *Sim) New() {
 
 func (ss *Sim) Defaults() {
 	ss.Lrate = 0.04
-	ss.EnvType = TrainAll
+	ss.EnvType = TrainAltAB
 	ss.Decay = 1
 }
 
@@ -221,9 +222,9 @@ func (ss *Sim) OpenPatAsset(dt *table.Table, fnm, name, desc string) error {
 }
 
 func (ss *Sim) OpenPatterns() {
-	ss.OpenPatAsset(ss.TrainAll, "twout_all.tsv", "TrainAll", "All Training Patterns")
-	ss.OpenPatAsset(ss.TrainA, "twout_a.tsv", "TrainA", "A Training Patterns")
-	ss.OpenPatAsset(ss.TrainB, "twout_b.tsv", "TrainB", "B Training Patterns")
+	ss.OpenPatAsset(ss.AltAB, "twout_all.tsv", "AltAB", "Alternating A, B output patterns for each input")
+	ss.OpenPatAsset(ss.OnlyA, "twout_a.tsv", "OnlyA", "Only A output patterns")
+	ss.OpenPatAsset(ss.OnlyB, "twout_b.tsv", "OnlyB", "Only B output patterns")
 }
 
 func (ss *Sim) ConfigEnv() {
@@ -239,10 +240,10 @@ func (ss *Sim) ConfigEnv() {
 
 	// note: names must be standard here!
 	trn.Name = etime.Train.String()
-	trn.Config(table.NewIndexView(ss.TrainAll))
+	trn.Config(table.NewIndexView(ss.AltAB))
 
 	tst.Name = etime.Test.String()
-	tst.Config(table.NewIndexView(ss.TrainA))
+	tst.Config(table.NewIndexView(ss.OnlyA))
 	tst.Sequential = true
 
 	trn.Init(0)
@@ -275,6 +276,9 @@ func (ss *Sim) ApplyParams() {
 		trn := ss.Loops.Stacks[etime.Train]
 		trn.Loops[etime.Run].Counter.Max = ss.Config.NRuns
 		trn.Loops[etime.Epoch].Counter.Max = ss.Config.NEpochs
+		tev := ss.Envs.ByMode(etime.Test).(*env.FixedTable)
+		tst := ss.Loops.Stacks[etime.Test]
+		tst.Loops[etime.Trial].Counter.Max = tev.Table.Table.Rows
 	}
 
 	spo := errors.Log1(errors.Log1(ss.Params.Params.SheetByName("Base")).SelByName("Path"))
@@ -309,12 +313,17 @@ func (ss *Sim) InitRandSeed(run int) {
 	ss.RandSeeds.Set(run, &ss.Net.Rand)
 }
 
+func (ss *Sim) TestInit() {
+	ss.ApplyParams()
+	ss.Logs.ResetLog(etime.Test, etime.Trial)
+}
+
 // ConfigLoops configures the control loops: Training, Testing
 func (ss *Sim) ConfigLoops() {
 	ls := looper.NewStacks()
 
-	trls := ss.TrainAll.Rows
-	ttrls := ss.TrainA.Rows
+	trls := ss.AltAB.Rows
+	ttrls := ss.OnlyA.Rows
 
 	ls.AddStack(etime.Train).
 		AddTime(etime.Run, ss.Config.NRuns).
@@ -331,7 +340,7 @@ func (ss *Sim) ConfigLoops() {
 	leabra.LooperSimCycleAndLearn(ls, ss.Net, &ss.Context, &ss.ViewUpdate) // std algo code
 
 	ls.Stacks[etime.Train].OnInit.Add("Init", func() { ss.Init() })
-	ls.Stacks[etime.Test].OnInit.Add("Init", func() { ss.ApplyParams() })
+	ls.Stacks[etime.Test].OnInit.Add("Init", func() { ss.TestInit() })
 
 	for m, _ := range ls.Stacks {
 		stack := ls.Stacks[m]
@@ -341,14 +350,6 @@ func (ss *Sim) ConfigLoops() {
 	}
 
 	ls.Loop(etime.Train, etime.Run).OnStart.Add("NewRun", ss.NewRun)
-
-	ls.Loop(etime.Train, etime.Run).OnEnd.Add("RunDone", func() {
-		if ss.Stats.Int("Run") >= ss.Config.NRuns-1 {
-			ss.RunStats()
-			expt := ss.Stats.Int("Expt")
-			ss.Stats.SetInt("Expt", expt+1)
-		}
-	})
 
 	// Add Testing
 	trainEpoch := ls.Loop(etime.Train, etime.Epoch)
@@ -394,8 +395,6 @@ func (ss *Sim) ApplyInputs() {
 	ev := ss.Envs.ByMode(ctx.Mode).(*env.FixedTable)
 	ev.Step()
 
-	ss.ApplyParams() // do it all the time so decay takes effect
-
 	lays := net.LayersByType(leabra.InputLayer, leabra.TargetLayer)
 	net.InitExt()
 	ss.Stats.SetString("TrialName", ev.TrialName.Cur)
@@ -431,24 +430,24 @@ func (ss *Sim) SetEnv(envType EnvTypes) { //types:add
 	ss.EnvType = envType
 	switch envType {
 	case TrainA:
-		trn.Table = table.NewIndexView(ss.TrainA)
+		trn.Table = table.NewIndexView(ss.OnlyA)
 		trn.Init(0)
 	case TrainB:
-		trn.Table = table.NewIndexView(ss.TrainB)
+		trn.Table = table.NewIndexView(ss.OnlyB)
 		trn.Init(0)
-	case TrainAll:
-		trn.Table = table.NewIndexView(ss.TrainAll)
+	case TrainAltAB:
+		trn.Table = table.NewIndexView(ss.AltAB)
 		trn.Init(0)
 	case TestA:
-		tst.Table = table.NewIndexView(ss.TrainA)
+		tst.Table = table.NewIndexView(ss.OnlyA)
 		tst.Sequential = true
 		tst.Init(0)
 	case TestB:
-		tst.Table = table.NewIndexView(ss.TrainB)
+		tst.Table = table.NewIndexView(ss.OnlyB)
 		tst.Sequential = true
 		tst.Init(0)
-	case TestAll:
-		tst.Table = table.NewIndexView(ss.TrainAll)
+	case TestAltAB:
+		tst.Table = table.NewIndexView(ss.AltAB)
 		tst.Sequential = true
 		tst.Init(0)
 	}
@@ -512,7 +511,7 @@ func (ss *Sim) TrialStats() {
 	ss.Stats.SetFloat("SSE", sse)
 	ss.Stats.SetFloat("AvgSSE", avgsse)
 
-	_, cor, cnm := ss.Stats.ClosestPat(ss.Net, "Output", "ActM", 0, ss.TrainAll, "Output", "Name")
+	_, cor, cnm := ss.Stats.ClosestPat(ss.Net, "Output", "ActM", 0, ss.AltAB, "Output", "Name")
 	ss.Stats.SetString("Closest", cnm)
 	ss.Stats.SetFloat32("Correl", cor)
 
@@ -532,44 +531,22 @@ func (ss *Sim) TrialStats() {
 	ss.Stats.SetFloat("IsB", 1-ss.Stats.Float("IsA"))
 }
 
-func (ss *Sim) TestStats() {
-	trl := ss.Logs.Table(etime.Test, etime.Trial)
-	if trl.Rows == 0 {
-		return
-	}
-	// trix := table.NewIndexView(trl)
-	// spl := split.GroupBy(trix, "GroupName")
-	// split.AggColumn(spl, "Err", stats.Mean)
-	// tsts := spl.AggsToTable(table.ColumnNameOnly)
-	// ss.Logs.MiscTables["TestEpoch"] = tsts
-	// ss.Stats.SetFloat("ABErr", tsts.Columns[1].Float1D(0))
-	// ss.Stats.SetFloat("ACErr", tsts.Columns[1].Float1D(1))
-}
-
-func (ss *Sim) RunStats() {
-	// dt := ss.Logs.Table(etime.Train, etime.Run)
-	// runix := table.NewIndexView(dt)
-	// spl := split.GroupBy(runix, "Expt")
-	// split.DescColumn(spl, "ABErr")
-	// st := spl.AggsToTableCopy(table.AddAggName)
-	// ss.Logs.MiscTables["RunStats"] = st
-	// plt := ss.GUI.Plots[etime.ScopeKey("RunStats")]
-	//
-	// st.SetMetaData("XAxis", "RunName")
-	//
-	// st.SetMetaData("Points", "true")
-	//
-	// st.SetMetaData("ABErr:Mean:On", "+")
-	// st.SetMetaData("ABErr:Mean:FixMin", "true")
-	// st.SetMetaData("ABErr:Mean:FixMax", "true")
-	// st.SetMetaData("ABErr:Mean:Min", "0")
-	// st.SetMetaData("ABErr:Mean:Max", "1")
-	// st.SetMetaData("ABErr:Min:On", "+")
-	// st.SetMetaData("ABErr:Count:On", "-")
-	//
-	// plt.SetTable(st)
-	// plt.GoUpdatePlot()
-}
+// func (ss *Sim) TestStats() {
+// 	// if testing on AltAB, only include the 2nd instance of each trial
+// 	tev := ss.Envs.ByMode(etime.Test).(*env.FixedTable)
+// 	if tev.Table.Table != ss.AltAB {
+// 		return
+// 	}
+// 	trl := ss.Logs.Table(etime.Test, etime.Trial)
+// 	if trl.Rows == 0 {
+// 		return
+// 	}
+// 	for i := trl.Rows - 1; i >= 0; i-- {
+// 		if i%2 == 1 {
+// 			trl.DeleteRow(i)
+// 		}
+// 	}
+// }
 
 //////////////////////////////////////////////////////////////////////
 // 		Logging
@@ -633,8 +610,8 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 	case time == etime.Trial:
 		ss.TrialStats()
 		ss.StatCounters()
-	case time == etime.Epoch && mode == etime.Test:
-		ss.TestStats()
+		// case time == etime.Epoch && mode == etime.Test:
+		// 	ss.TestStats()
 	}
 
 	ss.Logs.LogRow(mode, time, row) // also logs to file, etc
@@ -658,7 +635,7 @@ func (ss *Sim) ConfigGUI() {
 	nv.Options.MaxRecs = 300
 	nv.SetNet(ss.Net)
 	nv.Options.PathWidth = 0.003
-	ss.ViewUpdate.Config(nv, etime.GammaCycle, etime.GammaCycle)
+	ss.ViewUpdate.Config(nv, etime.GammaCycle, etime.Cycle)
 	ss.GUI.ViewUpdate = &ss.ViewUpdate
 	nv.Current()
 
