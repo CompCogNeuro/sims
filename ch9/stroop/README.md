@@ -26,7 +26,7 @@ We next explore the differential weight strengths for the two pathways that deve
 
 * Click on the `g` and `G` Hidden units in turn.  You can hover the mouse over a given sending unit to see its weight value.
 
-> **Question 9.1:** Report the weights for the `g` and `G` hidden units from their respective input, PFC, and output units (you need only report the `gr` output weights, not `rd`).
+> **Question 9.4:** Report the weights for the `g` and `G` hidden units from their respective input, PFC, and output units (you need only report the `gr` output weights, not `rd`).
 
 You should have observed that the `G` (word reading) hidden unit has stronger weights overall, due to the higher frequency of training.
 
@@ -56,7 +56,7 @@ Now, we can single-step through the testing events to get a better sense of what
 
 Each Trial will advance one step through the three conditions of word reading in order (control, conflict, congruent) followed by the same for color naming. For the word reading conditions, you should observe that the corresponding word reading hidden unit is rapidly activated, and that this then activates the corresponding output unit, with little effect of the color pathway inputs. The critical condition of interest is the conflict color naming condition.
 
-> **Question 9.2:** Describe what happens in the network during the conflict color naming condition, paying particular attention to the activations of the hidden units, and how this leads to the observed slowing of response time (settling).
+> **Question 9.5:** Describe what happens in the network during the conflict color naming condition, paying particular attention to the activations of the hidden units, and how this leads to the observed slowing of response time (settling).
 
 # Effects of Frontal Damage
 
@@ -70,7 +70,7 @@ Although we have shown that reducing the PFC gain can produce the characteristic
 
 * Restore `From PFC` to .3, and then increase `DtVmTau` to 40 (from 30). Do `Test Init` and `Test Run` again.
 
-> **Question 9.3:** Compare the results of this overall slowing manipulation to the PFC gain manipulation performed previously. Does slowing also produce the characteristic behavior seen in frontal and schizophrenic patients?
+> **Question 9.6:** Compare the results of this overall slowing manipulation to the PFC gain manipulation performed previously. Does slowing also produce the characteristic behavior seen in frontal and schizophrenic patients?
 
 # SOA Timing Data
 
