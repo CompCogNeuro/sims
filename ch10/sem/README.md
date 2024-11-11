@@ -22,7 +22,7 @@ You should observe sparse patterns of weights, with different units picking up o
 
 One of the most interesting things to notice here is that the unit represents multiple roughly synonymous terms. For example, you might see the words "act," "activation," and "activations" and "add", "added", "adding", "additional".
 
-> **Question 10.9:** List some other examples of roughly synonymous terms represented by this unit.
+> **Question 10.1:** List some other examples of roughly synonymous terms represented by this unit.
 
 This property of the representation is interesting for two reasons. First, it indicates that the representations are doing something sensible, in that semantically related words are represented by the same unit. Second, these synonyms probably do not occur together in the same paragraph very often. Typically, only one version of a given word is used in a given context. For example, "The activity of the unit is..." may appear in one paragraph, while "The unit's activation was..." may appear in another. Thus, for such representations to develop, it must be based on the similarity in the general contexts in which similar words appear (e.g., the co-occurrence of "activity" and "activation" with "unit" in the previous example). This generalization of the semantic similarity structure across paragraphs is essential to enable the network to transcend rote memorization of the text itself, and produce representations that will be effective for processing novel text items.
 
@@ -50,7 +50,7 @@ You should see that attention and spelling are only related by around 0.06, indi
 
 * Compare several other words that the network should know about from reading this textbook (tip: Click `Envs` in the left control panel, then `Train`, then `Words` in the window that appears to see a list of all the words, and scroll through that to see what words are in the valid list (these are words with frequency greater than 5, and not purely syntactic).
 
-> **Question 10.10:** Report the correlation values for several additional sets of Words comparisons, along with how well each matches your intuitive semantics from having read this textbook yourself.
+> **Question 10.2:** Report the correlation values for several additional sets of Words comparisons, along with how well each matches your intuitive semantics from having read this textbook yourself.
 
 # Distributed Representations of Multiple Words
 
@@ -78,7 +78,7 @@ The similarity does now decrease. Thus, we can see that the network's activation
 
 You should see that the similarity goes back up. Thus, this is potentially a very powerful and flexible form of semantic representation that combines rich, overlapping distributed representations and activation dynamics that can magnify or diminish the similarities of different word combinations.
 
-> **Question 10.11:** Think of another example of a word that has different senses (that is well represented in this textbook), and perform an experiment similar to the one we just performed to manipulate these different senses. Document and discuss your results.
+> **Question 10.3:** Think of another example of a word that has different senses (that is well represented in this textbook), and perform an experiment similar to the one we just performed to manipulate these different senses. Document and discuss your results.
 
 # A Multiple-Choice Quiz
 
