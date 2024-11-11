@@ -395,6 +395,8 @@ func (ss *Sim) ApplyInputs() {
 	ev := ss.Envs.ByMode(ctx.Mode).(*env.FixedTable)
 	ev.Step()
 
+	ss.ApplyParams()
+
 	lays := net.LayersByType(leabra.InputLayer, leabra.TargetLayer)
 	net.InitExt()
 	ss.Stats.SetString("TrialName", ev.TrialName.Cur)
