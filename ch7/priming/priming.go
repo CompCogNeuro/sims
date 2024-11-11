@@ -331,6 +331,7 @@ func (ss *Sim) ConfigLoops() {
 	leabra.LooperSimCycleAndLearn(ls, ss.Net, &ss.Context, &ss.ViewUpdate) // std algo code
 
 	ls.Stacks[etime.Train].OnInit.Add("Init", func() { ss.Init() })
+	ls.Stacks[etime.Test].OnInit.Add("Init", func() { ss.ApplyParams() })
 
 	for m, _ := range ls.Stacks {
 		stack := ls.Stacks[m]
