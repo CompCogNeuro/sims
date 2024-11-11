@@ -32,15 +32,13 @@ Also, the bidirectional connectivity produces attractor dynamics that enable the
 
 Having trained the network with the appropriate _semantic_ background knowledge, we are now ready to assess its performance on the priming task. 
 
-We will first see if we can prime the `B` outputs by a single training trial on each of them, using the same slow learning rate that is used in all of our cortical simulations -- e.g., the `objrec` model which learned to recognize objects from visual inputs.
-
 First we need to establish a baseline measure of the extent to which the network at the end of training responds with either the `A` or `B` output.
 
 * Select the `Test Trial Plot` to view the testing results, where the network is tested on the `OnlyA` patterns to determine how many times it responds with an A or B to the 12 input patterns. Then set the `Step` to `Epoch` and click `Step` to train one epoch with both `A` and `B` items as targets (i.e,. the `Alt AB` environment, that was used during training). It will automatically run the test after each epoch, so you will see the plot update.
 
 This plot shows for each input (0-12) whether it responded with the A output (`IsA`) in the minus phase (i.e., `ActM`) and also gives the name of the closest output (`Closest`) for visual concreteness.  You should see that it responds with the `a` output on roughly half of the trials (there is no bias in the training -- it can randomly vary quite a bit though).
 
-Next, we will change the training so that it only presents `B` output items.
+Next, we will change the training so that it only presents `B` output items, to see whether we can prime the `B` outputs by a single training trial on each of them, using the same slow learning rate that is used in all of our cortical simulations -- e.g., the `objrec` model which learned to recognize objects from visual inputs.
 
 * Click the `Set Env` button in the toolbar, and select `TrainB` -- this will configure to train on the `B` items only. Then do `Step Epoch` again.
 
@@ -58,7 +56,7 @@ You can repeat this experiment a couple more times, flipping the `a`'s back to `
 
 > **Question 7.7:** Report the IsA results for each of the 3 data points, corresponding to TrainAltAB, TrainB, and TrainA (hover the mouse over the points to get the numbers, or click the `Table` button to see a table of the numbers).
 
-You can optionally explore turning the `Lrate` parameter down to .01 or even lower (we are applying the parameters every trial so you don't need to do `Init` to get the parameter to take effect).  You should see that although the number of items that flip is reduced, even relatively low lrates can produce flips.
+You can optionally explore turning the `Lrate` parameter down to .01 or even lower. (We are applying the parameters every trial so you don't need to do `Init` to get the parameter to take effect.) You should see that although the number of items that flip is reduced, even relatively low `Lrate`s can produce flips.
 
 # Activation-Based Priming
 
@@ -66,17 +64,17 @@ Next, we can see to what extent residual activation from one trial to the next c
 
 * Click `Init` while still in `Train` mode, and then do `Open Trained Wts`.
 
-Next, we will use the `AltAB` patterns for testing, because they alternate between the `a` and `b` versions of each input when presented sequentially, and we can see the effect of the the `a` input on the first trial on the second trial of the same input pattern. We will test for the extent to which the residual activation from the first `a` item can bias processing on the subsequent `b` case.  Note that we are recording the response of the network in the _minus_ phase, and then the specific `Output` is clamped in the plus phase (even during testing), so we can observe the effects of e.g., the `0_a` `Output` activation (with the `a` pattern) on the tendency to bias the network to produce an `a` response again for the second 0 input. Therefore, we are looking specifically at the response on the second presentation of the same input in these alternating A, B patterns, which, confusingly enough, is labeled as `b` -- if there is activation priming, this second trial should be more likely to be an `a`.
+Next, we will use the `AltAB` patterns for testing, because they alternate between the `a` and `b` versions of each input when presented sequentially, so we can see the effect of the the `a` input on the first trial on the second trial of the same input pattern. We will test the extent to which the residual activation from the first `a` item can bias processing on the subsequent `b` case.  Note that we are recording the response of the network in the _minus_ phase, and then the specific `Output` is clamped in the plus phase (even during testing), so we can observe the effect of e.g., the `0_a` `Output` activation (with the `a` pattern) on the network's tendency to produce an `a` response again for the second 0 input. Therefore, we are looking specifically at the response on the second presentation of the same input in these alternating A, B patterns -- if there is activation priming, this second trial should be more likely to be an `a`.
 
 * Click `Set Env` and select `Test alt AB` to use this full set of alternating `AltAB` patterns during _testing_, and then switch to `Test` instead of `Train` mode, and do `Init` (which will not initialize the weights because we are in `Test` mode), `Run` to see the baseline level of responding, while looking at the `Test Trial Plot`.
 
-This is a baseline, because we are still clearing all of the activation out of the network between each input, due to the `Decay` parameter being set to the default of 1. You should see that the network responds _consistently_ to both instances of the same input pattern. For example, if it responds `a` to the first `0` input, then it will also respond `a` to the second one right after that. There is no evidence of activation priming here.
+This is a baseline, because we are still clearing all of the activation out of the network between each input, due to the `Decay` parameter being set to the default of 1. You should see that the network responds _consistently_ to both instances of the same input pattern. For example, if it responds `a` to the first `0` input, then it also responds `a` to the second input right after that. Similarly, if the network responds `b` to the first trial of an input pattern, then it also responds `b' to the second trial of the input pattern. There is no biasing toward `a` after the first trial, and no evidence of activation priming here.
 
-* Set `Decay` to 0 instead of 1, and do another `Init` and `Run`. You should now observe a very different pattern, where the responses to the second input of the same pattern are more likely to be `a`. This looks like a "sawtooth" kind of jaggy pattern in the test plot.
+* Set `Decay` to 0 instead of 1, and do another `Init` and `Run`. You should now observe a very different pattern, where the responses to the second trial of an input pattern are more likely to be `a` than the first trial of the same input pattern. This looks like a "sawtooth" kind of jaggy pattern in the test plot.
 
-> **Question 7.8:** Looking only at the 2nd instance of each input pattern, report the number of times the network responded 'a' instead of 'b' for the 'b' test trials, relative to the baseline that you observed above with Decay set to 1 (you can go back and forth between Decay = 1 vs. 0 -- in Test mode there is no learning so the results should be consistent).
+> **Question 7.8:** Comparing the 1st trials and 2nd trials of each input pattern (the 1st and 2nd 0, the 1st and 2nd 1, and so on), report the number of times the network responded 'b' to the first trial and 'a' to the second trial. How does this number of instances of activation-based priming compare to the 0 instances observed at baseline with Decay set to 1?.
 
-You can explore extent of residual activity needed to show this activation-based priming by adjusting the `Decay` parameter and running `Test` again (no learning takes place during testing so you can explore at will, and go back and verify that Decay = 1 still produces mostly `b`'s).  In our tests increasing Decay using this efficient search sequence: 0, .5, .8, .9, .95, .98, .99, we found a critical transition between .98 and .99 -- i.e., a very tiny amount of residual activation with .98 (= .02 residual activity) was capable of driving some activation-based priming.  This suggests that the network is delicately balanced between the two attractor states and even a very tiny bias can push it one way or the other. The similar susceptibility of the human brain to such activation-based priming effects suggests that it too may exhibit a similar attractor balancing act.
+You can explore the extent of residual activity needed to show this activation-based priming by adjusting the `Decay` parameter and running `Test` again. (Because no learning takes place during testing, you can explore at will, and go back and verify that Decay = 1 still produces mostly `b`'s).  In our tests increasing Decay (using this efficient search sequence: 0, .5, .8, .9, .95, .98, .99), we found a critical transition between .98 and .99. That is, a tiny amount of residual activation with Decay = .98 (= .02 residual activity) was capable of driving some activation-based priming. This suggests that the network is delicately balanced between the two attractor states, and even a tiny bias can push it one way or the other. The similar susceptibility of the human brain to such activation-based priming effects suggests that it too may exhibit a similar attractor balancing act.
 
 # References
 
