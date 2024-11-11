@@ -54,7 +54,7 @@ You should see a large number of the `b` responses have now flipped back to `a`,
 
 You can repeat this experiment a couple more times, flipping the `a`'s back to `b`'s, and then back to `a`'s again.
 
-* Click the `Test Epoch Log` tab see a plot of all the testing results in summary form. 
+* Click the `Test Epoch Plot` tab see a plot of all the testing results in summary form. 
 
 > **Question 7.7:** Report the IsA results for each of the 3 data points, corresponding to TrainAll, TrainB, and TrainA (hover the mouse over the points to get the numbers, or click the `Table` button to see a table of the numbers).
 
