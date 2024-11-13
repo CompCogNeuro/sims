@@ -58,11 +58,11 @@ Now the situation is reversed: the `Rew` layer shows that the reward has been pr
 
 * Do `Step Trial` to process the rest of the trial, and switch to viewing `Train Trial Plot`.
 
-The plot shows that the "dopamine spike" of TD delta has moved forward one step in time. This is the critical feature of the TD algorithm: by learning to anticipate rewards one time step later, it ends up moving the dopamine spike earlier in time.
+The plot shows that the "dopamine spike" of TD delta has moved backward (earlier) one step in time. This is the critical feature of the TD algorithm: by learning to anticipate rewards one time step later, it ends up moving the dopamine spike earlier in time.
 
 * Keep doing more `Step Trial` (or just `Train`).
 
-You should see that the spike moves "forward" in time with each `Step Trial`, but can't move any further than the onset of the CS at time step 10.
+You should see that the spike moves "backward" in time with each `Step Trial`, but can't move any further than the onset of the CS at time step 10.
 
 We can also examine the weights to see what the network has learned.
 
