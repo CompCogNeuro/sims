@@ -74,9 +74,9 @@ At this point, there are many standard phenomena in classical conditioning that 
 
 We can simulate extinction by simply turning off the US reward that appears at t=15. 
 
-* Click on the `Envs` and `Train`, and then click off the `Act` toggle in the `US` field -- this will de-activate the US.
+* Click `Envs` -> `Train` on the left, and then click off the `Act` toggle in the `US` field -- this will de-activate the US.
 
-* Now, hit `Init` (which does not initialize the weights), and `Reset Trial Log` in toolbar to clear out the `Train Trial Plot` (click on that to view it), and then `Step Trial`.  It can also be useful to click on the `Pred` line in the plot, which shows the predicted reward value.  You can also `Step Trial` and watch the Network to see how the network behaves.
+* Now, hit `Init` (which does not initialize the weights), and `Reset Trial Log` in toolbar to clear out the `Train Trial Plot` (click on that to view it), and then `Step Trial`.  It can also be useful to click on the `Pred_Act` line in the plot, which shows the predicted reward value.  You can also `Step Trial` and watch the Network to see how the network behaves.
 
 > **Question 8.5:** What happened at the point where the reward was supposed to occur? Explain why this happened using the TD mechanisms of reward expectations compared to actual reward values received.
 
@@ -84,7 +84,7 @@ We can simulate extinction by simply turning off the US reward that appears at t
 
 Now, let's explore second order conditioning. We must first retrain the network on the stimulus 1 association.
 
-* In the `Train` env window, turn `US` `Act` back on, then do `Init` and `Train`. You can `Stop` when it is trained.
+* In the `Train` env window, turn `US` `Act` back on, then do `Init` and `Run`. You can `Stop` when it is trained.
 
 Now, we will turn on the CS B stimulus, which starts at t=2 and lasts until time step 10.
 
