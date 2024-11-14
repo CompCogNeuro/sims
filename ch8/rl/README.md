@@ -92,7 +92,7 @@ Now, we will turn on the CS B stimulus, which starts at t=2 and lasts until time
 
 Essentially, the CSA stimulus *acts just like a reward* by triggering a positive delta value, and thus allows the CSB stimulus to learn to predict this first stimulus.
 
-* Push `Train`, and switch to `Train Trial Plot`, then `Stop` when the plot stops changing.
+* Switch to `Train Trial Plot`, click `Run`, then `Stop` when the plot stops changing.
 
 You will see that the early anticipation of reward gets carried out to the onset of the CS B stimulus (which comes first in time).
 
