@@ -84,11 +84,11 @@ We can simulate extinction by simply turning off the US reward that appears at t
 
 Now, let's explore second order conditioning. We must first retrain the network on the stimulus 1 association.
 
-* In the `Train` env window, turn `US` `Act` back on, then do `Init` and `Run`. You can `Stop` when it is trained.
+* Click `Envs` -> `Train` on the left, turn `US` `Act` back on, then do `Init` and `Run`. You can `Stop` when it is trained.
 
 Now, we will turn on the CS B stimulus, which starts at t=2 and lasts until time step 10.
 
-* Click the `CSB` `Act` on in `Train`, and go back to viewing `Act` in the `Network` if you aren't already.  Hit `Reset Trial Log` to clear the plot, then do `Step Trial` to see the B stimulus followed by the A, then the US (you might need to go through twice to get a full trial, depending on where it stopped last time).
+* Click `Envs` -> `Train` on the left, Click the `CSB` `Act` on, and go back to viewing `Act` in the `Network` if you aren't already.  Hit `Reset Trial Log` to clear the plot, then do `Step Trial` to see the B stimulus followed by the A, then the US (you might need to go through twice to get a full trial, depending on where it stopped last time).
 
 Essentially, the CSA stimulus *acts just like a reward* by triggering a positive delta value, and thus allows the CSB stimulus to learn to predict this first stimulus.
 
