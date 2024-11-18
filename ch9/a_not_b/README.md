@@ -90,3 +90,5 @@ You should see that there is a less strong 'A' response with the weaker recurren
 Infant Behavior and Development, 29(3), 435-444. 
 (https://doi.org/10.1016/j.infbeh.2006.03.001)
 
+* Munakata, Y. (1998). Infant perseveration and implications for object permanence theories: A PDP Model of the A-not-B task. Developmental Science, 1(2), 161-184. (https://onlinelibrary.wiley.com/doi/10.1111/1467-7687.00021)
+
