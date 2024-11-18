@@ -82,6 +82,6 @@ Finally, there is an interesting effect that can occur with very weak recurrent 
 
 * To see this effect, set `Delay` back to `Delay3` and then reduce the `RecurrentWt` parameter to .1.  `Init`, `Run`, and look at the activations of the units in the 'B' choice trial. Then compare this with the case with of .4. It can be easier to see the difference in the `Train Trial Plot` -- you can take a screen snapshot to see the differences.
 
-You should see that there is a less strong 'A' response with the weaker recurrent weights (and also some residual activation of the 'B' units), meaning a less strong A-not-B error (and further analysis has confirmed that this is due to the amount of learning on the 'A' trials).
+You should see that there is a less strong 'A' response with the weaker recurrent weights (and also some residual activation of the 'B' units), meaning a less strong A-not-B error in "younger" networks (and further analysis has confirmed that this is due to the amount of learning on the 'A' trials). This counterintuitive prediction from a neural network model of the A-not-B task [Munakata, 1998](#references) has been confirmed in infants [Clearfield et al., 2006](#references).
 
 
