@@ -68,7 +68,7 @@ You will now see the `A` testing trials, where the network's tendency to reach t
 
 * Next, set `Delay` to `Delay5` and try it with the value of .7 for the recurrent weights.  You will have to scroll down a bit to see the final B test output.
 
-> **Question 9.3:** What happens on the 'B' trials with those two delays -- why does delay have this effect on the network's behavior?
+> **Question 9.3:** What happens on the 'B' trials with this longer delay compared to what happened with `Delay3` (and the same .7 recurrent weights)? Why does delay have this effect on the network's behavior?
 
 You can also try to find a recurrent weight value that allows the network to succeed with the longer 5 delay condition.
 
