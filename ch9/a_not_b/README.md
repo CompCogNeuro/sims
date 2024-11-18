@@ -84,4 +84,9 @@ Finally, there is an interesting effect that can occur with very weak recurrent 
 
 You should see that there is a less strong 'A' response with the weaker recurrent weights (and also some residual activation of the 'B' units), meaning a less strong A-not-B error in "younger" networks (and further analysis has confirmed that this is due to the amount of learning on the 'A' trials). This counterintuitive prediction from a neural network model of the A-not-B task ([Munakata, 1998](#references)) has been confirmed in infants ([Clearfield et al., 2006](#references)).
 
+# References
+
+* Clearfield, M. W., Diedrich, F. J., Smith, L. B., & Thelen, E. (2006) Young infants reach correctly in A-not-B tasks: On the development of stability and perseveration.
+Infant Behavior and Development, 29(3), 435-444. 
+(https://doi.org/10.1016/j.infbeh.2006.03.001)
 
