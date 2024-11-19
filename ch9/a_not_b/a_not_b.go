@@ -619,7 +619,9 @@ func (ss *Sim) ConfigGUI() {
 
 	ss.GUI.AddPlots(title, &ss.Logs)
 
-	ss.GUI.AddTableView(&ss.Logs, etime.Train, etime.Trial)
+	tv := ss.GUI.AddTableView(&ss.Logs, etime.Train, etime.Trial)
+	tv.TensorDisplay.GridMinSize = 32
+	tv.TensorDisplay.GridMaxSize = 32
 
 	ss.GUI.FinalizeGUI(false)
 }
