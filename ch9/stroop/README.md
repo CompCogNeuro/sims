@@ -4,7 +4,7 @@ Back to [All Sims](https://github.com/CompCogNeuro/sims) (also for general info 
 
 This simulation illustrates how the prefrontal cortex (PFC) can produce top-down biasing for executive control, in the context of the widely studied Stroop task.  This model is similar to the [Cohen et al., (1994)](#references) version of the classic [Cohen et al, (1990)](#references) Stroop model, with bidirectional excitatory connections and inhibitory competition.
 
-* Let's begin by exploring the connectivity of the StroopNet network using `Wts / r.Wt`
+* Let's begin by exploring the connectivity of the StroopNet network using `Wts` -> `r.Wt`
 
 You will notice that all of the units for green (`g` = color, `G` = word) versus red (`r` = color, `R` = word) are connected in the way you would expect, with the exception of the connections between the hidden and output units (`gr` = green output, `rd` = red output). Although we assume that people enter the Stroop task with more meaningful connections than the random ones we start with here (e.g., they are able to say "Red" and not "Green" when they perceive red in the environment), we did not bother to preset these connections here because they become meaningful during the course of training on the task.
 
@@ -18,9 +18,9 @@ There are 4 different training input patterns shown in the window that opens up:
 
 Now, let's train the network.
 
-* Do `Init` and `Step Trial` (go back to viewing `Act/Act`) to see a few training events -- standard error-driven learning is used to train the correct output for each case.  Click on `Train Epoch Plot` and then `Run` to train for 55 epochs. The network learns to produce the correct responses and `PctErr` goes to zero.
+* Do `Init` and `Step Trial` (go back to viewing `Act` -> `Act`) to see a few training events -- standard error-driven learning is used to train the correct output for each case.  Click on `Train Epoch Plot` and then `Run` to train for 55 epochs. The network learns to produce the correct responses and `PctErr` goes to zero.
 
-* Go back to the `Network` view, select `Wts/r.Wt`, and click on the `gr` and `rd` Output units. You can see that the network gradually learns to strengthen the connections to the correct output response for naming words *or* colors (it never sees both together during this pretraining).
+* Go back to the `Network` view, select `Wts` -> `r.Wt`, and click on the `gr` and `rd` Output units. You can see that the network gradually learns to strengthen the connections to the correct output response for naming words *or* colors (it never sees both together during this pretraining).
 
 We next explore the differential weight strengths for the two pathways that develop as a result of training. Although the observed weight differences are not huge, they are enough to produce the behavioral effects of word reading being dominant over color naming. 
 
