@@ -34,7 +34,7 @@ To review the functions of the other layers in the PBWM framework (see the [pbwm
 
     For reference (if you want to know all the details), in earlier versions of the PBWM model, we relied on CS (conditioned stimulus) based phasic dopamine to reinforce gating, but this scheme requires that the PFC maintained activations function as a kind of internal CS signal, and that the amygdala learn to decode these PFC activation states to determine if a useful item had been gated into memory. Compared to the trace-based mechanism, this CS-dopamine approach is much more complex and error-prone. Nevertheless, there is nothing in the current model that prevents it from *also* contributing to learning. However, in the present version of the model, we have not focused on getting this CS-based dopamine signal working properly.
 
-* To explore the model's connectivity, click on `Wts / r.Wt` and on various units within the layers of the network.
+* To explore the model's connectivity, click on `Wts` -> `r.Wt` and on various units within the layers of the network.
 
 # SIR Task Learning
 
