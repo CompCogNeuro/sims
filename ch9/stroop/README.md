@@ -70,7 +70,7 @@ Although we have shown that reducing the PFC gain can produce the characteristic
 
 * Restore `From PFC` to .3, and then increase `DtVmTau` to 40 (from 30). Do `Test Init` and `Test Run` again.
 
-> **Question 9.6:** Compare the results of this overall slowing manipulation to the PFC gain manipulation performed previously. Does slowing also produce the characteristic behavior seen in frontal and schizophrenic patients?
+> **Question 9.6:** Compare the results of this overall slowing manipulation to the PFC gain manipulation performed previously. Does slowing also produce the characteristic behavior seen in frontal and schizophrenic patients? (To assess whether the conflict color naming condition is specifically affected, you should adjust for overall slowing effects by dividing the conflict color response time by the control color response time--the resulting value is 1.4 in the intact model and 1.6 in the model with the weakened contributions from the prefrontal units.)
 
 # SOA Timing Data
 
