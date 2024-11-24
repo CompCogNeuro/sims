@@ -567,6 +567,7 @@ func (ss *Sim) NewRun() {
 	ctx.Reset()
 	ctx.Mode = etime.Train
 	ss.Net.InitWeights()
+	ss.ApplyParams()
 	ss.InitStats()
 	ss.StatCounters()
 	ss.Logs.ResetLog(etime.Train, etime.Epoch)
