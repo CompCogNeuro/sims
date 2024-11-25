@@ -38,7 +38,7 @@ Although there clearly is sensible semantic structure at a local level within th
 
 To probe these distributed representations further, we can present words to the input and measure the hidden layer activation patterns that result. Specifically we are interested in the extent to which the hidden representations overlap for different sets of words, which tells us how similar overall the internal semantic representation is. Instead of just eyeballing the pattern overlap, we can compute a numerical measure of similarity using *normalized inner products* or *cosines* between pairs of sending weight patterns -- cosine values go from -1 to +1, with +1 being maximal similarity, 0 being completely unrelated, and -1 being maximal dissimilarity or anti-correlation.  We actually subtract the mean activity of each pattern before computing the inner product, which ends up being equivalent to a *correlation* -- this allows us to see negative correlation values even though all the activations are positive.
 
-* You can see that "attention" is present in `Words1` in the control panel, and "binding" is in `Words2`. Set the run mode to `Test` instead of `Train`, then do `Init` and `Run` to test each of these cases in turn. If in the future you get an error message about the word not being found in the list of valid words, then fix and retry.
+* You can see that "attention" is present in `Words1` in the control panel, and "binding" is in `Words2`. Set the run mode to `Test` instead of `Train`, then do `Init` and `Run` to test each of these cases in turn. 
 
 * Use the `Time` VCR buttons at the bottom right of Network to replay the two trials.  You can see the actual distributed representations in the Hidden layer for these words, which is what the correlation is based on. You should observe that the two patterns overlap roughly 50%.
 
@@ -48,7 +48,7 @@ To probe these distributed representations further, we can present words to the 
 
 You should see that attention and spelling are only related by around 0.06, indicating low similarity. This should match your overall intuition: we talk about attention as being critical for solving the binding problem in several different situations, but we don't talk much about the role of attention in spelling.
 
-* Compare several other words that the network should know about from reading this textbook. (Tip: Click `Envs` in the left control panel, then `Train`, then `Words` in the window that appears to see a list of all the words, and scroll through that to see what words are in the valid list. These are words with frequency greater than 5, and not purely syntactic.)
+* Compare several other words that the network should know about from reading this textbook. If you get an error message about the word not being found in the list of valid words, then try again with a different word. You can also click `Envs` in the left control panel, then `Train`, then `Words` in the window that appears to see a list of all the words, and scroll through that to see what words are in the valid list. (These are words with frequency greater than 5, and not purely syntactic.)
 
 > **Question 10.2:** Report the correlation values for several additional sets of Words comparisons, along with how well each matches your intuitive semantics from having read this textbook yourself.
 
