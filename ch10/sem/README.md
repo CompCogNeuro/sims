@@ -14,7 +14,7 @@ This network takes a while to train, so we will start by loading in pre-trained 
 
 To start, let's examine the weights of individual units in the network.
 
-* Select `Wts / r.Wt`, and then select various `Hidden` units at random to view.
+* Select `Wts` -> `r.Wt`, and then select various `Hidden` units at random to view.
 
 You should observe sparse patterns of weights, with different units picking up on different patterns of words in the input. However, because the input units are too small to be labeled, you can't really tell which words a given unit is activated by. The `Wt Words` button provides a solution to this problem.
 
@@ -48,7 +48,7 @@ To probe these distributed representations further, we can present words to the 
 
 You should see that attention and spelling are only related by around 0.06, indicating low similarity. This should match your overall intuition: we talk about attention as being critical for solving the binding problem in several different situations, but we don't talk much about the role of attention in spelling.
 
-* Compare several other words that the network should know about from reading this textbook (tip: Click `Envs` in the left control panel, then `Train`, then `Words` in the window that appears to see a list of all the words, and scroll through that to see what words are in the valid list (these are words with frequency greater than 5, and not purely syntactic).
+* Compare several other words that the network should know about from reading this textbook. (Tip: Click `Envs` in the left control panel, then `Train`, then `Words` in the window that appears to see a list of all the words, and scroll through that to see what words are in the valid list. These are words with frequency greater than 5, and not purely syntactic.)
 
 > **Question 10.2:** Report the correlation values for several additional sets of Words comparisons, along with how well each matches your intuitive semantics from having read this textbook yourself.
 
@@ -129,7 +129,7 @@ We can present this same quiz to the network, and determine how well it does rel
 
 * Press the `Quiz All` button, and then click on the `Validate Epoch` tab to see the overall results. You will see a table of each question, with the Response as the answer with the highest correlation, as shown in each of the columns. At the end you will see summary statistics for overall performance in the `Total` row, with the `Correct` column showing the percent correct. 
 
-You should observe that the network does pretty well, but not perfectly, getting .8 = 80 percent correct. The network does a very good job of rejecting the obviously unrelated answer C, but it does not always match our sense of A being better than B. In question 6, the B phrase was often mentioned in the context of the question phrase, but as a *contrast* to it, not a similarity. Because the network does not have the syntactic knowledge to pick up on this kind distinction, it considers them to be closely related because they appear together. This probably reflects at least some of what goes on in humans -- we have a strong association between "black" and "white" even though they are opposites. However, we can also use syntactic information to further refine our semantic representations -- a skill that is lacking in this network, which is taken up in the final simulation in this chapter.
+You should observe that the network does pretty well, but not perfectly, getting .8 = 80 percent correct. The network does a very good job of rejecting the obviously unrelated answer C, but it does not always match our sense of A being better than B. In question 6, the B phrase was often mentioned in the context of the question phrase, but as a *contrast* to it, not a similarity. Because the network does not have the syntactic knowledge to pick up on this kind distinction, it considers them to be closely related because they appear together. This probably reflects at least some of what goes on in humans; we have a strong association between "black" and "white" even though they are opposites. However, we can also use syntactic information to further refine our semantic representations. This skill is lacking in this network, and is taken up in the final simulation in this chapter.
 
 # References
 
