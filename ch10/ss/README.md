@@ -53,7 +53,7 @@ You can continue to observe the network's performance. Although you may observe 
 
 Now, let's explore the connectivity and weights of the trained network.
 
-* Click on `Wts / r.Wt` in the network view and click on some units on the left hand side of the `OrthoCode` layer, and then throughout the layer.
+* Click on `Wts` -> `r.Wt` in the network view and click on some units on the left hand side of the `OrthoCode` layer, and then throughout the layer.
 
 Notice that the left-most units receive from the left-most 3 letter slots, where each letter slot is a 3x9 pool of units. As you progress to the right in the OrthoCode pools, the units receive from overlapping pools of 3 letter slots.
 
