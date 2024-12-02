@@ -18,7 +18,7 @@ To start, let's examine the weights of individual units in the network.
 
 You should observe sparse patterns of weights, with different units picking up on different patterns of words in the input. However, because the input units are too small to be labeled, you can't really tell which words a given unit is activated by. The `Wt Words` button provides a solution to this problem.
 
-* View the weights for the unit just to the right of the lower-leftmost Hidden unit, and then hit the `Wt Words` button.  This pulls up a list of words with weight values > `WtWordsThr` (0.75).
+* View the weights for the unit just to the right of the lower-leftmost Hidden unit, and then hit the `Wt Words` button in the upper right.  This pulls up a list of words with weight values > `WtWordsThr` (0.75).
 
 One of the most interesting things to notice here is that the unit represents multiple roughly synonymous terms. For example, you might see the words "act," "activation," and "activations" and "add", "added", "adding", "additional".
 
