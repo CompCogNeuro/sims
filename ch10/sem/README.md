@@ -44,7 +44,7 @@ To probe these distributed representations further, we can present words to the 
 
 * Click on the `Test Epoch Plot` to see the correlation between the two activity patterns, which should be close to .4.  This will update with each result as we go forward here.
 
-* Now replace `Words2` with "spelling" (do not include quotes) and do `Init` and `Run` again (we will just label this as `Run` going forward).
+* Now replace `Words2` with "spelling" (do not include quotes), hit return, and do `Init` and `Run` again (we will just label this as `Run` going forward).
 
 You should see that attention and spelling are only related by around 0.06, indicating low similarity. This should match your overall intuition: we talk about attention as being critical for solving the binding problem in several different situations, but we don't talk much about the role of attention in spelling.
 
