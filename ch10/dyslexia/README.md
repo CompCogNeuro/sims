@@ -24,7 +24,7 @@ You will see the activation flow through the network, and it should settle into 
 
 * Click on the `Test Trial Plot` tab to see a record of the network's performance on the full set of words. It should only make one "Other" error for the word "flag", which it pronounces as "flaw".
 
-The `ConAbs` column (click the checkbox to view) shows whether this item is concrete (*Con*) or abstract (*Abs*) (`ConAbs`=0 for concrete, 1 for abstract), and the columns after that indicate what type of error the network makes: `Vis` = visual errors, `Sem` = semantic errors, `VisSem` = both, `Blend` = not a clearly pronounced word, `Other` = some other hard-to-categorize error.  Concrete words have more distinctive features, whereas abstract words have fewer, which impacts their relative susceptibility to lesions, as we'll see.
+`ConAbs` shows whether this item is concrete (*Con*) or abstract (*Abs*) (`ConAbs`=0 for concrete, 1 for abstract). You can click the checkbox next to `ConAbs` to view it; you'll see that the second half of the list contains abstract words. Most of the checkboxes after `ConAbs` indicate what type of error the network makes: `Vis` = visual errors, `Sem` = semantic errors, `VisSem` = both, `Blend` = not a clearly pronounced word, `Other` = some other hard-to-categorize error. (You may need to expand your browser to see the colors of the bars, or you can hover at the top of a bar to see what it represents.) Concrete words have more distinctive features, whereas abstract words have fewer, which impacts their relative susceptibility to lesions, as we'll see.
 
 # Reading with Complete Pathway Lesions
 
