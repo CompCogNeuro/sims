@@ -24,9 +24,9 @@ Now, let's train the network.
 
 We next explore the differential weight strengths for the two pathways that develop as a result of training. Although the observed weight differences are not huge, they are enough to produce the behavioral effects of word reading being dominant over color naming. 
 
-* Click on the `g` and `G` Hidden units in turn.  You can hover the mouse over a given sending unit to see its weight value.
+* Click on the `g` and `G` Hidden units in turn.  You can hover the mouse over a given sending unit to see its weight value. (To confirm that you are hovering over the correct unit, you can check that the weight value that appears is consistent with the height and color of the bar shown, and look at the value in the brackets: [0,0] indicates the first unit in the layer, and [1,0] indicates the second unit in the layer.)
 
-> **Question 9.4:** Report the weights for the `g` and `G` hidden units from their respective input, PFC, and output units (you need only report the `gr` output weights, not `rd`).
+> **Question 9.4:** Report the weight values for the `g` and `G` hidden units from their respective input, PFC, and `gr` output units. This will be 6 weight values total. (Do not report the weights from the `rd` output units.)
 
 You should have observed that the `G` (word reading) hidden unit has stronger weights overall, due to the higher frequency of training.
 
