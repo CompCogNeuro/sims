@@ -18,9 +18,9 @@ You will see the activation flow through the network, and it should settle into 
 
 * Use the VCR `Time` buttons at the bottom right of the `Network` to review the settling dynamics over time.
 
-* Continue to `Step Trial` through a few more words, paying particular attention to the timing of when the Phonological layer gets active relative to the Semantic one (you can always review to see this more clearly).  Then, do `Run` to test the remainder of the inputs.
+* Continue to `Step Trial` through a few more words, paying particular attention to the timing of when the Phonological layer gets active relative to the Semantic one within a trial (you can always review to see this more clearly).  Then, do `Run` to test the remainder of the inputs.
 
-> **Question 10.6:** Do you think the initial phonological activation is caused by the "direct" input via orthography or the "indirect" input via semantics? Did you see any cases where the initial phonological pattern is subsequently altered when the later input arrives?  Provide an example word where this happened.
+> **Question 10.6:** Do you think the initial phonological activation for each word is caused by the "direct" input via orthography or the "indirect" input via semantics? Did you see any cases where the initial phonological pattern is subsequently altered when the later input arrives?  Provide an example word where this happened.
 
 * Click on the `Test Trial Plot` tab to see a record of the network's performance on the full set of words. It should only make one "Other" error for the word "flag", which it pronounces as "flaw".
 
