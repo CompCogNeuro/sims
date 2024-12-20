@@ -244,7 +244,7 @@ func (ev *SemEnv) Action(element string, input tensor.Tensor) {
 // String returns the string rep of the LED env state
 func (ev *SemEnv) String() string {
 	cpar := ev.CurPara()
-	if cpar == nil {
+	if len(cpar) == 0 {
 		return ""
 	}
 	str := cpar[0]
