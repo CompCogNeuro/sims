@@ -7,9 +7,9 @@ package main
 import (
 	"fmt"
 
-	"cogentcore.org/core/tensor"
 	"github.com/emer/emergent/v2/env"
 	"github.com/emer/emergent/v2/etime"
+	"github.com/emer/etensor/tensor"
 )
 
 // ProbeEnv generates sentences using a grammar that is parsed from a

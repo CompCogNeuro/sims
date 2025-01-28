@@ -9,7 +9,7 @@ import (
 
 	"github.com/anthonynsimon/bild/transform"
 
-	"cogentcore.org/core/tensor"
+	"github.com/emer/etensor/tensor"
 	"github.com/emer/vision/v2/dog"
 	"github.com/emer/vision/v2/vfilter"
 )

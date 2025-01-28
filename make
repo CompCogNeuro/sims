@@ -1,6 +1,6 @@
-#!/usr/bin/env cosh
+#!/usr/bin/env goal
 
-for _, pkg := range cosh.SplitLines(`go list ./...`) {
+for _, pkg := range goalib.SplitLines($go list ./...$) {
     pkg = strings.TrimPrefix(pkg, "github.com/CompCogNeuro/sims/v2")
     if pkg == "" {
         continue

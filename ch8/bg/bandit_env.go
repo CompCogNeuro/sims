@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"math/rand"
 
-	"cogentcore.org/core/base/randx"
-	"cogentcore.org/core/tensor"
+	"cogentcore.org/lab/base/randx"
 	"github.com/emer/emergent/v2/env"
+	"github.com/emer/etensor/tensor"
 )
 
 // BanditEnv simulates an n-armed bandit, where each of n inputs is associated with
