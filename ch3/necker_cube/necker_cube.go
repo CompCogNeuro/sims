@@ -32,6 +32,9 @@ import (
 //go:embed necker_cube.wts
 var content embed.FS
 
+//go:embed *.png README.md
+var readme embed.FS
+
 func main() {
 	sim := &Sim{}
 	sim.New()
@@ -372,7 +375,7 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI() {
 	title := "NeckerCube"
-	ss.GUI.MakeBody(ss, "necker_cube", title, `necker_cube: This simulation explores the use of constraint satisfaction in processing ambiguous stimuli, in this case the *Necker cube*, which can be viewed as a cube in one of two orientations, where people flip back and forth. See <a href="https://github.com/CompCogNeuro/sims/blob/main/ch3/necker_cube/README.md">README.md on GitHub</a>.</p>`)
+	ss.GUI.MakeBody(ss, "necker_cube", title, `necker_cube: This simulation explores the use of constraint satisfaction in processing ambiguous stimuli, in this case the *Necker cube*, which can be viewed as a cube in one of two orientations, where people flip back and forth. See <a href="https://github.com/CompCogNeuro/sims/blob/main/ch3/necker_cube/README.md">README.md on GitHub</a>.</p>`, readme)
 	ss.GUI.CycleUpdateInterval = 10
 
 	nv := ss.GUI.AddNetView("Network")

@@ -47,6 +47,9 @@ import (
 //go:embed train_pats.tsv semantics.tsv close_orthos.tsv close_sems.tsv trained.wts
 var content embed.FS
 
+//go:embed *.png README.md
+var readme embed.FS
+
 // LesionTypes is the type of lesion
 type LesionTypes int32 //enums:enum
 
@@ -855,7 +858,7 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI() {
 	title := "Dyslexia"
-	ss.GUI.MakeBody(ss, "dyslexia", title, `Simulates normal and disordered (dyslexic) reading performance in terms of a distributed representation of word-level knowledge across Orthography, Semantics, and Phonology. It is based on a model by Plaut and Shallice (1993). Note that this form of dyslexia is *aquired* (via brain lesions such as stroke) and not the more prevalent developmental variety.  See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch10/dyslexia/README.md">README.md on GitHub</a>.</p>`)
+	ss.GUI.MakeBody(ss, "dyslexia", title, `Simulates normal and disordered (dyslexic) reading performance in terms of a distributed representation of word-level knowledge across Orthography, Semantics, and Phonology. It is based on a model by Plaut and Shallice (1993). Note that this form of dyslexia is *aquired* (via brain lesions such as stroke) and not the more prevalent developmental variety.  See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch10/dyslexia/README.md">README.md on GitHub</a>.</p>`, readme)
 	ss.GUI.CycleUpdateInterval = 10
 
 	nv := ss.GUI.AddNetView("Network")

@@ -43,6 +43,9 @@ import (
 //go:embed a_not_b_delay3.tsv a_not_b_delay5.tsv a_not_b_delay1.tsv
 var content embed.FS
 
+//go:embed README.md
+var readme embed.FS
+
 // Delays is delay case to use
 type Delays int32 //enums:enum
 
@@ -604,7 +607,7 @@ func (ss *Sim) ConfigNetView(nv *netview.NetView) {
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI() {
 	title := "A not B"
-	ss.GUI.MakeBody(ss, "a_not_b", title, `explores how the development of PFC active maintenance abilities can help to make behavior more flexible, in the sense that it can rapidly shift with changes in the environment. The development of flexibility has been extensively explored in the context of Piaget's famous A-not-B task, where a toy is first hidden several times in one hiding location (A), and then hidden in a new location (B). Depending on various task parameters, young kids reliably reach back at A instead of updating to B. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch9/a_not_b/README.md">README.md on GitHub</a>.</p>`)
+	ss.GUI.MakeBody(ss, "a_not_b", title, `explores how the development of PFC active maintenance abilities can help to make behavior more flexible, in the sense that it can rapidly shift with changes in the environment. The development of flexibility has been extensively explored in the context of Piaget's famous A-not-B task, where a toy is first hidden several times in one hiding location (A), and then hidden in a new location (B). Depending on various task parameters, young kids reliably reach back at A instead of updating to B. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch9/a_not_b/README.md">README.md on GitHub</a>.</p>`, readme)
 	ss.GUI.CycleUpdateInterval = 10
 
 	nv := ss.GUI.AddNetView("Network")

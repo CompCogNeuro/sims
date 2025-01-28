@@ -37,6 +37,9 @@ import (
 //go:embed easy.tsv hard.tsv impossible.tsv
 var content embed.FS
 
+//go:embed README.md
+var readme embed.FS
+
 // PatsType is the type of training patterns
 type PatsType int32 //enums:enum
 
@@ -559,7 +562,7 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI() {
 	title := "Pat Assoc"
-	ss.GUI.MakeBody(ss, "pat_assoc", title, `pat_assoc illustrates how error-driven and hebbian learning can operate within a simple task-driven learning context, with no hidden layers. See <a href="https://github.com/CompCogNeuro/sims/blob/main/ch4/pat_assoc/README.md">README.md on GitHub</a>.</p>`)
+	ss.GUI.MakeBody(ss, "pat_assoc", title, `pat_assoc illustrates how error-driven and hebbian learning can operate within a simple task-driven learning context, with no hidden layers. See <a href="https://github.com/CompCogNeuro/sims/blob/main/ch4/pat_assoc/README.md">README.md on GitHub</a>.</p>`, readme)
 	ss.GUI.CycleUpdateInterval = 10
 
 	nv := ss.GUI.AddNetView("Network")
