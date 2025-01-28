@@ -9,7 +9,7 @@ require (
 	github.com/emer/emergent/v2 v2.0.0-dev0.1.7.0.20250128232110-1e71a5c7249b
 	github.com/emer/etensor v0.0.0-20250128230539-a9366874f7c3
 	github.com/emer/leabra/v2 v2.0.0-dev0.5.5.0.20250128232242-79e931d6fe3b
-	github.com/emer/vision/v2 v2.0.0-dev0.1.0.0.20250128233535-2716c2c5e5ec
+	github.com/emer/vision/v2 v2.0.0-dev0.1.0.0.20250128234953-cd0a89e77a4a
 	golang.org/x/exp v0.0.0-20250128182459-e0ece0dbea4c
 	gonum.org/v1/gonum v0.15.1
 )
