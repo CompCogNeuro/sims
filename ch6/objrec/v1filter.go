@@ -7,8 +7,8 @@ package main
 import (
 	"image"
 
-	"cogentcore.org/core/tensor"
 	"github.com/anthonynsimon/bild/transform"
+	"github.com/emer/etensor/tensor"
 	"github.com/emer/vision/v2/fffb"
 	"github.com/emer/vision/v2/gabor"
 	"github.com/emer/vision/v2/kwta"

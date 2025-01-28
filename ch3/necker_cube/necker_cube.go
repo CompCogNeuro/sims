@@ -12,11 +12,11 @@ package main
 import (
 	"embed"
 
-	"cogentcore.org/core/base/randx"
 	"cogentcore.org/core/core"
 	"cogentcore.org/core/enums"
 	"cogentcore.org/core/icons"
 	"cogentcore.org/core/tree"
+	"cogentcore.org/lab/base/randx"
 	"github.com/emer/emergent/v2/egui"
 	"github.com/emer/emergent/v2/elog"
 	"github.com/emer/emergent/v2/emer"

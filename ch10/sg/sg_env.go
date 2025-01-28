@@ -11,11 +11,11 @@ import (
 	"math/rand"
 	"strings"
 
-	"cogentcore.org/core/base/randx"
-	"cogentcore.org/core/tensor"
+	"cogentcore.org/lab/base/randx"
 	"github.com/emer/emergent/v2/env"
 	"github.com/emer/emergent/v2/esg"
 	"github.com/emer/emergent/v2/etime"
+	"github.com/emer/etensor/tensor"
 )
 
 // SentGenEnv generates sentences using a grammar that is parsed from a

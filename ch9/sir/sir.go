@@ -15,13 +15,13 @@ package main
 import (
 	"fmt"
 
-	"cogentcore.org/core/base/randx"
 	"cogentcore.org/core/core"
 	"cogentcore.org/core/enums"
 	"cogentcore.org/core/icons"
 	"cogentcore.org/core/math32"
 	"cogentcore.org/core/styles"
 	"cogentcore.org/core/tree"
+	"cogentcore.org/lab/base/randx"
 	"github.com/emer/emergent/v2/econfig"
 	"github.com/emer/emergent/v2/egui"
 	"github.com/emer/emergent/v2/elog"

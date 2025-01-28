@@ -15,13 +15,12 @@ import (
 	"embed"
 
 	"cogentcore.org/core/base/errors"
-	"cogentcore.org/core/base/randx"
 	"cogentcore.org/core/core"
 	"cogentcore.org/core/enums"
 	"cogentcore.org/core/icons"
 	"cogentcore.org/core/math32"
-	"cogentcore.org/core/tensor/table"
 	"cogentcore.org/core/tree"
+	"cogentcore.org/lab/base/randx"
 	"github.com/emer/emergent/v2/egui"
 	"github.com/emer/emergent/v2/elog"
 	"github.com/emer/emergent/v2/emer"
@@ -33,6 +32,7 @@ import (
 	"github.com/emer/emergent/v2/params"
 	"github.com/emer/emergent/v2/paths"
 	"github.com/emer/emergent/v2/relpos"
+	"github.com/emer/etensor/tensor/table"
 	"github.com/emer/leabra/v2/leabra"
 )
 

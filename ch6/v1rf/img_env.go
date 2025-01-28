@@ -12,10 +12,10 @@ import (
 	"math/rand"
 
 	"cogentcore.org/core/base/iox/imagex"
-	"cogentcore.org/core/tensor"
 	"github.com/anthonynsimon/bild/clone"
 	"github.com/emer/emergent/v2/env"
 	"github.com/emer/emergent/v2/etime"
+	"github.com/emer/etensor/tensor"
 	"github.com/emer/vision/v2/vxform"
 )
 
