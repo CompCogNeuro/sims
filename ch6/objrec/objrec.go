@@ -627,10 +627,6 @@ func (ss *Sim) ConfigGUI() {
 	ss.GUI.AddActRFGridTabs(&ss.Stats.ActRFs)
 
 	ss.GUI.FinalizeGUI(false)
-
-	// ctx := htmlcore.NewContext()
-	// ctx.PageURL = "https://github.com/CompCogNeuro/sims/blob/main/ch6/objrec/"
-	// htmlcore.ReadMDString(ctx, ss.GUI.ReadMe, readme)
 }
 
 func (ss *Sim) MakeToolbar(p *tree.Plan) {
