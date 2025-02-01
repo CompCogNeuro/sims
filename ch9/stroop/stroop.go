@@ -42,6 +42,9 @@ import (
 //go:embed stroop_train.tsv stroop_test.tsv stroop_soa.tsv
 var content embed.FS
 
+//go:embed *.png README.md
+var readme embed.FS
+
 func main() {
 	sim := &Sim{}
 	sim.New()
@@ -741,7 +744,7 @@ func (ss *Sim) ConfigNetView(nv *netview.NetView) {
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI() {
 	title := "Stroop"
-	ss.GUI.MakeBody(ss, "stroop", title, `illustrates how the PFC can produce top-down biasing for executive control, in the context of the widely studied Stroop task. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch9/stroop/README.md">README.md on GitHub</a>.</p>`)
+	ss.GUI.MakeBody(ss, "stroop", title, `illustrates how the PFC can produce top-down biasing for executive control, in the context of the widely studied Stroop task. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch9/stroop/README.md">README.md on GitHub</a>.</p>`, readme)
 	ss.GUI.CycleUpdateInterval = 10
 
 	nv := ss.GUI.AddNetView("Network")

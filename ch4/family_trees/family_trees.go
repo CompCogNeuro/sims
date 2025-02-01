@@ -41,6 +41,9 @@ import (
 //go:embed family_trees.tsv
 var content embed.FS
 
+//go:embed *.png README.md
+var readme embed.FS
+
 // LearnType is the type of learning to use
 type LearnType int32 //enums:enum
 
@@ -613,7 +616,7 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI() {
 	title := "Family Trees"
-	ss.GUI.MakeBody(ss, "family_trees", title, `family_trees shows how learning can recode inputs that have no similarity structure into a hidden layer that captures the *functional* similarity structure of the items. See <a href="https://github.com/CompCogNeuro/sims/blob/main/ch4/family_trees/README.md">README.md on GitHub</a>.</p>`)
+	ss.GUI.MakeBody(ss, "family_trees", title, `family_trees shows how learning can recode inputs that have no similarity structure into a hidden layer that captures the *functional* similarity structure of the items. See <a href="https://github.com/CompCogNeuro/sims/blob/main/ch4/family_trees/README.md">README.md on GitHub</a>.</p>`, readme)
 	ss.GUI.CycleUpdateInterval = 10
 
 	nv := ss.GUI.AddNetView("Network")

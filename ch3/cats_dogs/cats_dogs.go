@@ -39,6 +39,9 @@ import (
 //go:embed cats_dogs_pats.tsv cats_dogs.wts
 var content embed.FS
 
+//go:embed README.md
+var readme embed.FS
+
 func main() {
 	sim := &Sim{}
 	sim.New()
@@ -435,7 +438,7 @@ func (ss *Sim) ConfigNetView(nv *netview.NetView) {
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI() {
 	title := "CatsAndDogs"
-	ss.GUI.MakeBody(ss, "cats_dogs", title, `This project explores a simple **semantic network** intended to represent a (very small) set of relationships among different features used to represent a set of entities in the world.  In our case, we represent some features of cats and dogs: their color, size, favorite food, and favorite toy. See <a href="https://github.com/CompCogNeuro/sims/blob/main/ch3/cats_dogs/README.md">README.md on GitHub</a>.</p>`)
+	ss.GUI.MakeBody(ss, "cats_dogs", title, `This project explores a simple **semantic network** intended to represent a (very small) set of relationships among different features used to represent a set of entities in the world.  In our case, we represent some features of cats and dogs: their color, size, favorite food, and favorite toy. See <a href="https://github.com/CompCogNeuro/sims/blob/main/ch3/cats_dogs/README.md">README.md on GitHub</a>.</p>`, readme)
 	ss.GUI.CycleUpdateInterval = 10
 
 	nv := ss.GUI.AddNetView("Network")

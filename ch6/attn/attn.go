@@ -43,6 +43,9 @@ import (
 //go:embed multi_objs.tsv std_posner.tsv close_posner.tsv reverse_posner.tsv obj_attn.tsv
 var content embed.FS
 
+//go:embed *.png README.md
+var readme embed.FS
+
 // TestType is the type of testing patterns
 type TestType int32 //enums:enum
 
@@ -781,7 +784,7 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI() {
 	title := "Attn"
-	ss.GUI.MakeBody(ss, "attn", title, `attn: This simulation illustrates how object recognition (ventral, what) and spatial (dorsal, where) pathways interact to produce spatial attention effects, and accurately capture the effects of brain damage to the spatial pathway. See <a href="https://github.com/CompCogNeuro/sims/blob/main/ch6/attn/README.md">README.md on GitHub</a>.</p>`)
+	ss.GUI.MakeBody(ss, "attn", title, `attn: This simulation illustrates how object recognition (ventral, what) and spatial (dorsal, where) pathways interact to produce spatial attention effects, and accurately capture the effects of brain damage to the spatial pathway. See <a href="https://github.com/CompCogNeuro/sims/blob/main/ch6/attn/README.md">README.md on GitHub</a>.</p>`, readme)
 	ss.GUI.CycleUpdateInterval = 10
 
 	nv := ss.GUI.AddNetView("Network")
