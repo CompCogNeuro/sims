@@ -1,7 +1,7 @@
-cogentcore.org/core v0.3.9-0.20250127075122-ddf64b82d707 h1:iuSRxC52LhHwAiNKfKx0UslAmZV2Io7QkkQYOgOyM6M=
-cogentcore.org/core v0.3.9-0.20250127075122-ddf64b82d707/go.mod h1:o9vCyA2Sdsc6W0qYvxzzQQlozfemP0TiAGEHDDR+xLU=
-cogentcore.org/lab v0.0.0-20250116065728-014d19175d12 h1:Y11ebOAN9EMCEmSg2M/O5wToGOOvQN08CWi2iou8jGU=
-cogentcore.org/lab v0.0.0-20250116065728-014d19175d12/go.mod h1:QlbVp7wdCDo59f6d0UIoPFLtIsCcG7DueOqd/8OohUs=
+cogentcore.org/core v0.3.9-0.20250215003430-adb47b4b6dc3 h1:ID2lb3bw700JoV1YzBPLQ/SNkMlR4FZsA0sJ56299UA=
+cogentcore.org/core v0.3.9-0.20250215003430-adb47b4b6dc3/go.mod h1:o9vCyA2Sdsc6W0qYvxzzQQlozfemP0TiAGEHDDR+xLU=
+cogentcore.org/lab v0.0.0-20250122080418-5c5a532aa54c h1:WW9fBPtKUTRdH1mgcVp/o5+eY5wWLvYfGbhrtDLarEc=
+cogentcore.org/lab v0.0.0-20250122080418-5c5a532aa54c/go.mod h1:Tu7zXJLh01yQrNL9ojRtY54hNL5sDYYzo3Ab37kNqMo=
 github.com/Bios-Marcel/wastebasket v0.0.4-0.20240213135800-f26f1ae0a7c4 h1:6lx9xzJAhdjq0LvVfbITeC3IH9Fzvo1aBahyPu2FuG8=
 github.com/Bios-Marcel/wastebasket v0.0.4-0.20240213135800-f26f1ae0a7c4/go.mod h1:FChzXi1izqzdPb6BiNZmcZLGyTYiT61iGx9Rxx9GNeI=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
