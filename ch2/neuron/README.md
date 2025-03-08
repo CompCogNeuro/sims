@@ -4,7 +4,7 @@
 
 This simulation illustrates the basic properties of neural spiking and rate-code activation, reflecting a balance of excitatory and inhibitory influences (including leak and synaptic inhibition).
 
-In this model, the [[sim:Network]] only shows a single neuron which is "injected" with excitatory current (as neuroscientists might do with an electrode injecting current into a single neuron).  If you click [[sim:Run cycles]] in the toolbar you will see it get activated, but to really understand what is going on, we need to see the relationship among multiple variables as shown in the [[sim:Test Cycle Plot]]. (Clicking a README link will highlight the corresponding location in the simulation.)
+In this model, the [[sim:Network]] only shows a single neuron which is "injected" with excitatory current (as neuroscientists might do with an electrode injecting current into a single neuron).  If you click [[sim:Run cycles]] in the toolbar you will see it get activated, but to really understand what is going on, we need to see the relationship among multiple variables as shown in the [[sim:Test Cycle Plot]]. (Clicking a README link highlights the corresponding location in the simulation.)
 
 # Plot of Neuron variables over time
 
