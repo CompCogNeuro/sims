@@ -13,6 +13,7 @@ package main
 //go:generate core generate -add-types
 
 import (
+	"embed"
 	"fmt"
 
 	"cogentcore.org/core/core"
@@ -35,6 +36,9 @@ import (
 	"github.com/emer/emergent/v2/paths"
 	"github.com/emer/leabra/v2/leabra"
 )
+
+//go:embed README.md
+var readme embed.FS
 
 func main() {
 	sim := &Sim{}
@@ -733,7 +737,7 @@ func (ss *Sim) ConfigNetView(nv *netview.NetView) {
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI() {
 	title := "SIR"
-	ss.GUI.MakeBody(ss, "sir", title, `sir illustrates the dynamic gating of information into PFC active maintenance, by the basal ganglia (BG). It uses a simple Store-Ignore-Recall (SIR) task, where the BG system learns via phasic dopamine signals and trial-and-error exploration, discovering what needs to be stored, ignored, and recalled as a function of reinforcement of correct behavior, and learned reinforcement of useful working memory representations. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch9/sir/README.md">README.md on GitHub</a>.</p>`)
+	ss.GUI.MakeBody(ss, "sir", title, `sir illustrates the dynamic gating of information into PFC active maintenance, by the basal ganglia (BG). It uses a simple Store-Ignore-Recall (SIR) task, where the BG system learns via phasic dopamine signals and trial-and-error exploration, discovering what needs to be stored, ignored, and recalled as a function of reinforcement of correct behavior, and learned reinforcement of useful working memory representations. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch9/sir/README.md">README.md on GitHub</a>.</p>`, readme)
 	ss.GUI.CycleUpdateInterval = 10
 
 	nv := ss.GUI.AddNetView("Network")

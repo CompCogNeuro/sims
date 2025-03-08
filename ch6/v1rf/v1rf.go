@@ -46,6 +46,9 @@ import (
 //go:embed v1rf_img1.jpg v1rf_img2.jpg v1rf_img3.jpg v1rf_img4.jpg v1rf_rec2.wts.gz v1rf_rec05.wts.gz probes.tsv
 var content embed.FS
 
+//go:embed *.png README.md
+var readme embed.FS
+
 func main() {
 	sim := &Sim{}
 	sim.New()
@@ -547,7 +550,7 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI() {
 	title := "V1RF"
-	ss.GUI.MakeBody(ss, "v1rf", title, `This simulation illustrates how self-organizing learning in response to natural images produces the oriented edge detector receptive field properties of neurons in primary visual cortex (V1). This provides insight into why the visual system encodes information in the way it does, while also providing an important test of the biological relevance of our computational models. See <a href="https://github.com/CompCogNeuro/sims/blob/main/ch6/v1rf/README.md">README.md on GitHub</a>.</p>`)
+	ss.GUI.MakeBody(ss, "v1rf", title, `This simulation illustrates how self-organizing learning in response to natural images produces the oriented edge detector receptive field properties of neurons in primary visual cortex (V1). This provides insight into why the visual system encodes information in the way it does, while also providing an important test of the biological relevance of our computational models. See <a href="https://github.com/CompCogNeuro/sims/blob/main/ch6/v1rf/README.md">README.md on GitHub</a>.</p>`, readme)
 	ss.GUI.CycleUpdateInterval = 10
 
 	nv := ss.GUI.AddNetView("Network")

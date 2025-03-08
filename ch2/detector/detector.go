@@ -38,6 +38,9 @@ import (
 //go:embed *.tsv
 var patsfs embed.FS
 
+//go:embed README.md
+var readme embed.FS
+
 func main() {
 	sim := &Sim{}
 	sim.New()
@@ -397,7 +400,7 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI() {
 	title := "Detector"
-	ss.GUI.MakeBody(ss, "detector", title, `This simulation shows how an individual neuron can act like a detector, picking out specific patterns from its inputs and responding with varying degrees of selectivity to the match between its synaptic weights and the input activity pattern. See <a href="https://github.com/CompCogNeuro/sims/blob/main/ch2/detector/README.md">README.md on GitHub</a>.</p>`)
+	ss.GUI.MakeBody(ss, "detector", title, `This simulation shows how an individual neuron can act like a detector, picking out specific patterns from its inputs and responding with varying degrees of selectivity to the match between its synaptic weights and the input activity pattern. See <a href="https://github.com/CompCogNeuro/sims/blob/main/ch2/detector/README.md">README.md on GitHub</a>.</p>`, readme)
 	ss.GUI.CycleUpdateInterval = 10
 
 	nv := ss.GUI.AddNetView("Network")

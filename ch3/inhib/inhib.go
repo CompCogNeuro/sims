@@ -10,6 +10,8 @@ package main
 //go:generate core generate -add-types
 
 import (
+	"embed"
+
 	"cogentcore.org/core/base/errors"
 	"cogentcore.org/core/core"
 	"cogentcore.org/core/enums"
@@ -31,6 +33,9 @@ import (
 	"github.com/emer/etensor/tensor/table"
 	"github.com/emer/leabra/v2/leabra"
 )
+
+//go:embed README.md
+var readme embed.FS
 
 func main() {
 	sim := &Sim{}
@@ -591,7 +596,7 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI() {
 	title := "Inhib"
-	ss.GUI.MakeBody(ss, "inhib", title, `inhib: This simulation explores how inhibitory interneurons can dynamically control overall activity levels within the network, by providing both feedforward and feedback inhibition to excitatory pyramidal neurons. See <a href="https://github.com/CompCogNeuro/sims/blob/main/ch3/inhib/README.md">README.md on GitHub</a>.</p>`)
+	ss.GUI.MakeBody(ss, "inhib", title, `inhib: This simulation explores how inhibitory interneurons can dynamically control overall activity levels within the network, by providing both feedforward and feedback inhibition to excitatory pyramidal neurons. See <a href="https://github.com/CompCogNeuro/sims/blob/main/ch3/inhib/README.md">README.md on GitHub</a>.</p>`, readme)
 	ss.GUI.CycleUpdateInterval = 10
 
 	nv := ss.GUI.AddNetView("FF Net")

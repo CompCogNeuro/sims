@@ -39,6 +39,9 @@ import (
 //go:embed lines_5x5x1.tsv lines_5x5x2.tsv
 var content embed.FS
 
+//go:embed README.md
+var readme embed.FS
+
 func main() {
 	sim := &Sim{}
 	sim.New()
@@ -557,7 +560,7 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI() {
 	title := "Self Org"
-	ss.GUI.MakeBody(ss, "self_org", title, `self_org illustrates how self-organizing learning emerges from the interactions between inhibitory competition, rich-get-richer Hebbian learning, and homeostasis (negative feedback). See <a href="https://github.com/CompCogNeuro/sims/blob/main/ch4/self_org/README.md">README.md on GitHub</a>.</p>`)
+	ss.GUI.MakeBody(ss, "self_org", title, `self_org illustrates how self-organizing learning emerges from the interactions between inhibitory competition, rich-get-richer Hebbian learning, and homeostasis (negative feedback). See <a href="https://github.com/CompCogNeuro/sims/blob/main/ch4/self_org/README.md">README.md on GitHub</a>.</p>`, readme)
 	ss.GUI.CycleUpdateInterval = 10
 
 	nv := ss.GUI.AddNetView("Network")

@@ -10,6 +10,7 @@ package main
 //go:generate core generate -add-types
 
 import (
+	"embed"
 	"fmt"
 	"log"
 	"reflect"
@@ -30,6 +31,9 @@ import (
 	"github.com/emer/leabra/v2/leabra"
 	"github.com/emer/leabra/v2/spike"
 )
+
+//go:embed README.md
+var readme embed.FS
 
 func main() {
 	sim := &Sim{}
@@ -423,7 +427,7 @@ func (ss *Sim) ConfigNetView(nv *netview.NetView) {
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI() {
 	title := "Neuron"
-	ss.GUI.MakeBody(ss, "neuron", title, `This simulation illustrates the basic properties of neural spiking and rate-code activation, reflecting a balance of excitatory and inhibitory influences (including leak and synaptic inhibition). See <a href="https://github.com/CompCogNeuro/sims/blob/main/ch2/neuron/README.md">README.md on GitHub</a>.</p>`)
+	ss.GUI.MakeBody(ss, "neuron", title, `This simulation illustrates the basic properties of neural spiking and rate-code activation, reflecting a balance of excitatory and inhibitory influences (including leak and synaptic inhibition). See <a href="https://github.com/CompCogNeuro/sims/blob/main/ch2/neuron/README.md">README.md on GitHub</a>.</p>`, readme)
 	ss.GUI.CycleUpdateInterval = 10
 
 	nv := ss.GUI.AddNetView("Network")

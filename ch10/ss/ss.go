@@ -44,6 +44,9 @@ import (
 //go:embed train_pats.tsv probe.tsv besner.tsv glushko.tsv taraban.tsv phon_cons.tsv phon_vowel.tsv trained.wts.gz
 var content embed.FS
 
+//go:embed *.png README.md
+var readme embed.FS
+
 // EnvType is the type of test environment
 type EnvType int32 //enums:enum
 
@@ -697,7 +700,7 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI() {
 	title := "Spelling to Sound"
-	ss.GUI.MakeBody(ss, "ss", title, `explores the way that regularities and exceptions are learned in the mapping between spelling (orthography) and sound (phonology), in the context of a "direct pathway" mapping between these two forms of word representations. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch10/ss/README.md">README.md on GitHub</a>.</p>`)
+	ss.GUI.MakeBody(ss, "ss", title, `explores the way that regularities and exceptions are learned in the mapping between spelling (orthography) and sound (phonology), in the context of a "direct pathway" mapping between these two forms of word representations. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch10/ss/README.md">README.md on GitHub</a>.</p>`, readme)
 	ss.GUI.CycleUpdateInterval = 10
 
 	nv := ss.GUI.AddNetView("Network")
