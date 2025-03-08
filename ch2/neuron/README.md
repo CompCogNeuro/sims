@@ -4,11 +4,11 @@
 
 This simulation illustrates the basic properties of neural spiking and rate-code activation, reflecting a balance of excitatory and inhibitory influences (including leak and synaptic inhibition).
 
-In this model, the [[sim:Network]] only shows a single neuron which is "injected" with excitatory current (as neuroscientists might do with an electrode injecting current into a single neuron).  If you do [[sim:Run cycles]] in the toolbar you will see it get activated, but to really understand what is going on, we need to see the relationship among multiple variables as shown in the [[sim:Test Cycle Plot]].
+In this model, the [[sim:Network]] only shows a single neuron which is "injected" with excitatory current (as neuroscientists might do with an electrode injecting current into a single neuron).  If you click [[sim:Run cycles]] in the toolbar you will see it get activated, but to really understand what is going on, we need to see the relationship among multiple variables as shown in the [[sim:Test Cycle Plot]]. (Clicking a README link will highlight the corresponding location in the simulation.)
 
 # Plot of Neuron variables over time
 
-* Press the [[sim:Test Cycle Plot]] tab in the right panel to display the graph view display.  If you haven't done [[sim:Run Cycles]] yet, do it now so you can see the results of running with the default parameters.
+* Click the [[sim:Test Cycle Plot]] tab in the right panel to display the graph view display.  If you haven't done [[sim:Run Cycles]] yet, do it now so you can see the results of running with the default parameters.
 
 Only the excitatory and leak currents are operating here, with their conductances (Gbar E, Gbar L) as shown in the control panel.  You should
 see various lines plotted over 200 time steps (*cycles*) on the X axis.
@@ -29,7 +29,7 @@ Here is a quick overview of each of the variables -- we'll go through them indiv
 
 # Spiking Behavior
 
-The default parameters that you just ran show the spiking behavior of a neuron. This is implementing a modified version of the Adaptive Exponential function (see [CCN Textbook](https://github.com/CompCogNeuro/book)) or AdEx model, which has been shown to provide a very good reproduction of the firing behavior of real cortical pyramidal neurons. As such, this is a good representation of what real neurons do. We have turned off the exponential aspect of the AdEx model here to make parameter manipulations more reliable -- a spike is triggered when the membrane potential Vm crosses a simple threshold of .5. (In contrast, when exponential is activated (you can find it in the [[sim:Spike params]]), the triggering of a spike is more of a dynamic exponential process around this .5 threshold level, reflecting the strong nonlinearity of the sodium channels that drive spiking.)
+The default parameters that you just ran show the spiking behavior of a neuron. This is implementing a modified version of the Adaptive Exponential function (see [CCN Textbook](https://compcogneuro.org/book)) or AdEx model, which has been shown to provide a very good reproduction of the firing behavior of real cortical pyramidal neurons. As such, this is a good representation of what real neurons do. We have turned off the exponential aspect of the AdEx model here to make parameter manipulations more reliable -- a spike is triggered when the membrane potential Vm crosses a simple threshold of .5. (In contrast, when exponential is activated (you can find it in the [[sim:Spike params]]), the triggering of a spike is more of a dynamic exponential process around this .5 threshold level, reflecting the strong nonlinearity of the sodium channels that drive spiking.)
 
 At the broadest level, you can see the periodic spikes that fire as the membrane potential gets over the firing threshold, and it is then reset back to the rest level, from which it then climbs back up again, to repeat the process again and again. Looking at the overall rate of spiking as indexed by the spacing between spikes (i.e., the *ISI* or inter-spike-interval), you can see that the spacing increases over time, and thus the rate decreases over time.  This is due to the **adaptation** property of the AdEx model -- the spike rate adapts over time.
 
@@ -63,7 +63,7 @@ By systematically searching the parameter range for `Gbar E` between .1 and .2, 
 
 You can also manipulate the value of the leak conductance, , which controls the size of the leak current -- recall that this pulls the opposite direction as the excitatory conductance in the neural tug-of-war.
 
-* Press the [[sim:toolbar/Defaults]] button in the toolbar to restore the default parameters, then manipulate the [[sim:Gbar L]] parameter in .1 increments (.4, .5, .2 etc) and observe the effects on neural spiking. 
+* Click the [[sim:toolbar/Defaults]] button in the toolbar to restore the default parameters, then manipulate the [[sim:Gbar L]] parameter in .1 increments (.4, .5, .2 etc) and observe the effects on neural spiking. 
 
 > **Question 2.5:** What value of Gbar L just prevents the neuron from being able to spike (in .1 increments) -- explain this result in terms of the tug-of-war model relative to the Gbar E excitatory conductance.
 
@@ -72,7 +72,7 @@ You can also manipulate the value of the leak conductance, , which controls the 
 
 ## Driving / Reversal Potentials
 
-* Press [[sim:Defaults]] in the toolbar to restore the default parameters. Then manipulate the [[sim:Erev E]] and [[sim:Erev L]] parameters and observe their effects on the spiking rate. 
+* Click [[sim:Defaults]] in the toolbar to restore the default parameters. Then manipulate the [[sim:Erev E]] and [[sim:Erev L]] parameters and observe their effects on the spiking rate. 
 
 You should see that decreasing `Erev E` reduces the spiking rate, because it makes the excitatory input pull less strongly up on the membrane potential. Increasing `Erev L` produces greater spiking by making leak pull less strongly down.
 
@@ -80,7 +80,7 @@ You should see that decreasing `Erev E` reduces the spiking rate, because it mak
 
 Next, we'll see how the discrete spiking behavior of the neuron can be approximated by a continuous rate-coded value. The `Act` line in the graphs has been tracking the actual rate of spiking to this point, based on the inverse of the ISI.  The *Noisy X-over-X-plus-1* activation function can directly compute a rate-code activation value for the neuron, instead of just measuring the observed rate of spiking. As explained in the Neuron chapter, this rate code activation has several advantages (and a few disadvantages) for use in neural simulations, and is what we typically use.
 
-* Press [[sim:Defaults]] to start out with default parameters, then turn off the [[sim:sim-form/Spike]] parameter, and [[sim:Run Cycles]] with the various parameter manipulations that you explored above. 
+* Click [[sim:Defaults]] to start out with default parameters, then turn off the [[sim:sim-form/Spike]] parameter, and [[sim:Run Cycles]] with the various parameter manipulations that you explored above. 
 
 You should see that the Act line in the graph now rises up and then decreases slowly due to accommodation, without the discrete spiking values observed before. Similarly, the Vm membrane potential value rises up and decreases slowly as well, instead of being reset after spiking.
 
