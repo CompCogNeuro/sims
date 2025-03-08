@@ -6,7 +6,7 @@ require (
 	cogentcore.org/core v0.3.9-0.20250215003430-adb47b4b6dc3
 	cogentcore.org/lab v0.0.0-20250122080418-5c5a532aa54c
 	github.com/anthonynsimon/bild v0.13.0
-	github.com/emer/emergent/v2 v2.0.0-dev0.1.7.0.20250201002925-55312434c89e
+	github.com/emer/emergent/v2 v2.0.0-dev0.1.7.0.20250307035120-1fc133d0d3ed
 	github.com/emer/etensor v0.0.0-20250128230539-a9366874f7c3
 	github.com/emer/leabra/v2 v2.0.0-dev0.5.5.0.20250128232242-79e931d6fe3b
 	github.com/emer/vision/v2 v2.0.0-dev0.1.0.0.20250128234953-cd0a89e77a4a
