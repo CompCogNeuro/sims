@@ -10,13 +10,13 @@ Let's examine the network first.  It has `Location`, `Cover`, and `Toy` inputs, 
 
 Notice that there are three location units corresponding to locations A, B, and C, represented in the location-based units in the network. Also, there are two cover (lid) input units corresponding to C1, the default cover type, and C2, a different cover type, and two toy units corresponding to T1, the default toy, and T2, a different toy type.
 
-* Click on `Wts / r.Wt` so we can examine the connectivity -- click on each of the three hidden units first, then the output units.
+* Click on [[sim:Wts]] / [[sim:Wts/r.Wt]] so we can examine the connectivity -- click on each of the three hidden units first, then the output units.
 
-Each of the three input layers is fully connected to the hidden layer, and the hidden layer is fully connected to each of the two output layers. You can see that there is an initial bias for the same locations to be more strongly activating, with weights of .7, while other locations have only a .3 initial connection weight. Connections from the toy and cover units are relatively weak at .3. The Hidden and GazeExpect layers have self-recurrent excitatory connections back to each unit, which are initially of magnitude .4, but we can change this with the parameter `RecurrentWt`.  Stronger weights here will improve the network's ability to maintain active representations. We are starting out with relatively weak ones to simulate a young infant that has poor active maintenance abilities.
+Each of the three input layers is fully connected to the hidden layer, and the hidden layer is fully connected to each of the two output layers. You can see that there is an initial bias for the same locations to be more strongly activating, with weights of .7, while other locations have only a .3 initial connection weight. Connections from the toy and cover units are relatively weak at .3. The Hidden and GazeExpect layers have self-recurrent excitatory connections back to each unit, which are initially of magnitude .4, but we can change this with the parameter [[sim:Recurrent wt]].  Stronger weights here will improve the network's ability to maintain active representations. We are starting out with relatively weak ones to simulate a young infant that has poor active maintenance abilities.
 
 Now, let's examine the input data patterns that will be presented to the network.
 
-* Click on the `AnotB Delay=3` (next to `Delay3`).
+* Click on the [[sim:AnotB Delay=3]] (next to `Delay3`).
 
 Note that there are three types of trials (you likely need to scroll to see them all), indicated by the three names used in the `Group` column:
 
@@ -44,7 +44,7 @@ Each of these trial types can be repeated multiple times, as can the events with
 
 Now, let's run the network. It will be much easier to tell what is going on in the network by looking at a grid display, rather than trying to watch each trial's activation as the network runs (but you are welcome to do so by stepping through the inputs).
 
-* Click on the `Train Trial` tab. Then press the `Init`, `Run` buttons in the toolbar.
+* Click on the [[sim:Train Trial ]] tab. Then press the [[sim:Init]], [[sim:Run]] buttons in the toolbar.
 
 When you do this, the network will run through an entire A-not-B experiment, and record the activations in the table. The `TrialName` column tells you which event is being presented, and the remaining columns show the activations in each layer of the network after each event.
 
@@ -58,11 +58,11 @@ Furthermore, because Hebbian learning is taking place after each trial, those un
 
 You will now see the `A` testing trials, where the network's tendency to reach to the `A` location is assessed. Note that as a result of the Hebbian learning, the hidden and GazeExpect units are even more active here than in the pretrials.
 
-* Now scroll down to make the first B-trial event the first one displayed. You can also click on the `Train Trial Plot` tab to see a plot of the three Reach activations across time, to get a better quantitative sense of the relative activation levels (`Reach_00` is the A unit, `Reach_01` is the B unit).
+* Now scroll down to make the first B-trial event the first one displayed. You can also click on the [[sim:Train Trial Plot]] tab to see a plot of the three Reach activations across time, to get a better quantitative sense of the relative activation levels (`Reach_00` is the A unit, `Reach_01` is the B unit).
 
 > **Question 9.1:** Describe what happens to the network's internal representations and output (gaze, reach) responses over the delay and choice trials for the B trials, and how this relates to Piaget's A-not-B data in infants.
 
-* Now increase the `RecurrentWt` parameter in the ControlPanel to .7 from the default of .4, and `Init`, `Run`.
+* Now increase the [[sim:recurrent wt]] parameter in the ControlPanel to .7 from the default of .4, and [[sim:Init]], [[sim:Run]].
 
 > **Question 9.2:** Describe how the network responds (i.e., in the gaze and reach outputs) this time, including a discussion of how the increased PFC (hidden) recurrent connection strength affected the network's behavior.
 
@@ -72,7 +72,7 @@ You will now see the `A` testing trials, where the network's tendency to reach t
 
 You can also try to find a recurrent weight value that allows the network to succeed with the longer 5 delay condition.
 
-* Now decrease the `RecurrentWt` parameter to a weaker value of .58 and set `Delay` back to `Delay3`, `Init`, `Run` and examine the B-trial again (you can also see this in the final `Act` state of the `Network`.
+* Now decrease the [[sim:recurrent wt]] parameter to a weaker value of .58 and set `Delay` back to `Delay3`, [[sim:Init]], [[sim:Run]] and examine the B-trial again (you can also see this in the final `Act` state of the `Network`.)
 
 You should observe that the gaze and reach activations are now slightly dissociated on the B trial, reflecting the fact that the Gaze pathway is updated continuously, while the Reach pathway has to wait until the end and is thus more sensitive to small amounts of decay.
 
@@ -80,7 +80,7 @@ You should observe that the gaze and reach activations are now slightly dissocia
 
 Finally, there is an interesting effect that can occur with very weak recurrent weights, which do not allow the network to maintain the representation of even the *A* location very well on 'A' trials. Because the weight changes toward 'A' depend on such maintained activity of the 'A' units, these weight-based representations will be relatively weak, making the network perseverate less to 'A' than it would with slightly stronger recurrent weights.
 
-* To see this effect, set `Delay` back to `Delay3` and then reduce the `RecurrentWt` parameter to .1.  `Init`, `Run`, and look at the activations of the units in the 'B' choice trial. Then compare this with the case with of .4. It can be easier to see the difference in the `Train Trial Plot` -- you can take a screen snapshot to see the differences.
+* To see this effect, set `Delay` back to `Delay3` and then reduce the [[sim:recurrent wt]] parameter to .1.  [[sim:Init]], [[sim:Run]], and look at the activations of the units in the 'B' choice trial. Then compare this with the case with of .4. It can be easier to see the difference in the [[sim:Train Trial Plot]] -- you can take a screen snapshot to see the differences.
 
 You should see that there is a less strong 'A' response with the weaker recurrent weights (and also some residual activation of the 'B' units), meaning a less strong A-not-B error in "younger" networks (and further analysis has confirmed that this is due to the amount of learning on the 'A' trials). This counterintuitive prediction from a neural network model of the A-not-B task ([Munakata, 1998](#references)) has been confirmed in infants ([Clearfield et al., 2006](#references)).
 
