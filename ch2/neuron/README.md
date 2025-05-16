@@ -49,15 +49,23 @@ First, we will focus on `GbarE`, which controls the amount of excitatory conduct
 
 > **Question 2.1:** Describe the effects on the rate of neural spiking of increasing `GbarE` to .4, and of decreasing it to .2, compared to the initial value of .3 (this is should have a simple answer).
 
+<question id="2.1">
+
 > **Question 2.2:** Is there a qualitative difference in the neural spiking when `GbarE` is decreased to .1, compared to the higher values -- what important aspect of the neuron's behavior does this reveal?
+
+<question id="2.2">
 
 By systematically searching the parameter range for `GbarE` between .1 and .2, you should be able to locate the point at which the membrane potential just reaches threshold.
 
 > **Question 2.3:** To 2 decimal places (e.g., 0.15), what value of `GbarE` puts the neuron just over threshold, such that it spikes at this value, but not at the next value below it?
 
+<question id="2.3">
+
 * Note: you can see the specific numerical values for any point in the graph by hovering the mouse over the point.  It will report which variable is being reported as well as the value.
 
 > **Question 2.4 (advanced):** Using one of the equations for the equilibrium membrane potential from the Neuron chapter, compute the exact value of excitatory input conductance required to keep Vm in equilibrium at the spiking threshold. Show your math. This means rearranging the equation to have excitatory conductance on one side, then substituting in known values. (note that: Gl is a constant = .3; Ge is 1 when the input is on; inhibition is not present here and can be ignored) -- this should agree with your empirically determined value.
+
+<question id="2.4">
 
 ## Leak
 
@@ -67,7 +75,11 @@ You can also manipulate the value of the leak conductance, , which controls the 
 
 > **Question 2.5:** What value of GbarL just prevents the neuron from being able to spike (in .1 increments) -- explain this result in terms of the tug-of-war model relative to the GbarE excitatory conductance.
 
+<question id="2.5">
+
 > **Question 2.6 (advanced):** Use the same technique as in question 2.4 to directly solve for the value of GbarL that should put the neuron right at it's spiking threshold using the default values of other parameters -- show your math.
+
+<question id="2.6">
  
 
 ## Driving / Reversal Potentials
