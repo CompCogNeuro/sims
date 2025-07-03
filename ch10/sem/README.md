@@ -40,7 +40,7 @@ To probe these distributed representations further, we can present words to the 
 
 * You can see that "attention" is present in [[sim:Words1]] in the control panel, and "binding" is in [[sim:Words2]]. Set the run mode to `Test` instead of `Train`, then do [[sim:Init]] and [[sim:Run]] to test each of these cases in turn. 
 
-* Use the `Time` VCR buttons ([[sim:vbar]]) at the bottom right of Network to replay the two trials.  You can see the actual distributed representations in the Hidden layer for these words, which is what the correlation is based on. You should observe that the two patterns overlap roughly 50%.
+* Use the `Time` VCR buttons at the bottom right of Network to replay the two trials.  You can see the actual distributed representations in the Hidden layer for these words, which is what the correlation is based on. You should observe that the two patterns overlap roughly 50%.
 
 * Click on the [[sim:Test Epoch Plot]] to see the correlation between the two activity patterns, which should be close to .4.  This will update with each result as we go forward here.
 
