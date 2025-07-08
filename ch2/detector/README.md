@@ -51,6 +51,8 @@ Now, let's try to understand exactly why the unit responds as it does. The key t
 
 > **Question 2.8:** For each digit pattern, report the number of active units in the pattern where there is also a weight of 1 according to the `8` digit pattern shown in the `r.Wt` view in the Network.  In other words, report the *overlap* between the digit input activity and the weight pattern.
 
+<sim-question id="2.8">
+
 The number of inputs having a weight of 1 that you just calculated should correspond to the total excitatory input `Ge`, also called the **net input**, going into the receiving unit, which is a function of the average of the sending activation `Act` times the weight `Wt` over all the units, with a correction factor for the expected activity level in the layer, `Alpha`:
 
 ```
@@ -79,7 +81,11 @@ Next, we will explore how we can change how much information is conveyed by the 
 
 > **Question 2.9:** What happens to the pattern of receiving neuron activity over the different digits when you change GbarL to 1.8, 1.5, and 2.3 -- which input digits does it respond to for each case?  In terms of the tug-of-war model between excitatory and inhibition & leak (i.e., GbarL = leak), why does changing leak have this effect (a simple one-sentence answer is sufficient)?
 
+<sim-question id="2.9">
+
 > **Question 2.10:** Why might it be beneficial for the neuron to have a lower level of leak (e.g., GbarL = 1.8 or 1.5) compared to the original default value, in terms of the overall information that this neuron can convey about the input patterns it is "seeing"?
+
+<sim-question id="2.10">
 
 It is clearly important how responsive the neuron is to its inputs. However, there are tradeoffs associated with different levels of responsivity. The brain solves this kind of problem by using many neurons to code each input, so that some neurons can be more "high threshold" and others can be more "low threshold" types, providing their corresponding advantages and disadvantages in specificity and generality of response. The bias weights can be an important parameter in determining this behavior. As we will see in the next chapter, our tinkering with the value of the leak current Gbar.L is also partially replaced by the inhibitory input, which plays an important role in providing a dynamically adjusted level of inhibition for counteracting the excitatory net input. This ensures that neurons are generally in the right responsivity range for conveying useful information, and it makes each neuron's responsivity dependent on other neurons, which has many important consequences as one can imagine from the above explorations.
 

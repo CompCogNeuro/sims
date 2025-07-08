@@ -62,13 +62,19 @@ You will now see the `A` testing trials, where the network's tendency to reach t
 
 > **Question 9.1:** Describe what happens to the network's internal representations and output (gaze, reach) responses over the delay and choice trials for the B trials, and how this relates to Piaget's A-not-B data in infants.
 
+<sim-question id="9.1">
+
 * Now increase the `RecurrentWt` parameter in the ControlPanel to .7 from the default of .4, and `Init`, `Run`.
 
 > **Question 9.2:** Describe how the network responds (i.e., in the gaze and reach outputs) this time, including a discussion of how the increased PFC (hidden) recurrent connection strength affected the network's behavior.
 
+<sim-question id="9.2">
+
 * Next, set `Delay` to `Delay5` and try it with the value of .7 for the recurrent weights.  You will have to scroll down a bit to see the final B test output.
 
 > **Question 9.3:** What happens on the 'B' trials with this longer delay compared to what happened with `Delay3` (and the same .7 recurrent weights)? Why does delay have this effect on the network's behavior?
+
+<sim-question id="9.3">
 
 You can also try to find a recurrent weight value that allows the network to succeed with the longer 5 delay condition.
 

@@ -28,6 +28,8 @@ We next explore the differential weight strengths for the two pathways that deve
 
 > **Question 9.4:** Report the weight values for the `g` and `G` hidden units from their respective input, PFC, and `gr` output units. This will be 6 weight values total. (Do not report the weights from the `rd` output units.)
 
+<sim-question id="9.4">
+
 You should have observed that the `G` (word reading) hidden unit has stronger weights overall, due to the higher frequency of training.
 
 # Basic Stroop Task
@@ -57,6 +59,8 @@ Now, we can single-step through the testing events to get a better sense of what
 Each Trial will advance one step through the three conditions of word reading in order (control, conflict, congruent) followed by the same for color naming. For the word reading conditions, you should observe that the corresponding word reading hidden unit is rapidly activated, and that this then activates the corresponding output unit, with little effect of the color pathway inputs. The critical condition of interest is the conflict color naming condition.
 
 > **Question 9.5:** Describe what happens in the network during the conflict color naming condition, paying particular attention to the activations of the hidden units, and how this leads to the observed slowing of response time (settling).
+
+<sim-question id="9.5">
 
 # Effects of Frontal Damage
 

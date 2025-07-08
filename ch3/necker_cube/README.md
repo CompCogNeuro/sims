@@ -28,6 +28,8 @@ Noise added to the membrane potential is playing an important role in this simul
 
 > **Question 3.5:** Report what differences you observed in the settling behavior of the network for the different values of noise (0, .1, .01, .001), and explain what this tells you about how noise is affecting the process
 
+<sim-question id="3.5">
+
 Finally, one of the important psychological aspects of the Necker cube stimulus is that people tend to oscillate between the two possible interpretations. This probably occurs because the neurons that are activated for one interpretation get *tired* eventually, allowing the other competing units to become active. This process of neurons getting tired is called **accommodation** or **adaptation**, and is a well established property of neurons that was covered in the *Neuron* of the textbook.
 
 * To turn on adaptation, toggle the [[sim:K na adapt]] on, and also set the [[sim:Cycles]] below that button to 1000 instead of 100 (gives it more cycles to run so you can see the effects).   Click [[sim:Step]].  You can use the Time VCR buttons to review how the activation states changed over time.  Also check out the [[sim:Test Cycle Plot]] for the graph of Harmony over time which shows the oscillations.

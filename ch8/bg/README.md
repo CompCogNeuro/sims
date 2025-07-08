@@ -52,6 +52,8 @@ After initial training on specific pairs of stimuli, we then tested on all diffe
 
 > **Question 8.1:** Describe the patterns of activation that emerge in the `MatrixGo`, `MatrixNoGo`, and `PFCoutD` layers over learning. Briefly explain why these patterns emerged given the probabilities of dopamine bursts and dips associated with each of the different stimuli / actions (a-f). (Note that in this simulation, the reward probabilities are highest for A, next highest for B and so forth -- unlike the labels in the empirical task where B was the least rewarded action).
 
+<sim-question id="8.1">
+
 You should have observed that the model learned a sensible action valuation representation given the relative dopamine outcomes associated with these actions, similar to the participants in the probabilistic selection task, who were reliably able to choose the more consistently rewarded stimuli over those that were less frequently rewarded. You should also have noticed that while the matrix units encode a more continuous representation of the reward probabilities, the net output of the system reflected a threshold-like behavior that chooses any action that is has more good than bad outcomes, while avoiding those with the opposite profile.
 
 # Simulating Parkinson's Disease and Dopamine Medications
@@ -60,11 +62,15 @@ You should have observed that the model learned a sensible action valuation repr
 
 > **Question 8.2:** How do the `ActAvg` results from this model with `Burst da gain`=.25 compare to that of the "intact" network from before, with `Burst da gain`=1, in the MatrixGo and NoGo pathways, and the PFCOutD output layer? How does this correspond with the results from PD patients OFF meds, as shown in Figure 1? Recall that the PFCOutD layer reflects the net impact of the learning on action valuation, so units that have high `ActAvg` correspond to those that the system would deem rewarding on average -- you should notice a difference in how rewarding an action needs to be before the system will reliably select it.
 
+<sim-question id="8.2">
+
 Next, we can simulate effects of DA medication given to PD patients -- for example levodopa increases the synthesis of dopamine. In addition to increasing dopamine availability, medications also continually and directly stimulate dopamine D2 receptors (so-called D2 agonists), which has the effect of blunting the impact of any dips in dopamine (i.e., even when dopamine levels go down, the drugs will continue to occupy D2 receptors and prevent NoGo units from getting excited and learning).
 
 * Set `Burst da gain` back to 1 to reflect an increase in dopamine availability, and `Dip da gain` to .25 (or lower for more extreme effects) to simulate the effects of D2 agonists in continuing to stimulate D2 receptors and hence blocking the effects of dips. Click on the `Weights` tab, `Init` and `Train` the model again.
 
 > **Question 8.3:** Now how do the `ActAvg` results compare with both previous runs? How does this correspond with the results from PD patients ON meds, as shown in Figure 1?
+
+<sim-question id="8.3">
 
 One interesting side-effect of PD meds is that a subset of patients develop a gambling habit as a result of taking these meds! This can be explained in the model in terms of the shift in the balance between Go vs. NoGo learning due to the meds -- all those failures to win count for less, and the rare wins count for more.
 

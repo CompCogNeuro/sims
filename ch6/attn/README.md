@@ -44,6 +44,8 @@ You should see that overall the network has more difficulty with the objects app
 
 > **Question 6.6:** Report the `RT:Mean` values for each condition from the [[sim:TrialStats Plot]] table.
 
+<sim-question id="6.6">
+
 You should have observed that spatial representations can facilitate the processing of objects by allocating attention to one object over another. The key contrast condition is when both objects lie in the same location, so that spatial attention can no longer separate them out, leaving the object pathway to try to process both objects simultaneously.
 
 # The Posner Spatial Cuing Task
@@ -63,6 +65,8 @@ There are three *groups* of events shown here, which correspond to a *Neutral* c
 * Then, switch to [[sim:Test Trial Plot]] and do several [[sim:Run]]s to collect some statistics.  Then click on [[sim:TrialStats Plot]] to note the results.
 
 > **Question 6.7:** How does the influence of the spatial cue affect subsequent processing of the target, in terms of the settling times (RT) on each condition? Report average data per condition/group from the `TrialStats` table. Please also describe the mechanistic reason why you observe changes to the Posner task not just the changes themselves. 
+
+<sim-question id="6.7">
 
 Typical reaction times for young adults (i.e., college students) on this task are roughly: neutral, 370 ms; valid 350 ms; invalid 390 ms, showing about 20 ms on either side of the neutral condition for the effects of attentional focus. These data should agree in general with the pattern of results you obtained (the invalid effect is a bit higher), but to fit the data more closely you would have to add a constant offset of roughly 310 ms to the number of cycles of settling for each trial type. This constant offset can be thought of as the time needed to perform all the other aspects of the task that are not included in the simulation (e.g., generating a response). Note also that one cycle of settling in the network corresponds with one millisecond of processing in humans. This relationship is not automatic -- we adjusted the time constant for activation updating (`Act.Dt.VmTau` = 7 instead of the default of 3.3) so that the two were in agreement in this particular model.
 
@@ -113,7 +117,11 @@ Now, we lesion the model, and see if it simulates the patient's data. However, b
 
 > **Question 6.8:** Report the resulting averages from the `TrialStats` table.
 
+<sim-question id="6.8">
+
 > **Question 6.9:** Compute the invalid-valid difference, and compare it first with that same difference in the intact network, and then with the normalized patient's data as discussed above (418-350=68ms).
+
+<sim-question id="6.9">
 
 You should have found that you can simulate the apparent disengage deficit without having a specific "disengager" mechanism (at least qualitatively).
 
@@ -134,6 +142,8 @@ As mentioned previously, additional lesion data comes from *Balint's syndrome* p
 * Do [[sim:Init]], [[sim:Step Trial]] while watching the [[sim:Network]], and then [[sim:Run]] a few times while looking at the [[sim:Test Trial Plot]].  Then click on [[sim:TrialStats Plot]] `Table`.
 
 > **Question 6.10:** Report the results of the `TrialStats` for the bilaterally lesioned network.
+
+<sim-question id="6.10">
 
 Finally, we can explore the effects of a more severe lesion to the parietal spatial representations, which might provide a better model of the syndrome known as *hemispatial neglect* (typically referred to as just *neglect*). As described previously, neglect results from unilateral lesions of the parietal cortex (usually in the right hemisphere), which cause patients to generally neglect the lesioned side of space. We simulate neglect by doing a similar lesion to the unilateral one we did before, but lesioning both of the spatial units in each location.
 
@@ -174,6 +184,8 @@ You should see that the valid-invalid difference decreases progressively with in
 * Switch to the [[sim:Network]], set [[sim:Step]] `Cycle` and [[sim:Step]] `Trial` through the running of the network with [[sim:Cue cycles]] at 300 or higher.
 
 > **Question 6.11:** Report in detail what happens on the valid and invalid trials that produces the inhibition of return effect. It is useful to observe the activation (or lack thereof) of the various layers as the cue duration increases. While you should see changes in the ranges of durations specified, you may have to increase the cue duration even more to get the full inhibition of return effect. 
+
+<sim-question id="6.11">
 
 # Object-Based Attentional Effects
 

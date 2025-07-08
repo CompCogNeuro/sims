@@ -46,12 +46,15 @@ A [ClusterPlot](https://github.com/CompCogNeuro/sims/blob/main/ch3/faces/Cluster
 
 > **Question 3.1:** Given what you know about how a Cluster Plot works (see above link), describe how the three features (gender, emotion, and identity) relate to the clustering of images by similarity.  Specifically, think about where there are the greatest number of overlapping pixels across the different images from each of the different categories (all the happy vs. sad, female vs. male, and within each individual).
 
+<sim-question id="3.1">
+
 Now, let's see how this input similarity structure is transformed by the different types of categorization.
 
 * Click on the [[sim:ClustEmote]] tab, which shows the cluster plot run on the `Emotion` layer patterns for each input.
 
 > **Question 3.2:** How does the Emotion categorization transform the overall face input similarity compared to what we saw in the first cluster plot -- ie., what items are now the most similar to each other?
 
+<sim-question id="3.2">
 
 * Click on the [[sim:ClustGend]] tab, which shows the cluster plot run on the `Gender` layer patterns for each input, and likewise for the [[sim:ClustIdent]] plot, which shows the cluster plot run on the `Identity` layer patterns for each input.
 
@@ -88,6 +91,8 @@ Next, let's try a more challenging test of bidirectional connectivity, where we 
 You should observe the initial partial activation pattern, followed by activation of the category-level units, and then the missing elements of the face image gradually get filled in (definitely use the `Cycle` step mode and/or Time VCR buttons to see this unfold cycle-by-cycle).
 
 > **Question 3.3:** Across multiple different such partial faces, what is the order in which the *correct* category units get active (there may be transient activity in incorrect units)?  For each case also list how this order corresponds to the timing of when the missing features in the input face start to get filled in.
+
+<sim-question id="3.3">
 
 Another way of thinking about the behavior of this network is in terms of **attractor dynamics**, where each specific face and associated category values represents a coordinated attractor, and the process of activation updating over cycles results in the network settling into a specific attractor from a partial input pattern that neverthelss lies within its overall attractor basin.
 

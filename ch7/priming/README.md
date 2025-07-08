@@ -56,6 +56,8 @@ You can repeat this experiment a couple more times, flipping the `a`'s back to `
 
 > **Question 7.7:** Report the IsA results for each of the 3 data points, corresponding to TrainAltAB, TrainB, and TrainA (hover the mouse over the points to get the numbers, or click the `Table` button to see a table of the numbers).
 
+<sim-question id="7.7">
+
 You can optionally explore turning the `Lrate` parameter down to .01 or even lower. (We are applying the parameters every trial so you don't need to do `Init` to get the parameter to take effect.) You should see that although the number of items that flip is reduced, even relatively low `Lrate`s can produce flips.
 
 # Activation-Based Priming
@@ -73,6 +75,8 @@ This is a baseline, because we are still clearing all of the activation out of t
 * Set `Decay` to 0 instead of 1, and do another `Init` and `Run`. You should now observe a very different pattern, where the responses to the second trial of an input pattern are more likely to be `a` than the first trial of the same input pattern. This looks like a "sawtooth" kind of jaggy pattern in the test plot.
 
 > **Question 7.8:** Comparing the 1st trials and 2nd trials of each input pattern (the 1st and 2nd 0, the 1st and 2nd 1, and so on), report the number of times the network responded `b` to the first trial and `a` to the second trial. How does this number of instances of activation-based priming compare to the 0 instances observed at baseline with Decay set to 1?
+
+<sim-question id="7.8">
 
 You can explore the extent of residual activity needed to show this activation-based priming by adjusting the `Decay` parameter and running `Test` again. (Because no learning takes place during testing, you can explore at will, and go back and verify that Decay = 1 still produces mostly `b`'s).  In our tests increasing Decay (using this efficient search sequence: 0, .5, .8, .9, .95, .98, .99), we found a critical transition between .98 and .99. That is, a tiny amount of residual activation with Decay = .98 (= .02 residual activity) was capable of driving some activation-based priming. This suggests that the network is delicately balanced between the two attractor states, and even a tiny bias can push it one way or the other. The similar susceptibility of the human brain to such activation-based priming effects suggests that it too may exhibit a similar attractor balancing act.
 

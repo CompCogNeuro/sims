@@ -42,6 +42,8 @@ You should observe largish red squares along the diagonal yellow line cutting ac
 
 > **Question 4.8:** What do you think this pattern of results means for how the network is encoding the inputs -- what is the primary component (relationship vs. agent) of the inputs along which the hidden layer is organizing the input patterns?  How might it be beneficial for the model to have organized the hidden layer in this way, in order to perform the task -- i.e., which component is more *central* across all of the patterns?
 
+<sim-question id="4.8">
+
 Although the raw distance matricies show all the data, it can be difficult to see the more complex patterns -- distributed representations encode many different forms of similarity at the same time. Thus, we will use two other plots to see more of this structure: cluster plots and principal-components-analysis (PCA) plots.
 
 * Click on the [[sim:HiddenRelClust]] tab to see the cluster plot of the Hidden activations labeled by relationships.
@@ -59,6 +61,8 @@ You can also look at the cluster and PCA plots of the Agent-based labels (the PC
 * Now, let's see how these results compare to the network with random initial weights.  Do `Train` mode [[sim:Init]], then `Test` mode [[sim:Init]], and [[sim:Run]], and [[sim:Reps Analysis]], and then click on [[sim:HiddenRelPCA]] again, and also look at the similarity matrix `Sim Mat` for that case too.
 
 > **Question 4.9:** How do the untrained representations compare to the previous trained ones? Although some of the same larger structure is still present, is the organization as systematic as with the trained weights? Focus specifically on the relational data, as that was more clear in the trained case.
+
+<sim-question id="4.9">
 
 Note there is still a fair amount of structure in the distance matricies present even with random weights, so the differences between the PCA plots of the trained and untrained networks may be subtle. This is due to the similarity structure of the input patterns themselves -- even though each individual input unit is localist, there is structure across the three layers (agent, relation, patient), and the model representations will tend to reflect this structure even without any learning. Learning refines this initial structure, and, most critically, establishes the proper synaptic weights to produce the correct Patient response for each input.
 

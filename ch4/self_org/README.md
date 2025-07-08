@@ -73,6 +73,8 @@ The performance of the model on any given run can be quite variable, depending o
 
 > **Question 4.1:** How many times across the 8 runs was there a less-than-10 result for the UniqPats number of uniquely represented lines, with the default parameters? (Note that the 8 runs are numbered from 0 to 7 in the plot.)
 
+<sim-question id="4.1">
+
 # Parameter Manipulations
 
 Now, let's explore the effects of some of the parameters in the control panel.
@@ -88,6 +90,8 @@ One thing that is a bit unrealistic about this model is the lack of any activity
 * To add some noise activity in the input, set the InputNoise to .2 and `Init`. This will add randomly generated values to the input unit activity. (You can `Step Trial` to see the noise in the input.) Keep `AvgLGain` at 1, which will make it easier to see the effects of noise. `Train Run`.  
 
 > **Question 4.2:** a) Now how many sub-10 `UniqPats` stats did you get? Is this an improvement over the earlier no-noise case with `AvgLGain` at 1? b) Describe what difference you observe in the weights of the no-noise and noise simulations. Why do you see this difference?
+
+<sim-question id="4.2">
 
 In conclusion, this exercise should give you a feel for the dynamics that underlie self-organizing learning, and also for the importance of how the floating threshold level and homeostasis dynamic plays a key role in this form of learning.
 

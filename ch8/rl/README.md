@@ -80,7 +80,11 @@ We can simulate extinction by simply turning off the US reward that appears at t
 
 > **Question 8.4:** What happened at the point where the reward was supposed to occur? Explain why this happened using the TD mechanisms of reward expectations compared to actual reward values received.
 
+<sim-question id="8.4">
+
 > **Question 8.5:** Run the network and describe what occurs over the next several epochs of extinction training in terms of the TD error signals plotted in the graph view, and explain why TD does this. After the network is done learning again, does the stimulus still evoke an expectation of reward?
+
+<sim-question id="8.5">
 
 Now, let's explore second order conditioning. We must first retrain the network on the stimulus 1 association.
 

@@ -41,6 +41,8 @@ You should see that the network activates features that are typical of cats, and
 
 > **Question 3.4:** Explain why the subset of cat individuals ended up getting activated, when just `cat` was provided as input -- how might this differential activation of individuals provide useful information about different cats in relation to the general `cat` category?
 
+<sim-question id="3.4">
+
 * Repeat this test but instead activate the `dog` unit instead of `cat`.
 
 # Constraint Satisfaction

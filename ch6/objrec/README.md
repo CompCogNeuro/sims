@@ -64,11 +64,17 @@ You should see that the V4 units are encoding simple conjunctions of line elemen
 
 > **Question 6.3:** Explain the significance of the line-element combinations and spatial invariance observed in the V4 receptive fields, in terms of the overall computation performed by the network.
 
+<sim-question id="6.3">
+
 > **Question 6.4:** Pick a *different* V4 unit from Figure 3, and explain how its strongest Output representation makes sense based on the features shown in its Image receptive field. (Hint: Pick a unit that is particularly selective for specific Image patterns and specific output units, because this makes things easier to see.)
+
+<sim-question id="6.4">
 
 You can now examine the IT patterns (Figure 4), and compare them with the V4 ones.
 
 > **Question 6.5:** Based on your examination of the IT units, do individual neurons appear to code for a single entire object, or rather parts of different objects (such that an individual neuron is active across multiple objects)? Explain.
+
+<sim-question id="6.5">
 
 By focusing specifically on the number of objects a given unit clearly *doesn't* participate in (based on the Output layer), it should be clear that the IT units are more selective than the V4 units, which substantiates the idea that the IT units are encoding more complex combinations of features that are shared by fewer objects (thus making them more selective to particular subsets of objects). Thus, we see evidence here of the hierarchical increase in featural complexity required to encode featural relationships while also producing spatial invariance.   Also, the IT patterns are much blurrier and this means that they are integrating over more locations / distortions of the input images -- i.e., they are more invariant.
 

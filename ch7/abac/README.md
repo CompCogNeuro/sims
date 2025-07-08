@@ -34,6 +34,8 @@ The statistics taken at the end of the AC list training for each "subject" will 
 
 > **Question 7.1:** Report the `ABErr:Mean` and `Min` in the RunStats for your batch run of 10 simulated subjects (hover over the points in the plot and report the final, y-axis value listed, or click on the `Table` to see a table of numerical values). Also do another `Init` and `Step Run` while looking at the `Test Epoch Log` and report the general relationship between AC learning and AB interference across runs -- does AC generally show any significant learning before AB performance has mostly evaporated?
 
+<sim-question id="7.1">
+
 # Reducing Interference
 
 Having replicated the basic catastrophic interference phenomenon, let's see if we can do anything to reduce the level of interference. Our strategy will be to retain the same basic architecture and learning mechanisms while manipulating certain key parameters. The intention here is to illuminate some principles that will prove important for understanding the origin of these interference effects, and how they could potentially be reduced -- though we will see that they have relatively small effects in this particular context.
@@ -50,6 +52,8 @@ This increased inhibition will make each activity pattern in the hidden layer sm
 
 > **Question 7.2:** Click the `RunStats Plot` and report the resulting `AB Err:Mean` and `Min` statistics -- did this reduce the amount of AB interference?
 
+<sim-question id="7.2">
+
 Another thing we can do to improve performance is to enhance the contribution of the `Context` layer inputs relative to the A stimulus, because this list context disambiguates the two different associates.
 
 * Do this by changing the `FmContext` parameter from 1 to 1.5.
@@ -65,6 +69,8 @@ Now let's see if performance is improved by making these three parameter adjustm
 * Do `Init` and `Run` -- you can watch the `Train Run Plot` for results as they come in.
 
 > **Question 7.3:** Click the `RunStats Plot` and report the resulting `AB Err:Mean` and `Min` statistics -- did these parameters reduce the amount of AB interference?  Informal testing has shown that this is close to the best performance that can be obtained in this network with these parameters -- is it now a good model of human performance?
+
+<sim-question id="7.3">
 
 The final level of interference on the AB list tends to be quite variable.  You can go back and observe the `Test Epoch Plot` during training to see that these manipulations have also slowed the onset of the interference somewhat. Thus, we have some indication that these manipulations are having an effect in the right direction, providing some support for the principle of using sparse, non-overlapping representations to avoid interference. 
 

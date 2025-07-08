@@ -12,16 +12,22 @@ In this project we have expanded the size of all layers to accommodate a richer 
 
 > **Question 4.10:**  Do the hidden units learn to represent the individual lines like they did in `self_org`? Why or why not? Explain in terms of how the learning rule is designed to adjust weights when minimizing error.
 
+<sim-question id="4.10">
+
 * For this project we have not actually trained the network with all possible combinations of horizontal and vertical lines. We deliberately left out some novel combinations of lines it has not seen together before. These can then used to test the network to see if the network can correctly generalize to these new combinations without having to memorize them. Each time a new network is run, the program automatically selects 15% (randomly) of the line combinations and put them in a Test table. 
 
 * While viewing `Act` on the netview, set run mode to `Test` instead of `Train`, and then `Init` and `Run`, which will step through all of the new combinations of lines the network has never seen together before. (You can also step through one at a time if you want).  Look at the output patterns on the network and compare to the `Act / Targ` values which show the target (i.e. what the network should have responded).  You can also switch to the `Test Trial` tab to see all the test trials and what the network guessed (shown in the second to last column, as the output activations) compared to what the correct answer would have been (the target) in the last column. To get a broader sense of the performance across multiple networks you can do click `Train` mode `Run` and let it run through 10 networks with different initial weights and different permutations of training/test patterns. Switch to viewing the `Test Epoch Plot` tab, where you will see a graph of the network percent error on the test data across after every 5 epochs of training as each of the 10 networks is learning. (Again you can confirm that the networks are learning the training patterns by looking at `Train Epoch Plot`).   
 
 > **Question 4.11:**  Report what you see in the output in the test trials and over epochs of learning and runs. On average, does the network generalize its learning by reporting the correct combinations of lines for these novel patterns? Consider why this might be in terms of the internal hidden representations that were learned by the hidden layer in the earlier question. 
 
+<sim-question id="4.11">
+
 * Now switch the learning rule from `ErrorDriven` back to `Hebbian`, click `Init`, and `Step` `Run` again. Although the network can't learn the task, if you click on the `Weights` tab (or `r.Wt` on the netview) you should see that the hidden units exhibit similar learned representations of the lines to what you saw in `self_org`. Thus even though Hebbian learning fails to learn the output labeling task (ie it is not able to 'report' which lines it sees in the output), the internal representations that it develops are still sensitive to the independent components. 
 
 * Let's see if we can leverage this learning to improve generalization. Switch the learning rule to `ErrorHebbIn` and click `Init`. This will maintain purely Hebbian learning in the Input to Hidden projection (setting `Learn.XCal` LLrn=1, MLrn=0, where L = amount of BCM long-term running average, M = error-driven medium-term). But it will now have pure Error-driven learning in the connections between Hidden and Output (LLrn=0, MLrn=1). Click 'TrainRun' and run a full set of 10 networks. Confirm first that the network can learn the training set (looking at `Train Epoch Plot` to see if the errors goes down to zero). Then, look at the 'Test Epoch Plot' tab which will again display the percent errors on the novel combinations of lines for each network after every 5 epochs of training. (You can also click the `Test Trial` tab again to see if any individual network is generalizing in each trial). 
 
 > **Question 4.12:** On average, does Hebbian learning in the hidden layer help the network perform better at generalizing to new items? Why or why not?  Consider more generally how the combination of learning rules might be useful for the brain.
+
+<sim-question id="4.12">
  
  

@@ -50,7 +50,11 @@ You should see that it is producing the correct output units for each input patt
 
 > **Question 4.3:** Describe the pattern of weights in qualitative terms for each of the two output units (e.g., left output has strong weights from the ?? input units, and weaker weights from the ?? input units).
 
+<sim-question id="4.3">
+
 > **Question 4.4:** Why would a Hebbian-style learning mechanism, which increases weights for units that are active together at the same time, produce the pattern of weights you just observed?  This should be simple qualitative answer, referring to the specific patterns of activity in the input and output of the Easy patterns.
+
+<sim-question id="4.4">
 
 # The Hard Task
 
@@ -75,6 +79,8 @@ You should see that the network is not getting all the right answers (you can al
 * Do several more `Train` `Step`s (with step level set to `Run`) on this Hard task. You can try increasing the [[sim:Config]]/`NEpochs` to 200, or even 500, to give it more time to learn -- press [[sim:Init]] after changing these parameters to get them to take.
 
 > **Question 4.5:** Does the network ever solve the task? Run the network several times. Report the final SSE at the end of training for each run (hover on the last point in the [[sim:Train Epoch Plot]] to see the value).
+
+<sim-question id="4.5">
 
 Hebbian learning does not seem to be able to solve tasks where the correlations do not provide the appropriate weight values. In the broad space of tasks that people learn (e.g., naming objects, reading words, etc) it seems unlikely that there will always be a coincidence between correlational structure and the task solution. Thus, we must conclude that Hebbian learning by itself is of limited use for task learning. In contrast, we will see in the next section that error-driven learning, which specifically adapts the weights precisely to solve input/output mappings, can handle this Hard task without much difficulty.
 
@@ -115,6 +121,8 @@ Notice that each input unit in this environment is active equally often when the
 * Press [[sim:Init]] and [[sim:Step]] `Run`. Do it again, and again.. Increase the [[sim:Config]] / `NEpochs` higher than 100. 
 
 > **Question 4.6:** Does the network ever learn to solve this "Impossible" problem? Report the final SSE values for your runs.
+
+<sim-question id="4.6">
 
 Because error-driven learning cannot learn what appears to be a relatively simple task, we conclude that something is missing.  Unfortunately, that is not the conclusion that Minsky & Papert reached in their highly influential book, *Perceptrons*. Instead, they concluded that neural networks were hopelessly inadequate because they could not solve problems like the one we just explored. This conclusion played a large role in the waning of the early interest in neural network models of the 1960s. As we'll see, all that was required was the addition of a hidden layer interposed between the input and output layers (and the necessary math to make learning work with this hidden layer, which is really just an extension of the chain rule used to derive the delta rule for two layers in the first place).
 

@@ -36,6 +36,8 @@ Let's start by manipulating the maximal conductance for the inhibitory current i
 
 > **Question 3.6:** What effects does decreasing and increasing `HiddenGbarI` have on the average level of excitation of the hidden units and of the inhibitory units, and why does it have these effects (simple one-sentence answer)?
 
+<sim-question id="3.6">
+
 * Set `HiddenGBarI` back to .4 (or just hit the `Defaults` button).  You can also double-click on the blue highlighted label for any parameter that is not at its default setting, to restore it to the default value.
 
 Now, let's see what happens when we manipulate the corresponding parameter for the inhibition coming into the inhibitory neurons, `InhibGbarI`. You might expect to get results similar to those just obtained for `HiddenGbarI`, but be careful -- inhibition upon inhibitory neurons could have interesting consequences.
@@ -60,6 +62,8 @@ Next we assess the importance and properties of the feedforward versus feedback 
 * Set `FFInhibWtScale` to 0, effectively eliminating the feedforward excitatory inputs to the inhibitory neurons from the input layer (i.e., eliminating feedforward inhibition). 
 
 > **Question 3.7:** How does eliminating feedforward inhibition affect the behavior of the excitatory and inhibitory average activity levels -- is there a clear qualitative difference in terms of when the two layers start to get active, and in their overall patterns of activity, compared to with the default parameters?
+
+<sim-question id="3.7">
 
 * Next, set `FFinhibWtScale` back to 1 and set `FBinhibWtScale` to 0 to turn off the feedback inhibition, and Run. 
 
@@ -140,6 +144,8 @@ You should see the hidden activities approach the 20% level now -- this shows th
 * To test the set point behavior of the FFFB functions, we can vary the amount of excitatory input by changing the `InputPct` levels, to 10 and 30 instead of the 20% default. After you change `InputPct`, you need to do `ConfigPats` in the toolbar (this makes a new input pattern with this percent of neurons active), and then `Step Trial`. 
 
 > **Question 3.8:** How much does the hidden average activity level vary as a function of the different `InputPct` levels (10, 20, 30). What does this reveal about the set point nature of the FFFB inhibition mechanism (i.e., the extent to which it works like an air conditioner that works to maintain a fixed set-point temperature)?
+
+<sim-question id="3.8">
 
 Finally, you can explore the effects of changing the `*GbarI` and `FFinhibWtScale`, `FBinhibWtScale` parameters, which change the overall amount of inhibition, and amounts of feedforward and feedback inhibition, respectively.
 

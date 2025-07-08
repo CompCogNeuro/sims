@@ -63,6 +63,8 @@ Focus this time on the two trials on the right and watch the progression of `VTA
 
 > **Question 8.7:** Which units from the `USTime_In` layer does the `VSPatchPosD1` receive weights from, and are these the same units that were active when the reward was presented? How do these weights (from USTime_In to VSPatchPosD1) allow the network to mitigate the dopamine burst at the time of an expected reward?
 
+<sim-question id="8.7">
+
 * When done change back to displaying the `Act` variable in the `NetView` display.
 
 # Extinction
@@ -107,6 +109,8 @@ You should see two new lines come on in the `TrialTypeData` graph: dark blue = `
 
 > **Question 8.8:** Why do you think these units still have strong weights from `Stim_In`? How might this explain the idea that the original learning during acquisition is not completely erased after extinction? How might conditioned responses be extinguished (not expressed) if these weights are still strong? Hint: `BLAmygPosD2` activity inhibits `BLAmygPosD1` activity.
 
+<sim-question id="8.8">
+
 * When you're done change back to displaying the `Act` variable in the `NetView` display.
 
 ## Renewal: The special role of context in extinction
@@ -141,6 +145,8 @@ In the `TrialTypeData` graph note the stark contrast in the CS-onset dopamine si
 
 > **Question 8.9:** From an evolutionary perspective, why would a separate extinction mechanism be preferable to an erasure-type mechanism of the original learning? Relate your answer to the special sensitivity of extinction learning to context.
 
+<sim-question id="8.9">
+
 # Aversive Conditioning
 
 For the final PVLV simulation we will look at how the same basic mechanisms involved in appetitive conditioning can support aversive conditioning as well -- that is, learning in the context of negative primary outcomes like pain, shock, nausea, and so on. Phasic dopamine signaling in aversive conditioning can be thought of as a kind of mirror-image of appetitive conditioning, but with some important anomalies that reflect basic differences in the ecological contingencies that pertain under threat. Chief among these is the obvious difference in the stakes involved during any single event: while failure to obtain a reward may be disappointing, there will generally be more opportunities.  On the other hand, failure to avoid a predator means there literally will be no tomorrow. Thus, threats must have a kind of systematic priority over opportunities.
@@ -164,6 +170,8 @@ In parallel, the network is also acquiring dopamine dips in response to both CSs
 First, take note of the strong `VSPatchNegD2` activity (brown-red line) at the t3 timesteps. This is what mitigates `LHbRMT` responses to the negative US, and thus the amount of negative activity in `VTAp`. Next, note the activity level for the VSMatrixNegD2 layer (beige line). In explicit contrast to the appetitive case, the acquired response to CS-onset is not being driven by the amygdala, but is instead driven by the acquired activity in this layer via the LHbRMTg. Nonetheless, it is important to understand that the amygdala is critically involved in many aspects of aversive conditioning (e.g., see strong `CElAcqNegD2` activity; red), even if it does not directly drive dopamine signaling. Finally, note how the activity level in the `VTAn` layer (pink) is the exact mirror-image of VTAp, both of which are being driven by LHbRMTg activity in the model.
 
 > **Question 8.9a:** From an evolutionary perspective why would separate pathways for learning about aversive vs. appetitive primary outcomes be preferable to a single system for both?  Conversely, in terms of dopamine signaling, how might the positive responses to primary aversive outcomes in the `VTAn` layer be problematic if those signals were to be conveyed to downstream units that also receive signals from the `VTAp`?
+
+<sim-question id="8.9a">
 
 
 ------------------------------------------------------------------------
@@ -197,6 +205,8 @@ Note how the negative `VTAp_act` (black) and positive `LHbRMTg_act` (blue) activ
 At the end of conditioned inhibition training three test trials are run: A alone, X alone, and AX. (Reward is never presented in any case). Note that the network shows a dopamine dip to the conditioned inhibitor (X) meaning that it has acquired negative valence, in accordance with the [Tobler et al., 2003](#references) data. This is caused by activity in the `LHbRMTg`, which reflects activity of the `VSMatrixPosD2` that has learned an association of the X conditioned inhibitor with reward omission. See [PVLV Code](https://github.com/emer/leabra/tree/main/pvlv) if you wish to learn more about the computations of the various ventral striatum and amygdala layers in the network.
 
 > **Optional Question** Why does the network continue to show a partial dopamine burst to the A stimulus when it is presented alone? Hint: You may want to watch the network run again and note the different trial types. What is the purpose of interleaving A_Rf trials with the AX trials?
+
+<sim-question id="optional">
 
 ## Blocking
 

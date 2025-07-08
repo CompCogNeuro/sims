@@ -8,13 +8,13 @@ In this exploration of the hippocampus model, we will use the same basic AB--AC 
 
 **Figure 1:** Data from people learning AB-AC paired associates, and comparable data from McCloskey & Cohen (1989) showing *catastrophic interference* of learning AC on AB.
 
-* Click on `Train AB` and `Test AB` buttons on the left panel to see how the AB training and testing lists are configured. (This may be hard to see in detail.) The "A" pattern is the first three groups of units (at the bottom of each pattern, going left-right, bottom-top), and the "B" pattern is the next three, which you can see most easily in the `Test AB` patterns where these are blank (to be filled in by hippocampal pattern completion). The 2nd half of the pattern is the list context (as in the `abac` project).
+* Click on [[sim:TrainAB]] and [[sim:TestAB]] buttons on the left panel to see how the AB training and testing lists are configured. (This may be hard to see in detail.) The "A" pattern is the first three groups of units (at the bottom of each pattern, going left-right, bottom-top), and the "B" pattern is the next three, which you can see most easily in the `Test AB` patterns where these are blank (to be filled in by hippocampal pattern completion). The 2nd half of the pattern is the list context (as in the `abac` project).
 
 # AB Training and Testing
 
 Let's observe the process of activation spreading through the network during training.
 
-* Set `Step` to `Cycle` instead of `Trial`, and do `Init`, `Step Cycle`.
+* Set the step level (next to [[sim:Step]]) to `Cycle` instead of `Trial`, and do [[sim:Init]], [[sim:Step]] `Cycle`.
 
 You will see an input pattern from the AB training set presented to the network. As expected, during training, all three parts of the input pattern are presented (A, B, Context). You will see that activation flows from the `ECin` layer through the `DG, CA3` pathway and simultaneously to the `CA1`, so that the sparse `CA3` representation can be associated with the invertible `CA1` representation, which will give back this very `ECin` pattern if later recalled by the `CA3`.  You can use the Time VCR buttons in the lower right of the NetView to replay the settling process cycle-by-cycle.
 
@@ -23,6 +23,8 @@ You will see an input pattern from the AB training set presented to the network.
 You should have observed that the `ECin` patterns overlap the most, with `CA1` overlapping the next most, then `CA3`, and finally `DG` overlaps the least. The levels of FFFB overall inhibition parallel this result, with DG having a very high level of inhibition, followed by CA3, then CA1, and finally EC.
 
 > **Question 7.4:** Using the explanation given earlier in the text about the pattern separation mechanism, and the relative levels of activity and inhibition in these different layers, explain the overlap results for each layer in terms of these activity levels, in qualitative terms.
+
+<sim-question id="7.4">
 
 Each epoch of training consists of the 10 list items, followed by testing on 3 sets of testing events. The first testing set contains the AB list items, the second contains the AC list items, and the third contains a set of novel _Lure_ items to make sure the network is treating novel items as such. The network automatically switches over to testing after each pass through the 10 training events.
 
@@ -42,6 +44,8 @@ In general, you should see `TrgOnWasOffCmp` being larger than `TrgOffWasOn` -- t
 
 > **Question 7.5:** Report the total proportion of `Mem` responses for the AB, AC, and Lure tests.
 
+<sim-question id="7.5">
+
 
 # Detailed Testing: Pattern Completion in Action
 
@@ -60,6 +64,8 @@ You can now observe the amount of interference on AB after training on AC -- it 
 * Do `Run` to run 10 runs through AB / AC training, and click on the `Train Run Plot` to see the results, with the `Tst*Mem` stats from the testing run. After the 10 runs finish, click on the `RunStats Plot`, which reports summary statistics on the `TstABMem` results.
 
 > **Question 7.6:** Report the `TstABMem:Mean` (average) values for the AB items. In general the AC and Lure items should all be at 1 and 0 respectively. How well does this result compare to the human results shown in Figure 1?
+
+<sim-question id="7.6">
 
 In summary, you should find that this hippocampal model is able to learn rapidly and with much reduced levels of interference compared to the prior cortical model of this same task. Thus, the specialized biological properties of the hippocampal formation, and its specialized role in episodic memory, can be understood from a computational and functional perspective.
 
