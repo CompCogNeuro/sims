@@ -77,7 +77,7 @@ You can also manipulate the value of the leak conductance, , which controls the 
 
 <sim-question id="2.5">
 
-> **Question 2.6 (advanced):** Use the same technique as in question 2.4 to directly solve for the value of GbarL that should put the neuron right at it's spiking threshold using the default values of other parameters -- show your math.
+> **Question 2.6 (advanced):** Use the same technique as in question 2.4 to directly solve for the value of Gbar L that should put the neuron right at its spiking threshold using the default values of other parameters -- show your math.
 
 <sim-question id="2.6"> 
 
