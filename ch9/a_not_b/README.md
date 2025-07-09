@@ -44,7 +44,7 @@ Each of these trial types can be repeated multiple times, as can the events with
 
 Now, let's run the network. It will be much easier to tell what is going on in the network by looking at a grid display, rather than trying to watch each trial's activation as the network runs (but you are welcome to do so by stepping through the inputs).
 
-* Click on the [[sim:Train Trial ]] tab. Then press the [[sim:Init]], [[sim:Run]] buttons in the toolbar.
+* Click on the [[sim:Train Trial]] tab. Then press the [[sim:Init]], [[sim:Run]] buttons in the toolbar.
 
 When you do this, the network will run through an entire A-not-B experiment, and record the activations in the table. The `TrialName` column tells you which event is being presented, and the remaining columns show the activations in each layer of the network after each event.
 

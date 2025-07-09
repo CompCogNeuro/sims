@@ -11,7 +11,7 @@ Cats and Dogs Semantics:
 | Cat     | Chloe     | Orange        | Small  | Grass  | String  |
 |         | Socks     | Black & White | Small  | Bugs   | Feather |
 |         | Sylvester | Black & White | Small  | Grass  | String  |
-|         | Garfield   | Orange        | Medium | Scraps | String  |
+|         | Garfield  | Orange        | Medium | Scraps | String  |
 |         | Fuzzy     | White         | Medium | Grass  | Feather |
 | Dog     | Daisy     | Black         | Large  | Scraps | Bone    |
 |         | Fido      | Brown         | Medium | Shoe   | Shoe    |

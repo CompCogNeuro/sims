@@ -24,7 +24,7 @@ You should see all 4 events from the environment presented in a random order.  T
 
 You will see the activations in the output units are different this time, because the output activations are not clamped to the correct answer, and are instead updated solely according to their current weights from the input units.  Thus, testing records the current *actual* performance of the network on this task, when it is not being "coached" (that is why it's a test).  This is equivalent to the *minus phase activations* during training, which can be viewed using the [[sim:Phase]]/`ActM` variable in the Network.
 
-* Now click on the [[sim:Test Trial ]] tab to see a record of all the testing trials.
+* Now click on the [[sim:Test Trial]] tab to see a record of all the testing trials.
 
 The results of the test trials you just ran are displayed. Each row represents one of the four events, with the input pattern and the actual output activations shown on the right. The `SSE` column reports the **summed squared error** (SSE), which is simply the summed difference between the actual output activation during testing (`o`) and the *target* value (`t`) that was clamped during training:
 

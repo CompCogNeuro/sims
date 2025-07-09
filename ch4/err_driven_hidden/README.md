@@ -22,7 +22,7 @@ This sensitivity of the network is a property of all attractor networks (i.e., n
 
 <sim-question id="4.7a">
 
-* Look at the [[sim:Test Trial ]] table view after learning.
+* Look at the [[sim:Test Trial]] table view after learning.
 
 > **Question 4.7b:** Can you figure out how the hidden units have made the problem solvable, whereas it was impossible for a network without a hidden layer? Step through a few trials in a network after it has learned and gets the entire training set correct. Report which hidden units are active for the four events, and also report the weights from these units to the output units. (Note this will differ across network runs - just give one example.)
 
