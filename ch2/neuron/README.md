@@ -55,7 +55,7 @@ First, we will focus on `Gbar E`, which controls the amount of excitatory conduc
 
 <sim-question id="2.2">
 
-By systematically searching the parameter range for `GbarE` between .1 and .2, you should be able to locate the point at which the membrane potential just reaches threshold.
+By systematically searching the parameter range for `Gbar E` between .1 and .2, you should be able to locate the point at which the membrane potential just reaches threshold.
 
 > **Question 2.3:** To 2 decimal places (e.g., 0.15), what value of `Gbar E` puts the neuron just over threshold, such that it spikes at this value, but not at the next value below it?
 
