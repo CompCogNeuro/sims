@@ -2,8 +2,6 @@ module github.com/CompCogNeuro/sims/v2
 
 go 1.23.4
 
-toolchain go1.23.8
-
 require (
 	cogentcore.org/core v0.3.10
 	cogentcore.org/lab v0.0.0-20250116065728-014d19175d12
