@@ -71,6 +71,8 @@ There are several important lessons from looking at the weights. First, the netw
 
 > **Question 10.4:** Specify what OrthoCode units you have chosen (unit pool, row, col position within pool), what letters those OrthoCode units encode, and how the hidden unit(s) combine the OrthoCode units together -- describe how this combination of letters across locations makes sense in terms the need for both spatial invariance and conjunctive encoding of multiple letters.
 
+<sim-question id="10.4">
+
 # Nonword Pronunciation
 
 We next test the network's ability to *generalize* by pronouncing nonwords that exploit the regularities in the spelling to sound mapping. A number of nonword sets exist in the literature -- we use three sets that PMSP used to test their model. The first set of nonwords is comprised of two lists, the first derived from regular words, the second from exception words [(Glushko, 1979)](#references). The second set was constructed to determine if nonwords that are homophones for actual words are pronounced better than those which are not, so the set is also comprised of two lists, a control list and a homophone list [(McCann & Besner, 1987)](#references). The third set of nonwords were derived from the regular and exception probe word lists that we used to test the network earlier [(Taraban & McClelland, 1987)](#references).
@@ -99,6 +101,8 @@ The total percentages for both our model, PMSP (where reported) and the comparab
 We tried to determine for each error why the network might have produced the output it did. In many cases, this output reflected a valid pronunciation present in the training set, but it just didn't happen to be the pronunciation that the list-makers chose. This was particularly true for the Glushko (1979) exception list (for the network and for people). Also, the McCann & Besner (1987) lists contain four words that have a "j" in the final set of phonemes after the vowel (the *coda*), `faije`,  `jinje`, `waije`, `binje`, which never occurs in the training set (i.e., in the entire corpus of English monosyllabic words). These words were excluded by PMSP, and we discount them here too. Nevertheless, the network did sometimes get these words correct.
 
 > **Question 10.5:** Can you explain why the present model was sometimes able to pronounce the "j" in the coda correctly, even though none of the training words had a "j" there? (Hint: Think about the effect of translating words over different positions, e.g., the word "jet," in terms of the input the model receives.)
+
+<sim-question id="10.5">
 
 One final aspect of the model that bears on empirical data is its ability to simulate naming latencies as a function of different word features. The features of interest are word frequency and consistency (as enumerated in the Probe codes listed above). The empirical data shows that, as one might expect, higher frequency and more consistent words are named faster than lower frequency and inconsistent words. However, frequency interacts with consistency, such that the frequency effect decreases with increasing consistency (e.g., highly consistent words are pronounced at pretty much the same speed regardless of their frequency, whereas inconsistent words depend more on their frequency). The PMSP model shows the appropriate naming latency effects (and see that paper for more discussion of the empirical literature).
 

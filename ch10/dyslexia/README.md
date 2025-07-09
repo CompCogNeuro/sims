@@ -22,6 +22,8 @@ You will see the activation flow through the network, and it should settle into 
 
 > **Question 10.6:** Do you think the initial phonological activation for each word is caused by the "direct" input via orthography or the "indirect" input via semantics? Did you see any cases where the initial phonological pattern is subsequently altered when the later input arrives?  Provide an example word where this happened.
 
+<sim-question id="10.6">
+
 * Click on the `Test Trial Plot` tab to see a record of the network's performance on the full set of words. It should only make one "Other" error for the word "flag", which it pronounces as "flaw".
 
 `ConAbs` shows whether this item is concrete (*Con*) or abstract (*Abs*) (`ConAbs`=0 for concrete, 1 for abstract). You can click the checkbox next to `ConAbs` to view it; you'll see that the second half of the list contains abstract words. Most of the checkboxes after `ConAbs` indicate what type of error the network makes: `Vis` = visual errors, `Sem` = semantic errors, `VisSem` = both, `Blend` = not a clearly pronounced word, `Other` = some other hard-to-categorize error. (You may need to expand your browser to see the colors of the bars, or you can hover at the top of a bar to see what it represents.) Concrete words have more distinctive features, whereas abstract words have fewer, which impacts their relative susceptibility to lesions, as we'll see.
@@ -40,15 +42,21 @@ You should see that only the direct pathway is activated, but likely it will sti
 
 > **Question 10.7:** How many times did the network with only the direct pathway (SemanticsFull lesion) make a reading mistake overall? (You can count the number of 1's in the `Test Trial Plot` if you are viewing only the 5 types of errors, or you can look at the `Test Epoch Plot` which shows the counts of different types of errors, and add those for the SemanticsFull Lesion case.)  Notice that the network does not produce any blend outputs, indicating that the phonological output closely matched a known word.
 
+<sim-question id="10.7">
+
 To understand the different types of errors, click on the `Test Trial` tab, which shows the table of testing results per trial. For each of the categorized errors (i.e., where `Vis` or `Other` is 1; the SSE through Err columns show raw error and can be ignored here), compare the word the network produced (under `Phon`) with the input word (under `TrialName`). If the produced word is very similar orthographically (and phonologically) to the input word, this is called a *visual* error, because the error is based on the visual properties instead of the semantic properties of the word. The simulation automatically scores errors as visual if the input orthography and the response orthography (determined from the response phonology) overlap by two or more letters. You should see this reflected in the Vis column in the Table.
 
 > **Question 10.8:** How many of the semantically lesioned network's errors were visual, broken down by concrete and abstract, and overall?
+
+<sim-question id="10.8">
 
 Now, let's try the direct pathway lesion and retest the network.
 
 * Click `Lesion` in the toolbar at the top and select `Direct full`, then do `Init` and `Run` again. 
 
 > **Question 10.9:** What was the total number of errors this time, and how many of these errors were visual, semantic, visual semantic, blend, and "other" for the concrete versus abstract categories (as reported in `Test Epoch Plot`)?.  You may need to click `Unfilter` in the plot toolbar to get it to update.
+
+<sim-question id="10.9">
 
 ![Semantics Cluster Plot](fig_dyslex_sem_clust.png?raw=true "Cluster Plot of Semantics similarity structure")
 
@@ -90,9 +98,13 @@ Results across 25 repetitions can be found in Figure 3 for these same semantic p
 
 > **Question 10.10:** Compare the first bar in each graph of Figure 3 (corresponding to the case with only a direct pathway lesion, and no damage to the semantic pathway) with the subsequent bars, which include increasing amounts of semantic pathway damage: Does additional semantic pathway damage appear to be necessary to produce the semantic error symptoms of deep dyslexia?  Focus specifically on the `Semantic` and `Vis + Sem` errors.
 
+<sim-question id="10.10">
+
 Figure 3 also shows the relative number of semantic errors for the concrete versus abstract words. One characteristic of deep dyslexia is that patients make more semantic errors on abstract words relative to concrete words.
 
 > **Question 10.11:** Is there evidence in Figure 3 that the model also makes a differential number of errors for concrete vs. abstract words?
+
+<sim-question id="10.11">
 
 
 ## Direct Pathway Lesions

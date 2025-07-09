@@ -24,6 +24,8 @@ One of the most interesting things to notice here is that the unit represents mu
 
 > **Question 10.1:** List some other examples of roughly synonymous terms represented by this unit.
 
+<sim-question id="10.1">
+
 This property of the representation is interesting for two reasons. First, it indicates that the representations are doing something sensible, in that semantically related words are represented by the same unit. Second, these synonyms probably do not occur together in the same paragraph very often. Typically, only one version of a given word is used in a given context. For example, "The activity of the unit is..." may appear in one paragraph, while "The unit's activation was..." may appear in another. Thus, for such representations to develop, it must be based on the similarity in the general contexts in which similar words appear (e.g., the co-occurrence of "activity" and "activation" with "unit" in the previous example). This generalization of the semantic similarity structure across paragraphs is essential to enable the network to transcend rote memorization of the text itself, and produce representations that will be effective for processing novel text items.
 
 * Click on the unit one row behind the first row (still one column over from the left) -- this unit has a relatively strong lateral weight with the first unit we clicked on.  Then click [[sim:Wt Words]].
@@ -52,6 +54,8 @@ You should see that attention and spelling are only related by around 0.06, indi
 
 > **Question 10.2:** Report the correlation values for several additional sets of Words comparisons, along with how well each matches your intuitive semantics from having read this textbook yourself.
 
+<sim-question id="10.2">
+
 # Distributed Representations of Multiple Words
 
 We now present multiple word inputs at the same time, and see how the network chooses a hidden layer representation that best fits this combination of words. Thus, novel semantic representations can be produced as combinations of semantic representations for individual words. This ability is critical for some of the more interesting and powerful applications of these semantic representations (e.g., multiple choice question answering, essay grading, etc.).
@@ -79,6 +83,8 @@ The similarity does now decrease. Thus, we can see that the network's activation
 You should see that the similarity goes back up. Thus, this is potentially a very powerful and flexible form of semantic representation that combines rich, overlapping distributed representations and activation dynamics that can magnify or diminish the similarities of different word combinations.
 
 > **Question 10.3:** Think of another example of a word that has different senses (that is well represented in this textbook), and perform an experiment similar to the one we just performed to manipulate these different senses. Document and discuss your results.
+
+<sim-question id="10.3">
 
 # A Multiple-Choice Quiz
 

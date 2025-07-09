@@ -126,6 +126,8 @@ This cluster plot shows that the sentences are first clustered together accordin
 
 > **Question 10.12:** Does this cluster structure reflect purely syntactic information, purely semantic information, or a combination of both types of information? Try to articulate in your own words why this kind of representation would be useful for processing language.
 
+<sim-question id="10.12">
+
 # References
 
 * Elman, J. L. (1990). Finding Structure In Time. Cognitive Science, 14(2), 179–211.
