@@ -8,7 +8,7 @@ require (
 	cogentcore.org/core v0.3.10
 	cogentcore.org/lab v0.0.0-20250116065728-014d19175d12
 	github.com/anthonynsimon/bild v0.13.0
-	github.com/emer/emergent/v2 v2.0.0-dev0.1.7.0.20250307035120-1fc133d0d3ed
+	github.com/emer/emergent/v2 v2.0.0-dev0.1.7.0.20250709174719-c99504b21762
 	github.com/emer/etensor v0.0.0-20250128231607-f3fea92f0b80
 	github.com/emer/leabra/v2 v2.0.0-dev0.5.5.0.20250128232242-79e931d6fe3b
 	github.com/emer/vision/v2 v2.0.0-dev0.1.0.0.20250128234953-cd0a89e77a4a
@@ -28,8 +28,8 @@ require (
 	github.com/ericchiang/css v1.3.0 // indirect
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20240506104042-037f3cc74f2a // indirect
-	github.com/go-text/typesetting v0.3.1-0.20250402122313-7a0f05577ff5 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
+	github.com/goki/freetype v1.0.5 // indirect
 	github.com/gomarkdown/markdown v0.0.0-20250311123330-531bef5e742b // indirect
 	github.com/gorilla/css v1.0.1 // indirect
 	github.com/h2non/filetype v1.1.3 // indirect
@@ -39,7 +39,6 @@ require (
 	github.com/jinzhu/copier v0.4.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.1.2-0.20240227203013-2b69615b5d55 // indirect
-	github.com/tdewolff/parse/v2 v2.7.19 // indirect
 	golang.org/x/image v0.25.0 // indirect
 	golang.org/x/mod v0.22.0 // indirect
 	golang.org/x/net v0.38.0 // indirect
