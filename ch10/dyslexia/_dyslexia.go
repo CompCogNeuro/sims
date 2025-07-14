@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build not
+
 // dyslexia simulates normal and disordered (dyslexic) reading performance in terms
 // of a distributed representation of word-level knowledge across Orthography, Semantics,
 // and Phonology. It is based on a model by Plaut and Shallice (1993).

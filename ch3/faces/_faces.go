@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build not
+
 // faces: This project explores how sensory inputs
 // (in this case simple cartoon faces) can be categorized
 // in multiple different ways, to extract the relevant information

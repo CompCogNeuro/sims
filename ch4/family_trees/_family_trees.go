@@ -2,15 +2,18 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// self_org illustrates how self-organizing learning emerges from
-// the interactions between inhibitory competition, rich-get-richer
-// Hebbian learning, and homeostasis (negative feedback).
+//go:build not
+
+// family_trees shows how learning can recode inputs that have no
+// similarity structure into a hidden layer that captures the *functional*
+// similarity structure of the items.
 package main
 
 //go:generate core generate -add-types
 
 import (
 	"embed"
+	"strings"
 
 	"cogentcore.org/core/base/errors"
 	"cogentcore.org/core/core"
@@ -30,17 +33,27 @@ import (
 	"github.com/emer/emergent/v2/params"
 	"github.com/emer/emergent/v2/paths"
 	"github.com/emer/etensor/tensor"
+	"github.com/emer/etensor/tensor/stats/clust"
 	"github.com/emer/etensor/tensor/stats/metric"
-	"github.com/emer/etensor/tensor/stats/norm"
 	"github.com/emer/etensor/tensor/table"
 	"github.com/emer/leabra/v2/leabra"
+	"gonum.org/v1/gonum/mat"
 )
 
-//go:embed lines_5x5x1.tsv lines_5x5x2.tsv
+//go:embed family_trees.tsv
 var content embed.FS
 
-//go:embed README.md
+//go:embed *.png README.md
 var readme embed.FS
+
+// LearnType is the type of learning to use
+type LearnType int32 //enums:enum
+
+const (
+	PureHebb LearnType = iota
+	PureError
+	HebbError
+)
 
 func main() {
 	sim := &Sim{}
@@ -54,38 +67,62 @@ func main() {
 // selected to apply on top of that.
 var ParamSets = params.Sets{
 	"Base": {
-		{Sel: "Path", Desc: "no extra learning factors",
+		{Sel: "Path", Desc: "wt bal better",
 			Params: params.Params{
-				"Path.Learn.Norm.On":      "false",
-				"Path.Learn.Momentum.On":  "false",
-				"Path.Learn.WtBal.On":     "true", // note: was on!
-				"Path.Learn.Lrate":        "0.02",
-				"Path.Learn.XCal.MLrn":    "0", // pure hebb
+				"Path.Learn.Norm.On":     "false",
+				"Path.Learn.Momentum.On": "false",
+				"Path.Learn.WtBal.On":    "true", // sig faster learning with this on
+			}},
+		{Sel: "Layer", Desc: "Default learning, inhib params",
+			Params: params.Params{
+				"Layer.Learn.AvgL.Gain": "1.5", // 2 similar to 1.5 but slightly worse
+				"Layer.Inhib.Layer.Gi":  "1.6",
+			}},
+		{Sel: ".Code", Desc: "needs more inhibition",
+			Params: params.Params{
+				"Layer.Inhib.Layer.Gi": "2",
+			}},
+		{Sel: ".Person", Desc: "needs lots of inhibition for localist",
+			Params: params.Params{
+				"Layer.Inhib.Layer.Gi": "2.8",
+			}},
+		{Sel: ".Relation", Desc: "needs lots of inhibition for localist",
+			Params: params.Params{
+				"Layer.Inhib.Layer.Gi": "2.8",
+			}},
+		{Sel: ".BackPath", Desc: "top-down back-projections MUST have lower relative weight scale, otherwise network hallucinates",
+			Params: params.Params{
+				"Path.WtScale.Rel": "0.3",
+			}},
+	},
+	"PureHebb": {
+		{Sel: "Path", Desc: "no medium, all long",
+			Params: params.Params{
+				"Path.Learn.XCal.MLrn":    "0",
 				"Path.Learn.XCal.SetLLrn": "true",
 				"Path.Learn.XCal.LLrn":    "1",
+				"Path.Learn.Lrate":        ".01", // slower needed
 			}},
-		{Sel: "Layer", Desc: "pretty much defaults",
+		{Sel: "Layer", Desc: "higher AvgL BCM gain",
 			Params: params.Params{
-				"Layer.Learn.AvgL.Gain":    "2.5", // default -- lower sig worse
-				"Layer.Inhib.Layer.Gi":     "1.8", // default
-				"Layer.Inhib.ActAvg.Init":  "0.2",
-				"Layer.Inhib.ActAvg.Fixed": "true",
-			}},
-		{Sel: "#Input", Desc: "higher activity",
-			Params: params.Params{
-				"Layer.Inhib.ActAvg.Init": "0.4",
+				"Layer.Learn.AvgL.Gain": "2.5",
 			}},
 	},
-	"Hidden2Act": {
-		{Sel: "#Hidden", Desc: "std inhib -- note: overwritten by TrainGi param!",
+	"PureError": {
+		{Sel: "Path", Desc: "all medium, no long",
 			Params: params.Params{
-				"Layer.Inhib.Layer.Gi": "1.8",
+				"Path.Learn.XCal.MLrn":    "1",
+				"Path.Learn.XCal.SetLLrn": "true",
+				"Path.Learn.XCal.LLrn":    "0",
+				"Path.Learn.Lrate":        ".04", // default
 			}},
 	},
-	"Hidden1Act": {
-		{Sel: "#Hidden", Desc: "higher inhib because fewer units should be active -- note: overwritten by TestGi param!",
+	"HebbError": {
+		{Sel: "Path", Desc: "go back to default with both",
 			Params: params.Params{
-				"Layer.Inhib.Layer.Gi": "2.5",
+				"Path.Learn.XCal.MLrn":    "1",
+				"Path.Learn.XCal.SetLLrn": "false",
+				"Path.Learn.Lrate":        ".04", // default
 			}},
 	},
 }
@@ -93,14 +130,17 @@ var ParamSets = params.Sets{
 // Config has config parameters related to running the sim
 type Config struct {
 	// total number of runs to do when running Train
-	NRuns int `default:"8" min:"1"`
+	NRuns int `default:"10" min:"1"`
 
 	// total number of epochs per run
-	NEpochs int `default:"30"`
+	NEpochs int `default:"100"`
+
+	// stop run after this number of perfect, zero-error epochs.
+	NZero int `default:"1"`
 
 	// how often to run through all the test patterns, in terms of training epochs.
 	// can use 0 or -1 for no testing.
-	TestInterval int `default:"1"`
+	TestInterval int `default:"5"`
 }
 
 // Sim encapsulates the entire simulation model, and we define all the
@@ -109,20 +149,9 @@ type Config struct {
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
-	// key BCM hebbian learning parameter, that determines how high the
-	// floating threshold goes -- higher = more homeostatic pressure
-	// against rich-get-richer feedback loops.
-	AvgLGain float32 `min:"0.1" step:"0.5" default:"2.5"`
 
-	// variance on gaussian noise to add to inputs.
-	InputNoise float32 `min:"0" default:"0"`
-
-	// strength of inhibition during training with two lines present in input.
-	TrainGi float32 `min:"0" step:"0.1" default:"1.8"`
-
-	// strength of inhibition during testing with one line present in input;
-	// higher because fewer neurons should be active.
-	TestGi float32 `min:"0" step:"0.1" default:"2.5"`
+	// select which type of learning to use
+	Learn LearnType
 
 	// Config contains misc configuration parameters for running the sim
 	Config Config `new-window:"+" display:"no-inline"`
@@ -133,10 +162,8 @@ type Sim struct {
 	// network parameter management
 	Params emer.NetParams `display:"add-fields"`
 
-	// 2 active lines for training
-	Lines2 *table.Table `new-window:"+" display:"no-inline"`
-	// 1 active lines for testing
-	Lines1 *table.Table `new-window:"+" display:"no-inline"`
+	// family trees training patterns
+	Patterns *table.Table `new-window:"+" display:"no-inline"`
 
 	// contains looper control loops for running sim
 	Loops *looper.Stacks `new-window:"+" display:"no-inline"`
@@ -166,22 +193,14 @@ type Sim struct {
 // New creates new blank elements and initializes defaults
 func (ss *Sim) New() {
 	econfig.Config(&ss.Config, "config.toml")
-	ss.Net = leabra.NewNetwork("SelfOrg")
+	ss.Learn = HebbError
+	ss.Net = leabra.NewNetwork("FamilyTrees")
 	ss.Params.Config(ParamSets, "", "", ss.Net)
 	ss.Stats.Init()
-	ss.Lines2 = &table.Table{}
-	ss.Lines1 = &table.Table{}
+	ss.Patterns = &table.Table{}
 	ss.RandSeeds.Init(100) // max 100 runs
 	ss.InitRandSeed(0)
 	ss.Context.Defaults()
-	ss.Defaults()
-}
-
-func (ss *Sim) Defaults() {
-	ss.AvgLGain = 2.5
-	ss.InputNoise = 0
-	ss.TrainGi = 1.8
-	ss.TestGi = 2.5
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -197,12 +216,9 @@ func (ss *Sim) ConfigAll() {
 }
 
 func (ss *Sim) OpenPatterns() {
-	ss.Lines2.SetMetaData("name", "Lines2")
-	ss.Lines2.SetMetaData("desc", "2 lines active Training patterns")
-	errors.Log(ss.Lines2.OpenFS(content, "lines_5x5x2.tsv", table.Tab))
-	ss.Lines1.SetMetaData("name", "Lines1")
-	ss.Lines1.SetMetaData("desc", "Lines1 Training patterns")
-	errors.Log(ss.Lines1.OpenFS(content, "lines_5x5x1.tsv", table.Tab))
+	ss.Patterns.SetMetaData("name", "Family Trees")
+	ss.Patterns.SetMetaData("desc", "Family trees training patterns")
+	errors.Log(ss.Patterns.OpenFS(content, "family_trees.tsv", table.Tab))
 }
 
 func (ss *Sim) ConfigEnv() {
@@ -218,11 +234,11 @@ func (ss *Sim) ConfigEnv() {
 
 	// note: names must be standard here!
 	trn.Name = etime.Train.String()
-	trn.Config(table.NewIndexView(ss.Lines2))
+	trn.Config(table.NewIndexView(ss.Patterns))
 	trn.Validate()
 
 	tst.Name = etime.Test.String()
-	tst.Config(table.NewIndexView(ss.Lines1))
+	tst.Config(table.NewIndexView(ss.Patterns))
 	tst.Sequential = true
 	tst.Validate()
 
@@ -236,11 +252,34 @@ func (ss *Sim) ConfigEnv() {
 func (ss *Sim) ConfigNet(net *leabra.Network) {
 	net.SetRandSeed(ss.RandSeeds[0]) // init new separate random seed, using run = 0
 
-	inp := net.AddLayer2D("Input", 5, 5, leabra.InputLayer)
-	hid := net.AddLayer2D("Hidden", 4, 5, leabra.SuperLayer)
+	ag := net.AddLayer2D("Agent", 4, 6, leabra.InputLayer)
+	ag.AddClass("Person")
+	rel := net.AddLayer2D("Relation", 2, 6, leabra.InputLayer)
+	rel.AddClass("Relation")
+	agcd := net.AddLayer2D("AgentCode", 7, 7, leabra.SuperLayer)
+	agcd.AddClass("Code")
+	relcd := net.AddLayer2D("RelationCode", 7, 7, leabra.SuperLayer)
+	relcd.AddClass("Code")
+	hid := net.AddLayer2D("Hidden", 7, 7, leabra.SuperLayer)
+	ptcd := net.AddLayer2D("PatientCode", 7, 7, leabra.SuperLayer)
+	ptcd.AddClass("Code")
+	pt := net.AddLayer2D("Patient", 4, 6, leabra.TargetLayer)
+	pt.AddClass("Person")
 
 	full := paths.NewFull()
-	net.ConnectLayers(inp, hid, full, leabra.ForwardPath)
+	net.ConnectLayers(ag, agcd, full, leabra.ForwardPath)
+	net.ConnectLayers(rel, relcd, full, leabra.ForwardPath)
+	net.BidirConnectLayers(agcd, hid, full)
+	net.BidirConnectLayers(relcd, hid, full)
+	net.BidirConnectLayers(hid, ptcd, full)
+	net.BidirConnectLayers(ptcd, pt, full)
+
+	rel.PlaceRightOf(ag, 2)
+	pt.PlaceRightOf(rel, 2)
+	agcd.PlaceAbove(ag)
+	relcd.PlaceRightOf(agcd, 2)
+	ptcd.PlaceRightOf(relcd, 2)
+	hid.PlaceAbove(relcd)
 
 	net.Build()
 	net.Defaults()
@@ -250,16 +289,7 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 
 func (ss *Sim) ApplyParams() {
 	ss.Params.SetAll()
-	ly := ss.Net.LayerByName("Hidden")
-	ly.Learn.AvgL.Gain = ss.AvgLGain
-	inp := ss.Net.LayerByName("Input")
-	if ss.InputNoise == 0 {
-		inp.Act.Noise.Var = 0
-		inp.Act.Noise.Type = leabra.NoNoise
-	} else {
-		inp.Act.Noise.Var = float64(ss.InputNoise)
-		inp.Act.Noise.Type = leabra.ActNoise
-	}
+	ss.Params.SetAllSheet(ss.Learn.String())
 	if ss.Loops != nil {
 		trn := ss.Loops.Stacks[etime.Train]
 		trn.Loops[etime.Run].Counter.Max = ss.Config.NRuns
@@ -294,19 +324,22 @@ func (ss *Sim) InitRandSeed(run int) {
 func (ss *Sim) ConfigLoops() {
 	ls := looper.NewStacks()
 
+	trls := ss.Patterns.Rows
+
 	ls.AddStack(etime.Train).
 		AddTime(etime.Run, ss.Config.NRuns).
 		AddTime(etime.Epoch, ss.Config.NEpochs).
-		AddTime(etime.Trial, ss.Lines2.Rows).
+		AddTime(etime.Trial, trls).
 		AddTime(etime.Cycle, 100)
 
 	ls.AddStack(etime.Test).
 		AddTime(etime.Epoch, 1).
-		AddTime(etime.Trial, ss.Lines1.Rows).
+		AddTime(etime.Trial, trls).
 		AddTime(etime.Cycle, 100)
 
 	leabra.LooperStdPhases(ls, &ss.Context, ss.Net, 75, 99)                // plus phase timing
 	leabra.LooperSimCycleAndLearn(ls, ss.Net, &ss.Context, &ss.ViewUpdate) // std algo code
+
 	ls.Stacks[etime.Train].OnInit.Add("Init", func() { ss.Init() })
 
 	for m, _ := range ls.Stacks {
@@ -317,6 +350,18 @@ func (ss *Sim) ConfigLoops() {
 	}
 
 	ls.Loop(etime.Train, etime.Run).OnStart.Add("NewRun", ss.NewRun)
+
+	// Train stop early condition
+	ls.Loop(etime.Train, etime.Epoch).IsDone.AddBool("NZeroStop", func() bool {
+		// This is calculated in TrialStats
+		stopNz := ss.Config.NZero
+		if stopNz <= 0 {
+			stopNz = 2
+		}
+		curNZero := ss.Stats.Int("NZero")
+		stop := curNZero >= stopNz
+		return stop
+	})
 
 	// Add Testing
 	trainEpoch := ls.Loop(etime.Train, etime.Epoch)
@@ -330,12 +375,15 @@ func (ss *Sim) ConfigLoops() {
 	/////////////////////////////////////////////
 	// Logging
 
+	ls.Loop(etime.Test, etime.Epoch).OnEnd.Add("LogTestErrors", func() {
+		leabra.LogTestErrors(&ss.Logs)
+	})
 	ls.AddOnEndToAll("Log", func(mode, time enums.Enum) {
 		ss.Log(mode.(etime.Modes), time.(etime.Times))
 	})
 	leabra.LooperResetLogBelow(ls, &ss.Logs)
 	ls.Loop(etime.Train, etime.Run).OnEnd.Add("RunStats", func() {
-		ss.Logs.RunStats("UniqPats")
+		ss.Logs.RunStats("PctCor", "FirstZero", "LastZero")
 	})
 
 	////////////////////////////////////////////
@@ -357,13 +405,16 @@ func (ss *Sim) ApplyInputs() {
 	ctx := &ss.Context
 	net := ss.Net
 	ev := ss.Envs.ByMode(ctx.Mode).(*env.FixedTable)
-	if ctx.Mode == etime.Train {
-		ss.Params.SetAllSheet("Hidden2Act")
-	} else {
-		ss.Params.SetAllSheet("Hidden1Act")
-	}
 	ev.Step()
-	lays := net.LayersByType(leabra.InputLayer)
+
+	out := ss.Net.LayerByName("Patient")
+	if ctx.Mode == etime.Test {
+		out.Type = leabra.CompareLayer // don't clamp plus phase
+	} else {
+		out.Type = leabra.TargetLayer
+	}
+
+	lays := net.LayersByType(leabra.InputLayer, leabra.TargetLayer)
 	net.InitExt()
 	ss.Stats.SetString("TrialName", ev.TrialName.Cur)
 	for _, lnm := range lays {
@@ -389,7 +440,6 @@ func (ss *Sim) NewRun() {
 	ss.StatCounters()
 	ss.Logs.ResetLog(etime.Train, etime.Epoch)
 	ss.Logs.ResetLog(etime.Test, etime.Epoch)
-	ss.HiddenFromInput()
 }
 
 // TestAll runs through the full set of testing items
@@ -399,13 +449,13 @@ func (ss *Sim) TestAll() {
 	ss.Loops.Mode = etime.Train // Important to reset Mode back to Train because this is called from within the Train Run.
 }
 
-/////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////
 // 		Stats
 
 // InitStats initializes all the statistics.
 // called at start of new run
 func (ss *Sim) InitStats() {
-	ss.Stats.SetFloat("UniqPats", 0.0)
+	ss.Stats.SetFloat("SSE", 0.0)
 	ss.Stats.SetString("TrialName", "")
 	ss.Logs.InitErrStats() // inits TrlErr, FirstZero, LastZero, NZero
 }
@@ -432,71 +482,77 @@ func (ss *Sim) NetViewCounters(tm etime.Times) {
 		ss.TrialStats() // get trial stats for current di
 	}
 	ss.StatCounters()
-	ss.ViewUpdate.Text = ss.Stats.Print([]string{"Run", "Epoch", "Trial", "TrialName", "Cycle", "UniqPats"})
+	ss.ViewUpdate.Text = ss.Stats.Print([]string{"Run", "Epoch", "Trial", "TrialName", "Cycle", "SSE", "TrlErr"})
 }
 
 // TrialStats computes the trial-level statistics.
 // Aggregation is done directly from log data.
 func (ss *Sim) TrialStats() {
-	tst := ss.Logs.Table(etime.Test, etime.Trial)
-	up := ss.UniquePatStat(tst)
-	ss.Stats.SetFloat("UniqPats", up)
+	out := ss.Net.LayerByName("Patient")
+
+	sse, avgsse := out.MSE(0.5) // 0.5 = per-unit tolerance -- right side of .5
+	ss.Stats.SetFloat("SSE", sse)
+	ss.Stats.SetFloat("AvgSSE", avgsse)
+	if sse > 0 {
+		ss.Stats.SetFloat("TrlErr", 1)
+	} else {
+		ss.Stats.SetFloat("TrlErr", 0)
+	}
 }
 
-// UniquePatStat analyzes the hidden activity patterns for the single-line test inputs
-// to determine how many such lines have a distinct hidden pattern, as computed
-// from the similarity matrix across patterns
-func (ss *Sim) UniquePatStat(dt *table.Table) float64 {
-	if dt.Rows == 0 {
-		return 0
+// RepsAnalysis analyzes the representations as captured in the Test Trial Log
+func (ss *Sim) RepsAnalysis() {
+	trl := ss.Logs.Table(etime.Test, etime.Trial)
+	names := make([]string, trl.Rows)
+	nmtsr := errors.Log1(trl.ColumnByName("TrialName")).(*tensor.String)
+	copy(names, nmtsr.Values) // save
+
+	// replace name with just rel
+	for i, nm := range nmtsr.Values {
+		nnm := nm[strings.Index(nm, ".")+1:]
+		nnm = nnm[:strings.Index(nnm, ".")]
+		nmtsr.Values[i] = nnm
 	}
-	hc := errors.Log1(dt.ColumnByName("Hidden_Act")).(*tensor.Float32)
-	norm.Binarize32(hc.Values, .5, 1, 0)
-	ix := table.NewIndexView(dt)
-	sm := ss.Stats.SimMat("UniqPats")
-	sm.TableColumn(ix, "Hidden_Act", "TrialName", false, metric.SumSquares64)
-	dm := sm.Mat
-	nrow := dm.DimSize(0)
-	uniq := 0
-	for row := 0; row < nrow; row++ {
-		tsr := dm.SubSpace([]int{row}).(*tensor.Float64)
-		nzero := 0
-		for _, vl := range tsr.Values {
-			if vl == 0 {
-				nzero++
-			}
-		}
-		if nzero == 1 { // one zero in dist matrix means it was only identical to itself
-			uniq++
-		}
+
+	ss.Stats.SVD.Kind = mat.SVDFull // critical
+	rels := table.NewIndexView(trl)
+	rels.SortColumnName("TrialName", table.Ascending)
+	ss.Stats.SimMat("HiddenRel").TableColumn(rels, "Hidden_ActM", "TrialName", true, metric.Correlation64)
+	errors.Log(ss.Stats.SVD.TableColumn(rels, "Hidden_ActM", metric.Covariance64))
+	svt := ss.Logs.MiscTable("HiddenRelPCA")
+	ss.Stats.SVD.ProjectColumnToTable(svt, rels, "Hidden_ActM", "TrialName", []int{0, 1})
+	estats.ConfigPCAPlot(ss.GUI.PlotByName("HiddenRelPCA"), svt, "Hidden Rel PCA")
+	estats.ClusterPlot(ss.GUI.PlotByName("HiddenRelClust"), rels, "Hidden_ActM", "TrialName", clust.ContrastDist)
+
+	// replace name with just agent
+	for i, nm := range names {
+		nnm := nm[:strings.Index(nm, ".")]
+		nmtsr.Values[i] = nnm
 	}
-	return float64(uniq)
+	ags := table.NewIndexView(trl)
+	ags.SortColumnName("TrialName", table.Ascending)
+
+	ss.Stats.SimMat("HiddenAgent").TableColumn(ags, "Hidden_ActM", "TrialName", true, metric.Correlation64)
+	errors.Log(ss.Stats.SVD.TableColumn(ags, "Hidden_ActM", metric.Covariance64))
+	svt = ss.Logs.MiscTable("HiddenAgentPCA")
+	ss.Stats.SVD.ProjectColumnToTable(svt, ags, "Hidden_ActM", "TrialName", []int{2, 3})
+	estats.ConfigPCAPlot(ss.GUI.PlotByName("HiddenAgentPCA"), svt, "Hidden Agent PCA")
+	estats.ClusterPlot(ss.GUI.PlotByName("HiddenAgentClust"), ags, "Hidden_ActM", "TrialName", clust.ContrastDist)
+
+	// ss.HiddenAgent.PCAPlot.SetColParams("Prjn3", eplot.On, eplot.FixMin, 0, eplot.FloatMax, 0)
+	// ss.HiddenAgent.PCAPlot.Params.XAxisCol = "Prjn2"
+
+	ss.Stats.SimMat("AgentCode").TableColumn(ags, "AgentCode_ActM", "TrialName", true, metric.Correlation64)
+	errors.Log(ss.Stats.SVD.TableColumn(ags, "AgentCode_ActM", metric.Covariance64))
+	svt = ss.Logs.MiscTable("AgentCodePCA")
+	ss.Stats.SVD.ProjectColumnToTable(svt, ags, "AgentCode_ActM", "TrialName", []int{0, 1})
+	estats.ConfigPCAPlot(ss.GUI.PlotByName("AgentCodePCA"), svt, "AgentCode Agent PCA")
+	estats.ClusterPlot(ss.GUI.PlotByName("AgentCodeClust"), ags, "AgentCode_ActM", "TrialName", clust.ContrastDist)
+
+	copy(nmtsr.Values, names) // restore
 }
 
-func (ss *Sim) HiddenFromInput() {
-	if ss.GUI.Grids == nil {
-		return
-	}
-	wg := ss.Stats.F32Tensor("HiddenFromInput")
-	vals := wg.Values
-	inp := ss.Net.LayerByName("Input")
-	isz := inp.Shape.Len()
-	hid := ss.Net.LayerByName("Hidden")
-	ysz := hid.Shape.DimSize(0)
-	xsz := hid.Shape.DimSize(1)
-	for y := 0; y < ysz; y++ {
-		for x := 0; x < xsz; x++ {
-			ui := (y*xsz + x)
-			ust := ui * isz
-			vls := vals[ust : ust+isz]
-			inp.SendPathValues(&vls, "Wt", hid, ui, "")
-		}
-	}
-	gv := ss.GUI.Grid("Weights")
-	gv.Update()
-}
-
-//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////
 // 		Logging
 
 func (ss *Sim) ConfigLogs() {
@@ -506,13 +562,18 @@ func (ss *Sim) ConfigLogs() {
 	ss.Logs.AddStatStringItem(etime.AllModes, etime.AllTimes, "RunName")
 	ss.Logs.AddStatStringItem(etime.AllModes, etime.Trial, "TrialName")
 
-	ss.Logs.AddStatAggItem("UniqPats", etime.Run, etime.Epoch, etime.Trial)
+	ss.Logs.AddStatAggItem("SSE", etime.Run, etime.Epoch, etime.Trial)
+	ss.Logs.AddStatAggItem("AvgSSE", etime.Run, etime.Epoch, etime.Trial)
+	ss.Logs.AddErrStatAggItems("TrlErr", etime.Run, etime.Epoch, etime.Trial)
+
+	ss.Logs.AddCopyFromFloatItems(etime.Train, []etime.Times{etime.Epoch, etime.Run}, etime.Test, etime.Epoch, "Tst", "SSE", "AvgSSE")
 
 	ss.Logs.AddPerTrlMSec("PerTrlMSec", etime.Run, etime.Epoch, etime.Trial)
 
-	ss.Logs.AddLayerTensorItems(ss.Net, "Act", etime.Test, etime.Trial, "InputLayer", "SuperLayer")
+	ss.Logs.AddLayerTensorItems(ss.Net, "ActM", etime.Test, etime.Trial, "InputLayer", "SuperLayer", "TargetLayer")
+	ss.Logs.AddLayerTensorItems(ss.Net, "Targ", etime.Test, etime.Trial, "TargetLayer")
 
-	ss.Logs.PlotItems("UniqPats")
+	ss.Logs.PlotItems("PctErr", "FirstZero", "LastZero")
 
 	ss.Logs.CreateTables()
 	ss.Logs.SetContext(&ss.Stats, ss.Net)
@@ -548,9 +609,6 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 
 	if mode == etime.Test {
 		ss.GUI.UpdateTableView(etime.Test, etime.Trial)
-		if time == etime.Epoch {
-			ss.HiddenFromInput()
-		}
 	}
 }
 
@@ -559,27 +617,32 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI() {
-	title := "Self Org"
-	ss.GUI.MakeBody(ss, "self_org", title, `self_org illustrates how self-organizing learning emerges from the interactions between inhibitory competition, rich-get-richer Hebbian learning, and homeostasis (negative feedback). See <a href="https://github.com/CompCogNeuro/sims/blob/main/ch4/self_org/README.md">README.md on GitHub</a>.</p>`, readme)
+	title := "Family Trees"
+	ss.GUI.MakeBody(ss, "family_trees", title, `family_trees shows how learning can recode inputs that have no similarity structure into a hidden layer that captures the *functional* similarity structure of the items. See <a href="https://github.com/CompCogNeuro/sims/blob/main/ch4/family_trees/README.md">README.md on GitHub</a>.</p>`, readme)
 	ss.GUI.CycleUpdateInterval = 10
 
 	nv := ss.GUI.AddNetView("Network")
 	nv.Options.MaxRecs = 300
 	nv.Options.Raster.Max = 100
 	nv.SetNet(ss.Net)
-	nv.Options.PathWidth = 0.005
+	nv.Options.PathWidth = 0.003
 	ss.ViewUpdate.Config(nv, etime.GammaCycle, etime.GammaCycle)
 	ss.GUI.ViewUpdate = &ss.ViewUpdate
 	nv.Current()
+
+	// nv.SceneXYZ().Camera.Pose.Pos.Set(0.1, 1.5, 4) // more "head on" than default which is more "top down"
+	// nv.SceneXYZ().Camera.LookAt(math32.Vec3(0.1, 0.1, 0), math32.Vec3(0, 1, 0))
 
 	ss.GUI.AddPlots(title, &ss.Logs)
 
 	ss.GUI.AddTableView(&ss.Logs, etime.Test, etime.Trial)
 
-	wgv := ss.GUI.AddGridTab("Weights")
-	wg := ss.Stats.F32Tensor("HiddenFromInput")
-	wg.SetShape([]int{4, 5, 5, 5})
-	wgv.SetTensor(wg)
+	ss.GUI.AddMiscPlotTab("HiddenRelPCA")
+	ss.GUI.AddMiscPlotTab("HiddenRelClust")
+	ss.GUI.AddMiscPlotTab("HiddenAgentPCA")
+	ss.GUI.AddMiscPlotTab("HiddenAgentClust")
+	ss.GUI.AddMiscPlotTab("AgentCodePCA")
+	ss.GUI.AddMiscPlotTab("AgentCodeClust")
 
 	ss.GUI.FinalizeGUI(false)
 }
@@ -587,6 +650,16 @@ func (ss *Sim) ConfigGUI() {
 func (ss *Sim) MakeToolbar(p *tree.Plan) {
 	ss.GUI.AddLooperCtrl(p, ss.Loops)
 
+	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Reps Analysis",
+		Icon:    icons.Reset,
+		Tooltip: "analyzes the current testing Hidden and AgentCode activations, producing PCA, Cluster and Similarity Matrix (SimMat) plots",
+		Active:  egui.ActiveAlways,
+		Func: func() {
+			ss.RepsAnalysis()
+		},
+	})
+
+	////////////////////////////////////////////////
 	tree.Add(p, func(w *core.Separator) {})
 	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{Label: "Reset RunLog",
 		Icon:    icons.Reset,
@@ -612,7 +685,7 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 		Tooltip: "Opens your browser on the README file that contains instructions for how to run this model.",
 		Active:  egui.ActiveAlways,
 		Func: func() {
-			core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/main/ch4/self_org/README.md")
+			core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/main/ch4/family_trees/README.md")
 		},
 	})
 }

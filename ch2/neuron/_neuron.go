@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build not
+
 // neuron: This simulation illustrates the basic properties of neural spiking and
 // rate-code activation, reflecting a balance of excitatory and inhibitory
 // influences (including leak and synaptic inhibition).

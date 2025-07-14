@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build not
+
 // a_not_b explores how the development of PFC active maintenance abilities can help
 // to make behavior more flexible, in the sense that it can rapidly shift with changes
 // in the environment. The development of flexibility has been extensively explored

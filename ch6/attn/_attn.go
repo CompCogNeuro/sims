@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build not
+
 // attn: This simulation illustrates how object recognition (ventral, what) and
 // spatial (dorsal, where) pathways interact to produce spatial attention
 // effects, and accurately capture the effects of brain damage to the

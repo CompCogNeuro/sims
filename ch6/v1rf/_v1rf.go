@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build not
+
 /*
 v1rf illustrates how self-organizing learning in response to natural images
 produces the oriented edge detector receptive field properties of neurons

@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build not
+
 /*
 objrec explores how a hierarchy of areas in the ventral stream of visual
 processing (up to inferotemporal (IT) cortex) can produce robust object

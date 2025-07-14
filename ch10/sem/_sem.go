@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build not
+
 // sem is trained using Hebbian learning on paragraphs from an early draft
 // of the *Computational Explorations..* textbook, allowing it to learn about
 // the overall statistics of when different words co-occur with other words,

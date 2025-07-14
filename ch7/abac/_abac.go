@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build not
+
 // abac explores the classic paired associates learning task in a
 // cortical-like network, which exhibits catastrophic levels of
 // interference.

@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build not
+
 // sg is the sentence gestalt model, which learns to encode both
 // syntax and semantics of sentences in an integrated "gestalt"
 // hidden layer. The sentences have simple agent-verb-patient
