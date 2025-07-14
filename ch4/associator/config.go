@@ -54,9 +54,6 @@ type RunConfig struct {
 // LogConfig has config parameters related to logging data.
 type LogConfig struct {
 
-	// SaveWeights will save final weights after each run.
-	SaveWeights bool
-
 	// Train has the list of Train mode levels to save log files for.
 	Train []string `default:"['Expt', 'Run', 'Epoch']" nest:"+"`
 

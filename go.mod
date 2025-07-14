@@ -7,9 +7,8 @@ require (
 	cogentcore.org/lab v0.1.2-0.20250710081903-2bcb29696f25
 	github.com/anthonynsimon/bild v0.13.0
 	github.com/emer/emergent/v2 v2.0.0-dev0.1.7.0.20250630184401-56587d34404f
-	github.com/emer/etensor v0.0.0-20250128231607-f3fea92f0b80
 	github.com/emer/leabra/v2 v2.0.0-dev0.5.5.0.20250714074811-c4b33685df6d
-	github.com/emer/vision/v2 v2.0.0-dev0.1.0.0.20250128234953-cd0a89e77a4a
+	github.com/emer/v1vision v0.1.1-0.20241223003153-dd6818448b3b
 )
 
 require (

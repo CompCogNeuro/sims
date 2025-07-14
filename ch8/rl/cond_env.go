@@ -9,9 +9,9 @@ import (
 	"math/rand"
 
 	"cogentcore.org/lab/base/randx"
+	"cogentcore.org/lab/tensor"
 	"github.com/emer/emergent/v2/env"
 	"github.com/emer/emergent/v2/etime"
-	"github.com/emer/etensor/tensor"
 )
 
 // OnOff represents stimulus On / Off timing
