@@ -28,45 +28,46 @@ Here is a description of what each layer does:
 
 Let's start by examining the network. The `Input` layer (located at the top, to capture the relative anatomical locations of this cortical area relative to the midbrain dopamine system represented by the TD layers below it) contains three rows of 20 units each. This is the CSC, where the rows each represent a different stimulus (A, B, C), and the columns represent points in time: each unit has a stimulus and a time encoding (e.g., A_10 = time step 10 of the A stimulus). The TD layers are as described above.
 
-* Click on `r.Wt` in the `Network` tab and then on the `Pred` layer unit -- you will see that it starts with a uniform weight of 0. Then, click back to viewing `Act`.
+* Click on [[sim:Wts]] / `r.Wt` in the [[sim:Network]] tab and then on the Pred` layer unit -- you will see that it starts with a uniform weight of 0. Then, click back to viewing [[sim:Act]] / `Act`.
 
 # The Basic TD Learning Mechanism
 
 Let's see how the CSC works in action.
 
-* Click `Init` and then the `Step Trial` button on the toolbar to step the input along.
+* Click [[sim:Init]] and then [[sim:Step]] `Trial` button on the toolbar to step the input along.
 
 Nothing should happen in the `Input` layer, because no stimulus is present at time step 0. The various TD layers will remain at 0 as well, and the `TD` layer also has a zero activation. Thus, no reward was either expected or obtained, and there is no deviation from expectation. 
 
-* Continue to press the `Step Trial` button until you see an activation in the Input layer (should be 10 more steps).
+* Continue to press the [[sim:Step]] `Trial` button until you see an activation in the Input layer (should be 10 more steps).
 
 This input activation represents the fact that the conditioned stimulus (CS) `A` (i.e., the "tone" stimulus) came on at t=10. There should be no effect of this on the TD layers, because they have not associated this CS with reward yet.
 
-* Continue to `Step Trial` some more.
+* Continue to [[sim:Step]] `Trial` some more.
 
 You will see that this stimulus remains active for 6 more time steps (through t=15), and at the end of this time period, the `Rew` layer represents a value of 1 instead of 0, indicating that an external reward was delivered to the network. Because the `Pred` layer has not learned to expect this reward, the TD delta value is positive, as reflected by the activity of the TD unit. This TD dopamine spike also drove learning in the `Pred` layer, as we'll see the next time we go through this sequence of trials.
 
-* Click on the `Train Trial Plot` tab, and then do `Step Trial` to finish out the trial of 20 time steps.  This will show you the TD dopamine spike at t=15.
+* Click on the [[sim:Train Trial Plot]] tab, and then do [[sim:Step Trial]] to finish out the trial of 20 time steps.  This will show you the TD dopamine spike at t=15.
 
-* Click back on the `Network` and do `Step Trial` through the next trial until time step 14.
 
-You should see that the `Pred` layer now gets weakly activated at time step 14, signaling a prediction of reward that will come on the next time step. This expectation of reward, even in the absence of a delivered reward on the `Rew` layer (which still shows a 0 value representation), is sufficient to drive the TD "dopamine spike" -- click to `Train Trial Plot` to see it on the plot.
+* Click back on the [[sim:Network]] and do [[sim:Step]] `Trial` through the next trial until time step 14.
 
-* Do Step: Trial one more time (t=15).
+You should see that the `Pred` layer now gets weakly activated at time step 14, signaling a prediction of reward that will come on the next time step. This expectation of reward, even in the absence of a delivered reward on the `Rew` layer (which still shows a 0 value representation), is sufficient to drive the TD "dopamine spike" -- click to [[sim:Train Trial Plot]] to see it on the plot.
+
+* Do [[sim:Step]] `Trial` one more time (t=15).
 
 Now the situation is reversed: the `Rew` layer shows that the reward has been presented, but the TD value is reduced from the previous 1. This is because the `Pred` layer accurately predicted this reward on the prior time step, and thus the reward prediction error, which TD signals, has been reduced by the amount of the prediction! 
 
-* Do `Step Trial` to process the rest of the trial, and switch to viewing `Train Trial Plot`.
+* Do [[sim:Step]] `Trial` to process the rest of the trial, and switch to viewing [[sim:Train Trial Plot]].
 
 The plot shows that the "dopamine spike" of TD delta has moved backward (earlier) one step in time. This is the critical feature of the TD algorithm: by learning to anticipate rewards one time step later, it ends up moving the dopamine spike earlier in time.
 
-* Keep doing more `Step Trial` (or just `Train`).
+* Keep doing more [[sim:Step]] `Trial`.
 
 You should see that the spike moves "backward" in time with each `Step Trial`, but can't move any further than the onset of the CS at time step 10.
 
 We can also examine the weights to see what the network has learned.
 
-* Click on `r.Wt` and then on the `Pred` layer unit -- you should see that there are increased weights from the A stimulus for time steps 10-14.  You can also click the `Weights` tab to see the weights in a grid view.
+* Click on [[sim:Wts]] / `r.Wt` and then on the `Pred` layer unit -- you should see that there are increased weights from the A stimulus for time steps 10-14.  You can also click the [[sim:Weights]] tab to see the weights in a grid view.
 
 # Extinction and Second Order Conditioning
 
@@ -74,9 +75,9 @@ At this point, there are many standard phenomena in classical conditioning that 
 
 We can simulate extinction by simply turning off the US reward that appears at t=15. 
 
-* Click `Envs` -> `Train` on the left, and then click off the `Act` toggle in the `US` field -- this will de-activate the US.
+* Click [[sim:Envs]] -> `Train` on the left, and then click off the `Act` toggle in the `US` field -- this will de-activate the US.
 
-* Now, hit `Init` (which does not initialize the weights), and `Reset Trial Log` in toolbar to clear out the `Train Trial Plot` (click on that to view it), and then `Step Trial`.  It can also be useful to click on the `Pred_Act` line in the plot, which shows the predicted reward value.  You can also `Step Trial` and watch the Network to see how the network behaves.
+* Now, hit [[sim:Init]] (which does not initialize the weights), and [[sim:Reset Trial Log]] in toolbar to clear out the [[sim:Train Trial Plot]] (click on that to view it), and then [[sim:Step]] `Trial`.  It can also be useful to click on the [[sim:Pred_Act]] line in the plot, which shows the predicted reward value.  You can also [[sim:Step]] `Trial` and watch the Network to see how the network behaves.
 
 > **Question 8.4:** What happened at the point where the reward was supposed to occur? Explain why this happened using the TD mechanisms of reward expectations compared to actual reward values received.
 
@@ -88,15 +89,15 @@ We can simulate extinction by simply turning off the US reward that appears at t
 
 Now, let's explore second order conditioning. We must first retrain the network on the stimulus 1 association.
 
-* Click `Envs` -> `Train` on the left, turn `US` `Act` back on, then do `Init` and `Run`. You can `Stop` when it is trained.
+* Click [[sim:Envs]] -> `Train` on the left, turn `US` `Act` back on, then do [[sim:Init]] and [[sim:Run]]. You can [[sim:Stop]] when it is trained.
 
 Now, we will turn on the CS B stimulus, which starts at t=2 and lasts until time step 10.
 
-* Click `Envs` -> `Train` on the left, Click the `CSB` `Act` on, and go back to viewing `Act` in the `Network` if you aren't already.  Hit `Reset Trial Log` to clear the plot, then do `Step Trial` to see the B stimulus followed by the A, then the US (you might need to go through twice to get a full trial, depending on where it stopped last time).
+* Click [[sim:Envs]] -> `Train` on the left, Click the `CSB` `Act` on, and go back to viewing [[sim:Act]] / `Act` in the [[sim:Network]] if you aren't already.  Hit [[sim:Reset Trial Log]] to clear the plot, then do [[sim:Step]] `Trial` to see the B stimulus followed by the A, then the US (you might need to go through twice to get a full trial, depending on where it stopped last time).
 
 Essentially, the CSA stimulus *acts just like a reward* by triggering a positive delta value, and thus allows the CSB stimulus to learn to predict this first stimulus.
 
-* Switch to `Train Trial Plot`, click `Run`, then `Stop` when the plot stops changing.
+* Switch to [[sim:Train Trial Plot]], click [[sim:Run]], then [[sim:Stop]] when the plot stops changing.
 
 You will see that the early anticipation of reward gets carried out to the onset of the CS B stimulus (which comes first in time).
 
