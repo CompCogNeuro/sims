@@ -147,6 +147,9 @@ type Sim struct {
 	RandSeeds randx.Seeds `display:"-"`
 }
 
+func (ss *Sim) SetConfig(cfg *Config) { ss.Config = cfg }
+func (ss *Sim) Body() *core.Body      { return ss.GUI.Body }
+
 func (ss *Sim) ConfigSim() {
 	ss.Root, _ = tensorfs.NewDir("Root")
 	tensorfs.CurRoot = ss.Root
