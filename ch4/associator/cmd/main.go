@@ -5,13 +5,8 @@
 package main
 
 import (
-	"cogentcore.org/core/cli"
 	"github.com/CompCogNeuro/sims/v2/ch4/associator"
+	"github.com/emer/emergent/v2/egui"
 )
 
-func main() {
-	cfg := associator.NewConfig()
-	opts := cli.DefaultOptions(cfg.Name, cfg.Title)
-	opts.DefaultFiles = append(opts.DefaultFiles, "config.toml")
-	cli.Run(opts, cfg, associator.RunSim)
-}
+func main() { egui.Run[associator.Sim, associator.Config]() }

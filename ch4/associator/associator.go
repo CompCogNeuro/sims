@@ -147,31 +147,6 @@ type Sim struct {
 	RandSeeds randx.Seeds `display:"-"`
 }
 
-// RunSim runs the simulation as a standalone app
-// with given configuration.
-func RunSim(cfg *Config) error {
-	ss := &Sim{Config: cfg}
-	ss.ConfigSim()
-	if ss.Config.GUI {
-		ss.RunGUI()
-	} else {
-		ss.RunNoGUI()
-	}
-	return nil
-}
-
-// EmbedSim runs the simulation with default configuration
-// embedded within given body element.
-func EmbedSim(b tree.Node) *Sim {
-	cfg := NewConfig()
-	cfg.GUI = true
-	ss := &Sim{Config: cfg}
-	ss.ConfigSim()
-	ss.Init()
-	ss.ConfigGUI(b)
-	return ss
-}
-
 func (ss *Sim) ConfigSim() {
 	ss.Root, _ = tensorfs.NewDir("Root")
 	tensorfs.CurRoot = ss.Root
@@ -730,12 +705,6 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 			core.TheApp.OpenURL(ss.Config.URL)
 		},
 	})
-}
-
-func (ss *Sim) RunGUI() {
-	ss.Init()
-	ss.ConfigGUI(nil)
-	ss.GUI.Body.RunMainWindow()
 }
 
 func (ss *Sim) RunNoGUI() {

@@ -4,10 +4,7 @@
 
 package associator
 
-import (
-	"cogentcore.org/core/base/errors"
-	"cogentcore.org/core/base/reflectx"
-)
+import "github.com/emer/emergent/v2/egui"
 
 // ParamConfig has config parameters related to sim params.
 type ParamConfig struct {
@@ -63,25 +60,7 @@ type LogConfig struct {
 
 // Config has the overall Sim configuration options.
 type Config struct {
-
-	// Name is the short name of the sim.
-	Name string `display:"-" default:"Associator"`
-
-	// Title is the longer title of the sim.
-	Title string `display:"-" default:"Pattern associator"`
-
-	// URL is a link to the online README or other documentation for this sim.
-	URL string `display:"-" default:"https://github.com/CompCogNeuro/sims/blob/lab/ch4/associator/README.md"`
-
-	// Doc is brief documentation of the sim.
-	Doc string `display:"-" default:"Illustrates how error-driven and hebbian learning can operate within a simple task-driven learning context, with no hidden layers."`
-
-	// GUI means open the GUI. Otherwise it runs automatically and quits,
-	// saving results to log files.
-	GUI bool `default:"true"`
-
-	// Debug reports debugging information.
-	Debug bool
+	egui.BaseConfig
 
 	// Params has parameter related configuration options.
 	Params ParamConfig `display:"add-fields"`
@@ -94,11 +73,8 @@ type Config struct {
 }
 
 func (cfg *Config) Defaults() {
-	errors.Log(reflectx.SetFromDefaultTags(cfg))
-}
-
-func NewConfig() *Config {
-	cfg := &Config{}
-	cfg.Defaults()
-	return cfg
+	cfg.Name = "Associator"
+	cfg.Title = "Pattern associator"
+	cfg.URL = "https://github.com/CompCogNeuro/sims/blob/main/ch4/associator/README.md"
+	cfg.Doc = "Illustrates how error-driven and hebbian learning can operate within a simple task-driven learning context, with no hidden layers."
 }
