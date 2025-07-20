@@ -34,27 +34,27 @@ To review the functions of the other layers in the PBWM framework (see the [pbwm
 
     For reference (if you want to know all the details), in earlier versions of the PBWM model, we relied on CS (conditioned stimulus) based phasic dopamine to reinforce gating, but this scheme requires that the PFC maintained activations function as a kind of internal CS signal, and that the amygdala learn to decode these PFC activation states to determine if a useful item had been gated into memory. Compared to the trace-based mechanism, this CS-dopamine approach is much more complex and error-prone. Nevertheless, there is nothing in the current model that prevents it from *also* contributing to learning. However, in the present version of the model, we have not focused on getting this CS-based dopamine signal working properly.
 
-* To explore the model's connectivity, click on `Wts` -> `r.Wt` and on various units within the layers of the network.
+* To explore the model's connectivity, click on [[sim:Wts]] -> `r.Wt` and on various units within the layers of the network.
 
 # SIR Task Learning
 
 Now, let's step through some trials to see how the task works.
 
-* Switch back to viewing activations (`Act`). Do `Init`, `Step Trial` in the toolbar.
+* Switch back to viewing activations ([[sim:Act]] -> `Act`). Do [[sim:Init]], [[sim:Step]] `Trial` in the toolbar.
 
 The task commands (Store, Ignore, Recall) are chosen completely at random (subject to the constraint that you can't recall until after a store) so you could get either an ignore or a store input. You should see either the S or I task control input, plus one of the stimuli (A-D) chosen at random. The target output response should also be active, as we're looking at the plus phase information (stepping by trials).
 
 Notice that if the corresponding `GPiThal` unit is active, the PFC stripe will have just been updated to maintain this current input information.
 
-* Hit `Step Trial` again.
+* Hit [[sim:Step]] `Trial` again.
 
 You should now see a new input pattern. The GPiThal gating signal triggers the associated PFC stripe to update its representations to reflect this new input. But if the GPiThal unit is not active (due to more overall NoGo activity), PFC will maintain its previously stored information. Often one stripe will update while the other one doesn't; the model has to learn how to manage its updating so that it can translate the PFC representations into appropriate responses during recall trials.
 
-* Keep hitting `Step Trial` and noticing the pattern of updating and maintenance of information in `PFCmnt`, and output gating in `PFCout`, and how this is driven by the activation of the `GPiThal` unit (which in turn is driven by the `Matrix` Go vs. NoGo units, which in turn are being modulated by dopamine from the SNc to learn how to better control maintenance in the PFC!).
+* Keep hitting [[sim:Step]] `Trial` and noticing the pattern of updating and maintenance of information in `PFCmnt`, and output gating in `PFCout`, and how this is driven by the activation of the `GPiThal` unit (which in turn is driven by the `Matrix` Go vs. NoGo units, which in turn are being modulated by dopamine from the SNc to learn how to better control maintenance in the PFC!).
 
 When you see a R (recall) trial, look at the SNc (dopamine) unit at the bottom layer. If the network is somehow able to correctly recall (or guess!), then this unit will have a positive (yellow) activation, indicating a better-than expected performance. Most likely, it instead will be teal blue and inverted, indicating a negative dopamine signal from worse-than expected performance (producing the wrong response). This is the reinforcement training signal that controls the learning of the Matrix units, so that they can learn when information in PFC is predictive of reward (in which case that information should be updated in future trials), or whether having some information in PFC is not rewarding (in which case that information should not be updated and stored in future trials). It is the same learning mechanism that has been extensively investigated (and validated empirically) as a fundamental rule for learning to select actions in corticostriatal circuits, applied here to working memory.
 
-* You can continue to `Step Trial` and observe the dynamics of the network. When your mind is sufficiently boggled by the complexity of this model, then go ahead and set the `Step` level to `Run` and `Step Run`, and switch to the `Train Epoch Plot` tab.
+* You can continue to [[sim:Step]] `Trial` and observe the dynamics of the network. When your mind is sufficiently boggled by the complexity of this model, then go ahead and set the `Step` level to `Run` and [[sim:Step]] `Run`, and switch to the [[sim:Train Epoch Plot]] tab.
 
 You will see three different values being plotted as the network learns: 
 
@@ -66,15 +66,19 @@ You will see three different values being plotted as the network learns:
 
 The network can take roughly 5-50 epochs or so to train (it will stop when `PctErr` gets to 0 errors 5 times in a row).
 
-* Once it has trained to this criterion, you can switch back to viewing the network, and set the run mode to `Test` instead of `Train` and `Step Trial` through trials to see that it is indeed performing correctly. You can also do a `Run` and look at the `Test Trial` table to see a record of a set of test trials (which tests the network on the same task but with sequences that were not necessarily seen during training).  
+* Once it has trained to this criterion, you can switch back to viewing the network, and set the run mode at the top to `Test` instead of `Train` and [[sim:Step]] `Trial` through trials to see that it is indeed performing correctly. You can also do a [[sim:Run]] and look at the [[sim:Test Trial]] table to see a record of a set of test trials (which tests the network on the same task but with sequences that were not necessarily seen during training).  
 
-> **Question 9.7:**  Let's see how DA signals impact network learning. Change `Burst DA gain` in the control panel from 1 to 0. This allows DA signals in SNc to proceed as usual but eliminates their impact on the striatal Matrix units (analogous to inhibiting the DA termininals directty in striatum). Click back to `Train`, then `Init` and `Step Run` to train the network. You can again observe the learning over epochs in `Train Epoch Plot`. Report the values of `PctErr` amd `RewPred` at the end of compared to the default case (of DA burst = 1). Then do `Test`,  `Init and `Step` through a sequence of test trials and look a the `Test Trial` table. Report wheher the network makes errors in these test trials, and if so on which type of trials does it succeed and which does it fail?  Note that standard XCAL error-driven learning into the hidden and output layers remains intact in these cases. How and why do DA manipulations have an effect here where they were not needed for learning other tasks (e.g., in chapter 4)? You can also repeat the above process to test the effect of restoring DA bursts (set `Burst DA gain` back to 1) but switching `Dip DA gain` to 0 (this  prevents the DA dips from having any effect, as would happen due to some medications, reminiscent of the Parkinson's simulations in the BG model). You should see similar results (particularly obvious if you run multiple Runs of networks), demonstrating the need for both DA bursts and dips.
+> **Question 9.7:**  Let's see how DA signals impact network learning. Change [[sim:Burst DA gain]] in the control panel from 1 to 0. This allows DA signals in SNc to proceed as usual but eliminates their impact on the striatal Matrix units (analogous to inhibiting the DA termininals directty in striatum). Change the run mode back to `Train`, then [[sim:Init]] and [[sim:Step]] `Run` to train the network. You can again observe the learning over epochs in [[sim:Train Epoch Plot]]. Report the values of `PctErr` amd `RewPred` at the end of compared to the default case (of DA burst = 1). Then change the run mode to `Test`,  [[sim:Init]] and [[sim:Step]] through a sequence of test trials and look a the [[sim:Test Trial]] table. Report wheher the network makes errors in these test trials, and if so on which type of trials does it succeed and which does it fail?  Note that standard XCAL error-driven learning into the hidden and output layers remains intact in these cases. How and why do DA manipulations have an effect here where they were not needed for learning other tasks (e.g., in chapter 4)? You can also repeat the above process to test the effect of restoring DA bursts (set [[sim:Burst da gain]] back to 1) but switching [[sim:Dip da gain]] to 0 (this prevents the DA dips from having any effect, as would happen due to some medications, reminiscent of the Parkinson's simulations in the BG model). You should see similar results (particularly obvious if you run multiple Runs of networks), demonstrating the need for both DA bursts and dips.
+
+<sim-question id="9.7">
 
 Now we will explore how the Matrix gating is driven in terms of learned synaptic weights from these DA signals. Note that we have split out the SIR control inputs into a separate `CtrlInput` layer that projects to the Matrix layers -- this control information is all that the Matrix layer requires. (It can also learn with the irrelevant A-D inputs, but just takes a bit longer).
 
-* Switch back to the defaults of DA burst and dip gains of 1 and 1, click mode to `Train`, then do `Init` and Step `Run` (i.e. train a single network until it learns). Click on `s.Wt` in the Network tab, and then click on the individual SIR units in the `CtrlInput` layer to show the learned sending weights from these units to the `Matrix`.
+* Switch back to the defaults of DA burst and dip gains of 1 and 1, change the run mode to `Train`, then do [[sim:Init]] and [[sim:Step]] `Run` (i.e. train a single network until it learns). Click on [[sim:Wts]] -> `s.Wt` in the [[sim:Network]] tab, and then click on the individual SIR units in the `CtrlInput` layer to show the learned sending weights from these units to the `Matrix`.
 
 > **Question 9.8:**  Explain how these weights from S,I,R inputs to the Matrix stripes makes sense in terms of how the network actually solved the task, including how the Store information was maintained, and when it was output, and why the Ignore trials did not disturb the stored information.
+
+<sim-question id="9.8">
 
 If you want to experience the full power of the PBWM learning framework, you can check out the [sir2](https://github.com/emer/leabra/blob/main/examples/sir2) model, which takes the SIR task to the next level with two independent streams of maintained information. Here, the network has to store and maintain multiple items and selectively recall each of them depending on other cues, which is a more demanding task that networks without selective gating capabilities cannot achieve. That version more strongly stresses the selective maintenance gating aspect of the model (and indeed this problem motivated the need for a BG in the first place).
 
