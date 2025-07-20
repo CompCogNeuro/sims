@@ -12,7 +12,7 @@ Because the network takes a bit of time to train (for 250 epochs), we will just 
 
 For our initial exploration, we will just observe the behavior of the network as it "reads" the words presented to the orthographic input layer. Note that the letters in the input are ordered left-to-right, bottom to top.
 
-* Click the run mode to `Test` instead of `Train`, press [[sim:Init]] and [[sim:Step]] `Trial.
+* Click the run mode to `Test` instead of `Train`, press [[sim:Init]] and [[sim:Step]] `Trial`.
 
 You will see the activation flow through the network, and it should settle into the correct pronunciation and semantics for the first word, "tart" (the bakery food). You can click on the [[sim:Act]] -> [[sim:Act/Targ]] variable in the [[sim:Network]] to see the target outputs, and see that it made the correct response in the `Phonology` and `Semantics` layers based on the `Othography` input.
 
