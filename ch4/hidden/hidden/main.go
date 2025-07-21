@@ -5,8 +5,8 @@
 package main
 
 import (
-	"github.com/CompCogNeuro/sims/v2/ch4/associator"
+	hidden "github.com/CompCogNeuro/sims/v2/ch4/hidden"
 	"github.com/emer/emergent/v2/egui"
 )
 
-func main() { egui.Run[associator.Sim, associator.Config]() }
+func main() { egui.Run[hidden.Sim, hidden.Config]() }

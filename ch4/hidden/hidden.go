@@ -5,7 +5,7 @@
 // associator illustrates how error-driven and hebbian learning can
 // operate within a simple task-driven learning context, with no hidden
 // layers.
-package associator
+package hidden
 
 //go:generate core generate -add-types -add-funcs
 
