@@ -2,9 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// associator illustrates how error-driven and hebbian learning can
-// operate within a simple task-driven learning context, with no hidden
-// layers.
+// err_driven_hidden shows how XCal error driven learning can train a hidden
+// layer to solve problems that are otherwise impossible for a simple two layer
+// network (as we saw in the Pattern Associator exploration,
+// which should be completed first before doing this one).
 package hidden
 
 //go:generate core generate -add-types -add-funcs
@@ -151,6 +152,8 @@ func (ss *Sim) SetConfig(cfg *Config) { ss.Config = cfg }
 func (ss *Sim) Body() *core.Body      { return ss.GUI.Body }
 
 func (ss *Sim) ConfigSim() {
+	ss.Learn = ErrorDriven
+	ss.Patterns = Impossible
 	ss.Root, _ = tensorfs.NewDir("Root")
 	tensorfs.CurRoot = ss.Root
 	ss.Net = leabra.NewNetwork(ss.Config.Name)
@@ -175,15 +178,15 @@ func (ss *Sim) ConfigEnv() {
 		tst = ss.Envs.ByMode(Test).(*env.FixedTable)
 	}
 
-	easy := tensorfs.DirTable(ss.Root.Dir("Inputs/Easy"), nil)
+	impossible := tensorfs.DirTable(ss.Root.Dir("Inputs/Impossible"), nil)
 
 	// note: names must be standard here!
 	trn.Name = Train.String()
-	trn.Config(table.NewView(easy))
+	trn.Config(table.NewView(impossible))
 	trn.Validate()
 
 	tst.Name = Test.String()
-	tst.Config(table.NewView(easy))
+	tst.Config(table.NewView(impossible))
 	tst.Sequential = true
 	tst.Validate()
 
@@ -198,11 +201,18 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 	net.SetRandSeed(ss.RandSeeds[0]) // init new separate random seed, using run = 0
 
 	inp := net.AddLayer2D("Input", leabra.InputLayer, 1, 4)
+	hid := net.AddLayer2D("Hidden", leabra.SuperLayer, 1, 4)
 	out := net.AddLayer2D("Output", leabra.TargetLayer, 1, 2)
 
 	full := paths.NewFull()
 
-	net.ConnectLayers(inp, out, full, leabra.ForwardPath)
+	net.ConnectLayers(inp, hid, full, leabra.ForwardPath)
+	net.BidirConnectLayers(hid, out, full)
+
+	hid.PlaceAbove(inp)
+	hid.Pos.YOffset = 1
+	out.PlaceAbove(hid)
+	out.Pos.YOffset = 1
 
 	net.Build()
 	net.Defaults()
@@ -621,7 +631,7 @@ func (ss *Sim) ConfigStats() {
 		actGeFunc(mode, level, phase == Start)
 	})
 
-	stateFunc := leabra.StatLayerState(ss.Stats, net, Test, Trial, true, "ActM", "Input", "Output")
+	stateFunc := leabra.StatLayerState(ss.Stats, net, Test, Trial, true, "ActM", "Input", "Hidden", "Output")
 	ss.AddStat(func(mode Modes, level Levels, phase StatsPhase) {
 		stateFunc(mode, level, phase == Start)
 	})
@@ -679,8 +689,8 @@ func (ss *Sim) ConfigGUI(b tree.Node) {
 		vu.UpdateWhenStopped(mode, level)
 	}
 
-	nv.SceneXYZ().Camera.Pose.Pos.Set(0, 1, 2.75)
-	nv.SceneXYZ().Camera.LookAt(math32.Vec3(0, 0, 0), math32.Vec3(0, 1, 0))
+	nv.SceneXYZ().Camera.Pose.Pos.Set(0.1, 3.0, 3.0)
+	nv.SceneXYZ().Camera.LookAt(math32.Vec3(0.1, 0.2, 0), math32.Vec3(0, 1, 0))
 
 	ss.StatsInit()
 	ss.GUI.FinalizeGUI(false)

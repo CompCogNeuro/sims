@@ -15,11 +15,10 @@ var LayerParams = leabra.LayerSheets{
 		{Sel: "Layer", Doc: "needs some special inhibition and learning params",
 			Set: func(ly *leabra.LayerParams) {
 				ly.Learn.AvgL.Gain = 1.5
-				ly.Inhib.Layer.Gi = 1.4
-				ly.Inhib.Layer.FB = 0.5
+				ly.Inhib.Layer.Gi = 1.3
 				ly.Inhib.ActAvg.Init = 0.5
 				ly.Inhib.ActAvg.Fixed = true
-
+				ly.Act.Gbar.L = 0.1
 			}},
 	},
 	"Hebbian":     {},
@@ -35,6 +34,10 @@ var PathParams = leabra.PathSheets{
 				pt.Learn.Norm.On = false
 				pt.Learn.Momentum.On = false
 				pt.Learn.WtBal.On = false
+			}},
+		{Sel: ".BackPath", Doc: "top-down back-projections MUST have lower relative weight scale, otherwise network hallucinates",
+			Set: func(pt *leabra.PathParams) {
+				pt.WtScale.Rel = 0.3
 			}},
 	},
 	"Hebbian": {

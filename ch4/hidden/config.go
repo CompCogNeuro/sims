@@ -38,7 +38,7 @@ type RunConfig struct {
 	Runs int `default:"5" min:"1"`
 
 	// Epochs is the total number of epochs per run.
-	Epochs int `default:"100"`
+	Epochs int `default:"500"`
 
 	// NZero is how many perfect, zero-error epochs before stopping a Run.
 	NZero int `default:"5"`
@@ -73,8 +73,8 @@ type Config struct {
 }
 
 func (cfg *Config) Defaults() {
-	cfg.Name = "Associator"
-	cfg.Title = "Pattern associator"
-	cfg.URL = "https://github.com/CompCogNeuro/sims/blob/main/ch4/associator/README.md"
-	cfg.Doc = "Illustrates how error-driven and hebbian learning can operate within a simple task-driven learning context, with no hidden layers."
+	cfg.Name = "Hidden"
+	cfg.Title = "Error Driven Hidden"
+	cfg.URL = "https://github.com/CompCogNeuro/sims/blob/main/ch4/hidden/README.md"
+	cfg.Doc = "Shows how XCal error driven learning can train a hidden layer to solve problems that are otherwise impossible for a simple two layer network (as we saw in the Pattern Associator exploration, which should be completed first before doing this one)."
 }
