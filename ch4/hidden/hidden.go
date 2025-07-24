@@ -676,7 +676,7 @@ func (ss *Sim) StatCounters(mode, level enums.Enum) string {
 
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI(b tree.Node) {
-	ss.GUI.MakeBody(b, ss, ss.Root, ss.Config.Name, ss.Config.Title, ss.Config.Doc)
+	ss.GUI.MakeBody(b, ss, ss.Root, ss.Config.Name, ss.Config.Title, ss.Config.Doc, readme)
 	ss.GUI.StopLevel = Trial
 	nv := ss.GUI.AddNetView("Network")
 	nv.Options.MaxRecs = 2 * 100

@@ -49,15 +49,23 @@ First, we will focus on `Gbar E`, which controls the amount of excitatory conduc
 
 > **Question 2.1:** Describe the effects on the rate of neural spiking of increasing Gbar E to .4, and of decreasing it to .2, compared to the initial value of .3 (this is should have a simple answer).
 
+<sim-question id="2.1">
+
 > **Question 2.2:** Is there a qualitative difference in the neural spiking when Gbar E is decreased to .1, compared to the higher values -- what important aspect of the neuron's behavior does this reveal?
+
+<sim-question id="2.2">
 
 By systematically searching the parameter range for `Gbar E` between .1 and .2, you should be able to locate the point at which the membrane potential just reaches threshold.
 
 > **Question 2.3:** To 2 decimal places (e.g., 0.15), what value of `Gbar E` puts the neuron just over threshold, such that it spikes at this value, but not at the next value below it?
 
+<sim-question id="2.3">
+
 * Note: you can see the specific numerical values for any point in the graph by hovering the mouse over the point.  It will report which variable is being reported as well as the value.
 
 > **Question 2.4 (advanced):** Using one of the equations for the equilibrium membrane potential from the Neuron chapter, compute the exact value of excitatory input conductance required to keep Vm in equilibrium at the spiking threshold. Show your math. This means rearranging the equation to have excitatory conductance on one side, then substituting in known values. (note that: Gl is a constant = .3; Ge is 1 when the input is on; inhibition is not present here and can be ignored) -- this should agree with your empirically determined value.
+
+<sim-question id="2.4">
 
 ## Leak
 
@@ -67,8 +75,11 @@ You can also manipulate the value of the leak conductance, , which controls the 
 
 > **Question 2.5:** What value of Gbar L just prevents the neuron from being able to spike (in .1 increments) -- explain this result in terms of the tug-of-war model relative to the Gbar E excitatory conductance.
 
-> **Question 2.6 (advanced):** Use the same technique as in question 2.4 to directly solve for the value of Gbar L that should put the neuron right at it's spiking threshold using the default values of other parameters -- show your math.
- 
+<sim-question id="2.5">
+
+> **Question 2.6 (advanced):** Use the same technique as in question 2.4 to directly solve for the value of Gbar L that should put the neuron right at its spiking threshold using the default values of other parameters -- show your math.
+
+<sim-question id="2.6"> 
 
 ## Driving / Reversal Potentials
 
@@ -85,6 +96,8 @@ Next, we'll see how the discrete spiking behavior of the neuron can be approxima
 You should see that the Act line in the graph now rises up and then decreases slowly due to accommodation, without the discrete spiking values observed before. Similarly, the Vm membrane potential value rises up and decreases slowly as well, instead of being reset after spiking.
 
 > **Question 2.7:** Compare the spike rates with rate coded activations by reporting the `Act` values just before cycle 160 (e.g., cycle 155) for Gbar E = .2, .3, .4 with `Spike` = false, and the corresponding values in the `Spike` = true case for the same Gbar E values. Hover the mouse over the `Act` line to get the exact value.
+
+<sim-question id="2.7">
 
 You should have observed that the `Act` value tracks the actual spiking rate reasonably well, indicating that *Noisy X-over-X-plus-1* is a resonable approximation to the actual neural spiking rate.
 
