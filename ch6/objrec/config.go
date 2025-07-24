@@ -2,9 +2,13 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
+package objrec
 
-import "github.com/emer/emergent/v2/paths"
+import (
+	"cogentcore.org/core/base/errors"
+	"cogentcore.org/core/base/reflectx"
+	"github.com/emer/emergent/v2/paths"
+)
 
 // EnvConfig has config params for environment
 // note: only adding fields for key Env params that matter for both Network and Env
@@ -13,34 +17,43 @@ type EnvConfig struct { //types:add
 
 	// env parameters -- can set any field/subfield on Env struct, using standard TOML formatting
 	Env map[string]any
+
+	// number of units per localist output unit
+	NOutPer int `default:"5"`
 }
 
-// ParamConfig has config parameters related to sim params
-type ParamConfig struct { //types:add
+// ParamConfig has config parameters related to sim params.
+type ParamConfig struct {
 
-	// network parameters
-	Network map[string]any
+	// Script is an interpreted script that is run to set parameters in Layer and Path
+	// sheets, by default using the "Script" set name.
+	Script string `new-window:"+" width:"100"`
 
-	// Extra Param Sheet name(s) to use (space separated if multiple) -- must be valid name as listed in compiled-in params or loaded params
+	// Sheet is the extra params sheet name(s) to use (space separated
+	// if multiple). Must be valid name as listed in compiled-in params
+	// or loaded params.
 	Sheet string
 
-	// extra tag to add to file names and logs saved from this run
+	// Tag is an extra tag to add to file names and logs saved from this run.
 	Tag string
 
-	// user note -- describe the run params etc -- like a git commit message for the run
+	// Note is additional info to describe the run params etc,
+	// like a git commit message for the run.
 	Note string
 
-	// Name of the JSON file to input saved parameters from.
-	File string `nest:"+"`
-
-	// Save a snapshot of all current param and config settings in a directory named params_<datestamp> (or _good if Good is true), then quit -- useful for comparing to later changes and seeing multiple views of current params
+	// SaveAll will save a snapshot of all current param and config settings
+	// in a directory named params_<datestamp> (or _good if Good is true),
+	// then quit. Useful for comparing to later changes and seeing multiple
+	// views of current params.
 	SaveAll bool `nest:"+"`
 
-	// for SaveAll, save to params_good for a known good params state.  This can be done prior to making a new release after all tests are passing -- add results to git to provide a full diff record of all params over time.
+	// Good is for SaveAll, save to params_good for a known good params state.
+	// This can be done prior to making a new release after all tests are passing.
+	// Add results to git to provide a full diff record of all params over level.
 	Good bool `nest:"+"`
 
-	//
-	V1V4Path *paths.PoolTile `nest:"+" display:"pathway from V1 to V4 which is tiled 4x4 skip 2 with topo scale values"`
+	// pathway from V1 to V4 which is tiled 4x4 skip 2 with topo scale values.
+	V1V4Path *paths.PoolTile `nest:"+"`
 }
 
 func (cfg *ParamConfig) Defaults() {
@@ -55,80 +68,117 @@ func (cfg *ParamConfig) Defaults() {
 	// ss.V1V4Path.GaussInPool.DefNoWrap()
 }
 
-// RunConfig has config parameters related to running the sim
-type RunConfig struct { //types:add
+// RunConfig has config parameters related to running the sim.
+type RunConfig struct {
 
-	// starting run number -- determines the random seed -- runs counts from there -- can do all runs in parallel by launching separate jobs with each run, runs = 1
-	Run int `default:"0"`
+	// SlowInterval is the interval between slow adaptive processes.
+	// This generally needs to be longer than the default of 100 in larger models.
+	SlowInterval int `default:"200"` // 200 > 400
 
-	// total number of runs to do when running Train
-	NRuns int `default:"1" min:"1"`
+	// AdaptGiInterval is the interval between adapting inhibition steps.
+	AdaptGiInterval int `default:"200"` // 200 same is fine
 
-	// total number of epochs per run
-	NEpochs int `default:"50"`
+	// NThreads is the number of parallel threads for CPU computation;
+	// 0 = use default.
+	NThreads int `default:"0"`
 
-	// total number of trials per epoch.  Should be an even multiple of NData.
-	NTrials int `default:"100"`
+	// Run is the _starting_ run number, which determines the random seed.
+	// Runs counts up from there. Can do all runs in parallel by launching
+	// separate jobs with each starting Run, Runs = 1.
+	Run int `default:"0" flag:"run"`
 
-	// how frequently (in epochs) to compute PCA on hidden representations to measure variance?
-	PCAInterval int `default:"5"`
+	// Runs is the total number of runs to do when running Train, starting from Run.
+	Runs int `default:"5" min:"1"`
 
-	// how often to run through all the test patterns, in terms of training epochs -- can use 0 or -1 for no testing
-	TestInterval int `default:"-1"`
+	// Epochs is the total number of epochs per run.
+	Epochs int `default:"200"`
+
+	// Trials is the total number of trials per epoch.
+	// Should be an even multiple of NData.
+	Trials int `default:"128"`
+
+	// Cycles is the total number of cycles per trial: 100
+	Cycles int `default:"100"`
+
+	// PlusCycles is the total number of plus-phase cycles per trial. 25.
+	PlusCycles int `default:"25"`
+
+	// NZero is how many perfect, zero-error epochs before stopping a Run.
+	NZero int `default:"2"`
+
+	// TestInterval is how often (in epochs) to run through all the test patterns,
+	// in terms of training epochs. Can use 0 or -1 for no testing.
+	TestInterval int `default:"5"`
+
+	// PCAInterval is how often (in epochs) to compute PCA on hidden
+	// representations to measure variance.
+	PCAInterval int `default:"10"`
+
+	// StartWeights is the name of weights file to load at start of first run.
+	StartWeights string
 }
 
-// LogConfig has config parameters related to logging data
-type LogConfig struct { //types:add
+// LogConfig has config parameters related to logging data.
+type LogConfig struct {
 
-	// if true, save final weights after each run
+	// SaveWeights will save final weights after each run.
 	SaveWeights bool
 
-	// if true, save train epoch log to file, as .epc.tsv typically
-	Epoch bool `default:"true" nest:"+"`
+	// Train has the list of Train mode levels to save log files for.
+	Train []string `default:"['Expt', 'Run', 'Epoch']" nest:"+"`
 
-	// if true, save run log to file, as .run.tsv typically
-	Run bool `default:"true" nest:"+"`
-
-	// if true, save train trial log to file, as .trl.tsv typically. May be large.
-	Trial bool `default:"false" nest:"+"`
-
-	// if true, save testing epoch log to file, as .tst_epc.tsv typically.  In general it is better to copy testing items over to the training epoch log and record there.
-	TestEpoch bool `default:"false" nest:"+"`
-
-	// if true, save testing trial log to file, as .tst_trl.tsv typically. May be large.
-	TestTrial bool `default:"false" nest:"+"`
-
-	// if true, save network activation etc data from testing trials, for later viewing in netview
-	NetData bool
+	// Test has the list of Test mode levels to save log files for.
+	Test []string `nest:"+"`
 }
 
-// Config is a standard Sim config -- use as a starting point.
-type Config struct { //types:add
+// Config has the overall Sim configuration options.
+type Config struct {
 
-	// specify include files here, and after configuration, it contains list of include files added
+	// Name is the short name of the sim.
+	Name string `display:"-" default:"Objrec"`
+
+	// Title is the longer title of the sim.
+	Title string `display:"-" default:"Object Recognition"`
+
+	// URL is a link to the online README or other documentation for this sim.
+	URL string `display:"-" default:"https://github.com/emer/axon/blob/main/sims/objrec/README.md"`
+
+	// Doc is brief documentation of the sim.
+	Doc string `display:"-" default:"This simulation explores how a hierarchy of areas in the ventral stream of visual processing (up to inferotemporal (IT) cortex) can produce robust object recognition that is invariant to changes in position, size, etc of retinal input images."`
+
+	// Includes has a list of additional config files to include.
+	// After configuration, it contains list of include files added.
 	Includes []string
 
-	// open the GUI -- does not automatically run -- if false, then runs automatically and quits
+	// GUI means open the GUI. Otherwise it runs automatically and quits,
+	// saving results to log files.
 	GUI bool `default:"true"`
 
-	// log debugging information
+	// Debug reports debugging information.
 	Debug bool
 
 	// environment configuration options
 	Env EnvConfig `display:"add-fields"`
 
-	// parameter related configuration options
+	// Params has parameter related configuration options.
 	Params ParamConfig `display:"add-fields"`
 
-	// sim running related configuration options
+	// Run has sim running related configuration options.
 	Run RunConfig `display:"add-fields"`
 
-	// data logging related configuration options
+	// Log has data logging related configuration options.
 	Log LogConfig `display:"add-fields"`
 }
 
 func (cfg *Config) IncludesPtr() *[]string { return &cfg.Includes }
 
 func (cfg *Config) Defaults() {
+	errors.Log(reflectx.SetFromDefaultTags(cfg))
 	cfg.Params.Defaults()
+}
+
+func NewConfig() *Config {
+	cfg := &Config{}
+	cfg.Defaults()
+	return cfg
 }

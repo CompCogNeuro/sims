@@ -2,12 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// catsdogs: This project explores a simple **semantic network** intended
-// to represent a (very small) set of relationships among different
-// features used to represent a set of entities in the world.
-// In our case, we represent some features of cats and dogs:
-// their color, size, favorite food, and favorite toy.
-package catsdogs
+// associator illustrates how error-driven and hebbian learning can
+// operate within a simple task-driven learning context, with no hidden
+// layers.
+package associator
 
 //go:generate core generate -add-types -add-funcs
 
@@ -35,20 +33,42 @@ import (
 	"github.com/emer/emergent/v2/env"
 	"github.com/emer/emergent/v2/looper"
 	"github.com/emer/emergent/v2/paths"
-	"github.com/emer/emergent/v2/relpos"
 	"github.com/emer/leabra/v2/leabra"
 )
 
-//go:embed cats_dogs_pats.tsv cats_dogs.wts
+//go:embed easy.tsv hard.tsv impossible.tsv
 var embedfs embed.FS
 
 //go:embed README.md
 var readme embed.FS
 
+// Patterns is the type of training patterns
+type Patterns int32 //enums:enum
+
+const (
+	// Easy patterns can be learned by Hebbian learning
+	Easy Patterns = iota
+
+	// Hard patterns can only be learned with error-driven learning
+	Hard
+
+	// Impossible patterns require error-driven + a hidden layer
+	Impossible
+)
+
+// LearnType is the type of learning to use
+type LearnType int32 //enums:enum
+
+const (
+	Hebbian LearnType = iota
+	ErrorDriven
+)
+
 // Modes are the looping modes (Stacks) for running and statistics.
 type Modes int32 //enums:enum
 const (
-	Test Modes = iota
+	Train Modes = iota
+	Test
 )
 
 // Levels are the looping levels for running and statistics.
@@ -77,21 +97,31 @@ const (
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
+
+	// select which type of learning to use
+	Learn LearnType
+
+	// select which type of patterns to use
+	Patterns Patterns
+
+	// simulation configuration parameters -- set by .toml config file and / or args
+	Config *Config `new-window:"+"`
+
 	// Net is the network: click to view / edit parameters for layers, paths, etc.
 	Net *leabra.Network `new-window:"+" display:"no-inline"`
 
 	// Params manages network parameter setting.
 	Params leabra.Params `display:"inline"`
 
-	// simulation configuration parameters -- set by .toml config file and / or args
-	Config *Config `new-window:"+"`
-
 	// Loops are the control loops for running the sim, in different Modes
 	// across stacks of Levels.
-	Loops *looper.Stacks `display:"-"`
+	Loops *looper.Stacks `new-window:"+" display:"no-inline"`
 
 	// Envs provides mode-string based storage of environments.
 	Envs env.Envs `new-window:"+" display:"no-inline"`
+
+	// TrainUpdate has Train mode netview update parameters.
+	TrainUpdate leabra.NetViewUpdate `display:"inline"`
 
 	// TestUpdate has Test mode netview update parameters.
 	TestUpdate leabra.NetViewUpdate `display:"inline"`
@@ -115,9 +145,6 @@ type Sim struct {
 
 	// RandSeeds is a list of random seeds to use for each run.
 	RandSeeds randx.Seeds `display:"-"`
-
-	// the patterns to use
-	Patterns *table.Table `new-window:"+" display:"no-inline"`
 }
 
 func (ss *Sim) SetConfig(cfg *Config) { ss.Config = cfg }
@@ -128,9 +155,9 @@ func (ss *Sim) ConfigSim() {
 	tensorfs.CurRoot = ss.Root
 	ss.Net = leabra.NewNetwork(ss.Config.Name)
 	ss.Params.Config(LayerParams, PathParams, ss.Config.Params.Sheet, ss.Config.Params.Tag, reflect.ValueOf(ss))
-	ss.Patterns = &table.Table{}
 	ss.RandSeeds.Init(100) // max 100 runs
 	ss.InitRandSeed(0)
+	ss.OpenInputs()
 	ss.ConfigEnv()
 	ss.ConfigNet(ss.Net)
 	ss.ConfigLoops()
@@ -139,75 +166,58 @@ func (ss *Sim) ConfigSim() {
 
 func (ss *Sim) ConfigEnv() {
 	// Can be called multiple times -- don't re-create
-	var tst *env.FixedTable
+	var trn, tst *env.FixedTable
 	if len(ss.Envs) == 0 {
+		trn = &env.FixedTable{}
 		tst = &env.FixedTable{}
 	} else {
+		trn = ss.Envs.ByMode(Train).(*env.FixedTable)
 		tst = ss.Envs.ByMode(Test).(*env.FixedTable)
 	}
 
+	easy := tensorfs.DirTable(ss.Root.Dir("Inputs/Easy"), nil)
+
+	// note: names must be standard here!
+	trn.Name = Train.String()
+	trn.Config(table.NewView(easy))
+	trn.Validate()
+
 	tst.Name = Test.String()
-	tst.Config(table.NewView(ss.Patterns))
+	tst.Config(table.NewView(easy))
 	tst.Sequential = true
 	tst.Validate()
 
+	trn.Init(0)
 	tst.Init(0)
 
 	// note: names must be in place when adding
-	ss.Envs.Add(tst)
+	ss.Envs.Add(trn, tst)
 }
 
 func (ss *Sim) ConfigNet(net *leabra.Network) {
 	net.SetRandSeed(ss.RandSeeds[0]) // init new separate random seed, using run = 0
 
-	name := net.AddLayer2D("Name", leabra.InputLayer, 1, 10)
-	iden := net.AddLayer2D("Identity", leabra.InputLayer, 1, 10)
-	color := net.AddLayer2D("Color", leabra.InputLayer, 1, 4)
-	food := net.AddLayer2D("FavoriteFood", leabra.InputLayer, 1, 4)
-	size := net.AddLayer2D("Size", leabra.InputLayer, 1, 3)
-	spec := net.AddLayer2D("Species", leabra.InputLayer, 1, 2)
-	toy := net.AddLayer2D("FavoriteToy", leabra.InputLayer, 1, 4)
+	inp := net.AddLayer2D("Input", leabra.InputLayer, 1, 4)
+	out := net.AddLayer2D("Output", leabra.TargetLayer, 1, 2)
 
-	name.AddClass("Id") // share params
-	iden.AddClass("Id")
-
-	one2one := paths.NewOneToOne()
 	full := paths.NewFull()
 
-	net.BidirConnectLayers(name, iden, one2one)
-	net.BidirConnectLayers(color, iden, full)
-	net.BidirConnectLayers(food, iden, full)
-	net.BidirConnectLayers(size, iden, full)
-	net.BidirConnectLayers(spec, iden, full)
-	net.BidirConnectLayers(toy, iden, full)
-
-	iden.PlaceAbove(name)
-	color.PlaceAbove(iden)
-	// gend.Pos.XAlign = relpos.Right
-	food.PlaceAbove(iden)
-	food.Pos.XAlign = relpos.Right
-	size.PlaceAbove(color)
-	spec.PlaceAbove(color)
-	spec.Pos.XAlign = relpos.Right
-	spec.Pos.XOffset = 2
-	toy.PlaceAbove(food)
-	toy.Pos.XAlign = relpos.Right
-	toy.Pos.XOffset = 1
+	net.ConnectLayers(inp, out, full, leabra.ForwardPath)
 
 	net.Build()
 	net.Defaults()
 	ss.ApplyParams()
-	ss.InitWeights(net)
-}
-
-// InitWeights initializes weights to digit 8
-func (ss *Sim) InitWeights(net *leabra.Network) {
 	net.InitWeights()
-	net.OpenWeightsFS(embedfs, "cats_dogs.wts")
 }
 
 func (ss *Sim) ApplyParams() {
 	ss.Params.ApplyAll(ss.Net)
+	ss.Params.ApplySheet(ss.Net, ss.Learn.String())
+	// if ss.Loops != nil {
+	// 	trn := ss.Loops.Stacks[Train]
+	// 	trn.Loops[Run].Counter.Max = ss.Config.Run.Runs
+	// 	trn.Loops[Epoch].Counter.Max = ss.Config.Run.Epochs
+	// }
 }
 
 ////////  Init, utils
@@ -216,11 +226,15 @@ func (ss *Sim) ApplyParams() {
 // and resets the epoch log table
 func (ss *Sim) Init() {
 	ss.Loops.ResetCounters()
-	// ss.SetRunName() // TODO remove?
+	ss.SetRunName()
 	ss.InitRandSeed(0)
+	// ss.ConfigEnv() // re-config env just in case a different set of patterns was
+	// selected or patterns have been modified etc
 	ss.ApplyParams()
 	ss.StatsInit()
 	ss.NewRun()
+	ss.TrainUpdate.RecordSyns()
+	ss.TrainUpdate.Update(Train, Trial)
 }
 
 // InitRandSeed initializes the random seed based on current training run number
@@ -231,8 +245,8 @@ func (ss *Sim) InitRandSeed(run int) {
 
 // NetViewUpdater returns the NetViewUpdate for given mode.
 func (ss *Sim) NetViewUpdater(mode enums.Enum) *leabra.NetViewUpdate {
-	if mode.Int64() == Test.Int64() {
-		return &ss.TestUpdate
+	if mode.Int64() == Train.Int64() {
+		return &ss.TrainUpdate
 	}
 	return &ss.TestUpdate
 }
@@ -241,23 +255,48 @@ func (ss *Sim) NetViewUpdater(mode enums.Enum) *leabra.NetViewUpdate {
 func (ss *Sim) ConfigLoops() {
 	ls := looper.NewStacks()
 
+	trials := 4
 	cycles := 100
-	plusPhase := 50
+	plusPhase := 25
 
-	ev := ss.Envs.ByMode(Test).(*env.FixedTable)
-	ntrls := ev.Table.NumRows()
+	ls.AddStack(Train, Trial).
+		AddLevel(Expt, 1).
+		AddLevel(Run, ss.Config.Run.Runs).
+		AddLevel(Epoch, ss.Config.Run.Epochs).
+		AddLevel(Trial, trials).
+		AddLevel(Cycle, cycles)
 
 	ls.AddStack(Test, Trial).
 		AddLevel(Epoch, 1).
-		AddLevel(Trial, ntrls).
+		AddLevel(Trial, trials).
 		AddLevel(Cycle, cycles)
 
-	leabra.LooperStandard(ls, ss.Net, ss.NetViewUpdater, cycles-plusPhase, cycles-1, Cycle, Trial)
+	leabra.LooperStandard(ls, ss.Net, ss.NetViewUpdater, cycles-plusPhase, cycles-1, Cycle, Trial, Train)
 
-	ls.Stacks[Test].OnInit.Add("Init", ss.Init)
+	ls.Stacks[Train].OnInit.Add("Init", ss.Init)
 
 	ls.AddOnStartToLoop(Trial, "ApplyInputs", func(mode enums.Enum) {
 		ss.ApplyInputs(mode.(Modes))
+	})
+
+	ls.Loop(Train, Run).OnStart.Add("NewRun", ss.NewRun)
+
+	trainEpoch := ls.Loop(Train, Epoch)
+	trainEpoch.IsDone.AddBool("NZeroStop", func() bool {
+		stopNz := ss.Config.Run.NZero
+		if stopNz <= 0 {
+			return false
+		}
+		curModeDir := ss.Current.Dir(Train.String())
+		curNZero := int(curModeDir.Value("NZero").Float1D(-1))
+		stop := curNZero >= stopNz
+		return stop
+	})
+
+	trainEpoch.OnStart.Add("TestAtInterval", func() {
+		if (ss.Config.Run.TestInterval > 0) && ((trainEpoch.Counter.Cur+1)%ss.Config.Run.TestInterval == 0) {
+			ss.TestAll()
+		}
 	})
 
 	ls.AddOnStartToAll("StatsStart", ss.StatsStart)
@@ -266,6 +305,7 @@ func (ss *Sim) ConfigLoops() {
 	if ss.Config.GUI {
 		leabra.LooperUpdateNetView(ls, Cycle, Trial, ss.NetViewUpdater)
 
+		ls.Stacks[Train].OnInit.Add("GUI-Init", ss.GUI.UpdateWindow)
 		ls.Stacks[Test].OnInit.Add("GUI-Init", ss.GUI.UpdateWindow)
 	}
 
@@ -282,7 +322,14 @@ func (ss *Sim) ApplyInputs(mode Modes) {
 	curModeDir := ss.Current.Dir(mode.String())
 	ev := ss.Envs.ByMode(mode)
 
-	lays := net.LayersByType(leabra.InputLayer, leabra.CompareLayer)
+	out := ss.Net.LayerByName("Output")
+	if mode == Test {
+		out.Params.Type = leabra.CompareLayer // don't clamp plus phase
+	} else {
+		out.Params.Type = leabra.TargetLayer
+	}
+
+	lays := net.LayersByType(leabra.InputLayer, leabra.TargetLayer)
 	net.InitExt()
 	ev.Step()
 	curModeDir.StringValue("TrialName", 1).SetString1D(ev.String(), 0)
@@ -296,21 +343,41 @@ func (ss *Sim) ApplyInputs(mode Modes) {
 	net.ApplyExts()
 }
 
+func (ss *Sim) UpdateEnv() {
+	trn := ss.Envs.ByMode(Train).(*env.FixedTable)
+	tst := ss.Envs.ByMode(Test).(*env.FixedTable)
+	switch ss.Patterns {
+	case Easy:
+		easy := tensorfs.DirTable(ss.Root.Dir("Inputs/Easy"), nil)
+		trn.Table = easy
+		tst.Table = easy
+	case Hard:
+		hard := tensorfs.DirTable(ss.Root.Dir("Inputs/Hard"), nil)
+		trn.Table = hard
+		tst.Table = hard
+	case Impossible:
+		impossible := tensorfs.DirTable(ss.Root.Dir("Inputs/Impossible"), nil)
+		trn.Table = impossible
+		tst.Table = impossible
+	}
+}
+
 // NewRun intializes a new Run level of the model.
 func (ss *Sim) NewRun() {
 	ctx := ss.Net.Context()
+	ss.InitRandSeed(ss.Loops.Loop(Train, Run).Counter.Cur)
+	ss.UpdateEnv()
+	ss.Envs.ByMode(Train).Init(0)
 	ss.Envs.ByMode(Test).Init(0)
 	ctx.Reset()
 	ss.Net.InitWeights()
 }
 
-/////////  Patterns
-
-func (ss *Sim) OpenPatterns() {
-	dt := ss.Patterns
-	dt.SetMetaData("name", "CatsAndDogs")
-	dt.SetMetaData("desc", "Face testing patterns")
-	errors.Log(dt.OpenFS(embedfs, "cats_dogs_pats.tsv", table.Tab))
+// TestAll runs through the full set of testing items
+func (ss *Sim) TestAll() {
+	ss.Envs.ByMode(Test).Init(0)
+	ss.Loops.ResetAndRun(Test)
+	ss.Loops.Mode = Train // important because this is called from Train Run: go back.
 }
 
 ////////  Inputs
@@ -329,12 +396,12 @@ func (ss *Sim) OpenTable(dir *tensorfs.Node, fsys fs.FS, fnm, name, docs string)
 	return dt, err
 }
 
-// func (ss *Sim) OpenInputs() {
-// 	dir := ss.Root.Dir("Inputs")
-// 	ss.OpenTable(dir, embedfs, "easy.tsv", "Easy", "Easy patterns")
-// 	ss.OpenTable(dir, embedfs, "hard.tsv", "Hard", "Hard patterns")
-// 	ss.OpenTable(dir, embedfs, "impossible.tsv", "Impossible", "Impossible patterns")
-// } // TODO remove
+func (ss *Sim) OpenInputs() {
+	dir := ss.Root.Dir("Inputs")
+	ss.OpenTable(dir, embedfs, "easy.tsv", "Easy", "Easy patterns")
+	ss.OpenTable(dir, embedfs, "hard.tsv", "Hard", "Hard patterns")
+	ss.OpenTable(dir, embedfs, "impossible.tsv", "Impossible", "Impossible patterns")
+}
 
 //////// Stats
 
@@ -376,7 +443,7 @@ func (ss *Sim) RunStats(mode Modes, level Levels, phase StatsPhase) {
 		nm := mode.String() + " " + level.String() + " Plot"
 		ss.GUI.Tabs.AsLab().GoUpdatePlot(nm)
 		if level == Run {
-			ss.GUI.Tabs.AsLab().GoUpdatePlot("Train RunAll Plot") // TODO what is train runall
+			ss.GUI.Tabs.AsLab().GoUpdatePlot("Train RunAll Plot")
 		}
 	}
 }
@@ -410,6 +477,8 @@ func (ss *Sim) StatsInit() {
 	if ss.GUI.Tabs != nil {
 		tbs := ss.GUI.Tabs.AsLab()
 		_, idx := tbs.CurrentTab()
+		tbs.PlotTensorFS(leabra.StatsNode(ss.Stats, Train, Epoch))
+		tbs.PlotTensorFS(leabra.StatsNode(ss.Stats, Train, Run))
 		tbs.PlotTensorFS(leabra.StatsNode(ss.Stats, Test, Trial))
 		tbs.PlotTensorFS(ss.Stats.Dir("Train/RunAll"))
 		tbs.SelectTabIndex(idx)
@@ -541,13 +610,13 @@ func (ss *Sim) ConfigStats() {
 		}
 	})
 
-	perTrlFunc := leabra.StatPerTrialMSec(ss.Stats, Trial)
+	perTrlFunc := leabra.StatPerTrialMSec(ss.Stats, Train, Trial)
 	ss.AddStat(func(mode Modes, level Levels, phase StatsPhase) {
 		perTrlFunc(mode, level, phase == Start)
 	})
 
 	lays := net.LayersByType(leabra.SuperLayer, leabra.CTLayer, leabra.TargetLayer)
-	actGeFunc := leabra.StatLayerActGe(ss.Stats, net, Trial, Run, lays...)
+	actGeFunc := leabra.StatLayerActGe(ss.Stats, net, Train, Trial, Run, lays...)
 	ss.AddStat(func(mode Modes, level Levels, phase StatsPhase) {
 		actGeFunc(mode, level, phase == Start)
 	})
@@ -557,7 +626,7 @@ func (ss *Sim) ConfigStats() {
 		stateFunc(mode, level, phase == Start)
 	})
 
-	runAllFunc := leabra.StatLevelAll(ss.Stats, Run, func(s *plot.Style, cl tensor.Values) {
+	runAllFunc := leabra.StatLevelAll(ss.Stats, Train, Run, func(s *plot.Style, cl tensor.Values) {
 		name := metadata.Name(cl)
 		switch name {
 		case "FirstZero", "LastZero":
@@ -603,6 +672,7 @@ func (ss *Sim) ConfigGUI(b tree.Node) {
 	nv.Options.MaxRecs = 2 * 100
 	nv.Options.Raster.Max = 100
 	nv.SetNet(ss.Net)
+	ss.TrainUpdate.Config(nv, leabra.Phase, ss.StatCounters)
 	ss.TestUpdate.Config(nv, leabra.Phase, ss.StatCounters)
 	ss.GUI.OnStop = func(mode, level enums.Enum) {
 		vu := ss.NetViewUpdater(mode)
@@ -650,10 +720,12 @@ func (ss *Sim) RunNoGUI() {
 	runName := ss.SetRunName()
 	netName := ss.Net.Name
 	cfg := &ss.Config.Log
-	leabra.OpenLogFiles(ss.Loops, ss.Stats, netName, runName, [][]string{cfg.Test})
+	leabra.OpenLogFiles(ss.Loops, ss.Stats, netName, runName, [][]string{cfg.Train, cfg.Test})
 
 	mpi.Printf("Running %d Runs starting at %d\n", ss.Config.Run.Runs, ss.Config.Run.Run)
-	ss.Loops.Loop(Run).Counter.SetCurMaxPlusN(ss.Config.Run.Run, ss.Config.Run.Runs)
+	ss.Loops.Loop(Train, Run).Counter.SetCurMaxPlusN(ss.Config.Run.Run, ss.Config.Run.Runs)
+
+	ss.Loops.Run(Train)
 
 	leabra.CloseLogFiles(ss.Loops, ss.Stats, Cycle)
 }

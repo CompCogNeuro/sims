@@ -2,17 +2,17 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
+package objrec
 
 import (
 	"fmt"
 	"math/rand"
 
+	"cogentcore.org/core/paint"
+	"cogentcore.org/lab/tensor"
 	"github.com/emer/emergent/v2/env"
-	"github.com/emer/emergent/v2/etime"
-	"github.com/emer/etensor/tensor"
-	"github.com/emer/vision/v2/vfilter"
-	"github.com/emer/vision/v2/vxform"
+	"github.com/emer/v1vision/vfilter"
+	"github.com/emer/v1vision/vxform"
 )
 
 // LEDEnv generates images of old-school "LED" style "letters" composed of a set of horizontal
@@ -28,6 +28,9 @@ type LEDEnv struct {
 
 	// visual processing params
 	Vis Vis
+
+	// number of output units per LED item -- spiking benefits from replication
+	NOutPer int
 
 	// minimum LED number to draw (0-19)
 	MinLED int `min:"0" max:"19"`
@@ -59,22 +62,10 @@ type LEDEnv struct {
 
 func (ev *LEDEnv) Label() string { return ev.Name }
 
-func (ev *LEDEnv) States() env.Elements {
-	isz := ev.Draw.ImgSize
-	sz := ev.Vis.V1AllTsr.Shape().Sizes
-	nms := ev.Vis.V1AllTsr.Shape().Names
-	els := env.Elements{
-		{"Image", []int{isz.Y, isz.X}, []string{"Y", "X"}},
-		{"V1", sz, nms},
-		{"Output", []int{4, 5}, []string{"Y", "X"}},
-	}
-	return els
-}
-
-func (ev *LEDEnv) State(element string) tensor.Tensor {
+func (ev *LEDEnv) State(element string) tensor.Values {
 	switch element {
 	case "Image":
-		vfilter.RGBToGrey(ev.Draw.Image, &ev.OrigImg, 0, false) // pad for filt, bot zero
+		vfilter.RGBToGrey(paint.RenderToImage(ev.Draw.Paint), &ev.OrigImg, 0, false) // pad for filt, bot zero
 		return &ev.OrigImg
 	case "V1":
 		return &ev.Vis.V1AllTsr
@@ -84,13 +75,10 @@ func (ev *LEDEnv) State(element string) tensor.Tensor {
 	return nil
 }
 
-func (ev *LEDEnv) Actions() env.Elements {
-	return nil
-}
-
 func (ev *LEDEnv) Defaults() {
 	ev.Draw.Defaults()
 	ev.Vis.Defaults()
+	ev.NOutPer = 5
 	ev.XFormRand.TransX.Set(-0.25, 0.25)
 	ev.XFormRand.TransY.Set(-0.25, 0.25)
 	ev.XFormRand.Scale.Set(0.7, 1)
@@ -99,10 +87,9 @@ func (ev *LEDEnv) Defaults() {
 
 func (ev *LEDEnv) Init(run int) {
 	ev.Draw.Init()
-	ev.Trial.Scale = etime.Trial
 	ev.Trial.Init()
 	ev.Trial.Cur = -1 // init state -- key so that first Step() = 0
-	ev.Output.SetShape([]int{4, 5}, "Y", "X")
+	ev.Output.SetShapeSizes(4, 5, ev.NOutPer, 1)
 }
 
 func (ev *LEDEnv) Step() bool {
@@ -120,7 +107,7 @@ func (ev *LEDEnv) DoObject(objno int) {
 	ev.FilterImg()
 }
 
-func (ev *LEDEnv) Action(element string, input tensor.Tensor) {
+func (ev *LEDEnv) Action(element string, input tensor.Values) {
 	// nop
 }
 
@@ -135,21 +122,28 @@ func (ev *LEDEnv) String() string {
 // SetOutput sets the output LED bit
 func (ev *LEDEnv) SetOutput(out int) {
 	ev.Output.SetZeros()
-	ev.Output.SetFloat1D(out, 1)
+	si := ev.NOutPer * out
+	for i := 0; i < ev.NOutPer; i++ {
+		ev.Output.SetFloat1D(1, si+i)
+	}
 }
 
 // OutErr scores the output activity of network, returning the index of
 // item with max overall activity, and 1 if that is error, 0 if correct.
 // also returns a top-two error: if 2nd most active output was correct.
-func (ev *LEDEnv) OutErr(tsr *tensor.Float32, corLED int) (maxi int, err, err2 float64) {
-	nc := ev.Output.Len()
+func (ev *LEDEnv) OutErr(tsr *tensor.Float64, corLED int) (maxi int, err, err2 float64) {
+	nc := ev.Output.Len() / ev.NOutPer
 	maxi = 0
 	maxv := 0.0
 	for i := 0; i < nc; i++ {
-		val := tsr.Float1D(i)
-		if val > maxv {
+		si := ev.NOutPer * i
+		sum := 0.0
+		for j := 0; j < ev.NOutPer; j++ {
+			sum += tsr.Float1D(si + j)
+		}
+		if sum > maxv {
 			maxi = i
-			maxv = val
+			maxv = sum
 		}
 	}
 	err = 1.0
@@ -162,10 +156,14 @@ func (ev *LEDEnv) OutErr(tsr *tensor.Float32, corLED int) (maxi int, err, err2 f
 		if i == maxi { // skip top
 			continue
 		}
-		val := tsr.Float1D(i)
-		if val > maxv2 {
+		si := ev.NOutPer * i
+		sum := 0.0
+		for j := 0; j < ev.NOutPer; j++ {
+			sum += tsr.Float1D(si + j)
+		}
+		if sum > maxv2 {
 			maxi2 = i
-			maxv2 = val
+			maxv2 = sum
 		}
 	}
 	err2 = err
@@ -194,6 +192,6 @@ func (ev *LEDEnv) DrawLED(led int) {
 // FilterImg filters the image from LED
 func (ev *LEDEnv) FilterImg() {
 	ev.XFormRand.Gen(&ev.XForm)
-	img := ev.XForm.Image(ev.Draw.Image)
+	img := ev.XForm.Image(paint.RenderToImage(ev.Draw.Paint))
 	ev.Vis.Filter(img)
 }

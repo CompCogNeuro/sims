@@ -2,18 +2,19 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
+package objrec
 
 import (
 	"image"
 
+	"cogentcore.org/lab/tensor"
+	"cogentcore.org/lab/tensorcore"
 	"github.com/anthonynsimon/bild/transform"
-	"github.com/emer/etensor/tensor"
-	"github.com/emer/vision/v2/fffb"
-	"github.com/emer/vision/v2/gabor"
-	"github.com/emer/vision/v2/kwta"
-	"github.com/emer/vision/v2/v1complex"
-	"github.com/emer/vision/v2/vfilter"
+	"github.com/emer/v1vision/fffb"
+	"github.com/emer/v1vision/gabor"
+	"github.com/emer/v1vision/kwta"
+	"github.com/emer/v1vision/v1complex"
+	"github.com/emer/v1vision/vfilter"
 )
 
 // Vis encapsulates specific visual processing pipeline for V1 filtering
@@ -90,8 +91,10 @@ func (vi *Vis) Defaults() {
 	vi.V1sKWTA.Defaults()
 	vi.ImgSize = image.Point{40, 40}
 	vi.V1sGabor.ToTensor(&vi.V1sGaborTsr)
-	// vi.ImgTsr.SetMetaData("image", "+")
-	vi.ImgTsr.SetMetaData("grid-fill", "1")
+	tensorcore.AddGridStylerTo(&vi.ImgTsr, func(s *tensorcore.GridStyle) {
+		s.Image = true
+		s.Range.SetMin(0)
+	})
 }
 
 // SetImage sets current image for processing
@@ -138,8 +141,7 @@ func (vi *Vis) V1All() {
 	nx := vi.V1sPoolTsr.DimSize(1)
 	nang := vi.V1sPoolTsr.DimSize(3)
 	nrows := 5
-	oshp := []int{ny, nx, nrows, nang}
-	vi.V1AllTsr.SetShape(oshp, "Y", "X", "Polarity", "Angle")
+	vi.V1AllTsr.SetShapeSizes(ny, nx, nrows, nang)
 	// 1 length-sum
 	vfilter.FeatAgg([]int{0}, 0, &vi.V1cLenSumTsr, &vi.V1AllTsr)
 	// 2 end-stop

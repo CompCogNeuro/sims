@@ -16,9 +16,9 @@ import (
 
 	"cogentcore.org/core/base/errors"
 	"cogentcore.org/lab/base/randx"
+	"cogentcore.org/lab/tensor"
 	"github.com/emer/emergent/v2/env"
 	"github.com/emer/emergent/v2/etime"
-	"github.com/emer/etensor/tensor"
 )
 
 // SemEnv presents paragraphs of text, loaded from file(s)
