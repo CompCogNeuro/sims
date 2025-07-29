@@ -9,4 +9,4 @@ import (
 	"github.com/emer/emergent/v2/egui"
 )
 
-func main() { egui.Run[cats_ogs.Sim, cats_ogs.Config]() }
+func main() { egui.Run[catsdogs.Sim, catsdogs.Config]() }

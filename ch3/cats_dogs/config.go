@@ -35,7 +35,7 @@ type RunConfig struct {
 	Run int `default:"0" flag:"run"`
 
 	// Runs is the total number of runs to do when running Train, starting from Run.
-	// Runs int `default:"5" min:"1"`
+	Runs int `default:"5" min:"1"`
 
 	// Epochs is the total number of epochs per run.
 	// Epochs int `default:"100"`

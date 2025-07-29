@@ -26,14 +26,13 @@ import (
 	"cogentcore.org/core/tree"
 	"cogentcore.org/lab/base/mpi"
 	"cogentcore.org/lab/base/randx"
-	"cogentcore.org/lab/plot"
-	"cogentcore.org/lab/stats/stats"
 	"cogentcore.org/lab/table"
 	"cogentcore.org/lab/tensor"
 	"cogentcore.org/lab/tensorfs"
 	"github.com/emer/emergent/v2/egui"
 	"github.com/emer/emergent/v2/env"
 	"github.com/emer/emergent/v2/looper"
+	"github.com/emer/emergent/v2/netview"
 	"github.com/emer/emergent/v2/paths"
 	"github.com/emer/emergent/v2/relpos"
 	"github.com/emer/leabra/v2/leabra"
@@ -78,14 +77,17 @@ const (
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
+	// the patterns to use
+	Patterns *table.Table `new-window:"+" display:"no-inline"`
+
+	// simulation configuration parameters -- set by .toml config file and / or args
+	Config *Config `new-window:"+"`
+
 	// Net is the network: click to view / edit parameters for layers, paths, etc.
 	Net *leabra.Network `new-window:"+" display:"no-inline"`
 
 	// Params manages network parameter setting.
 	Params leabra.Params `display:"inline"`
-
-	// simulation configuration parameters -- set by .toml config file and / or args
-	Config *Config `new-window:"+"`
 
 	// Loops are the control loops for running the sim, in different Modes
 	// across stacks of Levels.
@@ -116,9 +118,6 @@ type Sim struct {
 
 	// RandSeeds is a list of random seeds to use for each run.
 	RandSeeds randx.Seeds `display:"-"`
-
-	// the patterns to use
-	Patterns *table.Table `new-window:"+" display:"no-inline"`
 }
 
 func (ss *Sim) SetConfig(cfg *Config) { ss.Config = cfg }
@@ -132,6 +131,7 @@ func (ss *Sim) ConfigSim() {
 	ss.Patterns = &table.Table{}
 	ss.RandSeeds.Init(100) // max 100 runs
 	ss.InitRandSeed(0)
+	ss.OpenPatterns()
 	ss.ConfigEnv()
 	ss.ConfigNet(ss.Net)
 	ss.ConfigLoops()
@@ -308,10 +308,14 @@ func (ss *Sim) NewRun() {
 /////////  Patterns
 
 func (ss *Sim) OpenPatterns() {
-	dt := ss.Patterns
+	dt := table.New()
 	metadata.SetName(dt, "CatsAndDogs")
 	metadata.SetDoc(dt, "Face testing patterns")
-	errors.Log(dt.OpenFS(embedfs, "cats_dogs_pats.tsv", tensor.Tab))
+	err := dt.OpenFS(embedfs, "cats_dogs_pats.tsv", tensor.Tab)
+	if errors.Log(err) != nil {
+		fmt.Println(err)
+	}
+	ss.Patterns = dt
 }
 
 ////////  Inputs
@@ -424,7 +428,7 @@ func (ss *Sim) ConfigStats() {
 	ss.Stats = ss.Root.Dir("Stats")
 	ss.Current = ss.Stats.Dir("Current")
 
-	ss.SetRunName()
+	// TODO remove? ss.SetRunName()
 
 	// last arg(s) are levels to exclude
 	counterFunc := leabra.StatLoopCounters(ss.Stats, ss.Current, ss.Loops, net, Trial, Cycle)
@@ -442,133 +446,133 @@ func (ss *Sim) ConfigStats() {
 
 	// up to a point, it is good to use loops over stats in one function,
 	// to reduce repetition of boilerplate.
-	statNames := []string{"CorSim", "SSE", "AvgSSE", "Err", "NZero", "FirstZero", "LastZero"}
-	ss.AddStat(func(mode Modes, level Levels, phase StatsPhase) {
-		for _, name := range statNames {
-			if name == "NZero" && (mode != Train || level == Trial) {
-				return
-			}
-			ndata := 1
-			modeDir := ss.Stats.Dir(mode.String())
-			curModeDir := ss.Current.Dir(mode.String())
-			levelDir := modeDir.Dir(level.String())
-			subDir := modeDir.Dir((level - 1).String()) // note: will fail for Cycle
-			tsr := levelDir.Float64(name)
-			var stat float64
-			if phase == Start {
-				tsr.SetNumRows(0)
-				plot.SetFirstStyler(tsr, func(s *plot.Style) {
-					s.Range.SetMin(0).SetMax(1)
-					switch name {
-					case "SSE":
-						s.On = true
-					case "FirstZero", "LastZero":
-						if level >= Run {
-							s.On = true
-						}
-					}
-				})
-				switch name {
-				case "NZero":
-					if level == Epoch {
-						curModeDir.Float64(name, 1).SetFloat1D(0, 0)
-					}
-				case "FirstZero", "LastZero":
-					if level == Epoch {
-						curModeDir.Float64(name, 1).SetFloat1D(-1, 0)
-					}
-				}
-				continue
-			}
-			switch level {
-			case Trial:
-				out := ss.Net.LayerByName("Output")
-				var stat float64
-				switch name {
-				case "CorSim":
-					stat = 1.0 - float64(out.CosDiff.Cos)
-				// case "UnitErr":
-				// 	stat = out.PctUnitErr(ss.Net.Context())[0]
-				case "SSE":
-					sse, avgsse := out.MSE(0.5) // 0.5 = per-unit tolerance
-					stat = sse
-					curModeDir.Float64("AvgSSE", ndata).SetFloat1D(avgsse, 0)
-				case "AvgSSE":
-					stat = curModeDir.Float64("AvgSSE", ndata).Float1D(0)
-				case "Err":
-					uniterr := curModeDir.Float64("SSE", ndata).Float1D(0)
-					stat = 1.0
-					if uniterr == 0 {
-						stat = 0
-					}
-				}
-				curModeDir.Float64(name, ndata).SetFloat1D(stat, 0)
-				tsr.AppendRowFloat(stat)
-			// case Epoch:
-			// 	nz := curModeDir.Float64("NZero", 1).Float1D(0)
-			// 	switch name {
-			// 	case "NZero":
-			// 		err := stats.StatSum.Call(subDir.Value("Err")).Float1D(0)
-			// 		stat = curModeDir.Float64(name, 1).Float1D(0)
-			// 		if err == 0 {
-			// 			stat++
-			// 		} else {
-			// 			stat = 0
-			// 		}
-			// 		curModeDir.Float64(name, 1).SetFloat1D(stat, 0)
-			// 	case "FirstZero":
-			// 		stat = curModeDir.Float64(name, 1).Float1D(0)
-			// 		if stat < 0 && nz == 1 {
-			// 			stat = curModeDir.Int("Epoch", 1).Float1D(0)
-			// 		}
-			// 		curModeDir.Float64(name, 1).SetFloat1D(stat, 0)
-			// 	case "LastZero":
-			// 		stat = curModeDir.Float64(name, 1).Float1D(0)
-			// 		if stat < 0 && nz >= float64(ss.Config.Run.NZero) {
-			// 			stat = curModeDir.Int("Epoch", 1).Float1D(0)
-			// 		}
-			// 		curModeDir.Float64(name, 1).SetFloat1D(stat, 0)
-			// 	default:
-			// 		stat = stats.StatMean.Call(subDir.Value(name)).Float1D(0)
-			// 	}
-			// 	tsr.AppendRowFloat(stat)
-			case Run:
-				stat = stats.StatFinal.Call(subDir.Value(name)).Float1D(0)
-				tsr.AppendRowFloat(stat)
-			default: // Expt
-				stat = stats.StatMean.Call(subDir.Value(name)).Float1D(0)
-				tsr.AppendRowFloat(stat)
-			}
-		}
-	})
+	//statNames := []string{"CorSim", "SSE", "AvgSSE", "Err", "NZero", "FirstZero", "LastZero"}
+	//ss.AddStat(func(mode Modes, level Levels, phase StatsPhase) {
+	// for _, name := range statNames {
+	// if name == "NZero" && (mode != Train || level == Trial) {
+	// 	return
+	// }
+	// ndata := 1
+	// modeDir := ss.Stats.Dir(mode.String())
+	// curModeDir := ss.Current.Dir(mode.String())
+	// levelDir := modeDir.Dir(level.String())
+	// subDir := modeDir.Dir((level - 1).String()) // note: will fail for Cycle
+	// tsr := levelDir.Float64(name)
+	// var stat float64
+	// if phase == Start {
+	// 	tsr.SetNumRows(0)
+	// 	plot.SetFirstStyler(tsr, func(s *plot.Style) {
+	// 		s.Range.SetMin(0).SetMax(1)
+	// 		switch name {
+	// 		case "SSE":
+	// 			s.On = true
+	// 		case "FirstZero", "LastZero":
+	// 			if level >= Run {
+	// 				s.On = true
+	// 			}
+	// 		}
+	// 	})
+	// 	switch name {
+	// 	case "NZero":
+	// 		if level == Epoch {
+	// 			curModeDir.Float64(name, 1).SetFloat1D(0, 0)
+	// 		}
+	// 	case "FirstZero", "LastZero":
+	// 		if level == Epoch {
+	// 			curModeDir.Float64(name, 1).SetFloat1D(-1, 0)
+	// 		}
+	// 	}
+	// 	continue
+	// }
+	// switch level {
+	// case Trial:
+	// out := ss.Net.LayerByName("Output")
+	// var stat float64
+	// switch name {
+	// case "CorSim":
+	// 	stat = 1.0 - float64(out.CosDiff.Cos)
+	// // case "UnitErr":
+	// // 	stat = out.PctUnitErr(ss.Net.Context())[0]
+	// case "SSE":
+	// 	sse, avgsse := out.MSE(0.5) // 0.5 = per-unit tolerance
+	// 	stat = sse
+	// 	curModeDir.Float64("AvgSSE", ndata).SetFloat1D(avgsse, 0)
+	// case "AvgSSE":
+	// 	stat = curModeDir.Float64("AvgSSE", ndata).Float1D(0)
+	// case "Err":
+	// 	uniterr := curModeDir.Float64("SSE", ndata).Float1D(0)
+	// 	stat = 1.0
+	// 	if uniterr == 0 {
+	// 		stat = 0
+	// 	}
+	// }
+	// curModeDir.Float64(name, ndata).SetFloat1D(stat, 0)
+	// tsr.AppendRowFloat(stat)
+	// case Epoch:
+	// 	nz := curModeDir.Float64("NZero", 1).Float1D(0)
+	// 	switch name {
+	// 	case "NZero":
+	// 		err := stats.StatSum.Call(subDir.Value("Err")).Float1D(0)
+	// 		stat = curModeDir.Float64(name, 1).Float1D(0)
+	// 		if err == 0 {
+	// 			stat++
+	// 		} else {
+	// 			stat = 0
+	// 		}
+	// 		curModeDir.Float64(name, 1).SetFloat1D(stat, 0)
+	// 	case "FirstZero":
+	// 		stat = curModeDir.Float64(name, 1).Float1D(0)
+	// 		if stat < 0 && nz == 1 {
+	// 			stat = curModeDir.Int("Epoch", 1).Float1D(0)
+	// 		}
+	// 		curModeDir.Float64(name, 1).SetFloat1D(stat, 0)
+	// 	case "LastZero":
+	// 		stat = curModeDir.Float64(name, 1).Float1D(0)
+	// 		if stat < 0 && nz >= float64(ss.Config.Run.NZero) {
+	// 			stat = curModeDir.Int("Epoch", 1).Float1D(0)
+	// 		}
+	// 		curModeDir.Float64(name, 1).SetFloat1D(stat, 0)
+	// 	default:
+	// 		stat = stats.StatMean.Call(subDir.Value(name)).Float1D(0)
+	// 	}
+	// 	tsr.AppendRowFloat(stat)
+	// case Run:
+	// 	stat = stats.StatFinal.Call(subDir.Value(name)).Float1D(0)
+	// 	tsr.AppendRowFloat(stat)
+	// default: // Expt
+	// 	stat = stats.StatMean.Call(subDir.Value(name)).Float1D(0)
+	// 	tsr.AppendRowFloat(stat)
+	// }
+	// }
+	//})
 
-	perTrlFunc := leabra.StatPerTrialMSec(ss.Stats, Trial)
-	ss.AddStat(func(mode Modes, level Levels, phase StatsPhase) {
-		perTrlFunc(mode, level, phase == Start)
-	})
+	// perTrlFunc := leabra.StatPerTrialMSec(ss.Stats, Trial)
+	// ss.AddStat(func(mode Modes, level Levels, phase StatsPhase) {
+	// 	perTrlFunc(mode, level, phase == Start)
+	// })
 
-	lays := net.LayersByType(leabra.SuperLayer, leabra.CTLayer, leabra.TargetLayer)
-	actGeFunc := leabra.StatLayerActGe(ss.Stats, net, Trial, Run, lays...)
-	ss.AddStat(func(mode Modes, level Levels, phase StatsPhase) {
-		actGeFunc(mode, level, phase == Start)
-	})
+	// lays := net.LayersByType(leabra.SuperLayer, leabra.CTLayer, leabra.TargetLayer)
+	// actGeFunc := leabra.StatLayerActGe(ss.Stats, net, Trial, Run, lays...)
+	// ss.AddStat(func(mode Modes, level Levels, phase StatsPhase) {
+	// 	actGeFunc(mode, level, phase == Start)
+	// })
 
-	stateFunc := leabra.StatLayerState(ss.Stats, net, Test, Trial, true, "ActM", "Input", "Output")
-	ss.AddStat(func(mode Modes, level Levels, phase StatsPhase) {
-		stateFunc(mode, level, phase == Start)
-	})
+	// stateFunc := leabra.StatLayerState(ss.Stats, net, Test, Trial, true, "ActM", "Input", "Output")
+	// ss.AddStat(func(mode Modes, level Levels, phase StatsPhase) {
+	// 	stateFunc(mode, level, phase == Start)
+	// })
 
-	runAllFunc := leabra.StatLevelAll(ss.Stats, Run, func(s *plot.Style, cl tensor.Values) {
-		name := metadata.Name(cl)
-		switch name {
-		case "FirstZero", "LastZero":
-			s.On = true
-			s.Range.SetMin(0)
-		}
-	})
-	ss.AddStat(func(mode Modes, level Levels, phase StatsPhase) {
-		runAllFunc(mode, level, phase == Start)
-	})
+	// runAllFunc := leabra.StatLevelAll(ss.Stats, Run, func(s *plot.Style, cl tensor.Values) {
+	// 	name := metadata.Name(cl)
+	// 	switch name {
+	// 	case "FirstZero", "LastZero":
+	// 		s.On = true
+	// 		s.Range.SetMin(0)
+	// 	}
+	// })
+	// ss.AddStat(func(mode Modes, level Levels, phase StatsPhase) {
+	// 	runAllFunc(mode, level, phase == Start)
+	// })
 }
 
 // Harmony computes the harmony (excitatory net input Ge * Act)
@@ -615,6 +619,26 @@ func (ss *Sim) StatCounters(mode, level enums.Enum) string {
 }
 
 //////// GUI
+
+func (ss *Sim) ConfigNetView(nv *netview.NetView) {
+	labs := []string{" Chloe Socks Sylv Garf Fuzz Daisy Fido Spot Snoop Penny",
+		" black white brown orange", "bugs grass scraps shoe", "small  med  large", "cat     dog", "string feath bone shoe"}
+	nv.ConfigLabels(labs)
+
+	lays := []string{"Name", "Color", "FavoriteFood", "Size", "Species", "FavoriteToy"}
+
+	for li, lnm := range lays {
+		ly := nv.LayerByName(lnm)
+		lbl := nv.LabelByName(labs[li])
+		lbl.Pose = ly.Pose
+		lbl.Pose.Pos.Y += .2
+		lbl.Pose.Pos.Z += .02
+		lbl.Pose.Scale.SetMul(math32.Vector3{0.4, 0.08, 0.5})
+	}
+
+	nv.SceneXYZ().Camera.Pose.Pos.Set(0, 1.5, 3.0)
+	nv.SceneXYZ().Camera.LookAt(math32.Vec3(0, 0, 0), math32.Vec3(0, 1, 0))
+}
 
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI(b tree.Node) {
@@ -674,8 +698,7 @@ func (ss *Sim) RunNoGUI() {
 	leabra.OpenLogFiles(ss.Loops, ss.Stats, netName, runName, [][]string{cfg.Test})
 
 	mpi.Printf("Running %d Runs starting at %d\n", ss.Config.Run.Runs, ss.Config.Run.Run)
-	ss.Loops.Loop(Run).Counter.SetCurMaxPlusN(ss.Config.Run.Run, ss.Config.Run.Runs)
+	ss.Loops.Loop(Train, Run).Counter.SetCurMaxPlusN(ss.Config.Run.Run, ss.Config.Run.Runs)
 
 	leabra.CloseLogFiles(ss.Loops, ss.Stats, Cycle)
 }
-	
