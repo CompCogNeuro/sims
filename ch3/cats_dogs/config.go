@@ -41,7 +41,7 @@ type RunConfig struct {
 	//Epochs int `default:"100"`
 
 	// NZero is how many perfect, zero-error epochs before stopping a Run.
-	//NZero int `default:"5"`
+	// NZero int `default:"5"`
 
 	// TestInterval is how often (in epochs) to run through all the test patterns,
 	// in terms of training epochs. Can use 0 or -1 for no testing.

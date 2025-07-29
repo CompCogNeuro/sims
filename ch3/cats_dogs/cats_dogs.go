@@ -48,7 +48,8 @@ var readme embed.FS
 // Modes are the looping modes (Stacks) for running and statistics.
 type Modes int32 //enums:enum
 const (
-	Test Modes = iota
+	Train Modes = iota
+	Test
 )
 
 // Levels are the looping levels for running and statistics.
@@ -252,7 +253,7 @@ func (ss *Sim) ConfigLoops() {
 		AddLevel(Trial, ntrls).
 		AddLevel(Cycle, cycles)
 
-	leabra.LooperStandard(ls, ss.Net, ss.NetViewUpdater, cycles-plusPhase, cycles-1, Cycle, Trial)
+	leabra.LooperStandard(ls, ss.Net, ss.NetViewUpdater, cycles-plusPhase, cycles-1, Cycle, Trial, Train)
 
 	ls.Stacks[Test].OnInit.Add("Init", ss.Init)
 
@@ -308,9 +309,9 @@ func (ss *Sim) NewRun() {
 
 func (ss *Sim) OpenPatterns() {
 	dt := ss.Patterns
-	dt.SetMetaData("name", "CatsAndDogs")
-	dt.SetMetaData("desc", "Face testing patterns")
-	errors.Log(dt.OpenFS(embedfs, "cats_dogs_pats.tsv", table.Tab))
+	metadata.SetName(dt, "CatsAndDogs")
+	metadata.SetDoc(dt, "Face testing patterns")
+	errors.Log(dt.OpenFS(embedfs, "cats_dogs_pats.tsv", tensor.Tab))
 }
 
 ////////  Inputs
@@ -411,7 +412,7 @@ func (ss *Sim) StatsInit() {
 		tbs := ss.GUI.Tabs.AsLab()
 		_, idx := tbs.CurrentTab()
 		tbs.PlotTensorFS(leabra.StatsNode(ss.Stats, Test, Trial))
-		tbs.PlotTensorFS(ss.Stats.Dir("Train/RunAll"))
+		// TODO tbs.PlotTensorFS(ss.Stats.Dir("Train/RunAll"))
 		tbs.SelectTabIndex(idx)
 	}
 }
@@ -503,34 +504,34 @@ func (ss *Sim) ConfigStats() {
 				}
 				curModeDir.Float64(name, ndata).SetFloat1D(stat, 0)
 				tsr.AppendRowFloat(stat)
-			case Epoch:
-				nz := curModeDir.Float64("NZero", 1).Float1D(0)
-				switch name {
-				case "NZero":
-					err := stats.StatSum.Call(subDir.Value("Err")).Float1D(0)
-					stat = curModeDir.Float64(name, 1).Float1D(0)
-					if err == 0 {
-						stat++
-					} else {
-						stat = 0
-					}
-					curModeDir.Float64(name, 1).SetFloat1D(stat, 0)
-				case "FirstZero":
-					stat = curModeDir.Float64(name, 1).Float1D(0)
-					if stat < 0 && nz == 1 {
-						stat = curModeDir.Int("Epoch", 1).Float1D(0)
-					}
-					curModeDir.Float64(name, 1).SetFloat1D(stat, 0)
-				case "LastZero":
-					stat = curModeDir.Float64(name, 1).Float1D(0)
-					if stat < 0 && nz >= float64(ss.Config.Run.NZero) {
-						stat = curModeDir.Int("Epoch", 1).Float1D(0)
-					}
-					curModeDir.Float64(name, 1).SetFloat1D(stat, 0)
-				default:
-					stat = stats.StatMean.Call(subDir.Value(name)).Float1D(0)
-				}
-				tsr.AppendRowFloat(stat)
+			// case Epoch:
+			// 	nz := curModeDir.Float64("NZero", 1).Float1D(0)
+			// 	switch name {
+			// 	case "NZero":
+			// 		err := stats.StatSum.Call(subDir.Value("Err")).Float1D(0)
+			// 		stat = curModeDir.Float64(name, 1).Float1D(0)
+			// 		if err == 0 {
+			// 			stat++
+			// 		} else {
+			// 			stat = 0
+			// 		}
+			// 		curModeDir.Float64(name, 1).SetFloat1D(stat, 0)
+			// 	case "FirstZero":
+			// 		stat = curModeDir.Float64(name, 1).Float1D(0)
+			// 		if stat < 0 && nz == 1 {
+			// 			stat = curModeDir.Int("Epoch", 1).Float1D(0)
+			// 		}
+			// 		curModeDir.Float64(name, 1).SetFloat1D(stat, 0)
+			// 	case "LastZero":
+			// 		stat = curModeDir.Float64(name, 1).Float1D(0)
+			// 		if stat < 0 && nz >= float64(ss.Config.Run.NZero) {
+			// 			stat = curModeDir.Int("Epoch", 1).Float1D(0)
+			// 		}
+			// 		curModeDir.Float64(name, 1).SetFloat1D(stat, 0)
+			// 	default:
+			// 		stat = stats.StatMean.Call(subDir.Value(name)).Float1D(0)
+			// 	}
+			// 	tsr.AppendRowFloat(stat)
 			case Run:
 				stat = stats.StatFinal.Call(subDir.Value(name)).Float1D(0)
 				tsr.AppendRowFloat(stat)
@@ -568,6 +569,26 @@ func (ss *Sim) ConfigStats() {
 	ss.AddStat(func(mode Modes, level Levels, phase StatsPhase) {
 		runAllFunc(mode, level, phase == Start)
 	})
+}
+
+// Harmony computes the harmony (excitatory net input Ge * Act)
+func (ss *Sim) Harmony(nt *leabra.Network) float32 {
+	harm := float32(0)
+	nu := 0
+	for _, ly := range nt.Layers {
+		if ly.Off {
+			continue
+		}
+		for i := range ly.Neurons {
+			nrn := &(ly.Neurons[i])
+			harm += nrn.Ge * nrn.Act
+			nu++
+		}
+	}
+	if nu > 0 {
+		harm /= float32(nu)
+	}
+	return harm
 }
 
 // StatCounters returns counters string to show at bottom of netview.
@@ -657,3 +678,4 @@ func (ss *Sim) RunNoGUI() {
 
 	leabra.CloseLogFiles(ss.Loops, ss.Stats, Cycle)
 }
+	
