@@ -35,17 +35,17 @@ type RunConfig struct {
 	Run int `default:"0" flag:"run"`
 
 	// Runs is the total number of runs to do when running Train, starting from Run.
-	//Runs int `default:"5" min:"1"`
+	// Runs int `default:"5" min:"1"`
 
 	// Epochs is the total number of epochs per run.
-	//Epochs int `default:"100"`
+	// Epochs int `default:"100"`
 
 	// NZero is how many perfect, zero-error epochs before stopping a Run.
 	// NZero int `default:"5"`
 
 	// TestInterval is how often (in epochs) to run through all the test patterns,
 	// in terms of training epochs. Can use 0 or -1 for no testing.
-	//TestInterval int `default:"5"`
+	// TestInterval int `default:"5"`
 }
 
 // LogConfig has config parameters related to logging data.
@@ -69,8 +69,8 @@ type Config struct {
 }
 
 func (cfg *Config) Defaults() {
-	cfg.Name = "Associator"
-	cfg.Title = "Pattern associator"
+	cfg.Name = "CatsAndDogs"
+	cfg.Title = "Cats and Dogs"
 	cfg.URL = "https://github.com/CompCogNeuro/sims/blob/main/ch4/associator/README.md"
-	cfg.Doc = "Illustrates how error-driven and hebbian learning can operate within a simple task-driven learning context, with no hidden layers."
+	cfg.Doc = "Explores a simple **semantic network** intended to represent a (very small) set of relationships among different features used to represent a set of entities in the world.  In our case, we represent some features of cats and dogs: their color, size, favorite food, and favorite toy."
 }
