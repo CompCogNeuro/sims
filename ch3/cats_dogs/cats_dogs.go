@@ -21,7 +21,6 @@ import (
 	"cogentcore.org/core/base/metadata"
 	"cogentcore.org/core/core"
 	"cogentcore.org/core/enums"
-	"cogentcore.org/core/icons"
 	"cogentcore.org/core/math32"
 	"cogentcore.org/core/tree"
 	"cogentcore.org/lab/base/mpi"
@@ -654,8 +653,7 @@ func (ss *Sim) ConfigGUI(b tree.Node) {
 		vu.UpdateWhenStopped(mode, level)
 	}
 
-	nv.SceneXYZ().Camera.Pose.Pos.Set(0, 1, 2.75)
-	nv.SceneXYZ().Camera.LookAt(math32.Vec3(0, 0, 0), math32.Vec3(0, 1, 0))
+	ss.ConfigNetView(nv)
 
 	ss.StatsInit()
 	ss.GUI.FinalizeGUI(false)
@@ -665,24 +663,6 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 	ss.GUI.AddLooperCtrl(p, ss.Loops)
 
 	tree.Add(p, func(w *core.Separator) {})
-	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{
-		Label:   "New Seed",
-		Icon:    icons.Add,
-		Tooltip: "Generate a new initial random seed to get different results.  By default, Init re-establishes the same initial seed every time.",
-		Active:  egui.ActiveAlways,
-		Func: func() {
-			ss.RandSeeds.NewSeeds()
-		},
-	})
-	ss.GUI.AddToolbarItem(p, egui.ToolbarItem{
-		Label:   "README",
-		Icon:    icons.FileMarkdown,
-		Tooltip: "Opens your browser on the README file that contains instructions for how to run this model.",
-		Active:  egui.ActiveAlways,
-		Func: func() {
-			core.TheApp.OpenURL(ss.Config.URL)
-		},
-	})
 }
 
 func (ss *Sim) RunNoGUI() {
