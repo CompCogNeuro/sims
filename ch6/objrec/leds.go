@@ -1,14 +1,15 @@
-// Copyright (c) 2024, The Emergent Authors. All rights reserved.
+// Copyright (c) 2019, The Emergent Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
+package objrec
 
 import (
 	"image"
 	"image/color"
 
 	"cogentcore.org/core/colors"
+	"cogentcore.org/core/math32"
 	"cogentcore.org/core/paint"
 )
 
@@ -32,11 +33,8 @@ type LEDraw struct { //types:add
 	// size of image to render
 	ImgSize image.Point
 
-	// rendered image
-	Image *image.RGBA `display:"-"`
-
 	// painting context object
-	Paint *paint.Context `display:"-"`
+	Paint *paint.Painter `display:"-"`
 }
 
 func (ld *LEDraw) Defaults() {
@@ -52,25 +50,16 @@ func (ld *LEDraw) Init() {
 	if ld.ImgSize.X == 0 || ld.ImgSize.Y == 0 {
 		ld.Defaults()
 	}
-	if ld.Image != nil {
-		cs := ld.Image.Bounds().Size()
-		if cs != ld.ImgSize {
-			ld.Image = nil
-		}
-	}
-	if ld.Image == nil {
-		ld.Image = image.NewRGBA(image.Rectangle{Max: ld.ImgSize})
-	}
-	ld.Paint = paint.NewContextFromImage(ld.Image)
-	ld.Paint.StrokeStyle.Width.Pw(ld.Width)
-	ld.Paint.StrokeStyle.Color = colors.Uniform(ld.LineColor)
-	ld.Paint.FillStyle.Color = colors.Uniform(ld.BgColor)
-	ld.Paint.SetUnitContextExt(ld.ImgSize)
+	ld.Paint = paint.NewPainter(math32.FromPoint(ld.ImgSize))
+	ld.Paint.Stroke.Width.Pw(ld.Width)
+	ld.Paint.Stroke.Color = colors.Uniform(ld.LineColor)
+	ld.Paint.Fill.Color = colors.Uniform(ld.BgColor)
+	ld.Paint.ToDots()
 }
 
 // Clear clears the image with BgColor
 func (ld *LEDraw) Clear() {
-	if ld.Image == nil {
+	if ld.Paint == nil {
 		ld.Init()
 	}
 	ld.Paint.Clear()
@@ -85,19 +74,19 @@ func (ld *LEDraw) DrawSeg(seg LEDSegs) {
 	// note: top-zero coordinates
 	switch seg {
 	case Bottom:
-		ld.Paint.DrawLine(ctrX-szX, ctrY+szY, ctrX+szX, ctrY+szY)
+		ld.Paint.Line(ctrX-szX, ctrY+szY, ctrX+szX, ctrY+szY)
 	case Left:
-		ld.Paint.DrawLine(ctrX-szX, ctrY-szY, ctrX-szX, ctrY+szY)
+		ld.Paint.Line(ctrX-szX, ctrY-szY, ctrX-szX, ctrY+szY)
 	case Right:
-		ld.Paint.DrawLine(ctrX+szX, ctrY-szY, ctrX+szX, ctrY+szY)
+		ld.Paint.Line(ctrX+szX, ctrY-szY, ctrX+szX, ctrY+szY)
 	case Top:
-		ld.Paint.DrawLine(ctrX-szX, ctrY-szY, ctrX+szX, ctrY-szY)
+		ld.Paint.Line(ctrX-szX, ctrY-szY, ctrX+szX, ctrY-szY)
 	case CenterH:
-		ld.Paint.DrawLine(ctrX-szX, ctrY, ctrX+szX, ctrY)
+		ld.Paint.Line(ctrX-szX, ctrY, ctrX+szX, ctrY)
 	case CenterV:
-		ld.Paint.DrawLine(ctrX, ctrY-szY, ctrX, ctrY+szY)
+		ld.Paint.Line(ctrX, ctrY-szY, ctrX, ctrY+szY)
 	}
-	ld.Paint.Stroke()
+	ld.Paint.Draw()
 }
 
 // DrawLED draws one LED of given number, based on LEDdata

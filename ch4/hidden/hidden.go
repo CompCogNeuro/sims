@@ -2,20 +2,22 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// objrec explores how a hierarchy of areas in the ventral stream
-// of visual processing (up to inferotemporal (IT) cortex) can produce
-// robust object recognition that is invariant to changes in position,
-// size, etc of retinal input images.
-package objrec
+// err_driven_hidden shows how XCal error driven learning can train a hidden
+// layer to solve problems that are otherwise impossible for a simple two layer
+// network (as we saw in the Pattern Associator exploration,
+// which should be completed first before doing this one).
+package hidden
 
-//go:generate core generate -add-types -add-funcs -gosl
+//go:generate core generate -add-types -add-funcs
 
 import (
+	"embed"
 	"fmt"
-	"os"
+	"io/fs"
 	"reflect"
 
-	"cogentcore.org/core/base/reflectx"
+	"cogentcore.org/core/base/errors"
+	"cogentcore.org/core/base/metadata"
 	"cogentcore.org/core/core"
 	"cogentcore.org/core/enums"
 	"cogentcore.org/core/icons"
@@ -25,13 +27,42 @@ import (
 	"cogentcore.org/lab/base/randx"
 	"cogentcore.org/lab/plot"
 	"cogentcore.org/lab/stats/stats"
+	"cogentcore.org/lab/table"
+	"cogentcore.org/lab/tensor"
 	"cogentcore.org/lab/tensorfs"
 	"github.com/emer/emergent/v2/egui"
-	"github.com/emer/emergent/v2/emer"
 	"github.com/emer/emergent/v2/env"
 	"github.com/emer/emergent/v2/looper"
 	"github.com/emer/emergent/v2/paths"
 	"github.com/emer/leabra/v2/leabra"
+)
+
+//go:embed easy.tsv hard.tsv impossible.tsv
+var embedfs embed.FS
+
+//go:embed README.md
+var readme embed.FS
+
+// Patterns is the type of training patterns
+type Patterns int32 //enums:enum
+
+const (
+	// Easy patterns can be learned by Hebbian learning
+	Easy Patterns = iota
+
+	// Hard patterns can only be learned with error-driven learning
+	Hard
+
+	// Impossible patterns require error-driven + a hidden layer
+	Impossible
+)
+
+// LearnType is the type of learning to use
+type LearnType int32 //enums:enum
+
+const (
+	Hebbian LearnType = iota
+	ErrorDriven
 )
 
 // Modes are the looping modes (Stacks) for running and statistics.
@@ -39,7 +70,6 @@ type Modes int32 //enums:enum
 const (
 	Train Modes = iota
 	Test
-	NovelTrain
 )
 
 // Levels are the looping levels for running and statistics.
@@ -60,7 +90,7 @@ const (
 	Step
 )
 
-// see params.go for params
+// see params.go for params, config.go for config
 
 // Sim encapsulates the entire simulation model, and we define all the
 // functionality as methods on this struct.  This structure keeps all relevant
@@ -68,6 +98,12 @@ const (
 // as arguments to methods, and provides the core GUI interface (note the view tags
 // for the fields which provide hints to how things should be displayed).
 type Sim struct {
+
+	// select which type of learning to use
+	Learn LearnType
+
+	// select which type of patterns to use
+	Patterns Patterns
 
 	// simulation configuration parameters -- set by .toml config file and / or args
 	Config *Config `new-window:"+"`
@@ -112,136 +148,71 @@ type Sim struct {
 	RandSeeds randx.Seeds `display:"-"`
 }
 
-// RunSim runs the simulation as a standalone app
-// with given configuration.
-func RunSim(cfg *Config) error {
-	ss := &Sim{Config: cfg}
-	ss.ConfigSim()
-	if ss.Config.GUI {
-		ss.RunGUI()
-	} else {
-		ss.RunNoGUI()
-	}
-	return nil
-}
-
-// EmbedSim runs the simulation with default configuration
-// embedded within given body element.
-func EmbedSim(b tree.Node) *Sim {
-	cfg := NewConfig()
-	cfg.GUI = true
-	ss := &Sim{Config: cfg}
-	ss.ConfigSim()
-	ss.Init()
-	ss.ConfigGUI(b)
-	return ss
-}
+func (ss *Sim) SetConfig(cfg *Config) { ss.Config = cfg }
+func (ss *Sim) Body() *core.Body      { return ss.GUI.Body }
 
 func (ss *Sim) ConfigSim() {
+	ss.Learn = ErrorDriven
+	ss.Patterns = Impossible
 	ss.Root, _ = tensorfs.NewDir("Root")
 	tensorfs.CurRoot = ss.Root
 	ss.Net = leabra.NewNetwork(ss.Config.Name)
 	ss.Params.Config(LayerParams, PathParams, ss.Config.Params.Sheet, ss.Config.Params.Tag, reflect.ValueOf(ss))
 	ss.RandSeeds.Init(100) // max 100 runs
 	ss.InitRandSeed(0)
+	ss.OpenInputs()
 	ss.ConfigEnv()
 	ss.ConfigNet(ss.Net)
 	ss.ConfigLoops()
 	ss.ConfigStats()
-	// if ss.Config.Run.GPU {
-	// 	fmt.Println(leabra.GPUSystem.Vars().StringDoc())
-	// }
-	if ss.Config.Params.SaveAll {
-		ss.Config.Params.SaveAll = false
-		ss.Net.SaveParamsSnapshot(&ss.Config, ss.Config.Params.Good)
-		os.Exit(0)
-	}
 }
 
 func (ss *Sim) ConfigEnv() {
 	// Can be called multiple times -- don't re-create
-	var trn, novTrn, tst *LEDEnv
+	var trn, tst *env.FixedTable
 	if len(ss.Envs) == 0 {
-		trn = &LEDEnv{}
-		novTrn = &LEDEnv{}
-		tst = &LEDEnv{}
+		trn = &env.FixedTable{}
+		tst = &env.FixedTable{}
 	} else {
-		trn = ss.Envs.ByMode(Train).(*LEDEnv)
-		novTrn = ss.Envs.ByMode(NovelTrain).(*LEDEnv)
-		tst = ss.Envs.ByMode(Test).(*LEDEnv)
+		trn = ss.Envs.ByMode(Train).(*env.FixedTable)
+		tst = ss.Envs.ByMode(Test).(*env.FixedTable)
 	}
 
+	impossible := tensorfs.DirTable(ss.Root.Dir("Inputs/Impossible"), nil)
+
+	// note: names must be standard here!
 	trn.Name = Train.String()
-	trn.Defaults()
-	trn.MinLED = 0
-	trn.MaxLED = 17 // exclude last 2 by default
-	trn.NOutPer = ss.Config.Env.NOutPer
-	if ss.Config.Env.Env != nil {
-		reflectx.SetFieldsFromMap(trn, ss.Config.Env.Env)
-	}
-	trn.Trial.Max = ss.Config.Run.Trials
-
-	novTrn.Name = NovelTrain.String()
-	novTrn.Defaults()
-	novTrn.MinLED = 18
-	novTrn.MaxLED = 19 // only last 2 items
-	novTrn.NOutPer = ss.Config.Env.NOutPer
-	if ss.Config.Env.Env != nil {
-		reflectx.SetFieldsFromMap(novTrn, ss.Config.Env.Env)
-	}
-	novTrn.Trial.Max = ss.Config.Run.Trials
-	novTrn.XFormRand.TransX.Set(-0.125, 0.125)
-	novTrn.XFormRand.TransY.Set(-0.125, 0.125)
-	novTrn.XFormRand.Scale.Set(0.775, 0.925) // 1/2 around midpoint
-	novTrn.XFormRand.Rot.Set(-2, 2)
+	trn.Config(table.NewView(impossible))
+	trn.Validate()
 
 	tst.Name = Test.String()
-	tst.Defaults()
-	tst.MinLED = 0
-	tst.MaxLED = 19 // all by default
-	tst.NOutPer = ss.Config.Env.NOutPer
-	tst.Trial.Max = 64 // 0 // 1000 is too long!
-	if ss.Config.Env.Env != nil {
-		reflectx.SetFieldsFromMap(tst, ss.Config.Env.Env)
-	}
+	tst.Config(table.NewView(impossible))
+	tst.Sequential = true
+	tst.Validate()
 
 	trn.Init(0)
-	novTrn.Init(0)
 	tst.Init(0)
 
-	ss.Envs.Add(trn, novTrn, tst)
+	// note: names must be in place when adding
+	ss.Envs.Add(trn, tst)
 }
 
 func (ss *Sim) ConfigNet(net *leabra.Network) {
 	net.SetRandSeed(ss.RandSeeds[0]) // init new separate random seed, using run = 0
 
-	v1 := net.AddLayer4D("V1", leabra.InputLayer, 10, 10, 5, 4)
-	v4 := net.AddLayer4D("V4", leabra.SuperLayer, 7, 7, 10, 10) // 10x10 == 16x16 > 7x7 (orig, 5, 5, 10, 10)
-	it := net.AddLayer2D("IT", leabra.SuperLayer, 16, 16)       // 16x16 == 20x20 > 10x10 (orig, 16, 16)
-	out := net.AddLayer4D("Output", leabra.TargetLayer, 4, 5, ss.Config.Env.NOutPer, 1)
-
-	v1.SetSampleShape(emer.CenterPoolIndexes(v1, 2), emer.CenterPoolShape(v1, 2))
-	v4.SetSampleShape(emer.CenterPoolIndexes(v4, 2), emer.CenterPoolShape(v4, 2))
+	inp := net.AddLayer2D("Input", leabra.InputLayer, 1, 4)
+	hid := net.AddLayer2D("Hidden", leabra.SuperLayer, 1, 4)
+	out := net.AddLayer2D("Output", leabra.TargetLayer, 1, 2)
 
 	full := paths.NewFull()
-	_ = full
-	rndpath := paths.NewUniformRand() // no advantage
-	rndpath.PCon = 0.5                // 0.2 > .1
-	_ = rndpath
 
-	pool1to1 := paths.NewPoolOneToOne()
-	_ = pool1to1
+	net.ConnectLayers(inp, hid, full, leabra.ForwardPath)
+	net.BidirConnectLayers(hid, out, full)
 
-	net.ConnectLayers(v1, v4, ss.Config.Params.V1V4Path, leabra.ForwardPath)
-	v4IT, _ := net.BidirConnectLayers(v4, it, full)
-	itOut, outIT := net.BidirConnectLayers(it, out, full)
-
-	it.PlaceRightOf(v4, 2)
-	out.PlaceRightOf(it, 2)
-
-	v4IT.AddClass("NovLearn")
-	itOut.AddClass("NovLearn")
-	outIT.AddClass("NovLearn")
+	hid.PlaceAbove(inp)
+	hid.Pos.YOffset = 1
+	out.PlaceAbove(hid)
+	out.Pos.YOffset = 1
 
 	net.Build()
 	net.Defaults()
@@ -250,8 +221,13 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 }
 
 func (ss *Sim) ApplyParams() {
-	ss.Params.Script = ss.Config.Params.Script
 	ss.Params.ApplyAll(ss.Net)
+	ss.Params.ApplySheet(ss.Net, ss.Learn.String())
+	// if ss.Loops != nil {
+	// 	trn := ss.Loops.Stacks[Train]
+	// 	trn.Loops[Run].Counter.Max = ss.Config.Run.Runs
+	// 	trn.Loops[Epoch].Counter.Max = ss.Config.Run.Epochs
+	// }
 }
 
 ////////  Init, utils
@@ -289,9 +265,9 @@ func (ss *Sim) NetViewUpdater(mode enums.Enum) *leabra.NetViewUpdate {
 func (ss *Sim) ConfigLoops() {
 	ls := looper.NewStacks()
 
-	trials := ss.Config.Run.Trials
-	cycles := ss.Config.Run.Cycles
-	plusPhase := ss.Config.Run.PlusCycles
+	trials := 4
+	cycles := 100
+	plusPhase := 25
 
 	ls.AddStack(Train, Trial).
 		AddLevel(Expt, 1).
@@ -325,7 +301,6 @@ func (ss *Sim) ConfigLoops() {
 		curNZero := int(curModeDir.Value("NZero").Float1D(-1))
 		stop := curNZero >= stopNz
 		return stop
-		return false
 	})
 
 	trainEpoch.OnStart.Add("TestAtInterval", func() {
@@ -336,11 +311,6 @@ func (ss *Sim) ConfigLoops() {
 
 	ls.AddOnStartToAll("StatsStart", ss.StatsStart)
 	ls.AddOnEndToAll("StatsStep", ss.StatsStep)
-
-	ls.Loop(Train, Run).OnEnd.Add("SaveWeights", func() {
-		ctrString := fmt.Sprintf("%03d_%05d", ls.Loop(Train, Run).Counter.Cur, ls.Loop(Train, Epoch).Counter.Cur)
-		leabra.SaveWeightsIfConfigSet(ss.Net, ss.Config.Log.SaveWeights, ctrString, ss.RunName())
-	})
 
 	if ss.Config.GUI {
 		leabra.LooperUpdateNetView(ls, Cycle, Trial, ss.NetViewUpdater)
@@ -359,15 +329,20 @@ func (ss *Sim) ConfigLoops() {
 // Any other start-of-trial logic can also be put here.
 func (ss *Sim) ApplyInputs(mode Modes) {
 	net := ss.Net
-	ndata := 1
 	curModeDir := ss.Current.Dir(mode.String())
-	ev := ss.Envs.ByMode(mode).(*LEDEnv)
+	ev := ss.Envs.ByMode(mode)
+
+	out := ss.Net.LayerByName("Output")
+	if mode == Test {
+		out.Params.Type = leabra.CompareLayer // don't clamp plus phase
+	} else {
+		out.Params.Type = leabra.TargetLayer
+	}
+
 	lays := net.LayersByType(leabra.InputLayer, leabra.TargetLayer)
 	net.InitExt()
-	di := 0
 	ev.Step()
-	curModeDir.StringValue("TrialName", ndata).SetString1D(ev.String(), di)
-	curModeDir.Int("Cat", ndata).SetInt1D(ev.CurLED, di)
+	curModeDir.StringValue("TrialName", 1).SetString1D(ev.String(), 0)
 	for _, lnm := range lays {
 		ly := ss.Net.LayerByName(lnm)
 		st := ev.State(ly.Name)
@@ -378,18 +353,34 @@ func (ss *Sim) ApplyInputs(mode Modes) {
 	net.ApplyExts()
 }
 
+func (ss *Sim) UpdateEnv() {
+	trn := ss.Envs.ByMode(Train).(*env.FixedTable)
+	tst := ss.Envs.ByMode(Test).(*env.FixedTable)
+	switch ss.Patterns {
+	case Easy:
+		easy := tensorfs.DirTable(ss.Root.Dir("Inputs/Easy"), nil)
+		trn.Table = easy
+		tst.Table = easy
+	case Hard:
+		hard := tensorfs.DirTable(ss.Root.Dir("Inputs/Hard"), nil)
+		trn.Table = hard
+		tst.Table = hard
+	case Impossible:
+		impossible := tensorfs.DirTable(ss.Root.Dir("Inputs/Impossible"), nil)
+		trn.Table = impossible
+		tst.Table = impossible
+	}
+}
+
 // NewRun intializes a new Run level of the model.
 func (ss *Sim) NewRun() {
 	ctx := ss.Net.Context()
 	ss.InitRandSeed(ss.Loops.Loop(Train, Run).Counter.Cur)
+	ss.UpdateEnv()
 	ss.Envs.ByMode(Train).Init(0)
 	ss.Envs.ByMode(Test).Init(0)
 	ctx.Reset()
 	ss.Net.InitWeights()
-	if ss.Config.Run.StartWeights != "" {
-		ss.Net.OpenWeightsJSON(core.Filename(ss.Config.Run.StartWeights))
-		mpi.Printf("Starting with initial weights from: %s\n", ss.Config.Run.StartWeights)
-	}
 }
 
 // TestAll runs through the full set of testing items
@@ -397,6 +388,29 @@ func (ss *Sim) TestAll() {
 	ss.Envs.ByMode(Test).Init(0)
 	ss.Loops.ResetAndRun(Test)
 	ss.Loops.Mode = Train // important because this is called from Train Run: go back.
+}
+
+////////  Inputs
+
+// OpenTable opens a [table.Table] from embedded content, storing
+// the data in the given tensorfs directory.
+func (ss *Sim) OpenTable(dir *tensorfs.Node, fsys fs.FS, fnm, name, docs string) (*table.Table, error) {
+	dt := table.New()
+	metadata.SetName(dt, name)
+	metadata.SetDoc(dt, docs)
+	err := dt.OpenFS(embedfs, fnm, tensor.Tab)
+	if errors.Log(err) != nil {
+		return dt, err
+	}
+	tensorfs.DirFromTable(dir.Dir(name), dt)
+	return dt, err
+}
+
+func (ss *Sim) OpenInputs() {
+	dir := ss.Root.Dir("Inputs")
+	ss.OpenTable(dir, embedfs, "easy.tsv", "Easy", "Easy patterns")
+	ss.OpenTable(dir, embedfs, "hard.tsv", "Hard", "Hard patterns")
+	ss.OpenTable(dir, embedfs, "impossible.tsv", "Impossible", "Impossible patterns")
 }
 
 //////// Stats
@@ -438,6 +452,9 @@ func (ss *Sim) RunStats(mode Modes, level Levels, phase StatsPhase) {
 	if phase == Step && ss.GUI.Tabs != nil {
 		nm := mode.String() + " " + level.String() + " Plot"
 		ss.GUI.Tabs.AsLab().GoUpdatePlot(nm)
+		if level == Run {
+			ss.GUI.Tabs.AsLab().GoUpdatePlot("Train RunAll Plot")
+		}
 	}
 }
 
@@ -473,8 +490,7 @@ func (ss *Sim) StatsInit() {
 		tbs.PlotTensorFS(leabra.StatsNode(ss.Stats, Train, Epoch))
 		tbs.PlotTensorFS(leabra.StatsNode(ss.Stats, Train, Run))
 		tbs.PlotTensorFS(leabra.StatsNode(ss.Stats, Test, Trial))
-		ev := ss.Envs.ByMode(Train).(*LEDEnv)
-		tbs.TensorGrid("Image", &ev.Vis.ImgTsr)
+		tbs.PlotTensorFS(ss.Stats.Dir("Train/RunAll"))
 		tbs.SelectTabIndex(idx)
 	}
 }
@@ -504,30 +520,29 @@ func (ss *Sim) ConfigStats() {
 
 	// up to a point, it is good to use loops over stats in one function,
 	// to reduce repetition of boilerplate.
-	statNames := []string{"CorSim", "SSE", "AvgSSE", "Err", "Err2", "Resp", "NZero", "FirstZero", "LastZero"}
+	statNames := []string{"CorSim", "SSE", "AvgSSE", "Err", "NZero", "FirstZero", "LastZero"}
 	ss.AddStat(func(mode Modes, level Levels, phase StatsPhase) {
 		for _, name := range statNames {
 			if name == "NZero" && (mode != Train || level == Trial) {
 				return
 			}
+			ndata := 1
 			modeDir := ss.Stats.Dir(mode.String())
 			curModeDir := ss.Current.Dir(mode.String())
 			levelDir := modeDir.Dir(level.String())
 			subDir := modeDir.Dir((level - 1).String()) // note: will fail for Cycle
 			tsr := levelDir.Float64(name)
-			ndata := 1
 			var stat float64
 			if phase == Start {
 				tsr.SetNumRows(0)
 				plot.SetFirstStyler(tsr, func(s *plot.Style) {
 					s.Range.SetMin(0).SetMax(1)
-					s.On = true
 					switch name {
-					case "UnitErr", "Resp", "NZero":
-						s.On = false
+					case "SSE":
+						s.On = true
 					case "FirstZero", "LastZero":
-						if level < Run {
-							s.On = false
+						if level >= Run {
+							s.On = true
 						}
 					}
 				})
@@ -546,34 +561,27 @@ func (ss *Sim) ConfigStats() {
 			switch level {
 			case Trial:
 				out := ss.Net.LayerByName("Output")
-				ltsr := curModeDir.Float64(out.Name+"_ActM", out.Shape.Sizes...)
-				ev := ss.Envs.ByMode(Modes(ss.Net.Context().Mode)).(*LEDEnv)
-				for di := range ndata {
-					var stat float64
-					switch name {
-					case "CorSim":
-						stat = 1.0 - float64(out.CosDiff.Cos)
-					case "SSE":
-						sse, avgsse := out.MSE(0.5) // 0.5 = per-unit tolerance
-						stat = sse
-						curModeDir.Float64("AvgSSE", ndata).SetFloat1D(avgsse, 0)
-					case "AvgSSE":
-						stat = curModeDir.Float64("AvgSSE", ndata).Float1D(0)
-					case "Err":
-						out.UnitValuesSampleTensor(ltsr, "ActM", di)
-						cat := curModeDir.Int("Cat", ndata).Int1D(di)
-						rsp, trlErr, trlErr2 := ev.OutErr(ltsr, cat)
-						curModeDir.Float64("Resp", ndata).SetInt1D(rsp, di)
-						curModeDir.Float64("Err2", ndata).SetFloat1D(trlErr2, di)
-						stat = trlErr
-					case "Err2":
-						stat = curModeDir.Float64(name, ndata).Float1D(di)
-					case "Resp":
-						stat = curModeDir.Float64(name, ndata).Float1D(di)
+				var stat float64
+				switch name {
+				case "CorSim":
+					stat = 1.0 - float64(out.CosDiff.Cos)
+				// case "UnitErr":
+				// 	stat = out.PctUnitErr(ss.Net.Context())[0]
+				case "SSE":
+					sse, avgsse := out.MSE(0.5) // 0.5 = per-unit tolerance
+					stat = sse
+					curModeDir.Float64("AvgSSE", ndata).SetFloat1D(avgsse, 0)
+				case "AvgSSE":
+					stat = curModeDir.Float64("AvgSSE", ndata).Float1D(0)
+				case "Err":
+					uniterr := curModeDir.Float64("SSE", ndata).Float1D(0)
+					stat = 1.0
+					if uniterr == 0 {
+						stat = 0
 					}
-					curModeDir.Float64(name, ndata).SetFloat1D(stat, di)
-					tsr.AppendRowFloat(stat)
 				}
+				curModeDir.Float64(name, ndata).SetFloat1D(stat, 0)
+				tsr.AppendRowFloat(stat)
 			case Epoch:
 				nz := curModeDir.Float64("NZero", 1).Float1D(0)
 				switch name {
@@ -623,15 +631,21 @@ func (ss *Sim) ConfigStats() {
 		actGeFunc(mode, level, phase == Start)
 	})
 
-	pcaFunc := leabra.StatPCA(ss.Stats, ss.Current, net, ss.Config.Run.PCAInterval, Train, Trial, Run, lays...)
-	ss.AddStat(func(mode Modes, level Levels, phase StatsPhase) {
-		trnEpc := ss.Loops.Loop(Train, Epoch).Counter.Cur
-		pcaFunc(mode, level, phase == Start, trnEpc)
-	})
-
-	stateFunc := leabra.StatLayerState(ss.Stats, net, Test, Trial, true, "ActM", "Output")
+	stateFunc := leabra.StatLayerState(ss.Stats, net, Test, Trial, true, "ActM", "Input", "Hidden", "Output")
 	ss.AddStat(func(mode Modes, level Levels, phase StatsPhase) {
 		stateFunc(mode, level, phase == Start)
+	})
+
+	runAllFunc := leabra.StatLevelAll(ss.Stats, Train, Run, func(s *plot.Style, cl tensor.Values) {
+		name := metadata.Name(cl)
+		switch name {
+		case "FirstZero", "LastZero":
+			s.On = true
+			s.Range.SetMin(0)
+		}
+	})
+	ss.AddStat(func(mode Modes, level Levels, phase StatsPhase) {
+		runAllFunc(mode, level, phase == Start)
 	})
 }
 
@@ -643,13 +657,12 @@ func (ss *Sim) StatCounters(mode, level enums.Enum) string {
 		return counters
 	}
 	di := vu.View.Di
-	counters += fmt.Sprintf(" Di: %d", di)
 	curModeDir := ss.Current.Dir(mode.String())
 	if curModeDir.Node("TrialName") == nil {
 		return counters
 	}
 	counters += fmt.Sprintf(" TrialName: %s", curModeDir.StringValue("TrialName").String1D(di))
-	statNames := []string{"CorSim", "UnitErr", "Err"}
+	statNames := []string{"CorSim", "SSE", "Err"}
 	if level == Cycle || curModeDir.Node(statNames[0]) == nil {
 		return counters
 	}
@@ -663,11 +676,11 @@ func (ss *Sim) StatCounters(mode, level enums.Enum) string {
 
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI(b tree.Node) {
-	ss.GUI.MakeBody(b, ss, ss.Root, ss.Config.Name, ss.Config.Title, ss.Config.Doc)
+	ss.GUI.MakeBody(b, ss, ss.Root, ss.Config.Name, ss.Config.Title, ss.Config.Doc, readme)
 	ss.GUI.StopLevel = Trial
 	nv := ss.GUI.AddNetView("Network")
-	nv.Options.MaxRecs = 2 * ss.Config.Run.Cycles
-	nv.Options.Raster.Max = ss.Config.Run.Cycles
+	nv.Options.MaxRecs = 2 * 100
+	nv.Options.Raster.Max = 100
 	nv.SetNet(ss.Net)
 	ss.TrainUpdate.Config(nv, leabra.Phase, ss.StatCounters)
 	ss.TestUpdate.Config(nv, leabra.Phase, ss.StatCounters)
@@ -676,8 +689,8 @@ func (ss *Sim) ConfigGUI(b tree.Node) {
 		vu.UpdateWhenStopped(mode, level)
 	}
 
-	nv.SceneXYZ().Camera.Pose.Pos.Set(0, 1.733, 2.3)
-	nv.SceneXYZ().Camera.LookAt(math32.Vec3(0, 0, 0), math32.Vec3(0, 1, 0))
+	nv.SceneXYZ().Camera.Pose.Pos.Set(0.1, 3.0, 3.0)
+	nv.SceneXYZ().Camera.LookAt(math32.Vec3(0.1, 0.2, 0), math32.Vec3(0, 1, 0))
 
 	ss.StatsInit()
 	ss.GUI.FinalizeGUI(false)
@@ -707,20 +720,11 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 	})
 }
 
-func (ss *Sim) RunGUI() {
-	ss.Init()
-	ss.ConfigGUI(nil)
-	ss.GUI.Body.RunMainWindow()
-}
-
 func (ss *Sim) RunNoGUI() {
 	ss.Init()
 
 	if ss.Config.Params.Note != "" {
 		mpi.Printf("Note: %s\n", ss.Config.Params.Note)
-	}
-	if ss.Config.Log.SaveWeights {
-		mpi.Printf("Saving final weights per run\n")
 	}
 
 	runName := ss.SetRunName()
