@@ -33,7 +33,7 @@ The receiving unit showed an activity value of 0 because it was not activated ab
 
 You should have seen the receiving unit finally activated when the digit `8` was presented, with an activation of zero for all the other digits. Thus, as expected, the receiving unit acts like an `8` detector: only when the input perfectly matches the input weights is there enough excitatory input to drive the receiving neuron above its firing threshold.
 
-    * You can use the "VCR" style buttons after the Time label at the bottom of the `Network` to review each cycle of updating, to see the progression of activation over time.
+* You can use the "VCR" style buttons after the Time label at the bottom of the `Network` to review each cycle of updating, to see the progression of activation over time.
 
 * Go ahead and do one more [[sim:Step]] to see what happens with `9`.
 
