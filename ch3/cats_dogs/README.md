@@ -6,7 +6,7 @@ This project explores a simple **semantic network** intended to represent a (ver
 
 Cats and Dogs Semantics:
 
-![Cats and Dogs table](https://raw.githubusercontent.com/CompCogNeuro/sims/refs/heads/main/ch3/cats_dogs/table.png)
+![Cats and Dogs table](table.png)
 
 The knowledge embedded in the network is summarized in the above table. Although in later networks we will see how this knowledge can be learned with experience (e.g., with individual cats and dogs), here this knowledge is encoded by simply setting a strong weight (usually 1) between an *instance* (`Identity`) node representing an individual cat or dog and the corresponding feature (e.g., brown) that this individual possesses (c.f., the Jets and Sharks model from McClelland & Rumelhart, 1988).  Each of the groups of features (i.e., values within one column of the table) are represented within distinct layers that have their own within-layer inhibition, so that units in each layer compete to best represent the input. In addition, all of the identity units and the name units are within their own separate layers as well. We use the `FFFB` inhibitory function here which allows considerable flexibility in the actual number of active units per layer.
 

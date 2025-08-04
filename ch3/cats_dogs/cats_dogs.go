@@ -39,7 +39,7 @@ import (
 //go:embed cats_dogs_pats.tsv cats_dogs.wts
 var content embed.FS
 
-//go:embed README.md
+//go:embed README.md *.png
 var readme embed.FS
 
 func main() {
