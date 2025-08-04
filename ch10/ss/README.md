@@ -83,14 +83,7 @@ You should see that network correctly pronounced the nonword "beed" by producing
 
 * Continue to [[sim:Step]]: `Trial` through some more items on this and the other two testing lists (`Besner`, `Taraban`).
 
-| Nonword Set               | ss Model | PMSP  | People |
-|---------------------------|----------|-------|--------|
-| Glushko regulars          | 95.3     | 97.7  | 93.8   |
-| Glushko exceptions raw    | 79.0     | 72.1  | 78.3   |
-| Glushko exceptions alt OK | 97.6     | 100.0 | 95.9   |
-| McCann & Besner ctrls     | 85.9     | 85.0  | 88.6   |
-| McCann & Besner homoph    | 92.3     | n/a   | 94.3   |
-| Taraban & McClelland      | 97.9     | n/a   | 100.0  |
+![Table](table.png)
 
 **Table 1** Comparison of nonword reading performance for our spelling-to-sound model (ss Model), the PMSP model, and data from people, across a range of different nonword datasets as described in the text. Our model performs comparably to people, after learning on nearly 3,000 English monosyllabic words.
 
