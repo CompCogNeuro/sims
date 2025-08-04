@@ -2,11 +2,46 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
+package objrec
 
-import (
-	"github.com/emer/emergent/v2/params"
-)
+import "github.com/emer/leabra/v2/leabra"
+
+// LayerParams sets the minimal non-default params.
+// Base is always applied, and others can be optionally selected to apply on top of that.
+var LayerParams = leabra.LayerSheets{
+	"Base": {
+		{Sel: "Layer", Doc: "needs some special inhibition and learning params",
+			Set: func(ly *leabra.LayerParams) {
+			}},
+		{Sel: "#V1", Doc: "pool inhib (not used), initial activity",
+			Set: func(ly *leabra.LayerParams) {
+			}},
+		{Sel: "#V4", Doc: "pool inhib, sparse activity",
+			Set: func(ly *leabra.LayerParams) {
+			}},
+		{Sel: "#IT", Doc: "initial activity",
+			Set: func(ly *leabra.LayerParams) {
+			}},
+		{Sel: "#Output", Doc: "high inhib for one-hot output",
+			Set: func(ly *leabra.LayerParams) {
+			}},
+	},
+}
+
+// PathParams sets the minimal non-default params.
+// Base is always applied, and others can be optionally selected to apply on top of that.
+var PathParams = leabra.PathSheets{
+	"Base": {
+		{Sel: "Path", Doc: "",
+			Set: func(pt *leabra.PathParams) {
+			}},
+		{Sel: ".BackPath", Doc: "top-down back-pathways MUST have lower relative weight scale, otherwise network hallucinates -- smaller as network gets bigger",
+			Set: func(pt *leabra.PathParams) {
+			}},
+	},
+}
+
+/*
 
 // ParamSets is the default set of parameters -- Base is always applied, and others can be optionally
 // selected to apply on top of that
@@ -62,3 +97,5 @@ var ParamSets = params.Sets{
 			}},
 	},
 }
+
+*/
