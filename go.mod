@@ -3,7 +3,7 @@ module github.com/CompCogNeuro/sims/v2
 go 1.23.4
 
 require (
-	cogentcore.org/core v0.3.12
+	cogentcore.org/core v0.3.13-0.20250731222552-d1d0e5942de9
 	cogentcore.org/lab v0.1.2
 	github.com/anthonynsimon/bild v0.13.0
 	github.com/emer/emergent/v2 v2.0.0-dev0.1.7.0.20250721194303-26f94339ac13
