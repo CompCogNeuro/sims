@@ -200,7 +200,7 @@ func (ss *Sim) ConfigNet(net *leabra.Network) {
 	ss.InitWeights(net)
 }
 
-// InitWeights initializes weights to digit 8
+// InitWeights initializes weights.
 func (ss *Sim) InitWeights(net *leabra.Network) {
 	net.InitWeights()
 	net.OpenWeightsFS(embedfs, "cats_dogs.wts")
