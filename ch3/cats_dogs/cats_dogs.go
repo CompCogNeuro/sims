@@ -301,7 +301,7 @@ func (ss *Sim) NewRun() {
 	ctx := ss.Net.Context()
 	ss.Envs.ByMode(Test).Init(0)
 	ctx.Reset()
-	ss.Net.InitWeights()
+	ss.InitWeights(ss.Net)
 }
 
 /////////  Patterns
