@@ -354,7 +354,7 @@ func (ss *Sim) AddStat(f func(mode Modes, level Levels, phase StatsPhase)) {
 func (ss *Sim) StatsStart(lmd, ltm enums.Enum) {
 	mode := lmd.(Modes)
 	level := ltm.(Levels)
-	if level <= Trial {
+	if level <= Cycle {
 		return
 	}
 	ss.RunStats(mode, level-1, Start)
@@ -365,9 +365,9 @@ func (ss *Sim) StatsStart(lmd, ltm enums.Enum) {
 func (ss *Sim) StatsStep(lmd, ltm enums.Enum) {
 	mode := lmd.(Modes)
 	level := ltm.(Levels)
-	if level == Cycle {
-		return
-	}
+	// if level == Cycle {
+	// 	return
+	// }
 	ss.RunStats(mode, level, Step)
 	tensorfs.DirTable(leabra.StatsNode(ss.Stats, mode, level), nil).WriteToLog()
 }
@@ -406,17 +406,17 @@ func (ss *Sim) StatsInit() {
 		mode := md.(Modes)
 		for _, lev := range st.Order {
 			level := lev.(Levels)
-			if level == Cycle {
-				continue
-			}
+			// if level == Cycle {
+			// 	continue
+			// }
 			ss.RunStats(mode, level, Start)
 		}
 	}
 	if ss.GUI.Tabs != nil {
 		tbs := ss.GUI.Tabs.AsLab()
 		_, idx := tbs.CurrentTab()
-		tbs.PlotTensorFS(leabra.StatsNode(ss.Stats, Test, Trial))
 		tbs.PlotTensorFS(leabra.StatsNode(ss.Stats, Test, Cycle))
+		tbs.PlotTensorFS(leabra.StatsNode(ss.Stats, Test, Trial))
 		// TODO tbs.PlotTensorFS(ss.Stats.Dir("Train/RunAll"))
 		tbs.SelectTabIndex(idx)
 	}
@@ -452,7 +452,7 @@ func (ss *Sim) ConfigStats() {
 		for _, name := range statNames {
 			ndata := 1
 			modeDir := ss.Stats.Dir(mode.String())
-			// curModeDir := ss.Current.Dir(mode.String())
+			curModeDir := ss.Current.Dir(mode.String())
 			levelDir := modeDir.Dir(level.String())
 			//subDir := modeDir.Dir((level - 1).String()) // note: will fail for Cycle
 			tsr := levelDir.Float64(name)
@@ -461,14 +461,12 @@ func (ss *Sim) ConfigStats() {
 				tsr.SetNumRows(0)
 				plot.SetFirstStyler(tsr, func(s *plot.Style) {
 					s.Range.SetMin(0).SetMax(1)
-					// switch name {
-					// case "SSE":
-					// 	s.On = true
-					// case "FirstZero", "LastZero":
-					// 	if level >= Run {
-					// 		s.On = true
-					// 	}
-					// }
+					switch name {
+					case "Harmony":
+						if level == Cycle {
+							s.On = true
+						}
+					}
 				})
 				// switch name {
 				// case "NZero":
@@ -490,7 +488,7 @@ func (ss *Sim) ConfigStats() {
 					harmony := float64(ss.Harmony(ss.Net))
 					stat = harmony
 				}
-				levelDir.Float64(name, ndata).SetFloat1D(stat, 0)
+				curModeDir.Float64(name, ndata).SetFloat1D(stat, 0)
 				tsr.AppendRowFloat(stat)
 				// case Epoch:
 				// 	nz := curModeDir.Float64("NZero", 1).Float1D(0)
@@ -593,7 +591,7 @@ func (ss *Sim) StatCounters(mode, level enums.Enum) string {
 	}
 	counters += fmt.Sprintf(" TrialName: %s", curModeDir.StringValue("TrialName").String1D(di))
 	statNames := []string{"CorSim", "SSE", "Err"}
-	if level == Cycle || curModeDir.Node(statNames[0]) == nil {
+	if curModeDir.Node(statNames[0]) == nil {
 		return counters
 	}
 	for _, name := range statNames {
