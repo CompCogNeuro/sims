@@ -26,6 +26,7 @@ import (
 	"cogentcore.org/lab/base/mpi"
 	"cogentcore.org/lab/base/randx"
 	"cogentcore.org/lab/plot"
+	"cogentcore.org/lab/stats/stats"
 	"cogentcore.org/lab/table"
 	"cogentcore.org/lab/tensor"
 	"cogentcore.org/lab/tensorfs"
@@ -406,9 +407,6 @@ func (ss *Sim) StatsInit() {
 		mode := md.(Modes)
 		for _, lev := range st.Order {
 			level := lev.(Levels)
-			// if level == Cycle {
-			// 	continue
-			// }
 			ss.RunStats(mode, level, Start)
 		}
 	}
@@ -417,7 +415,6 @@ func (ss *Sim) StatsInit() {
 		_, idx := tbs.CurrentTab()
 		tbs.PlotTensorFS(leabra.StatsNode(ss.Stats, Test, Cycle))
 		tbs.PlotTensorFS(leabra.StatsNode(ss.Stats, Test, Trial))
-		// TODO tbs.PlotTensorFS(ss.Stats.Dir("Train/RunAll"))
 		tbs.SelectTabIndex(idx)
 	}
 }
@@ -429,14 +426,14 @@ func (ss *Sim) ConfigStats() {
 	ss.Stats = ss.Root.Dir("Stats")
 	ss.Current = ss.Stats.Dir("Current")
 
-	// TODO remove? ss.SetRunName()
+	ss.SetRunName()
 
 	// last arg(s) are levels to exclude
-	counterFunc := leabra.StatLoopCounters(ss.Stats, ss.Current, ss.Loops, net, Trial, Cycle)
+	counterFunc := leabra.StatLoopCounters(ss.Stats, ss.Current, ss.Loops, net, Trial)
 	ss.AddStat(func(mode Modes, level Levels, phase StatsPhase) {
 		counterFunc(mode, level, phase == Start)
 	})
-	runNameFunc := leabra.StatRunName(ss.Stats, ss.Current, ss.Loops, net, Trial, Cycle)
+	runNameFunc := leabra.StatRunName(ss.Stats, ss.Current, ss.Loops, net, Trial)
 	ss.AddStat(func(mode Modes, level Levels, phase StatsPhase) {
 		runNameFunc(mode, level, phase == Start)
 	})
@@ -450,13 +447,14 @@ func (ss *Sim) ConfigStats() {
 	statNames := []string{"Harmony"}
 	ss.AddStat(func(mode Modes, level Levels, phase StatsPhase) {
 		for _, name := range statNames {
+			di := 0
 			ndata := 1
 			modeDir := ss.Stats.Dir(mode.String())
 			curModeDir := ss.Current.Dir(mode.String())
 			levelDir := modeDir.Dir(level.String())
-			//subDir := modeDir.Dir((level - 1).String()) // note: will fail for Cycle
+			subDir := modeDir.Dir((level - 1).String()) // note: will fail for Cycle
 			tsr := levelDir.Float64(name)
-			// var stat float64
+			var stat float64
 			if phase == Start {
 				tsr.SetNumRows(0)
 				plot.SetFirstStyler(tsr, func(s *plot.Style) {
@@ -468,16 +466,6 @@ func (ss *Sim) ConfigStats() {
 						}
 					}
 				})
-				// switch name {
-				// case "NZero":
-				// 	if level == Epoch {
-				// 		curModeDir.Float64(name, 1).SetFloat1D(0, 0)
-				// 	}
-				// case "FirstZero", "LastZero":
-				// 	if level == Epoch {
-				// 		curModeDir.Float64(name, 1).SetFloat1D(-1, 0)
-				// 	}
-				// }
 				continue
 			}
 			switch level {
@@ -485,76 +473,18 @@ func (ss *Sim) ConfigStats() {
 				var stat float64
 				switch name {
 				case "Harmony":
-					harmony := float64(ss.Harmony(ss.Net))
-					stat = harmony
+					stat = float64(ss.Harmony(ss.Net))
+				default:
+					stat = stats.StatMean.Call(subDir.Value(name)).Float1D(0)
 				}
-				curModeDir.Float64(name, ndata).SetFloat1D(stat, 0)
+				curModeDir.Float64(name, ndata).SetFloat1D(stat, di)
 				tsr.AppendRowFloat(stat)
-				// case Epoch:
-				// 	nz := curModeDir.Float64("NZero", 1).Float1D(0)
-				// 	switch name {
-				// 	case "NZero":
-				// 		err := stats.StatSum.Call(subDir.Value("Err")).Float1D(0)
-				// 		stat = curModeDir.Float64(name, 1).Float1D(0)
-				// 		if err == 0 {
-				// 			stat++
-				// 		} else {
-				// 			stat = 0
-				// 		}
-				// 		curModeDir.Float64(name, 1).SetFloat1D(stat, 0)
-				// 	case "FirstZero":
-				// 		stat = curModeDir.Float64(name, 1).Float1D(0)
-				// 		if stat < 0 && nz == 1 {
-				// 			stat = curModeDir.Int("Epoch", 1).Float1D(0)
-				// 		}
-				// 		curModeDir.Float64(name, 1).SetFloat1D(stat, 0)
-				// 	case "LastZero":
-				// 		stat = curModeDir.Float64(name, 1).Float1D(0)
-				// 		if stat < 0 && nz >= float64(ss.Config.Run.NZero) {
-				// 			stat = curModeDir.Int("Epoch", 1).Float1D(0)
-				// 		}
-				// 		curModeDir.Float64(name, 1).SetFloat1D(stat, 0)
-				// 	default:
-				// 		stat = stats.StatMean.Call(subDir.Value(name)).Float1D(0)
-				// 	}
-				// 	tsr.AppendRowFloat(stat)
-				// case Run:
-				// 	stat = stats.StatFinal.Call(subDir.Value(name)).Float1D(0)
-				// 	tsr.AppendRowFloat(stat)
-				// default: // Expt
-				// 	stat = stats.StatMean.Call(subDir.Value(name)).Float1D(0)
-				// 	tsr.AppendRowFloat(stat)
+			default: // Expt
+				stat = stats.StatMean.Call(subDir.Value(name)).Float1D(0)
+				tsr.AppendRowFloat(stat)
 			}
 		}
 	})
-
-	// perTrlFunc := leabra.StatPerTrialMSec(ss.Stats, Trial)
-	// ss.AddStat(func(mode Modes, level Levels, phase StatsPhase) {
-	// 	perTrlFunc(mode, level, phase == Start)
-	// })
-
-	// lays := net.LayersByType(leabra.SuperLayer, leabra.CTLayer, leabra.TargetLayer)
-	// actGeFunc := leabra.StatLayerActGe(ss.Stats, net, Trial, Run, lays...)
-	// ss.AddStat(func(mode Modes, level Levels, phase StatsPhase) {
-	// 	actGeFunc(mode, level, phase == Start)
-	// })
-
-	// stateFunc := leabra.StatLayerState(ss.Stats, net, Test, Trial, true, "ActM", "Input", "Output")
-	// ss.AddStat(func(mode Modes, level Levels, phase StatsPhase) {
-	// 	stateFunc(mode, level, phase == Start)
-	// })
-
-	// runAllFunc := leabra.StatLevelAll(ss.Stats, Run, func(s *plot.Style, cl tensor.Values) {
-	// 	name := metadata.Name(cl)
-	// 	switch name {
-	// 	case "FirstZero", "LastZero":
-	// 		s.On = true
-	// 		s.Range.SetMin(0)
-	// 	}
-	// })
-	// ss.AddStat(func(mode Modes, level Levels, phase StatsPhase) {
-	// 	runAllFunc(mode, level, phase == Start)
-	// })
 }
 
 // Harmony computes the harmony (excitatory net input Ge * Act)
@@ -590,8 +520,8 @@ func (ss *Sim) StatCounters(mode, level enums.Enum) string {
 		return counters
 	}
 	counters += fmt.Sprintf(" TrialName: %s", curModeDir.StringValue("TrialName").String1D(di))
-	statNames := []string{"CorSim", "SSE", "Err"}
-	if curModeDir.Node(statNames[0]) == nil {
+	statNames := []string{"Harmony"}
+	if level == Cycle || curModeDir.Node(statNames[0]) == nil {
 		return counters
 	}
 	for _, name := range statNames {
@@ -626,6 +556,7 @@ func (ss *Sim) ConfigNetView(nv *netview.NetView) {
 func (ss *Sim) ConfigGUI(b tree.Node) {
 	ss.GUI.MakeBody(b, ss, ss.Root, ss.Config.Name, ss.Config.Title, ss.Config.Doc, readme)
 	ss.GUI.StopLevel = Trial
+	ss.GUI.CycleUpdateInterval = 1
 	nv := ss.GUI.AddNetView("Network")
 	nv.Options.MaxRecs = 2 * 100
 	nv.Options.Raster.Max = 100
