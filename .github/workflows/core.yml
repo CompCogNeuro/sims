@@ -45,6 +45,9 @@ jobs:
       - name: Build Sims
         run: ./make
 
+      - name: Copy CNAME
+        run: cp CNAME static
+
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v5
