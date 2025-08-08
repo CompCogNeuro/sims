@@ -1,4 +1,4 @@
-*Back to [All Sims](https://github.com/compcogneuro/sims)*
+*[Back to simulations](https://compcogneuro.org/simulations)*
 
 # Introduction
 

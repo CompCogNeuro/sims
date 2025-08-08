@@ -1,4 +1,4 @@
-Back to [All Sims](https://github.com/compcogneuro/sims) (also for general info and executable downloads)
+*[Back to simulations](https://compcogneuro.org/simulations)*
 
 **NOTE:** This simulation will be updated later, using the axon version of PVLV, which is much improved, but currently not available for the web platform.
 
