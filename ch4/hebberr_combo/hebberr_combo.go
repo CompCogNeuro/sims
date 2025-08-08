@@ -662,7 +662,7 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI() {
 	title := "HebbErr_Combo"
-	ss.GUI.MakeBody(ss, "hebberr_combo", title, `hebberr_combo shows how XCal hebbian learning in shallower layers of a network can aid an error driven learning network to generalize to unseen combinations of patterns. See <a href="https://github.com/CompCogNeuro/sims/blob/main/ch4/hebberr_combo/README.md">README.md on GitHub</a>.</p>`, readme)
+	ss.GUI.MakeBody(ss, "hebberr_combo", title, `hebberr_combo shows how XCal hebbian learning in shallower layers of a network can aid an error driven learning network to generalize to unseen combinations of patterns. See <a href="https://github.com/compcogneuro/sims/blob/main/ch4/hebberr_combo/README.md">README.md on GitHub</a>.</p>`, readme)
 	ss.GUI.CycleUpdateInterval = 10
 
 	nv := ss.GUI.AddNetView("Network")
@@ -719,7 +719,7 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 		Tooltip: "Opens your browser on the README file that contains instructions for how to run this model.",
 		Active:  egui.ActiveAlways,
 		Func: func() {
-			core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/main/ch4/hebberr_combo/README.md")
+			core.TheApp.OpenURL("https://github.com/compcogneuro/sims/blob/main/ch4/hebberr_combo/README.md")
 		},
 	})
 }

@@ -744,7 +744,7 @@ func (ss *Sim) ConfigNetView(nv *netview.NetView) {
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI() {
 	title := "Stroop"
-	ss.GUI.MakeBody(ss, "stroop", title, `illustrates how the PFC can produce top-down biasing for executive control, in the context of the widely studied Stroop task. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch9/stroop/README.md">README.md on GitHub</a>.</p>`, readme)
+	ss.GUI.MakeBody(ss, "stroop", title, `illustrates how the PFC can produce top-down biasing for executive control, in the context of the widely studied Stroop task. See <a href="https://github.com/compcogneuro/sims/blob/master/ch9/stroop/README.md">README.md on GitHub</a>.</p>`, readme)
 	ss.GUI.CycleUpdateInterval = 10
 
 	nv := ss.GUI.AddNetView("Network")
@@ -791,7 +791,7 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 		Tooltip: "Opens your browser on the README file that contains instructions for how to run this model.",
 		Active:  egui.ActiveAlways,
 		Func: func() {
-			core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/main/ch9/stroop/README.md")
+			core.TheApp.OpenURL("https://github.com/compcogneuro/sims/blob/main/ch9/stroop/README.md")
 		},
 	})
 }

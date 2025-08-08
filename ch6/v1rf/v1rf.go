@@ -550,7 +550,7 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI() {
 	title := "V1RF"
-	ss.GUI.MakeBody(ss, "v1rf", title, `This simulation illustrates how self-organizing learning in response to natural images produces the oriented edge detector receptive field properties of neurons in primary visual cortex (V1). This provides insight into why the visual system encodes information in the way it does, while also providing an important test of the biological relevance of our computational models. See <a href="https://github.com/CompCogNeuro/sims/blob/main/ch6/v1rf/README.md">README.md on GitHub</a>.</p>`, readme)
+	ss.GUI.MakeBody(ss, "v1rf", title, `This simulation illustrates how self-organizing learning in response to natural images produces the oriented edge detector receptive field properties of neurons in primary visual cortex (V1). This provides insight into why the visual system encodes information in the way it does, while also providing an important test of the biological relevance of our computational models. See <a href="https://github.com/compcogneuro/sims/blob/main/ch6/v1rf/README.md">README.md on GitHub</a>.</p>`, readme)
 	ss.GUI.CycleUpdateInterval = 10
 
 	nv := ss.GUI.AddNetView("Network")
@@ -651,7 +651,7 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 		Tooltip: "Opens your browser on the README file that contains instructions for how to run this model.",
 		Active:  egui.ActiveAlways,
 		Func: func() {
-			core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/main/ch6/v1rf/README.md")
+			core.TheApp.OpenURL("https://github.com/compcogneuro/sims/blob/main/ch6/v1rf/README.md")
 		},
 	})
 }

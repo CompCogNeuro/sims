@@ -427,7 +427,7 @@ func (ss *Sim) ConfigNetView(nv *netview.NetView) {
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI() {
 	title := "Neuron"
-	ss.GUI.MakeBody(ss, "neuron", title, `This simulation illustrates the basic properties of neural spiking and rate-code activation, reflecting a balance of excitatory and inhibitory influences (including leak and synaptic inhibition). See <a href="https://github.com/CompCogNeuro/sims/blob/main/ch2/neuron/README.md">README.md on GitHub</a>.</p>`, readme)
+	ss.GUI.MakeBody(ss, "neuron", title, `This simulation illustrates the basic properties of neural spiking and rate-code activation, reflecting a balance of excitatory and inhibitory influences (including leak and synaptic inhibition). See <a href="https://github.com/compcogneuro/sims/blob/main/ch2/neuron/README.md">README.md on GitHub</a>.</p>`, readme)
 	ss.GUI.CycleUpdateInterval = 10
 
 	nv := ss.GUI.AddNetView("Network")
@@ -515,7 +515,7 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 		Tooltip: "Opens your browser on the README file that contains instructions for how to run this model.",
 		Active:  egui.ActiveAlways,
 		Func: func() {
-			core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/main/ch2/neuron/README.md")
+			core.TheApp.OpenURL("https://github.com/compcogneuro/sims/blob/main/ch2/neuron/README.md")
 		},
 	})
 }

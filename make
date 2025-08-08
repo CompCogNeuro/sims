@@ -1,7 +1,7 @@
 #!/usr/bin/env goal
 
 for _, pkg := range goalib.SplitLines($go list ./...$) {
-    pkg = strings.TrimPrefix(pkg, "github.com/CompCogNeuro/sims/v2")
+    pkg = strings.TrimPrefix(pkg, "github.com/compcogneuro/sims/v2")
     if pkg == "" {
         continue
     }

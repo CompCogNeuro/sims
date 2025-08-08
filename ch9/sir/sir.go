@@ -737,7 +737,7 @@ func (ss *Sim) ConfigNetView(nv *netview.NetView) {
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI() {
 	title := "SIR"
-	ss.GUI.MakeBody(ss, "sir", title, `sir illustrates the dynamic gating of information into PFC active maintenance, by the basal ganglia (BG). It uses a simple Store-Ignore-Recall (SIR) task, where the BG system learns via phasic dopamine signals and trial-and-error exploration, discovering what needs to be stored, ignored, and recalled as a function of reinforcement of correct behavior, and learned reinforcement of useful working memory representations. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch9/sir/README.md">README.md on GitHub</a>.</p>`, readme)
+	ss.GUI.MakeBody(ss, "sir", title, `sir illustrates the dynamic gating of information into PFC active maintenance, by the basal ganglia (BG). It uses a simple Store-Ignore-Recall (SIR) task, where the BG system learns via phasic dopamine signals and trial-and-error exploration, discovering what needs to be stored, ignored, and recalled as a function of reinforcement of correct behavior, and learned reinforcement of useful working memory representations. See <a href="https://github.com/compcogneuro/sims/blob/master/ch9/sir/README.md">README.md on GitHub</a>.</p>`, readme)
 	ss.GUI.CycleUpdateInterval = 10
 
 	nv := ss.GUI.AddNetView("Network")
@@ -785,7 +785,7 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 		Tooltip: "Opens your browser on the README file that contains instructions for how to run this model.",
 		Active:  egui.ActiveAlways,
 		Func: func() {
-			core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/main/ch9/sir/README.md")
+			core.TheApp.OpenURL("https://github.com/compcogneuro/sims/blob/main/ch9/sir/README.md")
 		},
 	})
 }

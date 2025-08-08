@@ -438,7 +438,7 @@ func (ss *Sim) ConfigNetView(nv *netview.NetView) {
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI() {
 	title := "CatsAndDogs"
-	ss.GUI.MakeBody(ss, "cats_dogs", title, `This project explores a simple **semantic network** intended to represent a (very small) set of relationships among different features used to represent a set of entities in the world.  In our case, we represent some features of cats and dogs: their color, size, favorite food, and favorite toy. See <a href="https://github.com/CompCogNeuro/sims/blob/main/ch3/cats_dogs/README.md">README.md on GitHub</a>.</p>`, readme)
+	ss.GUI.MakeBody(ss, "cats_dogs", title, `This project explores a simple **semantic network** intended to represent a (very small) set of relationships among different features used to represent a set of entities in the world.  In our case, we represent some features of cats and dogs: their color, size, favorite food, and favorite toy. See <a href="https://github.com/compcogneuro/sims/blob/main/ch3/cats_dogs/README.md">README.md on GitHub</a>.</p>`, readme)
 	ss.GUI.CycleUpdateInterval = 10
 
 	nv := ss.GUI.AddNetView("Network")
@@ -464,7 +464,7 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 		Tooltip: "Opens your browser on the README file that contains instructions for how to run this model.",
 		Active:  egui.ActiveAlways,
 		Func: func() {
-			core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/main/ch3/cats_dogs/README.md")
+			core.TheApp.OpenURL("https://github.com/compcogneuro/sims/blob/main/ch3/cats_dogs/README.md")
 		},
 	})
 }

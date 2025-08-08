@@ -1,4 +1,4 @@
-*Back to [All Sims](https://github.com/CompCogNeuro/sims)*
+*Back to [All Sims](https://github.com/compcogneuro/sims)*
 
 # Introduction
 

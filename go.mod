@@ -1,4 +1,4 @@
-module github.com/CompCogNeuro/sims/v2
+module github.com/compcogneuro/sims/v2
 
 go 1.23.4
 

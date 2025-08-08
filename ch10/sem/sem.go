@@ -660,7 +660,7 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI() {
 	title := "Semantics"
-	ss.GUI.MakeBody(ss, "sem", title, `sem is trained using Hebbian learning on paragraphs from an early draft of the *Computational Explorations..* textbook, allowing it to learn about the overall statistics of when different words co-occur with other words, and thereby learning a surprisingly capable (though clearly imperfect) level of semantic knowlege about the topics covered in the textbook.  This replicates the key results from the Latent Semantic Analysis research by Landauer and Dumais (1997). See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch10/sem/README.md">README.md on GitHub</a>.</p>`, readme)
+	ss.GUI.MakeBody(ss, "sem", title, `sem is trained using Hebbian learning on paragraphs from an early draft of the *Computational Explorations..* textbook, allowing it to learn about the overall statistics of when different words co-occur with other words, and thereby learning a surprisingly capable (though clearly imperfect) level of semantic knowlege about the topics covered in the textbook.  This replicates the key results from the Latent Semantic Analysis research by Landauer and Dumais (1997). See <a href="https://github.com/compcogneuro/sims/blob/master/ch10/sem/README.md">README.md on GitHub</a>.</p>`, readme)
 	ss.GUI.CycleUpdateInterval = 10
 
 	nv := ss.GUI.AddNetView("Network")
@@ -728,7 +728,7 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 		Tooltip: "Opens your browser on the README file that contains instructions for how to run this model.",
 		Active:  egui.ActiveAlways,
 		Func: func() {
-			core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/main/ch10/sem/README.md")
+			core.TheApp.OpenURL("https://github.com/compcogneuro/sims/blob/main/ch10/sem/README.md")
 		},
 	})
 }

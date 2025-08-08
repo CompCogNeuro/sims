@@ -14,7 +14,7 @@ This repository contains the neural network simulation models for the [CCN Textb
 
 * **Nov 23, 2020**: Version 1.2.2 release: full set of Python versions and the pvlv model.
 
-* See https://github.com/CompCogNeuro/sims/releases for full history
+* See https://github.com/compcogneuro/sims/releases for full history
 
 ## Developer notes
 

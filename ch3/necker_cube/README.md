@@ -1,4 +1,4 @@
-Back to [All Sims](https://github.com/CompCogNeuro/sims) (also for general info and executable downloads)
+Back to [All Sims](https://github.com/compcogneuro/sims) (also for general info and executable downloads)
 
 ![The Necker Cube](fig_necker_cube.png?raw=true "The Necker Cube")
 

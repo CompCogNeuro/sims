@@ -932,7 +932,7 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI() {
 	title := "Hippocampus"
-	ss.GUI.MakeBody(ss, "hip", title, `runs a hippocampus model on the AB-AC paired associate learning task. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch7/hip/README.md">README.md on GitHub</a>.</p>`, readme)
+	ss.GUI.MakeBody(ss, "hip", title, `runs a hippocampus model on the AB-AC paired associate learning task. See <a href="https://github.com/compcogneuro/sims/blob/master/ch7/hip/README.md">README.md on GitHub</a>.</p>`, readme)
 	ss.GUI.CycleUpdateInterval = 10
 
 	nv := ss.GUI.AddNetView("Network")
@@ -987,7 +987,7 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 		Tooltip: "Opens your browser on the README file that contains instructions for how to run this model.",
 		Active:  egui.ActiveAlways,
 		Func: func() {
-			core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/master/ch7/hip/README.md")
+			core.TheApp.OpenURL("https://github.com/compcogneuro/sims/blob/master/ch7/hip/README.md")
 		},
 	})
 }

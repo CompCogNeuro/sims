@@ -537,7 +537,7 @@ func (ss *Sim) Log(mode etime.Modes, time etime.Times) {
 // ConfigGUI configures the Cogent Core GUI interface for this simulation.
 func (ss *Sim) ConfigGUI() {
 	title := "BG"
-	ss.GUI.MakeBody(ss, "bg", title, `is a simplified basal ganglia (BG) network showing how dopamine bursts can reinforce *Go* (direct pathway) firing for actions that lead to reward, and dopamine dips reinforce *NoGo* (indirect pathway) firing for actions that do not lead to positive outcomes, producing Thorndike's classic *Law of Effect* for instrumental conditioning, and also providing a mechanism to learn and select among actions with different reward probabilities over multiple experiences. See <a href="https://github.com/CompCogNeuro/sims/blob/master/ch8/bg/README.md">README.md on GitHub</a>.</p>`, readme)
+	ss.GUI.MakeBody(ss, "bg", title, `is a simplified basal ganglia (BG) network showing how dopamine bursts can reinforce *Go* (direct pathway) firing for actions that lead to reward, and dopamine dips reinforce *NoGo* (indirect pathway) firing for actions that do not lead to positive outcomes, producing Thorndike's classic *Law of Effect* for instrumental conditioning, and also providing a mechanism to learn and select among actions with different reward probabilities over multiple experiences. See <a href="https://github.com/compcogneuro/sims/blob/master/ch8/bg/README.md">README.md on GitHub</a>.</p>`, readme)
 	ss.GUI.CycleUpdateInterval = 10
 
 	nv := ss.GUI.AddNetView("Network")
@@ -589,7 +589,7 @@ func (ss *Sim) MakeToolbar(p *tree.Plan) {
 		Tooltip: "Opens your browser on the README file that contains instructions for how to run this model.",
 		Active:  egui.ActiveAlways,
 		Func: func() {
-			core.TheApp.OpenURL("https://github.com/CompCogNeuro/sims/blob/main/ch8/bg/README.md")
+			core.TheApp.OpenURL("https://github.com/compcogneuro/sims/blob/main/ch8/bg/README.md")
 		},
 	})
 }
