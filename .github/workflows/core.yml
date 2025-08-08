@@ -48,6 +48,9 @@ jobs:
       - name: Copy CNAME
         run: cp CNAME static
 
+      - name: Copy index.html
+        run: cp index.html static
+
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v5
